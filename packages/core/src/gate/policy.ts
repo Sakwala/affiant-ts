@@ -1,15 +1,17 @@
 /**
- * The approval-policy chain: what a write needs before it may execute, and the two
- * checks that stop a person-free approval from resting on something uncheckable.
+ * The approval-policy chain: what a write needs before it may execute, and the three
+ * checks that stop a person-free approval from resting on something uncheckable or
+ * incomplete.
  *
  * **Rules served: AZ-4** (the four requirement kinds; a level this version does not
  * run is recorded verbatim and blocked, never degraded to a weaker one), **PV-4** (a
  * verdict with no person present never depends on an unbound tag above
- * `Conversation`), **GT-5** (the risk function and its thresholds are host-supplied;
- * this package owns only the comparison), **GT-4** (the deadline is the policy's to
- * name, and a deadline that is not a deadline is refused rather than stamped),
- * **CV-1** (a declared threshold with no scorer is a wire-up error, raised in
- * `gate.ts` before any evaluation).
+ * `Conversation`), **GT-5** (the risk function and its thresholds are host-supplied,
+ * this package owns only the comparison — and a Standing Order never fires while a
+ * proposed field the entity requires has no known value), **GT-4** (the deadline is
+ * the policy's to name, and a deadline that is not a deadline is refused rather than
+ * stamped), **CV-1** (a declared threshold with no scorer is a wire-up error, raised
+ * in `gate.ts` before any evaluation).
  *
  * ## What a policy is
  *
@@ -35,10 +37,28 @@
  *
  * ## Why a degrade rather than a refusal
  *
- * When either check fails the verdict does not disappear and the proposal is not
- * thrown away: the requirement degrades to `"ReviewerConfirmation"` and a person is
- * asked. Degrading *toward* a person is always safe; AZ-4's prohibition is on
- * degrading to something weaker, which is the other direction.
+ * When any of the three checks fails the verdict does not disappear and the proposal
+ * is not thrown away: the requirement degrades to `"ReviewerConfirmation"` and a
+ * person is asked. Degrading *toward* a person is always safe; AZ-4's prohibition is
+ * on degrading to something weaker, which is the other direction.
+ *
+ * ## Why an empty required field blocks a person-free approval
+ *
+ * A field the entity requires, proposed with no value and tagged `Empty`, is the one
+ * hole a confidence number cannot describe: `aggregateConfidence` is already `0.0`
+ * whenever any proposed field is `Empty` (AF-2), and a host that keys its Standing
+ * Order on `populatedConfidence` — the minimum over the fields that *were* filled —
+ * reads a high number over a proposal that is missing something the write cannot do
+ * without. PV-4 cannot reach the case either, because `Empty` sits at the bottom of
+ * the ladder rather than above `Conversation`. So the rule is structural: a Standing
+ * Order never fires while a proposed field marked mandatory reads `Empty`, whatever
+ * the numbers say. A person may still approve — they can see the hole, and approving
+ * is of what was sworn to, not a licence to invent the missing value.
+ *
+ * An **optional** field left `Empty` does not block a Standing Order by rule. A host
+ * that wants it to can predicate its own policy on `populatedConfidence` or
+ * `emptyFieldCount`, which is where a floor belongs: this package defines no
+ * threshold on any of the three numbers (AF-2, GT-5).
  *
  * @packageDocumentation
  */
@@ -154,6 +174,16 @@ export interface PolicyOutcome {
   readonly riskScore: number | null;
   /** The tag that failed PV-4, or `null`. */
   readonly unboundInput: UnboundInput | null;
+  /**
+   * The proposed fields marked mandatory that read `Empty` and so stopped a Standing
+   * Order from firing (GT-5), or `null` when that check did not block.
+   *
+   * `null` rather than an empty array, the same way {@link PolicyOutcome.unboundInput}
+   * is `null`: the property says *this is why the verdict degraded*, and a list that
+   * was empty on every other outcome would read as "checked and found nothing" on
+   * verdicts where the check never ran.
+   */
+  readonly emptyMandatoryFields: readonly string[] | null;
 }
 
 /** What {@link evaluatePolicies} is given beyond the policies themselves. */
@@ -174,18 +204,27 @@ export interface PolicyChainDeps {
  * Run `policies` in order and return the first non-null verdict, with PV-4 and GT-5
  * applied to it; `"ReviewerConfirmation"` when no policy speaks.
  *
- * The two checks run **only** on a `"StandingOrder"` verdict, because they are both
+ * The three checks run **only** on a `"StandingOrder"` verdict, because they are all
  * about approving with no person present, and in this order:
  *
- * 1. **PV-4.** Every field whose tag in force names one of the policy's
+ * 1. **GT-5, the empty required field.** No proposed field marked mandatory may read
+ *    `Empty`. First because it is the cheapest read and the least conditional: it
+ *    depends on nothing the policy declared and nothing a host port returns, so a
+ *    proposal with a hole in it degrades identically under every wiring.
+ * 2. **PV-4.** Every field whose tag in force names one of the policy's
  *    {@link ApprovalPolicy.declaredInputs} and sits above `Conversation` must carry
  *    a binding. The first that does not degrades the verdict. Checked first because
  *    it is a pure read of the Affidavit — there is no reason to spend a host's
  *    scorer on a verdict that is already going to a person.
- * 2. **GT-5.** A verdict that names a {@link Verdict.threshold} fires iff
+ * 3. **GT-5, the threshold.** A verdict that names a {@link Verdict.threshold} fires iff
  *    `score <= threshold`. The comparison is written as `!(score <= threshold)` so
  *    that a `NaN` score — a scorer that failed to produce a number — blocks rather
  *    than fires. A verdict that names no threshold fires on the verdict alone.
+ *
+ * More than one check can be true of the same proposal. The first one to fire is the
+ * one the record names, and the row degrades exactly once: `requirement` reads
+ * `"ReviewerConfirmation"` and `degradedFrom` reads `"StandingOrder"` however many
+ * of them applied.
  *
  * Only the tag **in force** on each field is checked, not the superseded tags in the
  * chain behind it: PV-4 asks what the verdict rests on, and a verdict rests on the
@@ -231,10 +270,29 @@ export async function evaluatePolicies(
       degradedFrom: null,
       riskScore: null,
       unboundInput: null,
+      emptyMandatoryFields: null,
     } as const;
 
     if (verdict.requirement !== "StandingOrder") {
       return { ...base, requirement: verdict.requirement };
+    }
+
+    // GT-5: a Standing Order never fires over a required field with no known value.
+    const empties = emptyMandatoryFields(affidavit);
+    if (empties.length > 0) {
+      const reason =
+        `GT-5: ${empties.map((name) => JSON.stringify(name)).join(", ")} ` +
+        `${empties.length === 1 ? "is a field" : "are fields"} the entity requires and ` +
+        `${empties.length === 1 ? "it has" : "they have"} no known value; a Standing Order ` +
+        `does not fire over an empty required field, and a person is asked instead`;
+      emitBlocked(deps, policy, { reason, code: "mandatory-field-empty", fields: empties });
+      return {
+        ...base,
+        requirement: "ReviewerConfirmation",
+        degradedFrom: "StandingOrder",
+        reason,
+        emptyMandatoryFields: empties,
+      };
     }
 
     // PV-4.
@@ -244,7 +302,12 @@ export async function evaluatePolicies(
         `PV-4: the Standing Order predicates on ${unbound.source}, and ` +
         `${JSON.stringify(unbound.field)} carries a ${unbound.source} tag with no binding; ` +
         `a person is asked instead`;
-      emitBlocked(deps, policy, { reason, field: unbound.field, source: unbound.source });
+      emitBlocked(deps, policy, {
+        reason,
+        code: "unbound-declared-input",
+        field: unbound.field,
+        source: unbound.source,
+      });
       return {
         ...base,
         requirement: "ReviewerConfirmation",
@@ -272,7 +335,12 @@ export async function evaluatePolicies(
         const reason =
           `GT-5: the host's risk score ${String(score)} is above the Standing Order's ` +
           `threshold ${String(verdict.threshold)}; a person is asked instead`;
-        emitBlocked(deps, policy, { reason, score, threshold: verdict.threshold });
+        emitBlocked(deps, policy, {
+          reason,
+          code: "risk-above-threshold",
+          score,
+          threshold: verdict.threshold,
+        });
         return {
           ...base,
           requirement: "ReviewerConfirmation",
@@ -296,6 +364,7 @@ export async function evaluatePolicies(
     reason: null,
     riskScore: null,
     unboundInput: null,
+    emptyMandatoryFields: null,
   };
 }
 
@@ -358,6 +427,29 @@ export function unboundDeclaredInput(
     return { field: field.name, source: tag.source };
   }
   return null;
+}
+
+/**
+ * The proposed fields marked mandatory whose tag in force is `Empty` — a field the
+ * entity requires, sworn to with no known value — in the order the Affidavit lists
+ * them. Empty when there are none.
+ *
+ * `Empty` is the tag AF-1 puts on a proposed field whose provenance is unknown, which
+ * is what the pipeline writes when nothing — no interceptor, no inference, no host
+ * argument — produced a value for it. So this is exactly "the model could not fill a
+ * field the write needs", asked of the record rather than of a confidence number.
+ *
+ * Exported because it is the whole of the rule's runtime half and a fixture should be
+ * able to ask it directly, without staging a policy that returns a Standing Order.
+ */
+export function emptyMandatoryFields(affidavit: Affidavit): readonly string[] {
+  const out: string[] = [];
+  for (const field of affidavit.fields) {
+    if (!field.isMandatory) continue;
+    if (field.provenance.current.source !== "Empty") continue;
+    out.push(field.name);
+  }
+  return out;
 }
 
 /**
@@ -463,14 +555,26 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * Why a Standing Order was not honoured, as a value an operator can alert on.
+ *
+ * Separate from the sentence in `reason`, which is written for the person reading the
+ * card and is free to be rephrased. A dashboard that counted degrades by matching on
+ * prose would break the first time the wording improved.
+ */
+export type StandingOrderBlockedReason =
+  "mandatory-field-empty" | "unbound-declared-input" | "risk-above-threshold";
+
 /** Emit `standing-order.blocked`, naming the policy and why it was not honoured. */
 function emitBlocked(
   deps: PolicyChainDeps,
   policy: ApprovalPolicy,
   detail: {
     readonly reason: string;
+    readonly code: StandingOrderBlockedReason;
     readonly field?: string;
     readonly source?: ProvenanceSource;
+    readonly fields?: readonly string[];
     readonly score?: number;
     readonly threshold?: number;
   },
@@ -481,9 +585,13 @@ function emitBlocked(
     attributes: {
       "policy.id": policy.id,
       "policy.version": policy.version,
+      "blocked.reason": detail.code,
       reason: detail.reason,
       "provenance.field": detail.field ?? null,
       "provenance.source": detail.source ?? null,
+      // Field *names*, which are schema; never a field value. Telemetry is
+      // operational and the audit record is the Affidavit.
+      "affidavit.empty_mandatory_fields": detail.fields?.join(", ") ?? null,
       "risk.score": detail.score ?? null,
       "risk.threshold": detail.threshold ?? null,
     },

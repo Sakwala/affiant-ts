@@ -4541,7 +4541,7 @@ export const fixtures: readonly Fixture[] = [
       "AF-2",
       "GT-5",
     ],
-    "title": "The model could not fill a field the entity requires. The field stays on the record, tagged Empty at confidence zero, and is visible on the card as empty rather than quietly dropped (AF-1). The three numbers then say different things and all three are shown: the aggregate is zero because a proposed field has unknown provenance, the populated confidence is still 0.9 over the field that was filled, and one field is empty. A mean over the populated fields would have reported 0.9 and hidden the hole. The Standing Order in the chain does not fire: the host's risk score on a half-filled proposal is above the threshold the policy named, so a person is asked instead (GT-5).",
+    "title": "The model could not fill a field the entity requires. The field stays on the record, tagged Empty at confidence zero, and is visible on the card as empty rather than quietly dropped (AF-1). The three numbers then say different things and all three are shown: the aggregate is zero because a proposed field has unknown provenance, the populated confidence is still 0.9 over the field that was filled, and one field is empty. A mean over the populated fields would have reported 0.9 and hidden the hole. The Standing Order in the chain does not fire, for either of two independent reasons (GT-5): the required field has no known value, and the host's risk score on a half-filled proposal is above the threshold the policy named. The empty required field is checked first, so that is the reason the card carries and standing-order.blocked names; the risk score would have stopped it a step later. Either way a person is asked. Its sibling sequence-a/mandatory-field-empty-blocks-standing-order isolates the first reason by removing the threshold.",
     "given": {
       "clock": "2026-09-04T09:00:00.000Z",
       "store": "memory",
@@ -5672,6 +5672,289 @@ export const fixtures: readonly Fixture[] = [
       ],
       "store": {
         "count": 0,
+      },
+    },
+  },
+  // sequence-a/14-mandatory-field-empty-blocks-standing-order.json
+  {
+    "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
+    "rules": [
+      "GT-5",
+      "AF-1",
+      "AF-2",
+    ],
+    "title": "A Standing Order that would fire by the book does not fire, because a field the entity requires has no known value. Nothing else is wrong with it: the policy names no risk threshold and predicates on nothing, so the only thing standing between this proposal and a write with no person present is the empty required field. The verdict degrades to ReviewerConfirmation, the row is pending with no attestation, and standing-order.blocked says why. A confidence floor would not have caught it either way round - the aggregate is already zero whenever any proposed field is Empty, and the populated confidence reads 0.92 over the one field that was filled.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "status": {
+            "value": "Active",
+            "confidence": 0.92,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 21,
+              "end": 27,
+            },
+          },
+        },
+        "policies": [
+          {
+            "id": "auto-approve-invoice-status",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": "StandingOrder",
+              "reason": "invoice status changes are routine",
+            },
+          },
+        ],
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "utterance": "Set invoice INV-2 to Active",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "wrap-execute",
+        "at": "2026-09-04T09:00:00.000Z",
+        "tool": {
+          "name": "update_invoice",
+          "description": "Update an invoice",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "writeCapable": true,
+          "fields": [
+            {
+              "name": "status",
+              "kind": "enum",
+              "description": "The invoice status",
+              "required": true,
+              "allowedValues": [
+                "Draft",
+                "Active",
+                "Retired",
+              ],
+              "pattern": null,
+            },
+            {
+              "name": "reference",
+              "kind": "text",
+              "description": "The supplier reference",
+              "required": true,
+              "allowedValues": null,
+              "pattern": null,
+            },
+          ],
+        },
+        "args": {
+          "status": "Draft",
+          "reference": null,
+        },
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "attestation": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "affidavit": {
+          "aggregateConfidence": 0,
+          "populatedConfidence": 0.92,
+          "emptyFieldCount": 1,
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": true,
+              "isMandatory": true,
+            },
+            {
+              "name": "reference",
+              "value": null,
+              "source": "Empty",
+              "bound": false,
+              "isMandatory": true,
+              "confidence": 0,
+            },
+          ],
+        },
+      },
+      "card": {
+        "requiresConfirmation": true,
+        "warningsContain": [
+          "GT-5",
+          "reference",
+        ],
+      },
+      "telemetry": [
+        "standing-order.blocked",
+        "affidavit.filed",
+      ],
+      "telemetryAbsent": [
+        "standing-order.fired",
+      ],
+      "store": {
+        "pending": 1,
+        "approvedUnexecuted": 0,
+      },
+    },
+  },
+  // sequence-a/15-optional-field-empty-standing-order-fires.json
+  {
+    "id": "sequence-a/optional-field-empty-standing-order-fires",
+    "rules": [
+      "GT-5",
+      "AF-1",
+      "AZ-1",
+    ],
+    "title": "The same half-filled proposal, with the empty field optional rather than required, and the Standing Order fires: approved, unexecuted and attested to the policy in one write. An empty optional field does not block a person-free approval by rule - it is a field the entity can do without, and the record still shows it empty at confidence zero. A host that wants a floor here writes one into its own policy over populatedConfidence or emptyFieldCount; this package defines no threshold on any of the three numbers.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "status": {
+            "value": "Active",
+            "confidence": 0.92,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 21,
+              "end": 27,
+            },
+          },
+        },
+        "policies": [
+          {
+            "id": "auto-approve-invoice-status",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": "StandingOrder",
+              "reason": "invoice status changes are routine",
+            },
+          },
+        ],
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "utterance": "Set invoice INV-2 to Active",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "wrap-execute",
+        "at": "2026-09-04T09:00:00.000Z",
+        "tool": {
+          "name": "update_invoice",
+          "description": "Update an invoice",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "writeCapable": true,
+          "fields": [
+            {
+              "name": "status",
+              "kind": "enum",
+              "description": "The invoice status",
+              "required": true,
+              "allowedValues": [
+                "Draft",
+                "Active",
+                "Retired",
+              ],
+              "pattern": null,
+            },
+            {
+              "name": "reference",
+              "kind": "text",
+              "description": "The supplier reference",
+              "required": false,
+              "allowedValues": null,
+              "pattern": null,
+            },
+          ],
+        },
+        "args": {
+          "status": "Draft",
+          "reference": null,
+        },
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "approved",
+        "requirement": "StandingOrder",
+        "execution": "unexecuted",
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": {
+          "kind": "standing-order",
+          "policyId": "auto-approve-invoice-status",
+          "version": "1.0.0",
+        },
+        "affidavit": {
+          "aggregateConfidence": 0,
+          "populatedConfidence": 0.92,
+          "emptyFieldCount": 1,
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": true,
+              "isMandatory": true,
+            },
+            {
+              "name": "reference",
+              "value": null,
+              "source": "Empty",
+              "bound": false,
+              "isMandatory": false,
+              "confidence": 0,
+            },
+          ],
+        },
+      },
+      "telemetry": [
+        "standing-order.fired",
+        "affidavit.filed",
+      ],
+      "telemetryAbsent": [
+        "standing-order.blocked",
+      ],
+      "store": {
+        "pending": 0,
+        "approvedUnexecuted": 1,
       },
     },
   },

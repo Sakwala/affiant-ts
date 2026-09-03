@@ -85,6 +85,7 @@ describe("runtime envelope (RT-1)", () => {
       "defaultClock",
       "deriveEntryId",
       "determinismRank",
+      "emptyMandatoryFields",
       "emptyTag",
       "evaluatePolicies",
       "fromWire",

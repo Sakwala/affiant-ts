@@ -72,12 +72,12 @@ export const TELEMETRY_KEYS = [
     description: "A Standing Order policy approved a write with no person present (AZ-1).",
     attributes: ["policy.id", "policy.version", "entry.id", "risk.score"],
   },
-  /** A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5). Since 0.1.0-alpha.0. */
+  /** A Standing Order verdict was not honoured: a proposed field the entity requires had no known value (GT-5), an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5). `blocked.reason` is the stable code to alert on - `mandatory-field-empty`, `unbound-declared-input` or `risk-above-threshold`; `reason` is the sentence the reviewer sees on the card and is free to be rephrased. Since 0.1.0-alpha.0. */
   {
     key: "standing-order.blocked",
     since: "0.1.0-alpha.0",
-    description: "A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5).",
-    attributes: ["policy.id", "policy.version", "reason", "provenance.field", "provenance.source", "risk.score", "risk.threshold"],
+    description: "A Standing Order verdict was not honoured: a proposed field the entity requires had no known value (GT-5), an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5). `blocked.reason` is the stable code to alert on - `mandatory-field-empty`, `unbound-declared-input` or `risk-above-threshold`; `reason` is the sentence the reviewer sees on the card and is free to be rephrased.",
+    attributes: ["policy.id", "policy.version", "blocked.reason", "reason", "provenance.field", "provenance.source", "affidavit.empty_mandatory_fields", "risk.score", "risk.threshold"],
   },
   /** A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1). Since 0.1.0-alpha.0. */
   {
