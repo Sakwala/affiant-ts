@@ -27,6 +27,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+      # `prettier --check`, plus each package's own lint — for `@affiant/core`
+      # that is the RT-3 tripwire that keeps Durable Object storage unreachable.
+      - run: pnpm lint
 
   bun:
     name: bun
@@ -42,9 +45,14 @@ jobs:
         with:
           bun-version: latest
       - run: pnpm install --frozen-lockfile
+      # `@affiant/core`'s runtime suite imports the package through its published
+      # entry points, so the workspace is built before the suites run.
+      - run: pnpm build
       # The wire types and the vendored fixtures must hold on Bun's runtime too,
       # so the contract package's fixture and schema suites run under Bun.
       - run: bun run --bun vitest run --project contract
+      # RT-1: the core is runtime-neutral, so its whole suite runs under Bun.
+      - run: bun run --bun vitest run --project core
 
   workerd:
     name: workerd
@@ -57,6 +65,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # `@affiant/core`'s runtime suite imports the package through its published
+      # entry points, so the workspace is built before the suites run.
+      - run: pnpm build
       # The same fixture and schema suites, executed inside workerd — the runtime
       # a Cloudflare Worker host would run this package on.
       - run: pnpm -C packages/contract test:workers
+      # RT-1 again: the core's runtime-neutral suites, inside workerd.
+      - run: pnpm -C packages/core test:workers

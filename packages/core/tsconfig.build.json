@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Emit resolves workspace siblings through node_modules (their built .d.ts),
+    // not through the source-path mapping the type-check config uses.
+    "paths": {},
+    // RT-1: the published surface is compiled with no `@types/node` in scope.
+    "lib": ["ES2023", "DOM"],
+    "types": [],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

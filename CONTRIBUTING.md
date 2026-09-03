@@ -68,10 +68,17 @@ pnpm test
 
 # Bun.
 bun run --bun vitest run --project contract
+bun run --bun vitest run --project core
 
 # Cloudflare workerd, via @cloudflare/vitest-pool-workers.
 pnpm -C packages/contract test:workers
+pnpm -C packages/core test:workers
 ```
+
+`@affiant/core` carries a second guard for the same rule: `packages/core/src` is
+type-checked as a program of its own with no `@types/node` in scope, so `process`,
+`Buffer` and `node:fs` do not resolve there at all. Tests may use Node types; the
+source may not.
 
 If a change passes on Node and fails on one of the others, that is a real finding
 about the change, not a quirk of the runner. Fix the change, or write down in the

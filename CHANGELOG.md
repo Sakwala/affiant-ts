@@ -12,6 +12,16 @@ was made against.
 
 ### Added
 
+- `@affiant/core@0.1.0-alpha.0` — the first commit of the gate: the turn context
+  every entry point takes as a parameter (`TurnContext`, `Principal`,
+  `ChannelIdentity`), the port interfaces a host implements (`InferencePort`,
+  `ProjectionPort`, `AuthorizationPort`, `RiskScorer`, `Clock`, `TelemetryPort`,
+  `FieldInterceptor`), the closed `ErrorCode` registry with `AffiantError`, and the
+  versioned telemetry-key registry generated from `telemetry-keys.json`. Ships a
+  lint that fails the build if anything under `packages/core/src` can reach Durable
+  Object storage, and runs its suite on Node, Bun and workerd. The gate's model,
+  canonical form, stores, pipeline and decision path land behind this. Not
+  published to npm.
 - `@affiant/evidence-card@0.1.0-alpha.0` — `<affiant-evidence-card>`, a
   dependency-free custom element that renders an Affidavit for a person to
   approve, amend or reject, and emits one `affiant-decision` event. Ships a demo

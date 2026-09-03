@@ -6,6 +6,7 @@ packages/evidence-card/demo/fixture.json
 # Generated
 packages/contract/src/schemas.ts
 packages/contract/test/fixtures.generated.ts
+packages/core/src/telemetry-keys.ts
 **/dist/
 **/demo/dist/
 pnpm-lock.yaml

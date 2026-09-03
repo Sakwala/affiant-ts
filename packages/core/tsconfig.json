@@ -1,0 +1,16 @@
+{
+  // RT-1, at compile time. `src/` is checked as a program of its own, with
+  // `types: []` and no test file in it — that is what makes the isolation real:
+  // vitest's own declarations pull `@types/node` into whatever program they are
+  // part of, and once Node's globals are declared anywhere in a program, `process`
+  // and `Buffer` type-check everywhere in it. Alone, they do not resolve, and
+  // neither does `node:fs`. `tsconfig.test.json` checks the tests and the config
+  // files, where Node types are fine.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"]
+}
