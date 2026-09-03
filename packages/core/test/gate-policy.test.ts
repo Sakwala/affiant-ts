@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { AffiantError } from "../src/errors.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
-import { evaluatePolicies, unboundDeclaredInput } from "../src/gate/policy.js";
+import {
+  emptyMandatoryFields,
+  evaluatePolicies,
+  unboundDeclaredInput,
+} from "../src/gate/policy.js";
 import { buildAffidavit } from "../src/model/affidavit.js";
 import { chainOf, mintTag } from "../src/model/provenance.js";
 import type { Operation } from "../src/ports.js";
@@ -13,20 +17,23 @@ import {
   interceptorPort,
   plus,
   policyReturning,
+  riskScorer,
+  telemetryLog,
   turnContext,
   writeTool,
 } from "./gate-support.js";
 import type { Trace } from "./gate-support.js";
 
 /**
- * The policy chain, Standing Orders and the two checks that stop a person-free
- * approval resting on something uncheckable.
+ * The policy chain, Standing Orders and the three checks that stop a person-free
+ * approval resting on something uncheckable or incomplete.
  *
  * AZ-4 (the four requirement kinds; an unimplemented level is filed blocked and never
  * degraded to a weaker one), AZ-1 (a Standing Order writes its attestation in the same
  * operation as the filing), PV-4 (a Standing Order that predicates on an unbound tag
  * above `Conversation` degrades to asking a person), GT-5 (a threshold is compared
- * against a host-supplied score; the core owns no formula).
+ * against a host-supplied score; the core owns no formula — and a Standing Order never
+ * fires while a proposed field the entity requires has no known value).
  */
 
 const UPDATE: Operation = {
@@ -352,6 +359,146 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
     // statement about this write's urgency still stands.
     expect(outcome.requirement).toBe("ReviewerConfirmation");
     expect(outcome.ttlMs).toBe(60_000);
+  });
+});
+
+/**
+ * An Affidavit over two fields: one filled from the conversation, one proposed with
+ * no value at all — the `Empty` tag AF-1 puts on a field whose provenance is unknown.
+ * `mandatory` says whether the entity requires the empty one.
+ */
+function affidavitMissing(mandatory: boolean) {
+  return buildAffidavit(
+    {
+      kind: "update",
+      entityType: "Invoice",
+      entityId: "invoice-1",
+      fields: ["status", "reference"],
+    },
+    [
+      {
+        name: "status",
+        kind: "text",
+        value: "Active",
+        previousValue: null,
+        isMandatory: true,
+        provenance: chainOf(mintTag({ source: "Conversation", confidence: 0.92, at: AT })),
+      },
+      // No `provenance` key: the field was proposed and nothing produced a value for
+      // it, which is what `Empty` at confidence zero means (AF-1).
+      { name: "reference", kind: "text", value: null, previousValue: null, isMandatory: mandatory },
+    ],
+    { createdAt: AT },
+  );
+}
+
+describe("a Standing Order never fires over an empty required field (GT-5)", () => {
+  const standingOrder = policyReturning({
+    requirement: "StandingOrder",
+    ttlMs: 600_000,
+    reason: "invoice status changes are routine",
+  });
+
+  it("names the proposed mandatory fields that read Empty", () => {
+    expect(emptyMandatoryFields(affidavitMissing(true))).toEqual(["reference"]);
+    expect(emptyMandatoryFields(affidavitMissing(false))).toEqual([]);
+  });
+
+  it("degrades to asking a person, keeping the policy's own deadline", async () => {
+    const outcome = await evaluatePolicies([standingOrder], affidavitMissing(true), turnContext(), {
+      now: AT,
+    });
+
+    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    expect(outcome.degradedFrom).toBe("StandingOrder");
+    expect(outcome.emptyMandatoryFields).toEqual(["reference"]);
+    // The verdict is not thrown away, so neither is the deadline it named (GT-4).
+    expect(outcome.ttlMs).toBe(600_000);
+  });
+
+  it("fires when the empty field is one the entity can do without", async () => {
+    const outcome = await evaluatePolicies(
+      [standingOrder],
+      affidavitMissing(false),
+      turnContext(),
+      {
+        now: AT,
+      },
+    );
+
+    expect(outcome.requirement).toBe("StandingOrder");
+    expect(outcome.degradedFrom).toBeNull();
+    expect(outcome.emptyMandatoryFields).toBeNull();
+  });
+
+  it("says why on the telemetry port, as a code and as a sentence", async () => {
+    const telemetry = telemetryLog();
+    await evaluatePolicies([standingOrder], affidavitMissing(true), turnContext(), {
+      now: AT,
+      telemetry: telemetry.port,
+    });
+
+    const blocked = telemetry.find("standing-order.blocked");
+    expect(blocked?.attributes["blocked.reason"]).toBe("mandatory-field-empty");
+    expect(blocked?.attributes["affidavit.empty_mandatory_fields"]).toBe("reference");
+    expect(blocked?.attributes["policy.id"]).toBe("policy-1");
+    expect(String(blocked?.attributes["reason"])).toContain("reference");
+  });
+
+  it("is checked before the host's scorer is asked to spend anything", async () => {
+    const trace: Trace = [];
+    const outcome = await evaluatePolicies(
+      [
+        policyReturning(
+          { requirement: "StandingOrder", threshold: 0.9 },
+          { declaresThreshold: true, trace },
+        ),
+      ],
+      affidavitMissing(true),
+      turnContext(),
+      { now: AT, riskScorer: riskScorer(0.1, trace) },
+    );
+
+    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    // A score of 0.1 is well under the threshold, so the only thing that can have
+    // stopped this verdict is the empty required field — and the scorer was never
+    // called to find that out.
+    expect(trace).toEqual(["policy:policy-1"]);
+    expect(outcome.riskScore).toBeNull();
+  });
+
+  it("files pending with no attestation, through the whole gate", async () => {
+    const { gate, telemetry } = harness({ policies: [standingOrder] });
+
+    const filed = await gate.file(
+      {
+        operation: {
+          kind: "update",
+          entityType: "Invoice",
+          entityId: "invoice-1",
+          fields: ["status", "reference"],
+        },
+        toolName: "update_invoice",
+        fields: [
+          {
+            name: "status",
+            kind: "text",
+            value: "Active",
+            isMandatory: true,
+            provenance: chainOf(mintTag({ source: "Conversation", confidence: 0.92, at: AT })),
+          },
+          { name: "reference", kind: "text", value: null, isMandatory: true },
+        ],
+      },
+      turnContext(),
+    );
+
+    expect(filed.entry.status).toBe("pending");
+    expect(filed.entry.requirement).toBe("ReviewerConfirmation");
+    expect(filed.entry.attestation).toBeNull();
+    expect(telemetry.keys()).not.toContain("standing-order.fired");
+    // The person who is asked can see which field is missing, on the card itself.
+    expect(filed.card.affidavit.warnings.join(" ")).toContain("reference");
   });
 });
 

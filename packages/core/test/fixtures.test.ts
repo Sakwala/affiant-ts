@@ -59,9 +59,9 @@ describe("the fixture set", () => {
   it("has every set populated", () => {
     expect(fixtureSet("gate").length).toBeGreaterThanOrEqual(17);
     expect(fixtureSet("decide").length).toBeGreaterThanOrEqual(17);
-    expect(fixtureSet("sequence-a").length).toBeGreaterThanOrEqual(13);
+    expect(fixtureSet("sequence-a").length).toBeGreaterThanOrEqual(15);
     expect(fixtureSet("sequence-c").length).toBeGreaterThanOrEqual(5);
-    expect(fixtures.length).toBeGreaterThanOrEqual(52);
+    expect(fixtures.length).toBeGreaterThanOrEqual(54);
   });
 
   it("gives every fixture a unique id, a rule citation and a title", () => {

@@ -293,11 +293,12 @@ export type {
 // end decisions
 // ---------------------------------------------------------------------------
 
-export { evaluatePolicies, unboundDeclaredInput } from "./gate/policy.js";
+export { emptyMandatoryFields, evaluatePolicies, unboundDeclaredInput } from "./gate/policy.js";
 export type {
   ApprovalPolicy,
   PolicyChainDeps,
   PolicyOutcome,
+  StandingOrderBlockedReason,
   UnboundInput,
   Verdict,
 } from "./gate/policy.js";

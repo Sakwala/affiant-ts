@@ -1,7 +1,7 @@
 {
-  "id": "sequence-a/mandatory-field-left-empty",
-  "rules": ["AF-1", "AF-2", "GT-5"],
-  "title": "The model could not fill a field the entity requires. The field stays on the record, tagged Empty at confidence zero, and is visible on the card as empty rather than quietly dropped (AF-1). The three numbers then say different things and all three are shown: the aggregate is zero because a proposed field has unknown provenance, the populated confidence is still 0.9 over the field that was filled, and one field is empty. A mean over the populated fields would have reported 0.9 and hidden the hole. The Standing Order in the chain does not fire, for either of two independent reasons (GT-5): the required field has no known value, and the host's risk score on a half-filled proposal is above the threshold the policy named. The empty required field is checked first, so that is the reason the card carries and standing-order.blocked names; the risk score would have stopped it a step later. Either way a person is asked. Its sibling sequence-a/mandatory-field-empty-blocks-standing-order isolates the first reason by removing the threshold.",
+  "id": "sequence-a/optional-field-empty-standing-order-fires",
+  "rules": ["GT-5", "AF-1", "AZ-1"],
+  "title": "The same half-filled proposal, with the empty field optional rather than required, and the Standing Order fires: approved, unexecuted and attested to the policy in one write. An empty optional field does not block a person-free approval by rule - it is a field the entity can do without, and the record still shows it empty at confidence zero. A host that wants a floor here writes one into its own policy over populatedConfidence or emptyFieldCount; this package defines no threshold on any of the three numbers.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",
@@ -13,7 +13,7 @@
       "inference": {
         "status": {
           "value": "Active",
-          "confidence": 0.9,
+          "confidence": 0.92,
           "presence": "literal",
           "utteranceSpan": {
             "start": 21,
@@ -21,16 +21,14 @@
           }
         }
       },
-      "riskScorer": 0.8,
       "policies": [
         {
-          "id": "auto-approve-low-risk",
+          "id": "auto-approve-invoice-status",
           "version": "1.0.0",
           "declaredInputs": [],
-          "declaresThreshold": true,
           "verdict": {
             "requirement": "StandingOrder",
-            "threshold": 0.2
+            "reason": "invoice status changes are routine"
           }
         }
       ]
@@ -69,7 +67,7 @@
             "name": "reference",
             "kind": "text",
             "description": "The supplier reference",
-            "required": true,
+            "required": false,
             "allowedValues": null,
             "pattern": null
           }
@@ -83,14 +81,19 @@
   },
   "expect": {
     "entry": {
-      "status": "pending",
-      "requirement": "ReviewerConfirmation",
-      "execution": null,
-      "attestation": null,
+      "status": "approved",
+      "requirement": "StandingOrder",
+      "execution": "unexecuted",
       "blocked": null,
+      "expiresAtOffsetMs": 1800000,
+      "attestation": {
+        "kind": "standing-order",
+        "policyId": "auto-approve-invoice-status",
+        "version": "1.0.0"
+      },
       "affidavit": {
         "aggregateConfidence": 0,
-        "populatedConfidence": 0.9,
+        "populatedConfidence": 0.92,
         "emptyFieldCount": 1,
         "fields": [
           {
@@ -98,7 +101,6 @@
             "value": "Active",
             "source": "Conversation",
             "bound": true,
-            "bindingKind": "utterance-span",
             "isMandatory": true
           },
           {
@@ -106,31 +108,17 @@
             "value": null,
             "source": "Empty",
             "bound": false,
-            "isMandatory": true,
+            "isMandatory": false,
             "confidence": 0
           }
         ]
       }
     },
-    "card": {
-      "requiresConfirmation": true,
-      "aggregateConfidence": 0,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 1,
-      "warningsContain": ["GT-5"],
-      "fields": [
-        {
-          "name": "status",
-          "value": "Active",
-          "isMandatory": true
-        },
-        {
-          "name": "reference",
-          "value": null,
-          "isMandatory": true
-        }
-      ]
-    },
-    "telemetry": ["standing-order.blocked", "affidavit.filed"]
+    "telemetry": ["standing-order.fired", "affidavit.filed"],
+    "telemetryAbsent": ["standing-order.blocked"],
+    "store": {
+      "pending": 0,
+      "approvedUnexecuted": 1
+    }
   }
 }
