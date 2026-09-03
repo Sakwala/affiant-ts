@@ -28,21 +28,21 @@ export const TELEMETRY_KEYS = [
     key: "affidavit.filed",
     since: "0.1.0-alpha.0",
     description: "An Affidavit was filed as a Docket entry.",
-    attributes: [],
+    attributes: ["gen_ai.tool.name", "gen_ai.conversation.id", "entry.id", "docket.requirement", "docket.status", "affidavit.field_count", "created"],
   },
   /** A proposal was refused before filing because it swore to nothing (GT-3). Since 0.1.0-alpha.0. */
   {
     key: "affidavit.refused.substance",
     since: "0.1.0-alpha.0",
     description: "A proposal was refused before filing because it swore to nothing (GT-3).",
-    attributes: [],
+    attributes: ["gen_ai.tool.name", "gen_ai.conversation.id", "affidavit.field_count", "reason"],
   },
   /** A tool the gate must cover could not be intercepted, or a tool the host declared uncovered produced a proposal (CV-4). Since 0.1.0-alpha.0. */
   {
     key: "coverage.refused",
     since: "0.1.0-alpha.0",
     description: "A tool the gate must cover could not be intercepted, or a tool the host declared uncovered produced a proposal (CV-4).",
-    attributes: [],
+    attributes: ["gen_ai.tool.name", "coverage.category", "phase"],
   },
   /** A Docket entry changed state (DK-1). Since 0.1.0-alpha.0. */
   {
@@ -56,7 +56,7 @@ export const TELEMETRY_KEYS = [
     key: "docket.expired",
     since: "0.1.0-alpha.0",
     description: "A pending Docket entry passed its expiry (DK-3).",
-    attributes: [],
+    attributes: ["entry.id"],
   },
   /** A decision was refused on identity grounds: no resolved principal, another tenant, or the host's authorization port said no (AZ-2). Since 0.1.0-alpha.0. */
   {
@@ -70,13 +70,13 @@ export const TELEMETRY_KEYS = [
     key: "standing-order.fired",
     since: "0.1.0-alpha.0",
     description: "A Standing Order policy approved a write with no person present (AZ-1).",
-    attributes: [],
+    attributes: ["policy.id", "policy.version", "entry.id", "risk.score"],
   },
   /** A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5). Since 0.1.0-alpha.0. */
   {
     key: "standing-order.blocked",
     since: "0.1.0-alpha.0",
     description: "A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5).",
-    attributes: [],
+    attributes: ["policy.id", "policy.version", "reason", "provenance.field", "provenance.source", "risk.score", "risk.threshold"],
   },
 ] as const satisfies readonly TelemetryKeyEntry[];

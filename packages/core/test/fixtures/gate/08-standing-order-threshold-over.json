@@ -1,0 +1,70 @@
+{
+  "id": "gate/standing-order-threshold-over",
+  "rules": ["GT-5"],
+  "note": "A score above the threshold does not fire and does not fail: it degrades to asking a person, with the reason on the card.",
+  "given": {
+    "history": [],
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "args": null,
+    "toolName": "relay_capture",
+    "operation": {
+      "kind": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": ["status"]
+    },
+    "schema": null,
+    "inference": null,
+    "preparedFields": [
+      {
+        "name": "status",
+        "kind": "text",
+        "value": "Active",
+        "provenance": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "bound": false
+        }
+      }
+    ],
+    "previousValues": null,
+    "policies": [
+      {
+        "id": "policy-1",
+        "version": "1.0.0",
+        "declaredInputs": [],
+        "declaresThreshold": true,
+        "defaultTtlMs": null,
+        "verdict": {
+          "requirement": "StandingOrder",
+          "threshold": 0.5
+        }
+      }
+    ],
+    "riskScore": 0.9,
+    "declareUncovered": null,
+    "defaultTtlMs": 1800000
+  },
+  "expect": {
+    "error": null,
+    "entry": {
+      "status": "pending",
+      "requirement": "ReviewerConfirmation",
+      "execution": null,
+      "blocked": null,
+      "expiresAtOffsetMs": 1800000,
+      "attestation": null
+    },
+    "affidavit": null,
+    "card": {
+      "warningsContain": ["above the Standing Order's threshold"]
+    }
+  }
+}

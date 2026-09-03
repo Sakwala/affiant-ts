@@ -22,11 +22,19 @@
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
- * and amendment semantics with the recompute they force (DK-2, AF-4) — and the
- * Docket: the entry, the store contract and the in-memory reference stores (DK-1,
- * DK-3, DK-4, DK-5), the last of these behind `@affiant/core/store-memory`. The
- * canonical form, the pipeline and the decision path land in the pull requests
- * named in each module's header.
+ * and amendment semantics with the recompute they force (DK-2, AF-4); the Docket —
+ * the entry, the store contract and the in-memory reference stores (DK-1, DK-3,
+ * DK-4, DK-5), the last of these behind `@affiant/core/store-memory`; the canonical
+ * form and its SHA-256 (SR-1, SR-2); and **the gate pipeline** — `createGate`,
+ * `wrap`, the interceptor and inference steps, projection, the substance refusal,
+ * the policy chain with Standing Orders, TTL after policy and filing with the
+ * Standing Order attestation (GT-1, GT-3..GT-6, AZ-1, AZ-4, PV-4, CV-1, CV-4, SR-4).
+ *
+ * **What is not here yet:** the decision path — `decide`, `resubmit`,
+ * `markExecuted` — which arrives with the authorization rules it exists to enforce
+ * (AZ-2, AZ-3, DK-1) in the next pull request. It is absent from the `Gate`
+ * interface rather than present and throwing, so a host cannot write against a
+ * promise this version does not keep.
  *
  * **Not on npm.** The version string exists so the conformance driver can pin it;
  * publishing waits on the public parity report and a green TypeScript conformance
@@ -246,4 +254,54 @@ export {
 } from "./model/money.js";
 
 // end canonical
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// gate
+// ---------------------------------------------------------------------------
+// Added by pull request C5 (`core/pipeline`). `createGate` is the whole of the
+// host-facing surface; everything else here is a type a host needs to write a
+// policy, a tool definition or a card renderer against.
+
+export { createGate } from "./gate/gate.js";
+export type { Gate, GateOptions, WriteProposal } from "./gate/gate.js";
+
+export { evaluatePolicies, unboundDeclaredInput } from "./gate/policy.js";
+export type {
+  ApprovalPolicy,
+  PolicyChainDeps,
+  PolicyOutcome,
+  UnboundInput,
+  Verdict,
+} from "./gate/policy.js";
+
+export {
+  assessCoverage,
+  coverageRefusedMarker,
+  createCoverageRegistry,
+  declareUncovered,
+  isUncoveredCategory,
+  UNCOVERED_CATEGORIES,
+} from "./gate/coverage.js";
+export type {
+  CoverageAssessment,
+  CoverageRegistry,
+  ToolDefinition,
+  UncoveredCategory,
+  UncoveredDeclaration,
+} from "./gate/coverage.js";
+
+export { deriveEntryId, runPipeline } from "./gate/pipeline.js";
+export type {
+  EvidenceCardRequest,
+  FiledEntry,
+  PipelineDeps,
+  PipelineProposal,
+  PreparedField,
+} from "./gate/pipeline.js";
+
+export { wrapTool } from "./gate/wrap.js";
+export type { GatedTool, GatedToolResult } from "./gate/wrap.js";
+
+// end gate
 // ---------------------------------------------------------------------------
