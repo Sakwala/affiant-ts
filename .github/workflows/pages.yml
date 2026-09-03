@@ -1,7 +1,8 @@
 name: pages
 
-# Publishes the <affiant-evidence-card> demo — the card rendering a real payload
-# captured off a shipped implementation's wire — at
+# Publishes the <affiant-evidence-card> demo — the card rendering an Affidavit
+# from the protocol rulebook's seed fixtures, a hand-authored example whose shape
+# is asserted against the shipped .NET serializer — at
 # https://sakwala.github.io/affiant-ts/
 on:
   push:

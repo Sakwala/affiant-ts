@@ -25,10 +25,12 @@ import {
 } from "./fixtures.generated.js";
 
 /**
- * Compile-time half of the contract: every fixture captured from the shipped wire
- * must be assignable to the hand-written type that claims to describe it. These
- * lines are checked by `pnpm typecheck`; a type that drifts from a schema fails
- * the build before any assertion runs.
+ * Compile-time half of the contract: every fixture the rulebook seeds must be
+ * assignable to the hand-written type that claims to describe it. These lines are
+ * checked by `pnpm typecheck`; a type that drifts from a schema fails the build
+ * before any assertion runs. `satisfies` on a `const` reference performs no
+ * excess-property check, so it proves assignability, not the absence of extra
+ * keys — `schema.test.ts` and `generated.test.ts` carry that half.
  */
 wireEvidenceCardRequest satisfies EvidenceCardRequest;
 wireEvidenceCardRequestResubmission satisfies EvidenceCardRequest;
@@ -41,7 +43,7 @@ wireSystemNotification satisfies SystemNotification;
 wireGuideUi satisfies UiGuidance;
 
 describe("the vendored fixtures", () => {
-  it("pins the same protocol version the manifest was captured at", () => {
+  it("pins the same protocol version the manifest declares", () => {
     expect(manifest.protocolVersion).toBe(PROTOCOL_VERSION);
   });
 

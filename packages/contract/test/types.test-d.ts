@@ -5,6 +5,7 @@ import type {
   AffidavitField,
   AmendmentMap,
   EvidenceCardRequest,
+  JsonValue,
   ProvenanceChain,
   ProvenanceSource,
   ProvenanceTag,
@@ -40,14 +41,37 @@ expectTypeOf<Affidavit["fields"]>().toEqualTypeOf<readonly AffidavitField[]>();
 expectTypeOf<Affidavit["warnings"]>().toEqualTypeOf<readonly string[]>();
 expectTypeOf<ProvenanceChain["prior"]>().toEqualTypeOf<readonly ProvenanceTag[]>();
 
-// The wire applies no type constraint to a field's value, so neither does the type.
-expectTypeOf<AffidavitField["value"]>().toEqualTypeOf<unknown>();
-expectTypeOf<AffidavitField["previousValue"]>().toEqualTypeOf<unknown>();
+// The wire applies no type constraint to a field's value beyond "it is JSON", so
+// neither does the type — but `undefined` is not JSON. `unknown` would admit it,
+// `JSON.stringify` would drop the key, and the payload would then fail the
+// schema's `required`.
+expectTypeOf<AffidavitField["value"]>().toEqualTypeOf<JsonValue>();
+expectTypeOf<AffidavitField["previousValue"]>().toEqualTypeOf<JsonValue>();
+expectTypeOf<undefined>().not.toMatchTypeOf<AffidavitField["value"]>();
+expectTypeOf<undefined>().not.toMatchTypeOf<AffidavitField["previousValue"]>();
+expectTypeOf<null>().toMatchTypeOf<AffidavitField["value"]>();
+
+// So a field literal that spells an absent value as `undefined` does not compile.
+export const undefinedValueIsRejected = {
+  name: "Status",
+  // @ts-expect-error `undefined` is not a JSON value.
+  value: undefined,
+  previousValue: null,
+  provenance: {
+    current: { source: "UserStated", confidence: 1, evidence: null, conversationTurn: null },
+    prior: [],
+  },
+  isMandatory: true,
+  kind: "text",
+  allowedValues: null,
+  pattern: null,
+} satisfies AffidavitField;
 
 // The provenance source is closed. A source outside the pinned set is a type error.
 expectTypeOf<"UserStated">().toMatchTypeOf<ProvenanceSource>();
 expectTypeOf<"Vibes">().not.toMatchTypeOf<ProvenanceSource>();
 
-// Reading an amendment yields `unknown`, because a reviewer may have cleared the
-// field to `null`, and `null` is a value the map legitimately carries.
-expectTypeOf<AmendmentMap[string]>().toEqualTypeOf<unknown>();
+// Reading an amendment yields a JSON value, because a reviewer may have cleared
+// the field to `null`, and `null` is a value the map legitimately carries.
+expectTypeOf<AmendmentMap[string]>().toEqualTypeOf<JsonValue>();
+expectTypeOf<undefined>().not.toMatchTypeOf<AmendmentMap[string]>();

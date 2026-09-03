@@ -46,12 +46,16 @@ this repository pins one of its git tags in
 So:
 
 - **Do not hand-edit anything under `packages/contract/protocol/`.** It is
-  vendored. `packages/contract/test/protocol-pin.test.ts` fetches the same files
-  from the pinned tag and fails if a tracked copy has drifted.
+  vendored. `packages/contract/test/protocol-pin.test.ts` checksums every tracked
+  copy against `packages/contract/protocol/SHA256SUMS` on every run — offline
+  included — and fetches the same files from the pinned tag whenever the network
+  is reachable. `packages/contract/test/generated.test.ts` then asserts the two
+  committed generated modules are exactly what those copies produce.
 - **To move to a newer protocol tag**, edit `packages/contract/protocol/PIN`, run
-  `node packages/contract/scripts/sync-protocol.mjs`, run
-  `node packages/contract/scripts/generate-sources.mjs`, and commit the whole diff
-  in one pull request. A format change should arrive as a reviewable diff in this
+  `node packages/contract/scripts/sync-protocol.mjs` (which rewrites
+  `protocol/SHA256SUMS`), run `node packages/contract/scripts/generate-sources.mjs`,
+  and commit the whole diff in one pull request. CI regenerates both modules and
+  fails on any diff, so a sync without a regenerate cannot merge. A format change should arrive as a reviewable diff in this
   repository's own history, never as a silent upstream shift under a running build.
 - **When you add or change a type**, say in the pull request which schema at which
   tag it is faithful to. A type with no citation is a guess.

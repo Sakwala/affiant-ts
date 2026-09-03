@@ -14,6 +14,7 @@ import type {
   Affidavit,
   AffidavitField,
   EvidenceCardRequest,
+  JsonValue,
   ProvenanceTag,
 } from "@affiant/contract";
 
@@ -78,8 +79,8 @@ function previewProvenance(): ProvenanceTag {
 
 function field(
   name: string,
-  value: unknown,
-  previousValue: unknown,
+  value: JsonValue,
+  previousValue: JsonValue,
   provenance: ProvenanceTag,
   isMandatory: boolean,
 ): AffidavitField {

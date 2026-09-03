@@ -24,6 +24,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The two committed generated modules must be exactly what the generator
+      # produces from packages/contract/protocol/. Regenerating them here and
+      # failing on any diff is what stops a `sync-protocol` without a `generate`
+      # from merging a schemas module that describes the previous protocol tag.
+      - run: pnpm -C packages/contract generate
+      - run: git diff --exit-code -- packages/contract/src/schemas.ts packages/contract/test/fixtures.generated.ts
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
