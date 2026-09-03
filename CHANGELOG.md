@@ -60,6 +60,25 @@ was made against.
   the vendored JSON they are generated from. Nothing checked that before: a
   `sync-protocol` without a `generate` left every suite green while the shipped
   schemas described the previous tag. CI also regenerates both and fails on a diff.
+- `@affiant/core` — the Affidavit model. The seven-source provenance ladder
+  (`UserStated` > `External` > `Computed` > `Conversation` > `Inferred` > `Default`
+  > `Empty`) with `determinismRank`; provenance tags whose confidence is clamped
+  into `[0, 1]` at mint time; the five binding kinds that make a tag checkable
+  (`utterance-span`, `reviewer-act`, `form-input`, `external-ref`,
+  `computation-ref`); a chain that preserves every superseded tag, and a merge that
+  takes the higher confidence, breaks ties toward the more deterministic source and
+  keeps the loser. The inference step is handed a minting surface that cannot name
+  `UserStated`. The `Affidavit` itself, with `buildAffidavit` enforcing that
+  `fields[]` carries the proposed fields and nothing else and that an update names
+  its entity and swears to what it replaces; the three confidence numbers, with
+  `aggregateConfidence` the **minimum** over proposed fields rather than a mean over
+  the populated ones; `Money` as a decimal string plus a currency code; amendment
+  semantics where `null` clears and an absent key leaves a field untouched, an
+  amended field carries the reviewer's act, and the three numbers are recomputed.
+  `fromWire` / `toWire` round-trip the `wire/evidence-card-request` fixture from
+  protocol tag `v0.0.1-seed` — which carries `aggregateConfidence: 0.95`, the mean
+  of its two fields, where this package computes `0.9`, their minimum. Field values
+  are the contract's `JsonValue`, with a deep runtime guard at the wire boundary.
 - `@affiant/evidence-card@0.1.0-alpha.0` — `<affiant-evidence-card>`, a
   dependency-free custom element that renders an Affidavit for a person to
   approve, amend or reject, and emits one `affiant-decision` event. Ships a demo

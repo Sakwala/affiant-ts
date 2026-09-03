@@ -19,9 +19,12 @@
  * any database and any approval surface.
  *
  * **What is here at `0.1.0-alpha.0`:** the turn context (GT-2), the port
- * interfaces, the error-code registry (CV-1) and the telemetry-key registry (TL-1).
- * The Affidavit model, the canonical form, the Docket stores, the pipeline and the
- * decision path land in the pull requests named in each module's header.
+ * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
+ * the Affidavit model — the provenance ladder with its bindings and merge rule
+ * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
+ * and amendment semantics with the recompute they force (DK-2, AF-4). The canonical
+ * form, the Docket stores, the pipeline and the decision path land in the pull
+ * requests named in each module's header.
  *
  * **Not on npm.** The version string exists so the conformance driver can pin it;
  * publishing waits on the public parity report and a green TypeScript conformance
@@ -64,6 +67,81 @@ export type {
   TelemetryKeyEntry,
   TelemetryPort,
 } from "./telemetry.js";
+
+// model
+// ---------------------------------------------------------------------------
+// Added by pull request C2 (`core/model`). Kept as one block so the pull requests
+// that follow can append their own without fighting over this file.
+
+export {
+  AFFIDAVIT_FIELD_KINDS,
+  buildAffidavit,
+  computeConfidence,
+  fromWire,
+  isJsonValue,
+  isMoney,
+  toWire,
+  wireCarryOf,
+  withConfidence,
+} from "./model/affidavit.js";
+export type {
+  Affidavit,
+  AffidavitField,
+  AffidavitFieldInput,
+  AffidavitFieldKind,
+  AffidavitMeta,
+  ConfidenceNumbers,
+  FromWireStamp,
+  JsonValue,
+  Money,
+  WireCarry,
+} from "./model/affidavit.js";
+
+export { applyAmendments, hasAmendment, resolveAmendments } from "./model/amendments.js";
+export type {
+  Amendment,
+  AmendmentMap,
+  ResolvedAmendment,
+  ReviewerAct,
+} from "./model/amendments.js";
+
+export {
+  BINDING_KINDS,
+  chainOf,
+  determinismRank,
+  emptyTag,
+  isBound,
+  isHonourable,
+  merge,
+  mintConversation,
+  mintInference,
+  mintInferred,
+  mintTag,
+  PROVENANCE_LADDER,
+  requiresBinding,
+  supersede,
+  tagsOf,
+} from "./model/provenance.js";
+export type {
+  Binding,
+  BindingKind,
+  ComputationConstantRef,
+  ComputationRef,
+  ExternalRef,
+  FormInputRef,
+  InferenceSource,
+  MintInferenceOptions,
+  MintTagOptions,
+  ProvenanceChain,
+  ProvenanceSource,
+  ProvenanceTag,
+  RelayRef,
+  ReviewerActRef,
+  UtteranceSpanRef,
+} from "./model/provenance.js";
+
+// end model
+// ---------------------------------------------------------------------------
 
 // --------------------------------------------------------------------- ports
 

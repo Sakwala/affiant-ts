@@ -20,11 +20,20 @@
  * @packageDocumentation
  */
 
-import type { Affidavit } from "@affiant/contract";
-
 import type { Principal, TurnContext, Turn } from "./context.js";
+import type { Affidavit } from "./model/affidavit.js";
+import type { InterceptorBinding } from "./model/provenance.js";
 
 export type { TelemetryPort, TelemetryEvent, TelemetryAttributes } from "./telemetry.js";
+
+/**
+ * The bindings a deterministic interceptor may mint, re-exported from the model.
+ *
+ * The type lives in `model/provenance.ts` with the other four binding kinds (PV-2);
+ * it is re-exported here because an interceptor is a port, and a host writing one
+ * should not have to know which module the binding came from.
+ */
+export type { InterceptorBinding };
 
 // ---------------------------------------------------------------------------
 // Forward declarations
@@ -248,28 +257,17 @@ export const defaultClock: Clock = {
  * The binding that makes a deterministic value checkable: which external record or
  * computation the value came from.
  *
- * PV-4 is why it is mandatory here rather than optional: a Standing Order — an
- * approval with no person present — is honoured only if every provenance input the
- * policy declares carries a binding. An `External` value with no binding is a
- * claim nobody can re-derive, so a policy that would auto-approve on it falls back
- * to asking a person.
+ * PV-4 is why it is mandatory on an {@link InterceptedField} rather than optional:
+ * a Standing Order — an approval with no person present — is honoured only if every
+ * provenance input the policy declares carries a binding. An `External` value with
+ * no binding is a claim nobody can re-derive, so a policy that would auto-approve
+ * on it falls back to asking a person.
  *
- * Pull request C2 (`core/model`) gives bindings their full type in
- * `model/provenance.ts`; this declaration states the two kinds an interceptor can
- * mint and moves there when it lands.
+ * {@link InterceptorBinding} is the two-kind restriction of the model's `Binding`
+ * union: `external-ref` (a system of record) and `computation-ref` (a named,
+ * re-runnable rule). The other three kinds all point at something a *person* did,
+ * and PV-3 forbids a machine from minting those.
  */
-export interface InterceptorBinding {
-  /**
-   * `external-ref` — the value was read from a system of record.
-   * `computation-ref` — the value was derived by a named, re-runnable computation.
-   */
-  readonly kind: "external-ref" | "computation-ref";
-  /**
-   * What to look at to check the value: a record id, a document URI, a computation
-   * name plus its inputs. Opaque to the gate, carried onto the Affidavit.
-   */
-  readonly reference: string;
-}
 
 /** One field a {@link FieldInterceptor} resolved. */
 export interface InterceptedField {
