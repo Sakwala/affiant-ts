@@ -15,7 +15,8 @@
   },
   "bin": {
     "affiant-hook": "./dist/hook.js",
-    "affiant-hook-bash": "./dist/bash-hook.js"
+    "affiant-hook-bash": "./dist/bash-hook.js",
+    "affiant-hook-outcome": "./dist/outcome-hook.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

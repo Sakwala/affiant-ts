@@ -18,20 +18,51 @@ export async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-/** The review window, from `AFFIANT_HOOK_TIMEOUT_MS`. */
+/**
+ * The review window, from `AFFIANT_HOOK_TIMEOUT_MS`.
+ *
+ * A value that cannot be read is an error, not something to quietly replace with
+ * the default: a misconfiguration a person can see is worth more than a gate that
+ * silently runs on settings they did not choose.
+ */
 export function timeoutMs(env: NodeJS.ProcessEnv = process.env): number {
   const raw = env["AFFIANT_HOOK_TIMEOUT_MS"];
   if (raw === undefined || raw === "") return DEFAULT_TIMEOUT_MS;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TIMEOUT_MS;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(
+      `AFFIANT_HOOK_TIMEOUT_MS must be a positive number of milliseconds, not "${raw}"`,
+    );
+  }
+  return parsed;
 }
 
-/** The port to try, from `AFFIANT_HOOK_PORT`. `0` means "any free port". */
+/** The port to try, from `AFFIANT_HOOK_PORT`. `0`, the default, means "any free port". */
 export function serverPort(env: NodeJS.ProcessEnv = process.env): number {
   const raw = env["AFFIANT_HOOK_PORT"];
   if (raw === undefined || raw === "") return DEFAULT_PORT;
   const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 65535 ? parsed : DEFAULT_PORT;
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+    throw new Error(`AFFIANT_HOOK_PORT must be a port number from 0 to 65535, not "${raw}"`);
+  }
+  return parsed;
+}
+
+/** What the shell bin does with a command it could not classify either way. */
+export type BashMode = "ask" | "allow-unknown";
+
+/**
+ * How the shell bin treats the `unknown` tier, from `AFFIANT_HOOK_BASH`.
+ *
+ * `ask` is the default and the honest one. `allow-unknown` passes an
+ * unclassified command through with no output, which weakens the guarantee this
+ * bin exists to make — see the README.
+ */
+export function bashMode(env: NodeJS.ProcessEnv = process.env): BashMode {
+  const raw = env["AFFIANT_HOOK_BASH"];
+  if (raw === undefined || raw === "") return "ask";
+  if (raw === "ask" || raw === "allow-unknown") return raw;
+  throw new Error(`AFFIANT_HOOK_BASH must be "ask" or "allow-unknown", not "${raw}"`);
 }
 
 /**
