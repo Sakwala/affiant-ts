@@ -1,0 +1,138 @@
+{
+  "id": "decide/execution-executed",
+  "rules": ["DK-1", "AZ-5"],
+  "note": "The host's executor reports that the approved write happened. The status stays approved and only the execution outcome moves, so the approval is not re-litigated by the report; the detail the executor gave is kept beside it.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": null,
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": {
+          "kind": "approve",
+          "amendments": null,
+          "reason": null
+        },
+        "outcome": null,
+        "detail": null
+      },
+      {
+        "kind": "mark-executed",
+        "at": "2026-09-04T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": null,
+        "outcome": "executed",
+        "detail": "invoice row 41"
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": null
+      },
+      {
+        "error": null
+      }
+    ],
+    "entry": {
+      "status": "approved",
+      "execution": "executed",
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "amendments": null,
+      "decision": {
+        "kind": "approve",
+        "reason": null
+      },
+      "supersededByFresh": false,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": null
+  }
+}

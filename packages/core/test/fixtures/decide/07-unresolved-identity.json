@@ -1,0 +1,116 @@
+{
+  "id": "decide/unresolved-identity",
+  "rules": ["AZ-2", "AZ-6"],
+  "note": "A turn context with no resolved principal refuses the decision: identity unknown is never allow. This filing ran with prepared fields and no policy chain, which is the degraded wiring a host falls back to with no model available, and a degraded wiring does not relax an authorization rule.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": null,
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": null,
+        "tenantId": null,
+        "decision": {
+          "kind": "approve",
+          "amendments": null,
+          "reason": null
+        },
+        "outcome": null,
+        "detail": null
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": {
+          "code": "decision-unauthorized"
+        }
+      }
+    ],
+    "entry": {
+      "status": "pending",
+      "execution": null,
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": null,
+      "amendments": null,
+      "decision": null,
+      "supersededByFresh": false,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": null
+  }
+}

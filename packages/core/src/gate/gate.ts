@@ -10,14 +10,12 @@
  * filed entry carries a deadline), **CV-4** (`declareUncovered`), **DK-3** (`expireDue`
  * is host-scheduled — this package owns no timer).
  *
- * ## What this gate does *not* have yet
+ * ## What is deliberately not on this object
  *
- * `decide`, `resubmit` and `markExecuted` are not on {@link Gate}. They arrive with
- * the decision path (pull request C6), where the authorization rules they exist to
- * enforce — AZ-2's fail-closed check, AZ-3's attestation kinds, DK-1's guarded
- * compare-and-set — arrive with them. A stub that threw would be a worse answer than
- * a missing method: the type would promise a decision path, and a host could write
- * against it and find out at runtime.
+ * There is no `execute`, and no executor port in {@link GateOptions} for one to be
+ * built from. AZ-7 says no package in an implementation writes to a host's store, so
+ * the gate has nothing to call: the only path to `execution: "executed"` is
+ * {@link Gate.markExecuted}, the host's own executor reporting what it did.
  *
  * ## Two ways in
  *
@@ -32,7 +30,7 @@
 
 import type { TurnContext } from "../context.js";
 import type { DocketEntry } from "../docket/entry.js";
-import type { DocketStore, Scope, SessionStore } from "../docket/store.js";
+import type { DocketStore, Page, PageResult, Scope, SessionStore } from "../docket/store.js";
 import { AffiantError } from "../errors.js";
 import type {
   Clock,
@@ -50,6 +48,8 @@ import { noopTelemetry } from "../telemetry.js";
 
 import type { CoverageRegistry, ToolDefinition, UncoveredCategory } from "./coverage.js";
 import { createCoverageRegistry, declareUncovered } from "./coverage.js";
+import type { DecideDeps, Decision, ExecutionReport } from "./decide.js";
+import { decide, markExecuted, resubmit } from "./decide.js";
 import type { FiledEntry, PipelineDeps, PreparedField } from "./pipeline.js";
 import { runPipeline } from "./pipeline.js";
 import type { ApprovalPolicy } from "./policy.js";
@@ -72,13 +72,16 @@ import { wrapTool } from "./wrap.js";
 export interface GateOptions {
   /** The Docket (DK-1). */
   readonly store: DocketStore;
-  /** The rehydration surface, if the host has one (DK-5). Not used by the pipeline. */
+  /**
+   * The rehydration surface, if the host has one (DK-5). Not used by the pipeline;
+   * {@link Gate.rehydrate} refuses when it is absent.
+   */
   readonly sessions?: SessionStore;
   /** The host's structured inference (GT-1 step 3). */
   readonly inference: InferencePort;
   /** The host's previous-value lookup (AF-3). */
   readonly projection: ProjectionPort;
-  /** Who may decide an entry (AZ-2). Required at wire-up even though C6 lands the decision path. */
+  /** Who may decide an entry (AZ-2). Consulted on every decision, execution report and resubmission. */
   readonly authorization: AuthorizationPort;
   /** The approval chain, in order (AZ-4). */
   readonly policies?: readonly ApprovalPolicy[];
@@ -146,8 +149,48 @@ export interface Gate {
    * filed `blocked` rather than refused at wire-up (CV-4). It never allows the tool.
    */
   declareUncovered(tool: Pick<ToolDefinition, "name">, category: UncoveredCategory): void;
+  /**
+   * Approve, amend or reject an entry, as `ctx.principal` (DK-1, AZ-1, AZ-2, AZ-3).
+   *
+   * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`,
+   *         `"decision-expired"`, `"decision-not-pending"` or `"decision-lost-race"`.
+   */
+  decide(entryId: string, decision: Decision, ctx: TurnContext): Promise<DocketEntry>;
+  /**
+   * Record what the host's executor did with an approved write (DK-1, AZ-5, AZ-7).
+   *
+   * The only public path to `execution: "executed"`. The gate never calls an executor
+   * to get there — a host reads its approved-and-unexecuted rows, writes, and reports.
+   *
+   * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`, or
+   *         `"decision-not-pending"` when the row is not approved.
+   */
+  markExecuted(
+    entryId: string,
+    outcome: ExecutionReport,
+    detail: string | null,
+    ctx: TurnContext,
+  ): Promise<DocketEntry>;
+  /**
+   * File an expired entry again as a new entry whose lineage names it (DK-1).
+   *
+   * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`, or
+   *         `"decision-not-pending"` when the entry does not read `expired`.
+   */
+  resubmit(entryId: string, ctx: TurnContext): Promise<FiledEntry>;
   /** The entry as it reads now, within `ctx`'s tenant, or `null` (DK-1, expiry as state). */
   get(entryId: string, ctx: TurnContext): Promise<DocketEntry | null>;
+  /**
+   * One page of what a reconnecting client needs: everything that reads `pending`,
+   * then everything `approved` and `unexecuted`, each in filing order (DK-5).
+   *
+   * @throws AffiantError `"wireup-invalid"` when the host supplied no
+   *         {@link GateOptions.sessions}. It is the one wiring check that cannot
+   *         happen at `createGate`: a host with no reconnecting client needs no
+   *         session store, and refusing to build a gate without one would be the
+   *         framework insisting on a surface the host does not have.
+   */
+  rehydrate(scope: Scope, page: Page): Promise<PageResult<DocketEntry>>;
   /**
    * Expire the pending entries in `scope` that are past their deadline, at most
    * `limit` of them (DK-3). The host schedules this; the core owns no timer.
@@ -231,6 +274,9 @@ export function createGate(options: GateOptions): Gate {
     coverage,
   };
 
+  const sessions = options.sessions ?? null;
+  const decideDeps: DecideDeps = { ...deps, authorization: options.authorization, sessions };
+
   return {
     coverage,
 
@@ -259,6 +305,8 @@ export function createGate(options: GateOptions): Gate {
           args: proposal.args ?? null,
           preparedFields: fields,
           operationLabel: proposal.operationLabel ?? null,
+          supersedes: null,
+          priorAmendments: null,
         },
         ctx,
         deps,
@@ -267,6 +315,31 @@ export function createGate(options: GateOptions): Gate {
 
     declareUncovered(tool, category) {
       declareUncovered(coverage, tool, category);
+    },
+
+    async decide(entryId, decision, ctx) {
+      return decide(entryId, decision, ctx, decideDeps);
+    },
+
+    async markExecuted(entryId, outcome, detail, ctx) {
+      return markExecuted(entryId, outcome, detail, ctx, decideDeps);
+    },
+
+    async resubmit(entryId, ctx) {
+      return resubmit(entryId, ctx, decideDeps);
+    },
+
+    async rehydrate(scope, page) {
+      if (sessions === null) {
+        throw new AffiantError(
+          "wireup-invalid",
+          `DK-5: GateOptions.sessions is required to rehydrate — it is the surface that ` +
+            `returns pending entries and then approved, unexecuted ones, in that order. ` +
+            `Supply a SessionStore, or do not call this.`,
+          { option: "sessions" },
+        );
+      }
+      return sessions.rehydrate(scope, page);
     },
 
     async get(entryId, ctx) {

@@ -28,13 +28,16 @@
  * form and its SHA-256 (SR-1, SR-2); and **the gate pipeline** — `createGate`,
  * `wrap`, the interceptor and inference steps, projection, the substance refusal,
  * the policy chain with Standing Orders, TTL after policy and filing with the
- * Standing Order attestation (GT-1, GT-3..GT-6, AZ-1, AZ-4, PV-4, CV-1, CV-4, SR-4).
+ * Standing Order attestation (GT-1, GT-3..GT-6, AZ-1, AZ-4, PV-4, CV-1, CV-4, SR-4);
+ * and **the decision path** — `decide`, `markExecuted`, `resubmit` and `rehydrate` on
+ * the gate: fail-closed tenant-scoped authorization, the three attestation kinds with
+ * a relay's identity mapped to `member-via-relay`, amendments with the recompute they
+ * force, the execution outcome a host reports, resubmission lineage and rehydration
+ * order (AZ-1..AZ-3, AZ-5..AZ-7, DK-1, DK-2, DK-5, AF-4, PV-2).
  *
- * **What is not here yet:** the decision path — `decide`, `resubmit`,
- * `markExecuted` — which arrives with the authorization rules it exists to enforce
- * (AZ-2, AZ-3, DK-1) in the next pull request. It is absent from the `Gate`
- * interface rather than present and throwing, so a host cannot write against a
- * promise this version does not keep.
+ * **What is not here yet:** the seeded end-to-end fixtures for the two v0.1
+ * sequences and the fixture runner behind `@affiant/core/testing`, which arrive in
+ * the next pull request.
  *
  * **Not on npm.** The version string exists so the conformance driver can pin it;
  * publishing waits on the public parity report and a green TypeScript conformance
@@ -265,6 +268,25 @@ export {
 
 export { createGate } from "./gate/gate.js";
 export type { Gate, GateOptions, WriteProposal } from "./gate/gate.js";
+
+// decisions
+// ---------------------------------------------------------------------------
+// Added by pull request C6 (`core/decide`). The three functions are the same ones
+// `Gate` exposes as methods; they are exported so a host can call the decision path
+// with its own assembled dependencies, and so a conformance driver can reach them
+// without building a gate.
+
+export { attestorOf, decide, markExecuted, resubmit } from "./gate/decide.js";
+export type {
+  DecideDeps,
+  Decision,
+  ExecutionReport,
+  MemberAttestation,
+  RelayAttestation,
+} from "./gate/decide.js";
+
+// end decisions
+// ---------------------------------------------------------------------------
 
 export { evaluatePolicies, unboundDeclaredInput } from "./gate/policy.js";
 export type {

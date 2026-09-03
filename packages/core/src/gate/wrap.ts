@@ -209,6 +209,8 @@ export function wrapTool<TArgs, TResult>(
             args,
             preparedFields: null,
             operationLabel,
+            supersedes: null,
+            priorAmendments: null,
           },
           turn,
           deps,

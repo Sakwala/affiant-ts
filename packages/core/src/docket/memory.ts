@@ -523,6 +523,9 @@ function applyPatch(entry: DocketEntry, patch: TransitionPatch, now: string): Do
     ...entry,
     status,
     execution,
+    // AF-4: an approval that accepted amendments carries the recomputed Affidavit.
+    // Absent leaves the sworn record as filed.
+    affidavit: patch.affidavit ?? entry.affidavit,
     decision: patch.decision ?? null,
     amendments: patch.amendments === undefined ? entry.amendments : patch.amendments,
     attestation: patch.attestation === undefined ? entry.attestation : patch.attestation,
