@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /ABSOLUTE/PATH/TO/affiant-ts/spikes/claude-code-hook/dist/hook.js",
+            "timeout": 300
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /ABSOLUTE/PATH/TO/affiant-ts/spikes/claude-code-hook/dist/bash-hook.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
