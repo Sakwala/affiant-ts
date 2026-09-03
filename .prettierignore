@@ -1,0 +1,12 @@
+# Vendored from Sakwala/affiant-protocol — must stay byte-for-byte identical to the pinned tag.
+packages/contract/protocol/
+# A copy of one of them, asserted identical by a test.
+packages/evidence-card/demo/fixture.json
+
+# Generated
+packages/contract/src/schemas.ts
+packages/contract/test/fixtures.generated.ts
+**/dist/
+**/demo/dist/
+pnpm-lock.yaml
+CHANGELOG.md

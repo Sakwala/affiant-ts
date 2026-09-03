@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "spikes/*"
+
+# pnpm 10 refuses to run a dependency's install script unless it is named here.
+# Both of these ship a native binary that the postinstall puts in place: esbuild
+# bundles the card demo, workerd is the runtime the workerd test job executes in.
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
