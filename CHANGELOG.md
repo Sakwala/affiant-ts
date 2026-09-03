@@ -12,6 +12,11 @@ was made against.
 
 ### Added
 
+- `@affiant/evidence-card@0.1.0-alpha.0` — `<affiant-evidence-card>`, a
+  dependency-free custom element that renders an Affidavit for a person to
+  approve, amend or reject, and emits one `affiant-decision` event. Ships a demo
+  page that renders the `wire/evidence-card-request` fixture from protocol tag
+  `v0.0.1-seed`. Not published to npm.
 - `@affiant/contract@0.1.0-alpha.0` — the Affiant wire format as hand-written
   TypeScript types, faithful to protocol tag
   [`v0.0.1-seed`](https://github.com/Sakwala/affiant-protocol/tree/v0.0.1-seed).

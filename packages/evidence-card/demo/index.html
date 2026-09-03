@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>&lt;affiant-evidence-card&gt;</title>
+    <meta
+      name="description"
+      content="A live Evidence Card: the per-field evidence behind a database write an AI agent proposed, rendered by a dependency-free custom element."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page: #f6f7f8;
+        --ink: #16191d;
+        --muted: #5d666f;
+        --line: #dfe3e7;
+        --panel: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #0e1114;
+          --ink: #e6eaee;
+          --muted: #98a2ac;
+          --line: #262c33;
+          --panel: #14181c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 40px 20px 64px;
+        background: var(--page);
+        color: var(--ink);
+        font:
+          15px/1.6 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        display: grid;
+        gap: 28px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      h1 code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.95em;
+      }
+      .lede {
+        margin: 8px 0 0;
+        color: var(--muted);
+        max-width: 60ch;
+      }
+      .lede a {
+        color: inherit;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      #log {
+        margin: 0;
+        padding: 14px 16px;
+        min-height: 96px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12.5px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-x: auto;
+        color: var(--ink);
+      }
+      #log:empty::after {
+        content: "Approve, reject, or type into an Amend box and approve — the event lands here.";
+        color: var(--muted);
+        font-family: inherit;
+      }
+      #log .entry + .entry {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .controls label {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      footer a {
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1><code>&lt;affiant-evidence-card&gt;</code></h1>
+        <p class="lede">
+          An AI agent has proposed a write. Before it commits, the evidence behind every field — the
+          proposed value, the value it replaces, where it came from and how confident it is — is put
+          in front of a person. This is that card, rendered from a conformance fixture captured off
+          a shipped implementation's wire. No framework, no dependencies.
+        </p>
+      </header>
+
+      <section aria-label="The card">
+        <affiant-evidence-card id="card"></affiant-evidence-card>
+      </section>
+
+      <section class="controls">
+        <label><input type="checkbox" id="readonly" /> read-only (hide the controls)</label>
+      </section>
+
+      <section aria-label="Decision log">
+        <h2>affiant-decision events</h2>
+        <pre id="log" aria-live="polite"></pre>
+      </section>
+
+      <footer>
+        <a href="https://github.com/Sakwala/affiant-ts">Sakwala/affiant-ts</a> ·
+        <a href="https://github.com/Sakwala/affiant-protocol">the protocol</a> ·
+        <a href="https://affiant.dev">affiant.dev</a>
+      </footer>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
