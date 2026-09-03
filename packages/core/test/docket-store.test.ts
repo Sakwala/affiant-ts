@@ -89,7 +89,7 @@ describe("the guarded compare-and-set (DK-1)", () => {
 
     expect(applied(first).status).toBe("approved");
     expect(applied(first).execution).toBe("unexecuted");
-    expect(second).toBe("lost-race");
+    expect(second).toBe("already-decided");
 
     const stored = await store.get("entry-1", TENANT);
     expect(stored?.status).toBe("approved");
@@ -109,7 +109,7 @@ describe("the guarded compare-and-set (DK-1)", () => {
     ]);
 
     const refusals = results.filter((result) => typeof result === "string");
-    expect(refusals).toEqual(["lost-race"]);
+    expect(refusals).toEqual(["already-decided"]);
     expect(results.filter((result) => typeof result !== "string")).toHaveLength(1);
   });
 
@@ -127,7 +127,7 @@ describe("the guarded compare-and-set (DK-1)", () => {
     );
 
     expect(results.filter((result) => typeof result !== "string")).toHaveLength(1);
-    expect(results.filter((result) => result === "lost-race")).toHaveLength(24);
+    expect(results.filter((result) => result === "already-decided")).toHaveLength(24);
   });
 
   it("records the approver on the row (AZ-1)", async () => {
@@ -195,7 +195,7 @@ describe("the guarded compare-and-set (DK-1)", () => {
 });
 
 describe("a decision that arrives after the deadline (DK-1)", () => {
-  it("reads expired without any sweep, and refuses the transition as not-pending", async () => {
+  it("reads expired without any sweep, and refuses the transition as expired", async () => {
     const clock = stubClock(NOON);
     const store = new InMemoryDocketStore({ clock });
     await store.file(anEntry("entry-1"));
@@ -209,7 +209,7 @@ describe("a decision that arrives after the deadline (DK-1)", () => {
     expect(read?.decidedAt).toBe("2026-09-04T09:30:00.000Z");
 
     expect(await store.transition("entry-1", TENANT, "pending", approval("entry-1"))).toBe(
-      "not-pending",
+      "expired",
     );
   });
 
@@ -220,7 +220,7 @@ describe("a decision that arrives after the deadline (DK-1)", () => {
     clock.set(AFTER_DEADLINE);
 
     const refused = await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
-    expect(refused).toBe("not-pending");
+    expect(refused).toBe("expired");
 
     const preserved = await store.preserveAmendments("entry-1", TENANT, {
       status: "paid",

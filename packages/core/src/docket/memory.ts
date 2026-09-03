@@ -208,7 +208,7 @@ export class InMemoryDocketStore implements DocketStore {
     if (current !== expected) {
       // An expired row was nobody's decision; an approved or rejected one was
       // somebody's, and DK-1 requires the second decision be refused as such.
-      return current === "expired" ? "not-pending" : "lost-race";
+      return current === "expired" ? "expired" : "already-decided";
     }
 
     const next = applyPatch(stored.entry, patch, this.#clock.now());

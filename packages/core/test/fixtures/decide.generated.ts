@@ -711,11 +711,12 @@ export const decideFixtures: readonly DecideFixture[] = [
   {
     "id": "decide/amend-recompute",
     "rules": [
+      "AF-1",
       "AF-4",
       "DK-2",
       "PV-2",
     ],
-    "note": "An approval carrying an amendment map sets the named values, clears the ones under null, and leaves a field the map does not name untouched. Each amended field's provenance becomes the reviewer's act with a reviewer-act binding, and the three confidence numbers are recomputed over the amended fields rather than left at the machine's pre-correction values.",
+    "note": "An approval carrying an amendment map sets the named values and leaves a field the map does not name untouched. A set field's provenance becomes the reviewer's act with a reviewer-act binding. A cleared optional field is taken off the record entirely, because a field the write no longer proposes is absent rather than present with nothing in it (AF-1) - and because writing the reviewer's confidence of 1 over an emptied field would let a reviewer wipe an Affidavit and leave it reporting perfect confidence over nothing (AF-2). The three confidence numbers are recomputed over what is left rather than left at the machine's pre-correction values.",
     "given": {
       "ctx": {
         "tenantId": "tenant-a",
@@ -830,12 +831,6 @@ export const decideFixtures: readonly DecideFixture[] = [
             {
               "name": "amount",
               "value": "4000",
-              "source": "UserStated",
-              "bound": true,
-            },
-            {
-              "name": "note",
-              "value": null,
               "source": "UserStated",
               "bound": true,
             },

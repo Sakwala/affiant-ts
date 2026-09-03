@@ -6,9 +6,10 @@
  * point takes the turn context as a parameter), **GT-5** (a policy that can declare a
  * risk threshold needs a host-supplied scorer, and its absence is caught here rather
  * than on the unlucky request that first reaches the threshold branch), **GT-4**
- * (`defaultTtlMs` is required, per ledger BD-31: `expiresAt` is not nullable and every
- * filed entry carries a deadline), **CV-4** (`declareUncovered`), **DK-3** (`expireDue`
- * is host-scheduled — this package owns no timer).
+ * (`defaultTtlMs` is required and so is every policy's own default: `expiresAt` is
+ * not nullable, so every filed entry carries a deadline and there is no wiring in
+ * which one is missing), **CV-4** (`declareUncovered`), **DK-3** (`expireDue` is
+ * host-scheduled — this package owns no timer).
  *
  * ## What is deliberately not on this object
  *
@@ -53,6 +54,7 @@ import { decide, markExecuted, resubmit } from "./decide.js";
 import type { FiledEntry, PipelineDeps, PreparedField } from "./pipeline.js";
 import { runPipeline } from "./pipeline.js";
 import type { ApprovalPolicy } from "./policy.js";
+import { isUsableTtlMs, unusableTtlMessage } from "./policy.js";
 import type { GatedTool } from "./wrap.js";
 import { wrapTool } from "./wrap.js";
 
@@ -95,8 +97,8 @@ export interface GateOptions {
   readonly telemetry?: TelemetryPort;
   /**
    * The deadline applied when neither the verdict nor the policy names one (GT-4).
-   * **Required** (ledger BD-31): `expiresAt` is not nullable, so every filed entry
-   * carries a deadline and there is no wiring in which one is missing.
+   * **Required**: `expiresAt` is not nullable, so every filed entry carries a
+   * deadline and there is no wiring in which one is missing.
    */
   readonly defaultTtlMs: number;
 }
@@ -178,7 +180,20 @@ export interface Gate {
    *         `"decision-not-pending"` when the entry does not read `expired`.
    */
   resubmit(entryId: string, ctx: TurnContext): Promise<FiledEntry>;
-  /** The entry as it reads now, within `ctx`'s tenant, or `null` (DK-1, expiry as state). */
+  /**
+   * The entry as it reads now, within `ctx`'s tenant, or `null` (DK-1, expiry as
+   * state).
+   *
+   * **Tenant scope, not conversation scope, and that widening is deliberate.** A
+   * reviewer surface is not the conversation that proposed the write: a person opens
+   * a queue, or follows a link, and reads an entry filed in some other conversation
+   * of the same tenant. AZ-2's boundary is the tenant, and GT-2's "two conversations
+   * never observe each other" is about the turn's *own* state — its fields, its
+   * pending inference, its proposals — not about a Docket a tenant's reviewers
+   * share. Narrowing this to `{ tenantId, conversationId }` would break every
+   * reviewer surface; `gate-scope.test.ts` pins the widening so it cannot be
+   * "tightened" with a green suite.
+   */
   get(entryId: string, ctx: TurnContext): Promise<DocketEntry | null>;
   /**
    * One page of what a reconnecting client needs: everything that reads `pending`,
@@ -215,7 +230,10 @@ export interface Gate {
  * is a wire-up error a host works around. The checks:
  *
  * - the four ports — `store`, `inference`, `projection`, `authorization` — are present;
- * - `defaultTtlMs` is a positive, finite integer of milliseconds (GT-4, BD-31);
+ * - `defaultTtlMs` is a positive, finite integer of milliseconds (GT-4);
+ * - every policy carrying its own {@link ApprovalPolicy.defaultTtlMs} states it the
+ *   same way (GT-4), so a policy that would file an entry nobody can decide is
+ *   refused here rather than on the request that first falls through to it;
  * - every policy that says {@link ApprovalPolicy.declaresThreshold} has a
  *   `riskScorer` to compare against (GT-5). This is checked from the **static**
  *   declaration, before any evaluation, because a check that only fires when a policy
@@ -241,6 +259,19 @@ export function createGate(options: GateOptions): Gate {
   }
 
   const policies = options.policies ?? [];
+  for (const policy of policies) {
+    // The same rule as `GateOptions.defaultTtlMs`, applied to the other place the
+    // same value comes from. A verdict's own `ttlMs` cannot be seen from here — it
+    // exists only once a policy has spoken — so `evaluatePolicies` holds that one to
+    // this definition at the moment it reads it.
+    if (policy.defaultTtlMs !== undefined && !isUsableTtlMs(policy.defaultTtlMs)) {
+      throw new AffiantError(
+        "wireup-invalid",
+        unusableTtlMessage(policy.id, "defaultTtlMs", policy.defaultTtlMs),
+        { option: "defaultTtlMs", policyId: policy.id, ttlMs: String(policy.defaultTtlMs) },
+      );
+    }
+  }
   if (options.riskScorer === undefined) {
     const needsScorer = policies.filter((policy) => policy.declaresThreshold === true);
     if (needsScorer.length > 0) {

@@ -291,7 +291,7 @@ export const gateFixtures: readonly GateFixture[] = [
     "rules": [
       "GT-4",
     ],
-    "note": "With no verdict and no policy default, the gate's required defaultTtlMs applies. Every filed entry carries a deadline (ledger BD-31).",
+    "note": "With no verdict and no policy default, the gate's required defaultTtlMs applies. Every filed entry carries a deadline (GT-4).",
     "given": {
       "history": [],
       "ctx": {

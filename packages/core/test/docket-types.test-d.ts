@@ -96,8 +96,11 @@ expectTypeOf<Required<DocketEntry>>().toEqualTypeOf<DocketEntry>();
 
 // A transition never returns an entry to `pending`.
 expectTypeOf<TransitionPatch["status"]>().toEqualTypeOf<"approved" | "rejected" | "expired">();
+// Each refusal is named after the state it describes: "already-decided" for the row
+// somebody else decided, "expired" for the row that passed its deadline. A store
+// implementer reading the type cannot get the two the wrong way round.
 expectTypeOf<TransitionResult>().toEqualTypeOf<
-  DocketEntry | "not-found" | "lost-race" | "not-pending"
+  DocketEntry | "not-found" | "already-decided" | "expired"
 >();
 
 // ----------------------------------------------------------- the store contract

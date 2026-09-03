@@ -30,6 +30,7 @@ describe("telemetry-key registry (TL-1)", () => {
     "decision.unauthorized",
     "standing-order.fired",
     "standing-order.blocked",
+    "policy.invalid",
   ];
 
   const keys = TELEMETRY_KEYS.map((entry) => entry.key as string);

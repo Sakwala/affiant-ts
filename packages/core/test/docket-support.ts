@@ -55,7 +55,7 @@ export function field(name: string, value: JsonValue): AffidavitField {
  *
  * Built through {@link withConfidence} rather than as an object literal so the three
  * numbers on a fixture are the ones AF-2 computes, never numbers a fixture author
- * typed. The Docket carries the **core** model since ledger BD-31; the wire shape is
+ * typed. The Docket carries the **core** model; the wire shape is
  * reached only at the `toWire` boundary, on the Evidence Card the gate hands back.
  */
 export function affidavit(names: readonly string[] = ["status"]): Affidavit {

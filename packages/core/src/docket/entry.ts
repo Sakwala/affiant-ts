@@ -23,10 +23,9 @@
  */
 
 import { PROTOCOL_VERSION } from "@affiant/contract";
-// The **core** Affidavit and amendment map (ledger BD-31, 2026-09-04). The entry
-// carried the wire shapes at pull request C4, because the core model and the store
-// landed in parallel; C5 makes the swap the ledger ruled on. The wire shapes are
-// reached only at the boundary - `fromWire` on the way in, `toWire` on the way out
+// The **core** Affidavit and amendment map. The entry carried the wire shapes at
+// pull request C4, because the core model and the store landed in parallel; C5
+// makes the swap. The wire shapes are reached only at the boundary - `fromWire` on the way in, `toWire` on the way out
 // to an Evidence Card - so a row holds provenance chains with their bindings and
 // their instants, which the wire at protocol tag `0.0.1-seed` cannot carry.
 import type { Affidavit } from "../model/affidavit.js";

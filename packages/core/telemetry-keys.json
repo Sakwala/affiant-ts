@@ -79,6 +79,12 @@
         "risk.score",
         "risk.threshold"
       ]
+    },
+    {
+      "key": "policy.invalid",
+      "since": "0.1.0-alpha.0",
+      "description": "A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1).",
+      "attributes": ["policy.id", "policy.version", "option", "reason"]
     }
   ]
 }

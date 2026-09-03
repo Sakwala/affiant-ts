@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { AffiantError } from "../src/errors.js";
+import type { ApprovalPolicy } from "../src/gate/policy.js";
 import { evaluatePolicies, unboundDeclaredInput } from "../src/gate/policy.js";
 import { buildAffidavit } from "../src/model/affidavit.js";
 import { chainOf, mintTag } from "../src/model/provenance.js";
@@ -9,6 +11,7 @@ import {
   AT,
   harness,
   interceptorPort,
+  plus,
   policyReturning,
   turnContext,
   writeTool,
@@ -349,6 +352,140 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
     // statement about this write's urgency still stands.
     expect(outcome.requirement).toBe("ReviewerConfirmation");
     expect(outcome.ttlMs).toBe(60_000);
+  });
+});
+
+describe("a policy's deadline is held to the same rule as the gate's own (GT-4, CV-1)", () => {
+  /** The gate's own `defaultTtlMs` is already checked at wire-up; these are the other two sources. */
+  const unusable: readonly (readonly [string, number])[] = [
+    ["zero, which files an entry that is expired on the read that files it", 0],
+    ["negative, which puts the deadline before the filing instant", -60_000],
+    ["NaN, which has no instant to stamp at all", Number.NaN],
+    ["fractional, which is not a whole number of milliseconds", 1.5],
+  ];
+
+  it.each(unusable)("refuses a verdict whose ttlMs is %s", async (_why, ttlMs) => {
+    const { gate, store } = harness({
+      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs }, { id: "urgent" })],
+    });
+
+    const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    if (filed.kind !== "error") expect.unreachable("an unusable deadline is refused");
+    expect(filed.code).toBe("wireup-invalid");
+    expect(filed.message).toContain('"urgent"');
+    expect(filed.message).toContain("ttlMs");
+    // Nothing reached the Docket: the refusal is in step 7, filing is step 9.
+    expect((await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items).toHaveLength(
+      0,
+    );
+  });
+
+  it.each(unusable)(
+    "refuses a policy default of %s when the verdict names none",
+    async (_why, ttlMs) => {
+      // `createGate` refuses this wiring outright, which is where a static default
+      // belongs (CV-1). `evaluatePolicies` is the backstop for a policy that arrives
+      // some other way — a proxy, a JavaScript host, a value read at request time.
+      expect(() =>
+        harness({ policies: [policyReturning(null, { id: "urgent", defaultTtlMs: ttlMs })] }),
+      ).toThrow(/urgent/);
+
+      await expect(
+        evaluatePolicies(
+          [
+            {
+              id: "urgent",
+              version: "1.0.0",
+              declaredInputs: [],
+              defaultTtlMs: ttlMs,
+              async evaluate() {
+                return { requirement: "ReviewerConfirmation" as const };
+              },
+            },
+          ],
+          affidavitWith("Conversation", false),
+          turnContext(),
+          { now: AT },
+        ),
+      ).rejects.toMatchObject({ code: "wireup-invalid" });
+    },
+  );
+
+  it("accepts one whole millisecond, which is the smallest deadline there is", async () => {
+    const { gate } = harness({
+      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs: 1 })],
+    });
+
+    const filed = await gate.file(
+      { operation: UPDATE, toolName: "capture", fields: preparedStatus() },
+      turnContext(),
+    );
+
+    expect(filed.entry.expiresAt).toBe(plus(AT, 1));
+  });
+
+  it("puts the refusal on the telemetry port before it throws", async () => {
+    const { gate, telemetry } = harness({
+      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs: 0 })],
+    });
+
+    await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    const event = telemetry.find("policy.invalid");
+    expect(event?.attributes["policy.id"]).toBe("policy-1");
+    expect(event?.attributes["option"]).toBe("ttlMs");
+  });
+});
+
+describe("a policy that throws is a refusal, not an escape (CV-1)", () => {
+  /** A policy whose `evaluate` throws whatever it is given. */
+  function throwingPolicy(thrown: unknown): ApprovalPolicy {
+    return {
+      id: "broken",
+      version: "1.0.0",
+      declaredInputs: [],
+      evaluate() {
+        throw thrown;
+      },
+    };
+  }
+
+  it("hands the model a stated refusal instead of an unhandled TypeError", async () => {
+    const { gate, store } = harness({
+      policies: [throwingPolicy(new TypeError("cannot read properties of undefined"))],
+    });
+
+    const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    if (filed.kind !== "error") expect.unreachable("a broken policy is refused");
+    expect(filed.code).toBe("wireup-invalid");
+    expect(filed.message).toContain('"broken"');
+    expect(filed.message).toContain("cannot read properties of undefined");
+    expect((await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items).toHaveLength(
+      0,
+    );
+  });
+
+  it("records it on the telemetry port", async () => {
+    const { gate, telemetry } = harness({ policies: [throwingPolicy(new Error("boom"))] });
+
+    await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    const event = telemetry.find("policy.invalid");
+    expect(event?.attributes["policy.id"]).toBe("broken");
+    expect(event?.attributes["option"]).toBe("evaluate");
+  });
+
+  it("lets a policy that refuses on purpose keep its own code", async () => {
+    const { gate } = harness({
+      policies: [throwingPolicy(new AffiantError("decision-unauthorized", "not this principal"))],
+    });
+
+    const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    if (filed.kind !== "error") expect.unreachable("the policy's own refusal stands");
+    expect(filed.code).toBe("decision-unauthorized");
   });
 });
 

@@ -296,6 +296,26 @@ describe.each(gateFixtures.map((fixture) => [fixture.id, fixture] as const))(
       expect(filed.card.docketId).toBe(filed.entry.entryId);
       expect(filed.card.requiredBy).toBe(filed.entry.expiresAt);
 
+      // AF-2 says a card shows all three numbers, and so does every filed fixture:
+      // `aggregateConfidence` on the wire Affidavit, the other two on the envelope
+      // the seed schema leaves room for. All three are the record's own.
+      expect(filed.card.affidavit.aggregateConfidence).toBe(
+        filed.entry.affidavit.aggregateConfidence,
+      );
+      expect(filed.card.populatedConfidence).toBe(filed.entry.affidavit.populatedConfidence);
+      expect(filed.card.emptyFieldCount).toBe(filed.entry.affidavit.emptyFieldCount);
+      if (expected.affidavit !== null) {
+        expect(filed.card.populatedConfidence).toBe(expected.affidavit.populatedConfidence);
+        expect(filed.card.emptyFieldCount).toBe(expected.affidavit.emptyFieldCount);
+      }
+
+      // AZ-4 / CV-4: a blocked row says so on the card, and never asks for a
+      // confirmation no decision path will accept.
+      expect(filed.card.blocked).toEqual(filed.entry.blocked);
+      if (filed.entry.blocked !== null) {
+        expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+      }
+
       for (const phrase of expected.card?.warningsContain ?? []) {
         expect(filed.card.affidavit.warnings.join(" ")).toContain(phrase);
       }

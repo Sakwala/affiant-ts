@@ -15,7 +15,7 @@
     "build": "pnpm -r --workspace-concurrency=1 build",
     "test": "vitest run",
     "typecheck": "pnpm -r --workspace-concurrency=1 typecheck",
-    "lint": "prettier --check . && pnpm -r --workspace-concurrency=1 --if-present lint",
+    "lint": "prettier --check . && node scripts/lint-no-internal-refs.mjs && pnpm -r --workspace-concurrency=1 --if-present lint",
     "format": "prettier --write ."
   },
   "devDependencies": {

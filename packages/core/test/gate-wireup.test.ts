@@ -70,7 +70,7 @@ describe("the four ports are required, each named in its own refusal", () => {
   });
 });
 
-describe("defaultTtlMs is required and must be a real deadline (GT-4, BD-31)", () => {
+describe("defaultTtlMs is required and must be a real deadline (GT-4)", () => {
   it("refuses its absence", () => {
     expect(() => createGate(without("defaultTtlMs"))).toThrow(
       /GateOptions\.defaultTtlMs must be a positive whole number/,
@@ -85,6 +85,42 @@ describe("defaultTtlMs is required and must be a real deadline (GT-4, BD-31)", (
 
   it("accepts a positive whole number of milliseconds", () => {
     expect(() => createGate({ ...options(), defaultTtlMs: 1 })).not.toThrow();
+  });
+});
+
+describe("a policy's own defaultTtlMs is a deadline too (GT-4, CV-1)", () => {
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "refuses a policy carrying %s, naming the policy",
+    (value) => {
+      let thrown: unknown;
+      try {
+        createGate({
+          ...options(),
+          policies: [policyReturning(null, { id: "urgent", defaultTtlMs: value })],
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      // Caught here rather than on the unlucky request whose verdict happens to name
+      // no deadline of its own — which is where the same value would otherwise file a
+      // row that reads `expired` the moment it exists.
+      expect((thrown as AffiantError).code).toBe("wireup-invalid");
+      expect((thrown as AffiantError).message).toMatch(/"urgent"/);
+      expect((thrown as AffiantError).details["option"]).toBe("defaultTtlMs");
+    },
+  );
+
+  it("accepts a policy with a whole positive default, and one with none at all", () => {
+    expect(() =>
+      createGate({
+        ...options(),
+        policies: [
+          policyReturning(null, { id: "urgent", defaultTtlMs: 1 }),
+          policyReturning(null, { id: "quiet" }),
+        ],
+      }),
+    ).not.toThrow();
   });
 });
 
