@@ -74,7 +74,8 @@
  * canonical form cannot recover precision the parse already lost, and a form that
  * quietly restringified some numbers and not others would be harder to reimplement,
  * not easier. A host that needs exact integers beyond 2^53 — an account number, a
- * minor-unit amount, a ledger id — carries them as strings on the wire. Money
+ * minor-unit amount, an accounting record's id — carries them as strings on the
+ * wire. Money
  * already does, by SR-2.
  *
  * ## Runtime (RT-1)

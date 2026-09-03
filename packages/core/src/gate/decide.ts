@@ -137,8 +137,9 @@ type DecisionPath = "decide" | "mark-executed" | "resubmit";
  *         (AZ-4); `"decision-lost-race"` when a competing decision won the guarded
  *         compare-and-set.
  * @throws RangeError when an amendment map holds `undefined` under a key, or names a
- *         field the Affidavit does not propose — caller programming errors, not
- *         refusals (ledger BD-31, sixth ruling).
+ *         field the Affidavit does not propose. Neither is a refusal the gate hands
+ *         back to a caller: they are caller programming errors, and an `AffiantError`
+ *         code would invite a host to catch and continue.
  */
 export async function decide(
   entryId: string,
@@ -234,7 +235,7 @@ export async function decide(
     // never existed: the caller learns nothing they did not already know.
     throw notFound(entryId, ctx);
   }
-  if (result === "lost-race") {
+  if (result === "already-decided") {
     throw new AffiantError(
       "decision-lost-race",
       `DK-1: another decision on Docket entry ${JSON.stringify(entryId)} was applied first. ` +
@@ -243,7 +244,7 @@ export async function decide(
       { entryId },
     );
   }
-  if (result === "not-pending") {
+  if (result === "expired") {
     // The store's guard saw a state this function's own read did not. The only way
     // that happens is a deadline crossed in between, so re-read to say so precisely
     // rather than reporting a race that did not occur.

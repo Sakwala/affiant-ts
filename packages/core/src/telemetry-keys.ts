@@ -79,4 +79,11 @@ export const TELEMETRY_KEYS = [
     description: "A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5).",
     attributes: ["policy.id", "policy.version", "reason", "provenance.field", "provenance.source", "risk.score", "risk.threshold"],
   },
+  /** A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1). Since 0.1.0-alpha.0. */
+  {
+    key: "policy.invalid",
+    since: "0.1.0-alpha.0",
+    description: "A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1).",
+    attributes: ["policy.id", "policy.version", "option", "reason"],
+  },
 ] as const satisfies readonly TelemetryKeyEntry[];

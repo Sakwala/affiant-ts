@@ -44,7 +44,7 @@ import {
 const FIELDS = ["status", "amount", "note"] as const;
 
 /** One host-tagged field, so the substance gate has something to admit (GT-3). */
-function prepared(name: string, value: JsonValue): PreparedField {
+function prepared(name: string, value: JsonValue, isMandatory = false): PreparedField {
   return {
     name,
     kind: "text",
@@ -52,7 +52,7 @@ function prepared(name: string, value: JsonValue): PreparedField {
     provenance: chainOf(
       mintConversation({ confidence: 0.9, at: AT, note: `Stated: ${name}`, conversationTurn: 1 }),
     ),
-    isMandatory: false,
+    isMandatory,
   };
 }
 
@@ -581,12 +581,58 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
     return { h, entry, decided };
   }
 
-  it("sets an amended value and clears a null one", async () => {
+  it("sets an amended value, and takes a cleared optional field off the record (AF-1)", async () => {
     const { decided } = await amended();
     const byName = new Map(decided.affidavit.fields.map((field) => [field.name, field]));
 
     expect(byName.get("amount")?.value).toBe("4000");
-    expect(byName.get("note")?.value).toBeNull();
+    // `note` is optional, and a reviewer who clears it is saying "do not write this
+    // one" — a field the write no longer proposes, which AF-1 makes absent rather
+    // than present with nothing in it.
+    expect(decided.affidavit.fields.map((field) => field.name)).toEqual(["status", "amount"]);
+    expect(byName.has("note")).toBe(false);
+  });
+
+  it("keeps a cleared mandatory field, tagged Empty at confidence zero (AF-1, AF-2)", async () => {
+    const h = harness();
+    const filed = await h.gate.file(
+      {
+        operation: {
+          kind: "update",
+          entityType: "Invoice",
+          entityId: "invoice-1",
+          fields: [...FIELDS],
+        },
+        toolName: "update_invoice",
+        fields: [
+          prepared("status", "Active", true),
+          prepared("amount", "40"),
+          prepared("note", "kept"),
+        ],
+      },
+      turnContext(),
+    );
+
+    const decided = await h.gate.decide(
+      filed.entry.entryId,
+      { kind: "approve", amendments: { status: null } },
+      turnContext({ principal: member("ana") }),
+    );
+    const status = decided.affidavit.fields.find((field) => field.name === "status");
+
+    // The entity still requires it, so it stays and is visibly unsourced rather than
+    // carrying the reviewer's 1.0 over an emptied field — which would let a reviewer
+    // wipe the record and leave it reporting perfect confidence over nothing.
+    expect(status?.value).toBeNull();
+    expect(status?.provenance.current.source).toBe("Empty");
+    expect(status?.provenance.current.confidence).toBe(0);
+    expect(status?.provenance.current.binding).toEqual({
+      kind: "reviewer-act",
+      ref: { entryId: filed.entry.entryId, decisionAt: AT },
+    });
+    expect(decided.affidavit.aggregateConfidence).toBe(0);
+    expect(decided.affidavit.emptyFieldCount).toBe(1);
+    expect(decided.affidavit.populatedConfidence).toBe(0.9);
   });
 
   it("leaves a field the map does not name exactly as it was", async () => {
@@ -613,9 +659,9 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
   it("recomputes the three numbers over the amended fields (AF-4)", async () => {
     const { decided } = await amended();
 
-    // status is Conversation at 0.9; amount and note are the reviewer's act at 1.
-    // `note` was cleared, so its value is null under a UserStated tag: still a
-    // populated field for AF-2's purposes, because its provenance is not `Empty`.
+    // status is Conversation at 0.9 and amount is the reviewer's act at 1; `note`
+    // was cleared and, being optional, is no longer proposed. Nothing here is
+    // `Empty`, so the count is 0 and the minimum is status's 0.9.
     expect(decided.affidavit.aggregateConfidence).toBe(0.9);
     expect(decided.affidavit.populatedConfidence).toBe(0.9);
     expect(decided.affidavit.emptyFieldCount).toBe(0);

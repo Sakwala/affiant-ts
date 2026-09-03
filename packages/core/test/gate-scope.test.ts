@@ -60,6 +60,35 @@ describe("two turns interleaved through one gate share nothing", () => {
     expect(await gate.get(filed.entryId, turnContext({ tenantId: "tenant-b" }))).toBeNull();
   });
 
+  it("reads a sibling conversation's entry, because AZ-2's boundary is the tenant", async () => {
+    const clock = stubClock();
+    const store = new InMemoryDocketStore({ clock });
+    const { gate } = harness({ store, clock });
+
+    const filed = await gate
+      .wrap(writeTool(), turnContext({ conversationId: "conv-b" }))
+      .execute({ status: "Active" });
+    if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
+
+    // Deliberate, and pinned so it cannot be "tightened" with a green suite: a
+    // reviewer is not the conversation that proposed the write. They open a queue or
+    // follow a link, and the entry they read was filed in some other conversation of
+    // the same tenant. GT-2's boundary is the turn's own state — its fields, its
+    // pending inference, its proposals — not a Docket a tenant's reviewers share.
+    const readFromA = await gate.get(filed.entryId, turnContext({ conversationId: "conv-a" }));
+
+    expect(readFromA).not.toBeNull();
+    expect(readFromA?.conversationId).toBe("conv-b");
+
+    // The store itself still narrows on request; it is `gate.get` that widens.
+    expect(
+      await store.get(filed.entryId, { tenantId: "tenant-a", conversationId: "conv-a" }),
+    ).toBeNull();
+    expect(
+      await store.get(filed.entryId, { tenantId: "tenant-a", conversationId: "conv-b" }),
+    ).not.toBeNull();
+  });
+
   it("gives each turn the inference its own utterance produced", async () => {
     const clock = stubClock();
     const store = new InMemoryDocketStore({ clock });

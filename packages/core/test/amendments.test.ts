@@ -67,7 +67,8 @@ describe("null clears, absent leaves untouched (DK-2)", () => {
     const untouched = applyAmendments(proposal, { Weight: 15 }, act);
 
     expect(cleared.fields[0]?.value).toBeNull();
-    expect(cleared.fields[0]?.provenance.current.source).toBe("UserStated");
+    // Status is mandatory, so it stays — with nothing behind it (AF-1).
+    expect(cleared.fields[0]?.provenance.current.source).toBe("Empty");
     expect(untouched.fields[0]?.value).toBe("Active");
     expect(untouched.fields[0]?.provenance.prior).toEqual([]);
   });
@@ -184,6 +185,57 @@ describe("an accepted amendment recomputes the three numbers (AF-4)", () => {
     expect(amended.aggregateConfidence).toBe(1);
     expect(amended.populatedConfidence).toBe(1);
     expect(amended.emptyFieldCount).toBe(0);
+  });
+
+  it("does not let clearing a mandatory field raise the numbers", () => {
+    // The reviewer's act is real — they did state it — but there is no value left to
+    // be confident in. Writing UserStated/1.0 over an emptied field would let a
+    // reviewer wipe an Affidavit and leave it reporting perfect confidence over
+    // nothing, which is the hole AF-2's minimum exists to close.
+    const cleared = applyAmendments(proposal, { Status: null }, act);
+    const status = cleared.fields[0];
+
+    expect(status?.name).toBe("Status");
+    expect(status?.value).toBeNull();
+    expect(status?.provenance.current.source).toBe("Empty");
+    expect(status?.provenance.current.confidence).toBe(0);
+    expect(cleared.aggregateConfidence).toBe(0);
+    expect(cleared.emptyFieldCount).toBe(1);
+    expect(cleared.populatedConfidence).toBe(0.9);
+  });
+
+  it("keeps the reviewer's act on a cleared mandatory field (PV-2)", () => {
+    const status = applyAmendments(proposal, { Status: null }, act).fields[0];
+
+    expect(status?.provenance.current.note).toBe("Cleared by person-7 on Docket entry entry-1");
+    expect(status?.provenance.current.binding).toEqual({
+      kind: "reviewer-act",
+      ref: { entryId: "entry-1", decisionAt: DECIDED_AT },
+    });
+    // Nothing is discarded: the machine's tag is still readable behind it.
+    expect(status?.provenance.prior[0]?.source).toBe("UserStated");
+  });
+
+  it("removes a cleared optional field from fields[] rather than emptying it (AF-1)", () => {
+    // A reviewer clearing an optional field is saying "do not write this one", which
+    // is a field the operation no longer proposes — and AF-1 says such a field is
+    // absent, never present with an Empty tag.
+    const cleared = applyAmendments(proposal, { Weight: null }, act);
+
+    expect(cleared.fields.map((field) => field.name)).toEqual(["Status"]);
+    expect(cleared.emptyFieldCount).toBe(0);
+    expect(cleared.aggregateConfidence).toBe(1);
+    expect(cleared.populatedConfidence).toBe(1);
+  });
+
+  it("clears both kinds in one map without conflating them", () => {
+    const cleared = applyAmendments(proposal, { Status: null, Weight: null }, act);
+
+    expect(cleared.fields.map((field) => field.name)).toEqual(["Status"]);
+    expect(cleared.fields[0]?.provenance.current.source).toBe("Empty");
+    expect(cleared.aggregateConfidence).toBe(0);
+    expect(cleared.emptyFieldCount).toBe(1);
+    expect(cleared.populatedConfidence).toBeNull();
   });
 
   it("leaves the proposal it was given untouched", () => {

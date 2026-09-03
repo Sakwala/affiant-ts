@@ -22,7 +22,7 @@
 
 import type { Principal, TurnContext, Turn } from "./context.js";
 import type { DocketEntry } from "./docket/entry.js";
-import type { Affidavit } from "./model/affidavit.js";
+import type { Affidavit, JsonValue } from "./model/affidavit.js";
 import type { InterceptorBinding } from "./model/provenance.js";
 
 export type { TelemetryPort, TelemetryEvent, TelemetryAttributes } from "./telemetry.js";
@@ -88,6 +88,17 @@ export interface FieldSchemaEntry {
   readonly required: boolean;
   /** The closed set a value must come from when {@link FieldSchemaEntry.kind} is `"enum"`; `null` otherwise. */
   readonly allowedValues: readonly string[] | null;
+  /**
+   * The regular expression a reviewer surface constrains the amendment input with,
+   * or `null` for no constraint.
+   *
+   * The wire Affidavit carries a `pattern` per field and `@affiant/evidence-card`
+   * sets it as the amendment input's `pattern` attribute, so without a way for a
+   * host to say what the pattern is the slot could never be filled by anything the
+   * gate produced. It is a presentation constraint, not sworn substance: the gate
+   * carries it onto the card and never validates a value against it.
+   */
+  readonly pattern: string | null;
 }
 
 /** The fields one inference call is asked to fill, and the entity they belong to. */
@@ -109,7 +120,7 @@ export interface UtteranceSpan {
 /** One field an inference port filled in. */
 export interface StructuredField {
   /** The extracted value. Any JSON value, including `null`. */
-  readonly value: unknown;
+  readonly value: JsonValue;
   /**
    * How confident the port is, `0.0` to `1.0`. The pipeline clamps whatever
    * arrives into that range rather than trusting it (PV-1).
@@ -172,7 +183,7 @@ export interface ProjectionPort {
    *          cannot supply is absent from the map, which is not the same as `null`
    *          under its key (`null` means "the field is currently empty").
    */
-  previousValues(op: Operation, ctx: TurnContext): Promise<Record<string, unknown> | null>;
+  previousValues(op: Operation, ctx: TurnContext): Promise<Record<string, JsonValue> | null>;
 }
 
 /**
@@ -251,7 +262,7 @@ export const defaultClock: Clock = {
 /** One field a {@link FieldInterceptor} resolved. */
 export interface InterceptedField {
   /** The resolved value. */
-  readonly value: unknown;
+  readonly value: JsonValue;
   /**
    * Where it came from. Only these two: **PV-3** forbids an interceptor from
    * minting `UserStated`, because a machine may not put words in a person's mouth.

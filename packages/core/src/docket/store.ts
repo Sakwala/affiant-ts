@@ -29,23 +29,27 @@
  * with no persistent process — has no room for a method that loads a tenant's
  * Docket into memory.
  *
- * *Two divergences from the v0.1 design record, recorded deliberately.* The
+ * *Three divergences from the v0.1 design record, recorded deliberately.* The
  * design's sketch of `transition` takes `(entryId, expected, patch)` and returns
  * `entry | "lost-race" | "not-pending"`. First, every other method on the interface
  * is scoped, and an unscoped transition would be the one door in the store through
  * which a caller could move another tenant's row by guessing an id — exactly what
  * AZ-2 closes; the signature here takes a {@link Scope} in the same position `get`
  * does. Second, the sketch has no way to say *no such entry*: reporting a missing id
- * as `"not-pending"` would make a caller turn it into `decision-expired`, which is a
+ * as "not pending" would make a caller turn it into `decision-expired`, which is a
  * different and misleading refusal, so {@link TransitionResult} carries a
- * `"not-found"` arm as well.
+ * `"not-found"` arm as well. Third, the sketch's two refusal names describe the
+ * wrong halves: the arm it spells `"not-pending"` is the *expired* row, while the
+ * arm it spells `"lost-race"` is the row somebody else already decided — and a store
+ * implementer writing `UPDATE … WHERE status = 'pending'` will read "not pending" as
+ * the union of both. The names here say which is which: `"expired"` and
+ * `"already-decided"`.
  *
  * @packageDocumentation
  */
 
-// The **core** Affidavit and amendment map (ledger BD-31): a row holds the core
-// model, and the wire shapes are reached only at the boundary. See the note in
-// `entry.ts`.
+// The **core** Affidavit and amendment map: a row holds the core model, and the
+// wire shapes are reached only at the boundary. See the note in `entry.ts`.
 import type { Affidavit } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 
@@ -182,22 +186,26 @@ export interface TransitionPatch {
  * What a guarded compare-and-set returns.
  *
  * The two refusals are distinct because they mean different things to a caller and
- * map to different error codes. `"lost-race"` means **someone else decided this
- * entry** — the row is `approved` or `rejected`, a second decision arrived, and
- * DK-1 requires it be refused rather than applied twice or silently overwritten.
- * `"not-pending"` means **the entry is no longer available to decide for a reason
- * that is not a competing decision** — it has passed its deadline, whether or not a
- * sweep has recorded that yet. A caller turns the first into
- * `decision-lost-race` and the second into `decision-expired`, and the second is
- * the one that must also preserve the amendments the late decision carried
- * ({@link DocketStore.preserveAmendments}).
+ * map to different error codes, and each is named after the state it describes.
+ * `"already-decided"` means **someone else decided this entry** — the row is
+ * `approved` or `rejected`, a second decision arrived, and DK-1 requires it be
+ * refused rather than applied twice or silently overwritten. `"expired"` means **the
+ * row passed its deadline**, whether or not a sweep has recorded that yet. A caller
+ * turns the first into `decision-lost-race` and the second into `decision-expired`,
+ * and the second is the one that must also preserve the amendments the late decision
+ * carried ({@link DocketStore.preserveAmendments}).
+ *
+ * The names are part of the contract, not an implementation detail: the in-memory
+ * store is the reference a Postgres store earns the name by passing the same fixtures
+ * as, and a name that describes the *other* arm's state — "not pending", which is
+ * true of both — is one a second implementer will get backwards.
  *
  * Between them the two cover every state a row can be in that is not `pending`, so
  * a caller never has to re-read to find out which refusal it got. `"not-found"` is
  * the third answer: no entry with that id is visible in the scope — which, for a
  * caller in the wrong tenant, is the only answer they get (AZ-2).
  */
-export type TransitionResult = DocketEntry | "not-found" | "lost-race" | "not-pending";
+export type TransitionResult = DocketEntry | "not-found" | "already-decided" | "expired";
 
 /** What {@link DocketStore.preserveAmendments} returns. */
 export type PreserveAmendmentsResult = DocketEntry | "not-found" | "not-expired";

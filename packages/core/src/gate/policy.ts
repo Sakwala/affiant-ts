@@ -6,8 +6,10 @@
  * run is recorded verbatim and blocked, never degraded to a weaker one), **PV-4** (a
  * verdict with no person present never depends on an unbound tag above
  * `Conversation`), **GT-5** (the risk function and its thresholds are host-supplied;
- * this package owns only the comparison), **CV-1** (a declared threshold with no
- * scorer is a wire-up error, raised in `gate.ts` before any evaluation).
+ * this package owns only the comparison), **GT-4** (the deadline is the policy's to
+ * name, and a deadline that is not a deadline is refused rather than stamped),
+ * **CV-1** (a declared threshold with no scorer is a wire-up error, raised in
+ * `gate.ts` before any evaluation).
  *
  * ## What a policy is
  *
@@ -44,7 +46,7 @@
 import type { TurnContext } from "../context.js";
 import type { RequirementKind } from "../docket/entry.js";
 import { REQUIREMENT_KINDS } from "../docket/entry.js";
-import { AffiantError } from "../errors.js";
+import { AffiantError, isAffiantError } from "../errors.js";
 import type { Affidavit } from "../model/affidavit.js";
 import type { ProvenanceSource } from "../model/provenance.js";
 import { isHonourable, requiresBinding } from "../model/provenance.js";
@@ -59,16 +61,22 @@ import type { RiskScorer, TelemetryPort } from "../ports.js";
  *
  * `ttlMs` is the policy's own deadline for this write; GT-4 stamps `expiresAt` from
  * it **after** the chain has run, so a policy that knows a capture is worthless in
- * five minutes can say so. `threshold` is meaningful on a `"StandingOrder"` verdict
- * only — it is the ceiling a host-supplied {@link RiskScorer}'s score must not
- * exceed — and naming one on any other requirement is a caller bug, not a request
- * (a `RangeError`, per ledger BD-31's sixth ruling). `reason` is carried onto the
- * reviewer's card so a person can see why they are being asked.
+ * five minutes can say so. It must be a whole number of milliseconds, one or more:
+ * `0` files an entry that reads `expired` on the very read that files it, and a
+ * negative or `NaN` one is worse (see {@link evaluatePolicies}). `threshold` is
+ * meaningful on a `"StandingOrder"` verdict only — it is the ceiling a
+ * host-supplied {@link RiskScorer}'s score must not exceed — and naming one on any
+ * other requirement is a caller bug, not a request (a `RangeError`). `reason` is
+ * carried onto the reviewer's card so a person can see why they are being asked.
  */
 export interface Verdict {
   /** What this write needs before it may execute (AZ-4). */
   readonly requirement: RequirementKind;
-  /** The policy's deadline for this write, in milliseconds. Applied by GT-4, after the chain. */
+  /**
+   * The policy's deadline for this write, in milliseconds. Applied by GT-4, after
+   * the chain. A whole number, one or more; anything else is a policy contract
+   * violation and refused (`wireup-invalid`).
+   */
   readonly ttlMs?: number;
   /** The risk ceiling, on a `"StandingOrder"` verdict only (GT-5). */
   readonly threshold?: number;
@@ -99,7 +107,11 @@ export interface ApprovalPolicy {
   readonly declaredInputs: readonly ProvenanceSource[];
   /** Whether any verdict this policy can return names a {@link Verdict.threshold} (GT-5, CV-1). */
   readonly declaresThreshold?: boolean;
-  /** The policy's default TTL, used when its verdict names none (GT-4). */
+  /**
+   * The policy's default TTL, used when its verdict names none (GT-4). Held to the
+   * same rule as {@link Verdict.ttlMs}: a whole number of milliseconds, one or more.
+   * `createGate` refuses a policy carrying anything else at wire-up (CV-1).
+   */
   readonly defaultTtlMs?: number;
   /** What this policy says about `affidavit` in `ctx`, or `null` for no opinion. */
   evaluate(affidavit: Affidavit, ctx: TurnContext): Promise<Verdict | null>;
@@ -180,10 +192,15 @@ export interface PolicyChainDeps {
  * values the Affidavit currently swears to. The displaced tags stay on the record for
  * a reviewer to read.
  *
- * @throws AffiantError `"wireup-invalid"` if a verdict names a threshold and no
- *         scorer was supplied. `createGate` refuses this at wire-up from
+ * @throws AffiantError `"wireup-invalid"` in three cases, all of them a policy
+ *         breaking its own contract: a verdict names a threshold and no scorer was
+ *         supplied (`createGate` refuses this at wire-up from
  *         {@link ApprovalPolicy.declaresThreshold}; this is the backstop for a policy
- *         that returned a threshold without declaring it could.
+ *         that returned a threshold without declaring it could); a verdict's `ttlMs`
+ *         or the policy's `defaultTtlMs` is not a whole number of milliseconds, one
+ *         or more (GT-4); or the policy's `evaluate` threw. In every case nothing is
+ *         filed and a `policy.invalid` event is on the telemetry port before the
+ *         throw.
  * @throws RangeError if a verdict names a requirement that is not one of the four, or
  *         names a threshold on a requirement other than `"StandingOrder"`.
  */
@@ -194,9 +211,16 @@ export async function evaluatePolicies(
   deps: PolicyChainDeps,
 ): Promise<PolicyOutcome> {
   for (const policy of policies) {
-    const verdict = await policy.evaluate(affidavit, ctx);
+    const verdict = await evaluateOne(deps, policy, affidavit, ctx);
     if (verdict === null || verdict === undefined) continue;
-    checkVerdict(policy, verdict);
+    checkVerdict(deps, policy, verdict);
+
+    // GT-4: the fallback is read here, so it is checked here too — a policy whose
+    // verdict names no deadline and whose own default is unusable must not reach the
+    // filing step with a number that cannot be stamped.
+    if (verdict.ttlMs === undefined) {
+      checkTtlMs(deps, policy, "defaultTtlMs", policy.defaultTtlMs);
+    }
 
     const ttlMs = verdict.ttlMs ?? policy.defaultTtlMs ?? null;
     const base = {
@@ -276,6 +300,44 @@ export async function evaluatePolicies(
 }
 
 /**
+ * Ask one policy, turning a throw out of its `evaluate` into a stated refusal.
+ *
+ * A host's policy that throws is a host bug, but it reaches the gate through the tool
+ * seam, and an unhandled `TypeError` out of a gated `execute` tells a host nothing it
+ * can branch on and tells the model nothing at all. So it becomes an
+ * {@link AffiantError} carrying `"wireup-invalid"` — the same code every other
+ * "this gate is wired wrong" refusal carries — which `wrap` hands back as
+ * `{ kind: "error" }`, with the original message inlined so the bug is still
+ * findable. **Nothing is filed:** the throw happens in step 7, before the pipeline
+ * reaches step 9.
+ *
+ * An {@link AffiantError} thrown by the policy itself passes through untouched, so a
+ * policy that deliberately refuses keeps its own code.
+ */
+async function evaluateOne(
+  deps: PolicyChainDeps,
+  policy: ApprovalPolicy,
+  affidavit: Affidavit,
+  ctx: TurnContext,
+): Promise<Verdict | null> {
+  try {
+    return await policy.evaluate(affidavit, ctx);
+  } catch (cause) {
+    if (isAffiantError(cause)) throw cause;
+    const reason =
+      `CV-1: policy ${JSON.stringify(policy.id)} threw from evaluate — ${messageOf(cause)}. ` +
+      `A policy that cannot answer is a wiring the gate cannot run: nothing is filed, and the ` +
+      `call is refused rather than the throw escaping through the tool seam.`;
+    emitPolicyInvalid(deps, policy, "evaluate", reason);
+    throw new AffiantError("wireup-invalid", reason, {
+      policyId: policy.id,
+      option: "evaluate",
+      cause: messageOf(cause),
+    });
+  }
+}
+
+/**
  * The first field whose tag in force is a grade the policy predicates on, sits above
  * `Conversation`, and points at nothing (PV-4), or `null` when every declared input
  * is honourable.
@@ -301,12 +363,22 @@ export function unboundDeclaredInput(
 /**
  * Refuse a verdict this package cannot act on.
  *
- * `RangeError` rather than {@link AffiantError}: a policy that names a requirement
- * outside the four, or hangs a risk threshold off a requirement that has nothing to
- * compare, is a programming error in the host's policy, not a refusal the gate is
- * handing back to a model (ledger BD-31, sixth ruling).
+ * Two arms are a `RangeError` rather than an {@link AffiantError}: a policy that
+ * names a requirement outside the four, or hangs a risk threshold off a requirement
+ * that has nothing to compare, is a programming error in the host's policy and not a
+ * refusal the gate is handing back to a model.
+ *
+ * The third arm — an unusable deadline — is an `AffiantError` carrying
+ * `"wireup-invalid"`, and deliberately so. `createGate` already refuses
+ * `GateOptions.defaultTtlMs` with that code (CV-1); a policy naming the *same value*
+ * badly is the same misconfiguration arriving one layer down, and the failure it
+ * replaces is silent — a `ttlMs` of `0` files a Docket row that satisfies every
+ * invariant and reads `expired` on the read that files it, so the write the gate was
+ * standing in front of simply never happens. A code a host can branch on, and that
+ * `wrap` hands back as `{ kind: "error" }`, is the answer; a bare `RangeError` out of
+ * the tool seam is not.
  */
-function checkVerdict(policy: ApprovalPolicy, verdict: Verdict): void {
+function checkVerdict(deps: PolicyChainDeps, policy: ApprovalPolicy, verdict: Verdict): void {
   if (!(REQUIREMENT_KINDS as readonly string[]).includes(verdict.requirement)) {
     throw new RangeError(
       `AZ-4: policy ${JSON.stringify(policy.id)} returned an unknown requirement ` +
@@ -320,6 +392,75 @@ function checkVerdict(policy: ApprovalPolicy, verdict: Verdict): void {
         `under, and means nothing on a requirement that asks a person`,
     );
   }
+  checkTtlMs(deps, policy, "ttlMs", verdict.ttlMs);
+}
+
+/**
+ * Whether `ttlMs` is a deadline: a finite whole number of milliseconds, one or more.
+ *
+ * Exported so `createGate` holds {@link ApprovalPolicy.defaultTtlMs} and
+ * `GateOptions.defaultTtlMs` to one definition rather than two that can drift.
+ */
+export function isUsableTtlMs(ttlMs: unknown): ttlMs is number {
+  return typeof ttlMs === "number" && Number.isInteger(ttlMs) && ttlMs >= 1;
+}
+
+/**
+ * The refusal message for a policy that named an unusable deadline. One function so
+ * the wire-up refusal and the per-request one read identically.
+ */
+export function unusableTtlMessage(
+  policyId: string,
+  option: "ttlMs" | "defaultTtlMs",
+  ttlMs: unknown,
+): string {
+  return (
+    `GT-4: policy ${JSON.stringify(policyId)} named ${option} ${String(ttlMs)}; a deadline is a ` +
+    `whole number of milliseconds, one or more. A zero or negative one files an entry that is ` +
+    `already past its deadline, which no person can ever decide and which no rule would show as ` +
+    `a failure; a fractional or non-numeric one has no instant to stamp at all.`
+  );
+}
+
+/** Refuse an unusable `ttlMs` from a verdict or from the policy's own default (GT-4). */
+function checkTtlMs(
+  deps: PolicyChainDeps,
+  policy: ApprovalPolicy,
+  option: "ttlMs" | "defaultTtlMs",
+  ttlMs: number | undefined,
+): void {
+  if (ttlMs === undefined || isUsableTtlMs(ttlMs)) return;
+  const reason = unusableTtlMessage(policy.id, option, ttlMs);
+  emitPolicyInvalid(deps, policy, option, reason);
+  throw new AffiantError("wireup-invalid", reason, {
+    policyId: policy.id,
+    option,
+    ttlMs: String(ttlMs),
+  });
+}
+
+/** Emit `policy.invalid`, naming the policy and which half of its contract it broke. */
+function emitPolicyInvalid(
+  deps: PolicyChainDeps,
+  policy: ApprovalPolicy,
+  option: "ttlMs" | "defaultTtlMs" | "evaluate",
+  reason: string,
+): void {
+  deps.telemetry?.emit({
+    key: "policy.invalid",
+    at: deps.now,
+    attributes: {
+      "policy.id": policy.id,
+      "policy.version": policy.version,
+      option,
+      reason,
+    },
+  });
+}
+
+/** The message of a throw, without assuming it was an `Error`. */
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 /** Emit `standing-order.blocked`, naming the policy and why it was not honoured. */

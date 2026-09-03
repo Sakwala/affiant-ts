@@ -76,7 +76,7 @@ import type {
   JsonValue,
   WireCarry,
 } from "../model/affidavit.js";
-import { buildAffidavit, isJsonValue, toWire } from "../model/affidavit.js";
+import { buildAffidavit, computeConfidence, isJsonValue, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 import { canonicalJson, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
@@ -104,15 +104,26 @@ import { evaluatePolicies } from "./policy.js";
 // ---------------------------------------------------------------------------
 
 /**
- * The Evidence Card envelope, plus the protocol version SR-4 requires on it.
+ * The Evidence Card envelope, plus the four facts the seed wire shape has nowhere
+ * to put.
  *
- * The wire type at protocol tag `0.0.1-seed` predates the field — the seed fixture
- * set carries the version at manifest level — and SR-4 says that from `0.1.0` it is
- * on the envelope. So the gate emits it now, from the Docket row's own
- * `protocolVersion`: an envelope that states the version it conforms to is the whole
- * of the rule, and a consumer of the older shape ignores an extra property. This type
- * is assignable to `@affiant/contract`'s `EvidenceCardRequest`; `test/gate-types.test-d.ts`
- * asserts that it stays so.
+ * The wire type at protocol tag `0.0.1-seed` predates all four, and its Affidavit
+ * schema is `additionalProperties: false` over exactly seven properties, so a fact
+ * the rules require a card to show and the nested Affidavit cannot carry goes here,
+ * on the envelope, where an extra property is simply ignored by a consumer of the
+ * older shape. This type stays assignable to `@affiant/contract`'s
+ * `EvidenceCardRequest`; `test/gate-types.test-d.ts` asserts that it does.
+ *
+ * - `protocolVersion` (SR-4) — the version the envelope conforms to, taken from the
+ *   Docket row.
+ * - `populatedConfidence` and `emptyFieldCount` (AF-2) — two of the three numbers
+ *   AF-2 says a card shows. The third, `aggregateConfidence`, is on the wire
+ *   Affidavit already; these two are on the envelope **until the v0.1 schema adds
+ *   them to the Affidavit**, at which point they move and this pair is kept for one
+ *   version as a duplicate rather than dropped.
+ * - `blocked` (AZ-4, CV-4) — the marker that says no decision on this entry will be
+ *   accepted, so a reviewer surface can render it rather than inferring it from a
+ *   warning string.
  */
 export interface EvidenceCardRequest {
   /** The Docket entry this card is filed under. */
@@ -125,6 +136,26 @@ export interface EvidenceCardRequest {
   readonly priorAmendments: AmendmentMap | null;
   /** The protocol version this envelope conforms to (SR-4). */
   readonly protocolVersion: string;
+  /**
+   * Minimum confidence over the non-`Empty` proposed fields; `null` when there are
+   * none (AF-2).
+   *
+   * On the envelope until the v0.1 schema adds it to the Affidavit.
+   */
+  readonly populatedConfidence: number | null;
+  /**
+   * How many proposed fields are tagged `Empty` (AF-2).
+   *
+   * On the envelope until the v0.1 schema adds it to the Affidavit. Without it a
+   * person approving a card sees an aggregate of `0` and cannot tell how many fields
+   * are empty or how good the populated ones are.
+   */
+  readonly emptyFieldCount: number;
+  /**
+   * Why no decision on this entry will be accepted, or `null` when it can be decided
+   * (AZ-4, CV-4).
+   */
+  readonly blocked: BlockedMarker | null;
 }
 
 /** What the pipeline returns: the row as the store holds it, and the card for a reviewer. */
@@ -245,8 +276,9 @@ interface FieldState {
  *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
  *         telemetry port before the throw.
  * @throws RangeError when a port hands back something that is not a JSON value, or
- *         an interceptor claims a field the operation does not propose — host
- *         programming errors, not refusals (ledger BD-31, sixth ruling).
+ *         an interceptor claims a field the operation does not propose. Neither is a
+ *         refusal the gate hands back to a model: they are host programming errors,
+ *         and an `AffiantError` code would invite a host to catch and continue.
  */
 export async function runPipeline(
   proposal: PipelineProposal,
@@ -573,12 +605,19 @@ function evidenceCard(
   proposal: PipelineProposal,
   outcome: PolicyOutcome,
 ): EvidenceCardRequest {
+  // AF-2's three numbers come off the stored Affidavit, so the card and the record
+  // can never disagree about them: `aggregateConfidence` rides the wire Affidavit,
+  // the other two ride the envelope.
+  const numbers = computeConfidence(entry.affidavit.fields);
   return {
     docketId: entry.entryId,
     affidavit: toWire(entry.affidavit, wireCarry(entry, proposal, outcome)),
     requiredBy: entry.expiresAt,
     priorAmendments: proposal.priorAmendments ?? entry.amendments,
     protocolVersion: entry.protocolVersion,
+    populatedConfidence: entry.affidavit.populatedConfidence ?? numbers.populatedConfidence,
+    emptyFieldCount: entry.affidavit.emptyFieldCount ?? numbers.emptyFieldCount,
+    blocked: entry.blocked,
   };
 }
 
@@ -616,9 +655,13 @@ function wireCarry(
     (proposal.schema?.fields ?? []).map((entry_) => [entry_.name, entry_]),
   );
   for (const field of entry.affidavit.fields) {
+    const schemaEntry = schemaByName.get(field.name);
     constraints[field.name] = {
-      allowedValues: schemaByName.get(field.name)?.allowedValues ?? null,
-      pattern: null,
+      allowedValues: schemaEntry?.allowedValues ?? null,
+      // Carried from the host's field schema, never invented here: the reviewer
+      // surface renders it as an input constraint and the gate validates nothing
+      // against it.
+      pattern: schemaEntry?.pattern ?? null,
     };
   }
 
@@ -627,7 +670,11 @@ function wireCarry(
       proposal.operationLabel ??
       (entry.affidavit.operationType === "create" ? "WriteCreate" : "WriteUpdate"),
     warnings,
-    requiresConfirmation: entry.status === "pending",
+    // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
+    // it is not a card a person can confirm. Saying `true` here would offer a
+    // reviewer surface an approve button that cannot work, on the same card that
+    // carries a warning saying no decision will be accepted.
+    requiresConfirmation: entry.status === "pending" && entry.blocked === null,
     fieldConstraints: constraints,
   };
 }
@@ -718,9 +765,9 @@ async function utteranceSpanBinding(
  * `value` as a JSON value.
  *
  * @throws RangeError when a port hands back something with no JSON form. A port
- *         contract violation is a host programming error (ledger BD-31, sixth
- *         ruling), and letting it through would put an unserializable value on a
- *         record whose whole purpose is to be read back later.
+ *         contract violation is a host programming error rather than a refusal, and
+ *         letting it through would put an unserializable value on a record whose
+ *         whole purpose is to be read back later.
  */
 function requireJsonValue(value: unknown, where: string): JsonValue {
   if (!isJsonValue(value)) {

@@ -2,7 +2,8 @@
  * The Docket: a JSON file holding what was proposed and what was decided.
  *
  * Affiant's docket is the record that makes a review answerable afterwards — not a
- * queue, a ledger. This is the smallest honest version of one: a file at
+ * queue, a register of what was agreed. This is the smallest honest version of one:
+ * a file at
  * `~/.affiant-hook/docket.json` (override the directory with `AFFIANT_HOOK_HOME`)
  * holding one entry per proposed write, with these properties:
  *

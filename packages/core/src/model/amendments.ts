@@ -2,11 +2,35 @@
  * Amendments: what a reviewer's correction means, and what it does to the record.
  *
  * **Rules served: DK-2** (in an amendment map `null` means *cleared* and an absent
- * key means *untouched*, and an implementation never conflates them), **AF-4** (an
- * accepted amendment recomputes the three confidence numbers, and the amended
- * field's provenance is the reviewer's act — never the machine's pre-correction
- * tag), **PV-2** (that act carries a `reviewer-act` binding naming the Docket
- * decision it was made on).
+ * key means *untouched*, and an implementation never conflates them), **AF-1** (a
+ * field with unknown provenance is present and tagged `Empty`; a field the operation
+ * does not propose is absent), **AF-2** (the three numbers, with `Empty` counting as
+ * `0`), **AF-4** (an accepted amendment recomputes the three confidence numbers, and
+ * the amended field's provenance is the reviewer's act — never the machine's
+ * pre-correction tag), **PV-2** (that act carries a `reviewer-act` binding naming
+ * the Docket decision it was made on).
+ *
+ * ## What clearing a field does to the numbers
+ *
+ * A cleared field has no value, so it cannot have confidence in one. Writing the
+ * reviewer's `UserStated`/`1.0` tag over an emptied field would make the three
+ * numbers *rise* as a reviewer wiped the Affidavit — clear every field and the record
+ * reports perfect confidence over nothing, which is the arithmetic hole AF-2 exists
+ * to close, arriving through the amendment path. So a clear is resolved against the
+ * field rather than pasted onto it:
+ *
+ * - **A mandatory field stays and is tagged `Empty`** (confidence `0`, AF-1). The
+ *   entity still requires it, so it is still proposed and still on the card — now
+ *   visibly with nothing behind it, counted in `emptyFieldCount` and dragging
+ *   `aggregateConfidence` to `0`.
+ * - **An optional field is removed from `fields[]`** (AF-1). A reviewer clearing an
+ *   optional field is saying "do not write this one", which is a field the write no
+ *   longer proposes, and AF-1 says a field the operation does not propose is absent
+ *   rather than present-and-`Empty`.
+ *
+ * Either way the reviewer's act is not lost: the `Empty` tag carries the same
+ * `reviewer-act` binding and the same note a set would (PV-2), and the machine's
+ * displaced tag stays in the chain behind it.
  *
  * Why DK-2 needs saying at all: `undefined` and `null` are one keystroke apart in
  * JavaScript and `{ Status: undefined }` reads to a careless consumer as "clear
@@ -112,12 +136,16 @@ export interface ReviewerAct {
 /**
  * Apply `map` to `affidavit` as `act`, returning a new Affidavit.
  *
- * What happens to an amended field: its value becomes the amended value (`null`
- * when cleared, DK-2), and a `UserStated` tag carrying a `reviewer-act` binding
- * goes **on top of** its chain (PV-2, AF-4). On top rather than merged: a
- * reviewer's correction is not a confidence contest it might lose to the machine's
- * own tag, and the displaced tag stays in `prior` so the card can still show what
- * the machine had proposed.
+ * What happens to a field the reviewer **set**: its value becomes the amended value,
+ * and a `UserStated` tag carrying a `reviewer-act` binding goes **on top of** its
+ * chain (PV-2, AF-4). On top rather than merged: a reviewer's correction is not a
+ * confidence contest it might lose to the machine's own tag, and the displaced tag
+ * stays in `prior` so the card can still show what the machine had proposed.
+ *
+ * What happens to a field the reviewer **cleared** (`null`, DK-2): a mandatory field
+ * keeps its place with value `null` under an `Empty` tag at confidence `0`, and an
+ * optional field leaves `fields[]` entirely. See the module note above for why the
+ * reviewer's `1.0` is not written over an emptied field.
  *
  * What happens to everything else: nothing. A field the map does not name keeps its
  * value, its `previousValue` and its whole chain, byte for byte (DK-2). And
@@ -154,31 +182,41 @@ export function applyAmendments(
     ref: { entryId: act.entryId, decisionAt: act.decisionAt },
   };
 
-  const fields = affidavit.fields.map((field): AffidavitField => {
+  const fields = affidavit.fields.flatMap((field): AffidavitField[] => {
     const amendment = byName.get(field.name);
-    if (amendment === undefined) return field;
+    if (amendment === undefined) return [field];
 
-    const value: JsonValue = amendment.kind === "clear" ? null : amendment.value;
+    // AF-1: a cleared optional field is a field the write no longer proposes, so it
+    // is absent rather than present with nothing in it.
+    if (amendment.kind === "clear" && !field.isMandatory) return [];
+
+    const cleared = amendment.kind === "clear";
+    const value: JsonValue = cleared ? null : amendment.value;
     const tag = mintTag({
-      source: "UserStated",
-      confidence: 1,
-      note:
-        amendment.kind === "clear"
-          ? `Cleared by ${act.by} on Docket entry ${act.entryId}`
-          : `Amended by ${act.by} on Docket entry ${act.entryId}`,
+      // AF-2: an emptied field has no value to be confident in. `mintTag` forces an
+      // `Empty` tag to confidence 0, so the record and the numbers cannot disagree.
+      source: cleared ? "Empty" : "UserStated",
+      confidence: cleared ? 0 : 1,
+      note: cleared
+        ? `Cleared by ${act.by} on Docket entry ${act.entryId}`
+        : `Amended by ${act.by} on Docket entry ${act.entryId}`,
       at: act.decisionAt,
       conversationTurn: affidavit.conversationTurn,
+      // PV-2 either way: the tag points at the decision the act was made on, so an
+      // auditor can follow a clearing as readily as a correction.
       binding,
     });
 
-    return {
-      name: field.name,
-      kind: field.kind,
-      value,
-      previousValue: field.previousValue,
-      provenance: supersede(field.provenance, tag),
-      isMandatory: field.isMandatory,
-    };
+    return [
+      {
+        name: field.name,
+        kind: field.kind,
+        value,
+        previousValue: field.previousValue,
+        provenance: supersede(field.provenance, tag),
+        isMandatory: field.isMandatory,
+      },
+    ];
   });
 
   // AF-4: the numbers are the amended Affidavit's, not the proposal's.

@@ -145,7 +145,7 @@ export function inferencePort(
 
 /** A {@link ProjectionPort} that reports `previous` for every operation. */
 export function projectionPort(
-  previous: Record<string, unknown> | null,
+  previous: Record<string, JsonValue> | null,
   trace?: Trace,
 ): ProjectionPort {
   return {
@@ -296,6 +296,7 @@ export function schemaFor(
       description: `The ${name}`,
       required: false,
       allowedValues: null,
+      pattern: null,
     })),
   };
 }
@@ -378,7 +379,7 @@ export interface HarnessInit {
   readonly inferred?: { readonly [name: string]: StructuredField };
   /** A whole inference port, for a fixture that needs the answer to depend on the turn. */
   readonly inference?: InferencePort;
-  readonly previousValues?: Record<string, unknown> | null;
+  readonly previousValues?: Record<string, JsonValue> | null;
   readonly policies?: readonly ApprovalPolicy[];
   readonly interceptors?: readonly FieldInterceptor[];
   readonly riskScore?: number;

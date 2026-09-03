@@ -4,6 +4,8 @@ import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import type { ApprovalPolicy } from "../src/gate/policy.js";
 import { AffiantError } from "../src/errors.js";
+import type { JsonValue } from "../src/model/affidavit.js";
+import { computeConfidence } from "../src/model/affidavit.js";
 import type { InferenceSource } from "../src/model/provenance.js";
 import { mintInference } from "../src/model/provenance.js";
 import type { InterceptedFields } from "../src/ports.js";
@@ -467,14 +469,222 @@ describe("the Evidence Card (SR-4)", () => {
     expect(pending.card.affidavit.requiresConfirmation).toBe(true);
     expect(approved.card.affidavit.requiresConfirmation).toBe(false);
   });
+
+  it("does not ask for a confirmation on a blocked entry, and says why on the card", async () => {
+    const { gate } = harness({ policies: [policyReturning({ requirement: "MultiParty" })] });
+
+    const filed = await gate.file(proposal(), turnContext());
+
+    // The row is `pending` and refuses every decision (AZ-4). A card that also said
+    // `requiresConfirmation: true` would hand a reviewer surface an approve button
+    // that cannot work, on the same card whose warning says so.
+    expect(filed.entry.status).toBe("pending");
+    expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+    expect(filed.card.blocked).toEqual({
+      code: "requirement-not-implemented",
+      level: "MultiParty",
+    });
+  });
+
+  it("marks a coverage-refused proposal blocked on the envelope too (CV-4)", async () => {
+    const { gate } = harness({ uncovered: [["relay_capture", "provider-executed"]] });
+
+    const filed = await gate.file(proposal(), turnContext());
+
+    expect(filed.card.blocked).toEqual({
+      code: "coverage-refused",
+      category: "provider-executed",
+      toolName: "relay_capture",
+    });
+    expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+  });
+
+  it("carries the host schema's per-field input constraints, pattern included", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file(
+      {
+        operation: {
+          kind: "update" as const,
+          entityType: "Invoice",
+          entityId: "invoice-1",
+          fields: ["status"],
+        },
+        toolName: "update_invoice",
+        schema: {
+          entityType: "Invoice",
+          fields: [
+            {
+              name: "status",
+              kind: "enum" as const,
+              description: "The status",
+              required: true,
+              allowedValues: ["Active", "Retired"],
+              pattern: "^(Active|Retired)$",
+            },
+          ],
+        },
+      },
+      turnContext(),
+    );
+
+    // The wire Affidavit has a `pattern` slot per field and the reviewer surface
+    // renders it as an input constraint, so the gate has to have somewhere to read
+    // one from. It carries it; it never validates against it.
+    const status = filed.card.affidavit.fields[0];
+    expect(status?.pattern).toBe("^(Active|Retired)$");
+    expect(status?.allowedValues).toEqual(["Active", "Retired"]);
+  });
+
+  it("carries a null pattern where the host schema names none", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
+    expect(filed.card.affidavit.fields[0]?.pattern).toBeNull();
+  });
+
+  it("carries no blocked marker on an entry a person can decide", async () => {
+    const filed = await harness().gate.file(proposal(), turnContext());
+
+    expect(filed.card.blocked).toBeNull();
+    expect(filed.card.affidavit.requiresConfirmation).toBe(true);
+  });
+});
+
+describe("the card carries all three of AF-2's numbers", () => {
+  /** One populated field at 0.9 and two the ports said nothing about. */
+  function mixedProposal() {
+    return {
+      operation: {
+        kind: "update" as const,
+        entityType: "Invoice",
+        entityId: "invoice-1",
+        fields: ["status", "memo", "owner"],
+      },
+      toolName: "relay_capture",
+      fields: [
+        {
+          name: "status",
+          kind: "text" as const,
+          value: "Active",
+          provenance: {
+            current: {
+              source: "Conversation" as const,
+              confidence: 0.9,
+              note: null,
+              at: AT,
+              conversationTurn: null,
+              binding: null,
+            },
+            prior: [],
+          },
+        },
+        { name: "memo", kind: "text" as const, value: null },
+        { name: "owner", kind: "text" as const, value: null },
+      ],
+    };
+  }
+
+  it("shows the populated minimum and the empty-field count a wire Affidavit cannot", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file(mixedProposal(), turnContext());
+
+    // Without the other two a reviewer reads `aggregateConfidence: 0` and cannot
+    // tell how many fields are empty or how good the populated one is.
+    expect(filed.card.affidavit.aggregateConfidence).toBe(0);
+    expect(filed.card.populatedConfidence).toBe(0.9);
+    expect(filed.card.emptyFieldCount).toBe(2);
+  });
+
+  it("agrees with the model on every one of the three", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file(mixedProposal(), turnContext());
+    const numbers = computeConfidence(filed.entry.affidavit.fields);
+
+    expect(filed.card.affidavit.aggregateConfidence).toBe(numbers.aggregateConfidence);
+    expect(filed.card.populatedConfidence).toBe(numbers.populatedConfidence);
+    expect(filed.card.emptyFieldCount).toBe(numbers.emptyFieldCount);
+    expect(filed.card.affidavit.aggregateConfidence).toBe(
+      filed.entry.affidavit.aggregateConfidence,
+    );
+    expect(filed.card.populatedConfidence).toBe(filed.entry.affidavit.populatedConfidence);
+    expect(filed.card.emptyFieldCount).toBe(filed.entry.affidavit.emptyFieldCount);
+  });
+
+  it("carries all three on the card a wrapped tool's execute hands back", async () => {
+    const { gate } = harness({
+      inferred: { status: structured("Active", "literal", 0.9) },
+    });
+
+    const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+
+    if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
+    const stored = await gate.get(filed.entryId, turnContext());
+    const numbers = computeConfidence(stored?.affidavit.fields ?? []);
+
+    expect(filed.card.affidavit.aggregateConfidence).toBe(numbers.aggregateConfidence);
+    expect(filed.card.populatedConfidence).toBe(numbers.populatedConfidence);
+    expect(filed.card.emptyFieldCount).toBe(numbers.emptyFieldCount);
+    expect(filed.card.populatedConfidence).toBe(0.9);
+    expect(filed.card.emptyFieldCount).toBe(0);
+  });
+
+  it("reports null populated confidence when nothing is populated", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file(
+      {
+        operation: {
+          kind: "update" as const,
+          entityType: "Invoice",
+          entityId: "invoice-1",
+          fields: ["status", "memo"],
+        },
+        toolName: "relay_capture",
+        fields: [
+          {
+            name: "status",
+            kind: "text" as const,
+            value: "Active",
+            provenance: {
+              current: {
+                source: "Conversation" as const,
+                confidence: 0.9,
+                note: null,
+                at: AT,
+                conversationTurn: null,
+                binding: null,
+              },
+              prior: [],
+            },
+          },
+          { name: "memo", kind: "text" as const, value: null },
+        ],
+      },
+      turnContext(),
+    );
+
+    // A sanity anchor for the null arm: the same shape with its one populated field
+    // removed would be refused by GT-3 before it could be filed, so the null case is
+    // reached through the model rather than through the pipeline.
+    expect(filed.card.populatedConfidence).toBe(0.9);
+    expect(computeConfidence([]).populatedConfidence).toBeNull();
+  });
 });
 
 describe("port contract violations stay loud", () => {
   it("refuses a value that is not a JSON value with a RangeError, not a gate refusal", async () => {
     const { gate } = harness({
       inferred: {
+        // The port's `value` is typed `JsonValue` since the review, so a typed host
+        // cannot get here at all; the cast stands in for the JavaScript host that
+        // still can, and the runtime check is what this asserts.
         status: {
-          value: () => "Active",
+          value: (() => "Active") as unknown as JsonValue,
           confidence: 1,
           presence: "literal",
           utteranceSpan: null,
