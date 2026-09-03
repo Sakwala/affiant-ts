@@ -1,0 +1,54 @@
+{
+  "$comment": "The telemetry-key registry (TL-1). A key is never renamed and never removed, only deprecated; `since` is the package version the key first shipped in. Generated into src/telemetry-keys.ts by scripts/generate-telemetry-keys.mjs — run `pnpm -C packages/core generate` after editing this file. Attribute names follow OpenTelemetry's `gen_ai.*` vocabulary where one exists (TL-2); `attributes` is filled per key by the pull request that starts emitting it.",
+  "registryVersion": "0.1.0-alpha.0",
+  "keys": [
+    {
+      "key": "affidavit.filed",
+      "since": "0.1.0-alpha.0",
+      "description": "An Affidavit was filed as a Docket entry.",
+      "attributes": []
+    },
+    {
+      "key": "affidavit.refused.substance",
+      "since": "0.1.0-alpha.0",
+      "description": "A proposal was refused before filing because it swore to nothing (GT-3).",
+      "attributes": []
+    },
+    {
+      "key": "coverage.refused",
+      "since": "0.1.0-alpha.0",
+      "description": "A tool the gate must cover could not be intercepted, or a tool the host declared uncovered produced a proposal (CV-4).",
+      "attributes": []
+    },
+    {
+      "key": "docket.transition",
+      "since": "0.1.0-alpha.0",
+      "description": "A Docket entry changed state (DK-1).",
+      "attributes": ["from", "to", "execution"]
+    },
+    {
+      "key": "docket.expired",
+      "since": "0.1.0-alpha.0",
+      "description": "A pending Docket entry passed its expiry (DK-3).",
+      "attributes": []
+    },
+    {
+      "key": "decision.unauthorized",
+      "since": "0.1.0-alpha.0",
+      "description": "A decision was refused on identity grounds: no resolved principal, another tenant, or the host's authorization port said no (AZ-2).",
+      "attributes": []
+    },
+    {
+      "key": "standing-order.fired",
+      "since": "0.1.0-alpha.0",
+      "description": "A Standing Order policy approved a write with no person present (AZ-1).",
+      "attributes": []
+    },
+    {
+      "key": "standing-order.blocked",
+      "since": "0.1.0-alpha.0",
+      "description": "A Standing Order verdict was not honoured: an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5).",
+      "attributes": []
+    }
+  ]
+}

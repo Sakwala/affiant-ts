@@ -39,6 +39,22 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(happy-dom@19.0.2)
 
+  packages/core:
+    dependencies:
+      '@affiant/contract':
+        specifier: workspace:^
+        version: link:../contract
+    devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.12.21
+        version: 0.12.21(@vitest/runner@3.2.7)(@vitest/snapshot@3.2.7)(vitest@3.2.7(@types/node@22.20.1)(happy-dom@19.0.2))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.1)(happy-dom@19.0.2)
+
   packages/evidence-card:
     dependencies:
       '@affiant/contract':

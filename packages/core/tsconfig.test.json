@@ -1,0 +1,14 @@
+{
+  // The tests and the vitest configs. Node types are in scope here: the suites
+  // under `test/node/` read files and spawn processes on purpose, and vitest's own
+  // declarations bring `@types/node` in regardless. What keeps the portable suites
+  // portable is not this config but the runs themselves — `test/*.test.ts`
+  // executes inside workerd and under Bun in CI, where a Node API is a failure.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["test/**/*.ts", "*.config.ts"]
+}

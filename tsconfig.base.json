@@ -26,7 +26,10 @@
 
     "paths": {
       "@affiant/contract": ["./packages/contract/src/index.ts"],
-      "@affiant/contract/schemas": ["./packages/contract/src/schemas.ts"]
+      "@affiant/contract/schemas": ["./packages/contract/src/schemas.ts"],
+      "@affiant/core": ["./packages/core/src/index.ts"],
+      "@affiant/core/store-memory": ["./packages/core/src/store-memory.ts"],
+      "@affiant/core/testing": ["./packages/core/src/testing.ts"]
     }
   }
 }

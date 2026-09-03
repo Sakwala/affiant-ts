@@ -1,0 +1,65 @@
+{
+  "name": "@affiant/core",
+  "version": "0.1.0-alpha.0",
+  "description": "The Affiant gate for TypeScript: turn context, the ports a host supplies, the error-code registry and the telemetry-key registry.",
+  "keywords": [
+    "affiant",
+    "affidavit",
+    "provenance",
+    "human-in-the-loop",
+    "guardrails",
+    "ai-agents"
+  ],
+  "private": false,
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/core#readme",
+  "bugs": "https://github.com/Sakwala/affiant-ts/issues",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./store-memory": {
+      "types": "./dist/store-memory.d.ts",
+      "default": "./dist/store-memory.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "lint": "node scripts/lint-no-durable-object.mjs",
+    "generate": "node scripts/generate-telemetry-keys.mjs"
+  },
+  "dependencies": {
+    "@affiant/contract": "workspace:^"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

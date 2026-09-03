@@ -8,16 +8,16 @@ This repository is the TypeScript implementation. It is held equivalent to the .
 
 ## Packages
 
-| Package                                            | What it is                                                                                                                                                           | State                   |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| [`@affiant/contract`](packages/contract)           | the wire types and a vendorable JSON Schema, pinned to a protocol tag                                                                                                | in repo, not yet on npm |
-| [`@affiant/evidence-card`](packages/evidence-card) | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card                                                                          | in repo, not yet on npm |
-| `@affiant/core`                                    | the gate — Affidavit capture, interceptors, projection, policy, the Docket; published to npm only once the public parity report and the conformance driver are green | planned                 |
-| `@affiant/conformance-driver`                      | runs the protocol's fixture suite against this implementation                                                                                                        | planned                 |
+| Package                                            | What it is                                                                                  | State                                                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`@affiant/contract`](packages/contract)           | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                  |
+| [`@affiant/evidence-card`](packages/evidence-card) | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                  |
+| [`@affiant/core`](packages/core)                   | the gate — Affidavit capture, interceptors, projection, policy, the Docket                  | in repo — not on npm until the public parity report and the conformance driver are green |
+| `@affiant/conformance-driver`                      | runs the protocol's fixture suite against this implementation                               | planned                                                                                  |
 
 Later: `@affiant/store-postgres`, `@affiant/adapter-ai-sdk`, `@affiant/adapter-langchain`.
 
-Nothing is on npm yet. The two shipped packages live here and are consumed through the workspace; publishing is a separate, deliberate step.
+Nothing is on npm yet. The packages here are consumed through the workspace; publishing is a separate, deliberate step.
 
 ## Try the card
 
@@ -44,14 +44,16 @@ The wire types and the fixture suite have to hold on every runtime a host might 
 ```bash
 pnpm test                                     # Node 22
 bun run --bun vitest run --project contract   # Bun
+bun run --bun vitest run --project core       # Bun
 pnpm -C packages/contract test:workers        # Cloudflare workerd
+pnpm -C packages/core test:workers            # Cloudflare workerd
 ```
 
 The protocol tag this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it is a byte-for-byte copy of that tag. A test fetches the same files from the tag on every run and fails if a copy has drifted. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
 
 ## Status
 
-Opened 2026-09-04, building in public from day 0. `@affiant/contract` and `@affiant/evidence-card` are in the repository against protocol tag `v0.0.1-seed`; nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
+Opened 2026-09-04, building in public from day 0. `@affiant/contract` and `@affiant/evidence-card` are in the repository against protocol tag `v0.0.1-seed`, and `@affiant/core` has its first commit — the turn context, the ports a host supplies, the error codes and the telemetry-key registry, with the gate itself landing behind them. Nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
 
 ## Related
 
