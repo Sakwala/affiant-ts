@@ -45,6 +45,7 @@ import type {
   DocketStore,
   Page,
   PageResult,
+  PreservedAct,
   PreserveAmendmentsResult,
   RecordExecutionResult,
   RecordSupersessionResult,
@@ -219,7 +220,7 @@ export class InMemoryDocketStore implements DocketStore {
   /**
    * Preserve the amendments a late decision carried, for a resubmission (DK-1).
    *
-   * Writes `amendments` and nothing else: not `status`, not `decision`, not
+   * Writes `preservedAmendments` and nothing else: not `status`, not `decision`, not
    * `attestation`. The row's stored status stays as it was — it already *reads*
    * `expired`, and recording a sweep the host did not run would be this method
    * quietly doing a second job.
@@ -228,12 +229,18 @@ export class InMemoryDocketStore implements DocketStore {
     entryId: string,
     scope: Scope,
     amendments: AmendmentMap,
+    act: PreservedAct,
   ): Promise<PreserveAmendmentsResult> {
     const stored = this.#find(entryId, scope);
     if (stored === null) return "not-found";
     if (readStatus(stored.entry, this.#clock.now()) !== "expired") return "not-expired";
 
-    stored.entry = { ...stored.entry, amendments };
+    // The refused decision's own instant and principal, so a resubmission's
+    // prefilled values bind to the act that actually happened (PV-2).
+    stored.entry = {
+      ...stored.entry,
+      preservedAmendments: { amendments, at: act.at, by: act.by },
+    };
     return this.#read(stored.entry);
   }
 
@@ -523,9 +530,10 @@ function applyPatch(entry: DocketEntry, patch: TransitionPatch, now: string): Do
     ...entry,
     status,
     execution,
-    // AF-4: an approval that accepted amendments carries the recomputed Affidavit.
-    // Absent leaves the sworn record as filed.
-    affidavit: patch.affidavit ?? entry.affidavit,
+    // DK-4: the proposal is never overwritten. An approval that accepted amendments
+    // writes the accepted state **beside** it; absent leaves the row carrying its
+    // proposal alone (AF-4).
+    amendedAffidavit: patch.amendedAffidavit ?? entry.amendedAffidavit,
     decision: patch.decision ?? null,
     amendments: patch.amendments === undefined ? entry.amendments : patch.amendments,
     attestation: patch.attestation === undefined ? entry.attestation : patch.attestation,

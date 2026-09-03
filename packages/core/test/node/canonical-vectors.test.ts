@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import type { AmendmentMap } from "@affiant/contract";
 
 import { canonicalize } from "../../src/model/canonical.js";
+import type { ReviewerAct } from "../../src/model/amendments.js";
 import type { CanonicalInput } from "../../src/model/canonical.js";
 
 import { canonicalVectors } from "../fixtures/canonical.generated.js";
@@ -93,7 +94,7 @@ describe("the committed SHA-256 digests, from outside Web Crypto", () => {
       const bytes = canonicalize(
         vector.input as CanonicalInput,
         vector.amendments as AmendmentMap | null,
-        vector.reviewerActRef === null ? undefined : { reviewerActRef: vector.reviewerActRef },
+        vector.reviewerAct === null ? undefined : { reviewerAct: vector.reviewerAct },
       );
 
       expect(createHash("sha256").update(bytes).digest("hex"), vector.id).toBe(
@@ -116,7 +117,7 @@ describe("the committed SHA-256 digests, from outside Web Crypto", () => {
     }
 
     const bytes = canonicalize(vector.input as CanonicalInput, vector.amendments as AmendmentMap, {
-      reviewerActRef: vector.reviewerActRef as string,
+      reviewerAct: vector.reviewerAct as ReviewerAct,
     });
     const output = execFileSync("sha256sum", ["-b", "-"], { input: bytes }).toString("utf8");
 
@@ -142,7 +143,7 @@ describe("the canonical bytes are UTF-8", () => {
       const bytes = canonicalize(
         vector.input as CanonicalInput,
         vector.amendments as AmendmentMap | null,
-        vector.reviewerActRef === null ? undefined : { reviewerActRef: vector.reviewerActRef },
+        vector.reviewerAct === null ? undefined : { reviewerAct: vector.reviewerAct },
       );
 
       expect(Buffer.from(bytes).toString("utf8"), vector.id).toBe(vector.expectedBytesUtf8);

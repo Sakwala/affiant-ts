@@ -47,7 +47,7 @@
  * @packageDocumentation
  */
 
-import { mintTag, supersede, type Binding } from "./provenance.js";
+import { mintTag, supersede, type ProvenanceTag } from "./provenance.js";
 
 import {
   withConfidence,
@@ -134,6 +134,46 @@ export interface ReviewerAct {
 }
 
 /**
+ * The provenance tag an accepted amendment puts in force on the field it names
+ * (PV-2, AF-2).
+ *
+ * One function so there is one answer. The canonical form (SR-1) is defined over
+ * "the Affidavit and its accepted amendments", and an implementation that minted a
+ * *nearly* identical tag on the serialization path would produce different bytes
+ * from the same decision — which is the one thing a canonical form exists to make
+ * impossible. `model/canonical.ts` calls this, and so does {@link applyAmendments}.
+ *
+ * A set mints `UserStated` at confidence `1`: a reviewer typing a value is the
+ * person stating it, and PV-3 makes that the one place the grade is legitimate. A
+ * clear mints `Empty` at confidence `0`: an emptied field has no value to be
+ * confident in, so a clearing can never raise a confidence number.
+ *
+ * Either way the binding is `reviewer-act`, naming the decision *and the instant*,
+ * so an auditor can follow a clearing as readily as a correction.
+ *
+ * @param amendment        What the reviewer did to the field.
+ * @param act              The decision it arrived on.
+ * @param conversationTurn The turn the Affidavit belongs to, carried onto the tag.
+ */
+export function amendmentTag(
+  amendment: Amendment,
+  act: ReviewerAct,
+  conversationTurn: number | null,
+): ProvenanceTag {
+  const cleared = amendment.kind === "clear";
+  return mintTag({
+    source: cleared ? "Empty" : "UserStated",
+    confidence: cleared ? 0 : 1,
+    note: cleared
+      ? `Cleared by ${act.by} on Docket entry ${act.entryId}`
+      : `Amended by ${act.by} on Docket entry ${act.entryId}`,
+    at: act.decisionAt,
+    conversationTurn,
+    binding: { kind: "reviewer-act", ref: { entryId: act.entryId, decisionAt: act.decisionAt } },
+  });
+}
+
+/**
  * Apply `map` to `affidavit` as `act`, returning a new Affidavit.
  *
  * What happens to a field the reviewer **set**: its value becomes the amended value,
@@ -177,11 +217,6 @@ export function applyAmendments(
     }
   }
 
-  const binding: Binding = {
-    kind: "reviewer-act",
-    ref: { entryId: act.entryId, decisionAt: act.decisionAt },
-  };
-
   const fields = affidavit.fields.flatMap((field): AffidavitField[] => {
     const amendment = byName.get(field.name);
     if (amendment === undefined) return [field];
@@ -192,20 +227,7 @@ export function applyAmendments(
 
     const cleared = amendment.kind === "clear";
     const value: JsonValue = cleared ? null : amendment.value;
-    const tag = mintTag({
-      // AF-2: an emptied field has no value to be confident in. `mintTag` forces an
-      // `Empty` tag to confidence 0, so the record and the numbers cannot disagree.
-      source: cleared ? "Empty" : "UserStated",
-      confidence: cleared ? 0 : 1,
-      note: cleared
-        ? `Cleared by ${act.by} on Docket entry ${act.entryId}`
-        : `Amended by ${act.by} on Docket entry ${act.entryId}`,
-      at: act.decisionAt,
-      conversationTurn: affidavit.conversationTurn,
-      // PV-2 either way: the tag points at the decision the act was made on, so an
-      // auditor can follow a clearing as readily as a correction.
-      binding,
-    });
+    const tag = amendmentTag(amendment, act, affidavit.conversationTurn);
 
     return [
       {

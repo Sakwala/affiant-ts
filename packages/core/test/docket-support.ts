@@ -77,6 +77,7 @@ const BASE = {
   conversationId: "conv-1",
   channel: "chat",
   requirement: "ReviewerConfirmation",
+  toolName: "update_invoice",
   filedAt: "2026-09-04T09:00:00.000Z",
   expiresAt: "2026-09-04T09:30:00.000Z",
 } as const;

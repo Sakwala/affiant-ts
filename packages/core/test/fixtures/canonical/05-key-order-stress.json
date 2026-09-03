@@ -40,7 +40,7 @@
     "alpha": "written last, sorts first"
   },
   "amendments": null,
-  "reviewerActRef": null,
+  "reviewerAct": null,
   "expectedBytesUtf8": "{\"alpha\":\"written last, sorts first\",\"middle\":[{\"first\":1,\"second\":2},{\"a\":{\"x\":true,\"y\":null},\"b\":[3,2,1]}],\"zeta\":{\"\":\"the empty key\",\"10\":\"integer-shaped key\",\"2\":\"another integer-shaped key\",\"A\":\"uppercase A\",\"B\":\"uppercase B\",\"a\":\"prefix\",\"a/b\":\"a solidus, which JSON never escapes\",\"ab\":\"prefix plus one\",\"b\":\"lowercase b\",\"é\":\"e plus combining acute, U+0065 U+0301\",\"é\":\"e-acute precomposed, U+00E9\",\"\":\"private use, U+E000\",\"😀\":\"emoji key, U+1F600\"}}",
   "expectedSha256": "bfb9d23217cd75bc12976620e641b735b73448db6072104d09d94489246fec3a"
 }

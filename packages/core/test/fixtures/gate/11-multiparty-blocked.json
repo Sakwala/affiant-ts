@@ -1,58 +1,61 @@
 {
   "id": "gate/multiparty-blocked",
   "rules": ["AZ-4"],
-  "note": "A requirement level this version does not run is recorded verbatim and filed blocked; it is never degraded to the single-approver branch, which is what the shipped .NET gate does.",
+  "title": "A requirement level this version does not run is recorded verbatim and filed blocked; it is never degraded to the single-approver branch, which is what the shipped .NET gate does.",
   "given": {
-    "history": [],
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-1",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": "MultiParty"
+          }
+        }
+      ]
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
       "utterance": "Set the invoice status to Active",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
+      "messageId": "msg-1"
     },
-    "args": null,
-    "toolName": "relay_capture",
-    "operation": {
-      "kind": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": ["status"]
-    },
-    "schema": null,
-    "inference": null,
-    "preparedFields": [
-      {
-        "name": "status",
-        "kind": "text",
-        "value": "Active",
-        "provenance": {
-          "source": "Conversation",
-          "confidence": 0.9,
-          "bound": false
+    "prior": [],
+    "step": {
+      "kind": "file",
+      "toolName": "relay_capture",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
         }
-      }
-    ],
-    "previousValues": null,
-    "policies": [
-      {
-        "id": "policy-1",
-        "version": "1.0.0",
-        "declaredInputs": [],
-        "declaresThreshold": false,
-        "defaultTtlMs": null,
-        "verdict": {
-          "requirement": "MultiParty"
-        }
-      }
-    ],
-    "riskScore": null,
-    "declareUncovered": null,
-    "defaultTtlMs": 1800000
+      ]
+    }
   },
   "expect": {
-    "error": null,
     "entry": {
       "status": "pending",
       "requirement": "MultiParty",
@@ -62,9 +65,9 @@
         "level": "MultiParty"
       },
       "expiresAtOffsetMs": 1800000,
-      "attestation": null
+      "attestation": null,
+      "toolName": "relay_capture"
     },
-    "affidavit": null,
     "card": {
       "warningsContain": ["not implemented in this version"]
     }

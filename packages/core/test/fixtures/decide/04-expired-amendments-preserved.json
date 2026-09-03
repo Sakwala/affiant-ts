@@ -1,99 +1,102 @@
 {
   "id": "decide/expired-amendments-preserved",
   "rules": ["DK-1"],
-  "note": "An entry past its deadline reads expired whether or not a sweep has run, and a decision arriving after it is refused. The amendments that decision carried are preserved on the row so a resubmission can prefill them; nothing else is written, because nobody decided anything.",
+  "title": "An entry past its deadline reads expired whether or not a sweep has run, and a decision arriving after it is refused. The amendments that decision carried are preserved on the row - with the refused decision's own instant and principal, so a resubmission can bind the prefilled values to the act that actually happened. Nothing else is written: no status, no decision record, no attestation, and no accepted-amendment map, because nobody accepted anything.",
   "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
-      "utterance": "Set the invoice status to Active and the amount to 40",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "authorization": true,
-    "filing": {
-      "toolName": "update_invoice",
-      "operation": {
-        "kind": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": ["status", "amount", "note"]
+      "principal": {
+        "kind": "member",
+        "id": "filer"
       },
-      "preparedFields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        }
-      ],
-      "policy": null,
-      "defaultTtlMs": 1800000
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
     },
-    "acts": [
+    "prior": [
       {
-        "kind": "decide",
-        "at": "2026-09-04T09:45:00.000Z",
+        "kind": "file",
+        "as": "filed",
+        "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
-          "id": "ana"
+          "id": "filer"
         },
-        "tenantId": null,
-        "decision": {
-          "kind": "approve",
-          "amendments": {
-            "amount": "4000",
-            "note": null
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
+        },
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
           },
-          "reason": null
-        },
-        "outcome": null,
-        "detail": null
-      }
-    ]
-  },
-  "expect": {
-    "acts": [
-      {
-        "error": {
-          "code": "decision-expired"
-        }
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
       }
     ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-04T09:45:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve",
+        "amendments": {
+          "amount": "4000",
+          "note": null
+        }
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "decision-expired"
+    },
     "entry": {
       "status": "expired",
       "execution": null,
       "requirement": "ReviewerConfirmation",
       "blocked": null,
       "attestation": null,
-      "amendments": {
-        "amount": "4000",
-        "note": null
-      },
+      "amendments": null,
       "decision": null,
-      "supersededByFresh": false,
       "affidavit": {
         "aggregateConfidence": 0.9,
         "populatedConfidence": 0.9,
@@ -118,8 +121,19 @@
             "bound": false
           }
         ]
-      }
-    },
-    "resubmission": null
+      },
+      "lineage": {
+        "supersededBy": null
+      },
+      "preservedAmendments": {
+        "amendments": {
+          "amount": "4000",
+          "note": null
+        },
+        "at": "2026-09-04T09:45:00.000Z",
+        "by": "ana"
+      },
+      "amendedAffidavit": null
+    }
   }
 }

@@ -59,6 +59,7 @@ import type {
   DocketEntry,
   DocketStatus,
   ExecutionOutcome,
+  PreservedAmendments,
 } from "./entry.js";
 
 // ---------------------------------------------------------------------------
@@ -131,14 +132,15 @@ export interface RetentionPolicy {
  * entry's own id. That is DK-4's read-forward property in the type — a row
  * accumulates facts, it is never rewritten.
  *
- * {@link TransitionPatch.affidavit} is the one apparent exception, and it is not
- * one: the only Affidavit a caller may write is the *amended* Affidavit AF-4
- * requires, produced by `applyAmendments` from the row's own. That operation adds a
- * `UserStated` tag carrying a `reviewer-act` binding on top of each amended field's
- * chain and leaves the displaced tag in the chain's history (PV-2), so the row still
- * reads forward — what the machine proposed is still on it, under what the reviewer
- * decided. A store cannot check that, so the rule is stated here and enforced by the
- * gate, which is the only caller that builds one.
+ * {@link TransitionPatch.amendedAffidavit} is the one apparent exception, and it is
+ * not one: it is written *beside* the proposal, never over it. The row keeps
+ * `affidavit` as the agent proposed it and gains `amendedAffidavit` as the state the
+ * approval accepted, produced by `applyAmendments` from the row's own. That operation
+ * adds a `UserStated` tag carrying a `reviewer-act` binding on top of each amended
+ * field's chain and leaves the displaced tag in the chain's history (PV-2), so a
+ * reader can still see what the machine proposed under what the reviewer decided. A
+ * store cannot check that, so the rule is stated here and enforced by the gate, which
+ * is the only caller that builds one.
  *
  * `supersedes` is absent on purpose: it is fixed when an entry is filed and names
  * the entry this one *replaces*, which cannot change afterwards. `supersededBy` is
@@ -163,15 +165,16 @@ export interface TransitionPatch {
    */
   readonly amendments?: AmendmentMap | null;
   /**
-   * The amended Affidavit, when the approval accepted amendments (AF-4).
+   * The accepted state an approval's amendments produced (AF-4).
    *
-   * Absent leaves the sworn record as filed, which is what a rejection, a sweep and
-   * an unamended approval all want. Present, it must be the result of applying
-   * {@link TransitionPatch.amendments} to *this row's* Affidavit — the three
-   * confidence numbers recomputed over the amended fields, and each amended field's
-   * provenance the reviewer's act with the machine's tag preserved beneath it.
+   * Absent leaves the row carrying its proposal alone, which is what a rejection, a
+   * sweep and an unamended approval all want. Present, it must be the result of
+   * applying {@link TransitionPatch.amendments} to *this row's* `affidavit` — the
+   * three confidence numbers recomputed over the amended fields, and each amended
+   * field's provenance the reviewer's act with the machine's tag preserved beneath
+   * it. It is written beside `affidavit`, which a store never overwrites (DK-4).
    */
-  readonly affidavit?: Affidavit;
+  readonly amendedAffidavit?: Affidavit;
   /** Who agreed (AZ-1). A decision without one is a decision nobody can be held to. */
   readonly attestation?: Attestation | null;
   /** When the row left `pending`. Defaults to the store's clock reading. */
@@ -206,6 +209,15 @@ export interface TransitionPatch {
  * caller in the wrong tenant, is the only answer they get (AZ-2).
  */
 export type TransitionResult = DocketEntry | "not-found" | "already-decided" | "expired";
+
+/**
+ * The act a refused late decision was made by: its own instant and its own principal
+ * (DK-1, PV-2).
+ *
+ * The same two facts {@link PreservedAmendments} carries, named separately because
+ * this is what a caller passes in and that is what the row holds.
+ */
+export type PreservedAct = Omit<PreservedAmendments, "amendments">;
 
 /** What {@link DocketStore.preserveAmendments} returns. */
 export type PreserveAmendmentsResult = DocketEntry | "not-found" | "not-expired";
@@ -277,6 +289,12 @@ export interface DocketStore {
    * later fact on a terminal row, not an edit of a recorded decision — it touches
    * `amendments` and nothing else, never `status`, `decision` or `attestation`.
    *
+   * `act` is the refused decision's **own** instant and principal, not the store's
+   * clock and not the row's deadline. A resubmission prefills these values as a
+   * person's correction and binds each prefilled field's tag to that act (PV-2), so
+   * a record that dated them to the sweep would place the correction at a moment
+   * nobody typed anything.
+   *
    * Returns `"not-expired"` when the entry does not read `expired`; a caller that
    * gets it has a bug, because a decision that was not refused as expired has no
    * amendments to preserve.
@@ -285,6 +303,7 @@ export interface DocketStore {
     entryId: string,
     scope: Scope,
     amendments: AmendmentMap,
+    act: PreservedAct,
   ): Promise<PreserveAmendmentsResult>;
 
   /**

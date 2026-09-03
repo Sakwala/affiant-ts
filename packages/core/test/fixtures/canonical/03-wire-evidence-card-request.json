@@ -55,7 +55,7 @@
     "requiresConfirmation": true
   },
   "amendments": null,
-  "reviewerActRef": null,
+  "reviewerAct": null,
   "expectedBytesUtf8": "{\"aggregateConfidence\":0.95,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"User stated: Status\",\"source\":\"UserStated\"},\"prior\":[]},\"value\":\"Active\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"pattern\":\"^\\\\d+(\\\\.\\\\d+)?$\",\"previousValue\":10,\"provenance\":{\"current\":{\"confidence\":0.9,\"conversationTurn\":3,\"evidence\":\"Extracted from search_widget\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":12.5}],\"operationType\":\"WriteUpdate\",\"requiresConfirmation\":true,\"warnings\":[]}",
   "expectedSha256": "5bd969aeb4a19bc4f54c6fadc78c83da42ab78c8d5a2d8a826851482b5a95bb0"
 }

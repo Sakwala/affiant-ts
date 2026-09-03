@@ -222,16 +222,26 @@ describe("a decision that arrives after the deadline (DK-1)", () => {
     const refused = await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
     expect(refused).toBe("expired");
 
-    const preserved = await store.preserveAmendments("entry-1", TENANT, {
-      status: "paid",
-      note: null,
-    });
+    const preserved = await store.preserveAmendments(
+      "entry-1",
+      TENANT,
+      { status: "paid", note: null },
+      { at: AFTER_DEADLINE, by: "person-7" },
+    );
 
     expect(typeof preserved).not.toBe("string");
     const row = preserved as DocketEntry;
-    expect(row.amendments).toEqual({ status: "paid", note: null });
+    // The refused decision's own act, not the store's clock reading: a resubmission
+    // binds the prefilled values to the moment the person typed them (DK-1, PV-2).
+    expect(row.preservedAmendments).toEqual({
+      amendments: { status: "paid", note: null },
+      at: AFTER_DEADLINE,
+      by: "person-7",
+    });
     // DK-2: a null value is a cleared field, and the key is present to say so.
-    expect(Object.keys(row.amendments ?? {})).toContain("note");
+    expect(Object.keys(row.preservedAmendments?.amendments ?? {})).toContain("note");
+    // Nobody accepted anything, so the accepted-amendment map stays empty.
+    expect(row.amendments).toBeNull();
     // The refusal stands: nothing about the decision was recorded.
     expect(row.status).toBe("expired");
     expect(row.decision).toBeNull();
@@ -242,10 +252,12 @@ describe("a decision that arrives after the deadline (DK-1)", () => {
     const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
     await store.file(anEntry("entry-1"));
 
-    expect(await store.preserveAmendments("entry-1", TENANT, { status: "paid" })).toBe(
+    const act = { at: NOON, by: "person-7" };
+
+    expect(await store.preserveAmendments("entry-1", TENANT, { status: "paid" }, act)).toBe(
       "not-expired",
     );
-    expect(await store.preserveAmendments("missing", TENANT, {})).toBe("not-found");
+    expect(await store.preserveAmendments("missing", TENANT, {}, act)).toBe("not-found");
   });
 
   it("reads the same whether or not the sweep has caught up", async () => {

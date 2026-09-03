@@ -1,82 +1,88 @@
 {
   "id": "decide/approve",
   "rules": ["DK-1", "AZ-1", "AZ-2"],
-  "note": "A member approves a pending entry: the row moves to approved with the execution outcome unexecuted, and the attestation names the person who agreed. AZ-1 is written in the same operation as the transition, so there is no window in which an approved write has no attribution.",
+  "title": "A member approves a pending entry: the row moves to approved with the execution outcome unexecuted, and the attestation names the person who agreed. AZ-1 is written in the same operation as the transition, so there is no window in which an approved write has no attribution.",
   "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
-      "utterance": "Set the invoice status to Active and the amount to 40",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "authorization": true,
-    "filing": {
-      "toolName": "update_invoice",
-      "operation": {
-        "kind": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": ["status", "amount", "note"]
+      "principal": {
+        "kind": "member",
+        "id": "filer"
       },
-      "preparedFields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        }
-      ],
-      "policy": null,
-      "defaultTtlMs": 1800000
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
     },
-    "acts": [
+    "prior": [
       {
-        "kind": "decide",
+        "kind": "file",
+        "as": "filed",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
-          "id": "ana"
+          "id": "filer"
         },
-        "tenantId": null,
-        "decision": {
-          "kind": "approve",
-          "amendments": null,
-          "reason": "checked against the purchase order"
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
         },
-        "outcome": null,
-        "detail": null
-      }
-    ]
-  },
-  "expect": {
-    "acts": [
-      {
-        "error": null
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
       }
     ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-04T09:00:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve",
+        "reason": "checked against the purchase order"
+      }
+    }
+  },
+  "expect": {
     "entry": {
       "status": "approved",
       "execution": "unexecuted",
@@ -91,7 +97,6 @@
         "kind": "approve",
         "reason": "checked against the purchase order"
       },
-      "supersededByFresh": false,
       "affidavit": {
         "aggregateConfidence": 0.9,
         "populatedConfidence": 0.9,
@@ -116,8 +121,10 @@
             "bound": false
           }
         ]
+      },
+      "lineage": {
+        "supersededBy": null
       }
-    },
-    "resubmission": null
+    }
   }
 }

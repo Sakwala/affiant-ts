@@ -1,88 +1,100 @@
 {
   "id": "decide/blocked-refused",
   "rules": ["AZ-4", "DK-1"],
-  "note": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run, which is the shipped .NET behaviour of routing MultiParty to the single-card branch.",
+  "title": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run, which is the shipped .NET behaviour of routing MultiParty to the single-card branch.",
   "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "joint-sign-off",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": "MultiParty"
+          }
+        }
+      ]
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
       "utterance": "Set the invoice status to Active and the amount to 40",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
+      "messageId": "msg-1"
     },
-    "authorization": true,
-    "filing": {
-      "toolName": "update_invoice",
-      "operation": {
-        "kind": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": ["status", "amount", "note"]
-      },
-      "preparedFields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        }
-      ],
-      "policy": {
-        "id": "joint-sign-off",
-        "version": "1.0.0",
-        "requirement": "MultiParty"
-      },
-      "defaultTtlMs": 1800000
-    },
-    "acts": [
+    "prior": [
       {
-        "kind": "decide",
+        "kind": "file",
+        "as": "filed",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
-          "id": "ana"
+          "id": "filer"
         },
-        "tenantId": null,
-        "decision": {
-          "kind": "approve",
-          "amendments": null,
-          "reason": null
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
         },
-        "outcome": null,
-        "detail": null
-      }
-    ]
-  },
-  "expect": {
-    "acts": [
-      {
-        "error": {
-          "code": "decision-not-pending"
-        }
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
       }
     ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-04T09:00:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "decision-not-pending"
+    },
     "entry": {
       "status": "pending",
       "execution": null,
@@ -94,7 +106,6 @@
       "attestation": null,
       "amendments": null,
       "decision": null,
-      "supersededByFresh": false,
       "affidavit": {
         "aggregateConfidence": 0.9,
         "populatedConfidence": 0.9,
@@ -119,8 +130,10 @@
             "bound": false
           }
         ]
+      },
+      "lineage": {
+        "supersededBy": null
       }
-    },
-    "resubmission": null
+    }
   }
 }

@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import type { AmendmentMap } from "@affiant/contract";
 
+import { amendmentTag } from "../src/model/amendments.js";
+import type { ReviewerAct } from "../src/model/amendments.js";
 import {
   applyAmendmentsForCanonical,
   canonicalHash,
   canonicalJson,
   canonicalString,
   canonicalize,
-  reviewerActTag,
   sha256Hex,
 } from "../src/model/canonical.js";
-import type { CanonicalInput } from "../src/model/canonical.js";
+import type { CanonicalInput, CanonicalizeOptions } from "../src/model/canonical.js";
 
 import { canonicalVector, canonicalVectors } from "./fixtures/canonical.generated.js";
 import type { CanonicalVector } from "./fixtures/canonical.generated.js";
@@ -163,12 +164,12 @@ const decoder = new TextDecoder();
 function argumentsOf(vector: CanonicalVector): {
   input: CanonicalInput;
   amendments: AmendmentMap | null;
-  options: { readonly reviewerActRef: string } | undefined;
+  options: CanonicalizeOptions | undefined;
 } {
   return {
     input: vector.input as CanonicalInput,
     amendments: vector.amendments as AmendmentMap | null,
-    options: vector.reviewerActRef === null ? undefined : { reviewerActRef: vector.reviewerActRef },
+    options: vector.reviewerAct === null ? undefined : { reviewerAct: vector.reviewerAct },
   };
 }
 
@@ -213,7 +214,7 @@ describe("canonical byte vectors (SR-1)", () => {
         const amended =
           amendments === null || Object.keys(amendments).length === 0
             ? input
-            : applyAmendmentsForCanonical(input, amendments, vector.reviewerActRef as string);
+            : applyAmendmentsForCanonical(input, amendments, vector.reviewerAct as ReviewerAct);
 
         expect(independentCanonical(amended)).toBe(vector.expectedBytesUtf8);
       });
@@ -222,7 +223,7 @@ describe("canonical byte vectors (SR-1)", () => {
         const amended =
           amendments === null || Object.keys(amendments).length === 0
             ? input
-            : applyAmendmentsForCanonical(input, amendments, vector.reviewerActRef as string);
+            : applyAmendmentsForCanonical(input, amendments, vector.reviewerAct as ReviewerAct);
 
         expect(JSON.parse(vector.expectedBytesUtf8)).toEqual(JSON.parse(JSON.stringify(amended)));
       });
@@ -381,7 +382,7 @@ describe("money in the canonical form (SR-2)", () => {
 describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
   const unamended = canonicalVector("canonical/wire-evidence-card-request");
   const amended = canonicalVector("canonical/wire-evidence-card-request-amended");
-  const ref = amended.reviewerActRef as string;
+  const act = amended.reviewerAct as ReviewerAct;
 
   it("changes the bytes and the hash", async () => {
     expect(amended.expectedBytesUtf8).not.toBe(unamended.expectedBytesUtf8);
@@ -391,9 +392,7 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
     const after = await canonicalHash(
       amended.input as CanonicalInput,
       amended.amendments as AmendmentMap,
-      {
-        reviewerActRef: ref,
-      },
+      { reviewerAct: act },
     );
 
     expect(before).toBe(unamended.expectedSha256);
@@ -405,30 +404,96 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
     const during = canonicalString(
       amended.input as CanonicalInput,
       amended.amendments as AmendmentMap,
-      {
-        reviewerActRef: ref,
-      },
+      { reviewerAct: act },
     );
     const before = canonicalString(
       applyAmendmentsForCanonical(
         amended.input as CanonicalInput,
         amended.amendments as AmendmentMap,
-        ref,
+        act,
       ),
     );
 
     expect(before).toBe(during);
   });
 
-  it("clears a value with null and leaves an absent key untouched (DK-2)", () => {
+  it("mints the model's own reviewer-act tag, not one of its own (PV-2, AF-4)", () => {
+    // The canonical form and a Docket row's accepted state must not be able to
+    // disagree about the same decision, so both call `amendmentTag`. The binding
+    // names the decision *and* the instant it was made at.
+    const parsed = JSON.parse(amended.expectedBytesUtf8) as {
+      fields: readonly { provenance: { current: unknown } }[];
+    };
+
+    expect(parsed.fields[0]?.provenance.current).toEqual(
+      JSON.parse(JSON.stringify(amendmentTag({ kind: "set", value: "Retired" }, act, null))),
+    );
+    expect(parsed.fields[0]?.provenance.current).toMatchObject({
+      source: "UserStated",
+      binding: { kind: "reviewer-act", ref: { entryId: act.entryId, decisionAt: act.decisionAt } },
+    });
+  });
+
+  it("keeps a cleared mandatory field, tagged Empty, and drops a cleared optional one (AF-1)", () => {
     const input = {
       fields: [
-        { name: "Kept", value: "original", provenance: { current: { source: "Inferred" } } },
-        { name: "Cleared", value: "original", provenance: { current: { source: "Inferred" } } },
+        {
+          name: "Kept",
+          value: "original",
+          isMandatory: true,
+          provenance: { current: { source: "Inferred" } },
+        },
+        {
+          name: "Required",
+          value: "original",
+          isMandatory: true,
+          provenance: { current: { source: "Inferred" } },
+        },
+        {
+          name: "Optional",
+          value: "original",
+          isMandatory: false,
+          provenance: { current: { source: "Inferred" } },
+        },
       ],
     };
 
-    const written = canonicalString(input, { Cleared: null }, { reviewerActRef: "d-1" });
+    const written = canonicalString(
+      input,
+      { Required: null, Optional: null },
+      { reviewerAct: act },
+    );
+    const parsed = JSON.parse(written) as {
+      fields: readonly {
+        name: string;
+        value: unknown;
+        provenance: { current: { source: string } };
+      }[];
+    };
+
+    // A reviewer clearing an optional field is saying the write no longer proposes
+    // it, and AF-1 says a field the operation does not propose is absent.
+    expect(parsed.fields.map((field) => field.name)).toEqual(["Kept", "Required"]);
+    expect(parsed.fields[0]?.value).toBe("original");
+    expect(parsed.fields[1]?.value).toBeNull();
+    // AF-2: an emptied field has no value to be confident in.
+    expect(parsed.fields[1]?.provenance.current.source).toBe("Empty");
+  });
+
+  it("leaves an absent key untouched, byte for byte (DK-2)", () => {
+    const input = {
+      fields: [
+        { name: "Kept", value: "original", provenance: { current: { source: "Inferred" } } },
+        {
+          name: "Set",
+          value: "original",
+          isMandatory: true,
+          provenance: { current: { source: "Inferred" } },
+        },
+      ],
+    };
+
+    const written = canonicalString(input, { Set: "corrected" }, { reviewerAct: act });
     const parsed = JSON.parse(written) as {
       fields: readonly { name: string; value: unknown; provenance: unknown }[];
     };
@@ -438,14 +503,7 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
       value: "original",
       provenance: { current: { source: "Inferred" } },
     });
-    expect(parsed.fields[1]).toEqual({
-      name: "Cleared",
-      value: null,
-      provenance: {
-        current: { binding: { kind: "reviewer-act", ref: "d-1" }, source: "UserStated" },
-        prior: [{ source: "Inferred" }],
-      },
-    });
+    expect(parsed.fields[1]).toMatchObject({ name: "Set", value: "corrected" });
   });
 
   it("puts the reviewer's act in force and preserves the tag it supersedes (AF-4, PV-2)", () => {
@@ -453,14 +511,39 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
     const amendedInput = applyAmendmentsForCanonical(
       { fields: [{ name: "F", value: 1, provenance: chain }] },
       { F: 2 },
-      "d-9",
+      act,
     ) as { fields: readonly { provenance: { current: unknown; prior: readonly unknown[] } }[] };
 
-    expect(amendedInput.fields[0]?.provenance.current).toEqual(reviewerActTag("d-9"));
+    expect(amendedInput.fields[0]?.provenance.current).toEqual(
+      amendmentTag({ kind: "set", value: 2 }, act, null),
+    );
     expect(amendedInput.fields[0]?.provenance.prior).toEqual([
       { source: "Conversation" },
       { source: "Inferred" },
     ]);
+  });
+
+  it("recomputes an aggregate the document carries (AF-4)", () => {
+    const written = canonicalString(
+      {
+        aggregateConfidence: 0.4,
+        fields: [
+          {
+            name: "F",
+            value: 1,
+            isMandatory: true,
+            provenance: { current: { source: "Inferred", confidence: 0.4 } },
+          },
+        ],
+      } as unknown as CanonicalInput,
+      { F: 2 },
+      { reviewerAct: act },
+    );
+
+    // The reviewer's own value is confidence 1, so the summary the bytes carry has
+    // to move with it: a grant binding to an Affidavit whose aggregate contradicts
+    // its fields is a grant nobody can check.
+    expect((JSON.parse(written) as { aggregateConfidence: number }).aggregateConfidence).toBe(1);
   });
 
   it("treats an empty amendment map as no amendments", () => {
@@ -470,21 +553,20 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
     expect(canonicalString(input, null)).toBe(canonicalString(input));
   });
 
-  it("refuses amendments with no reviewer-act reference (PV-2)", () => {
+  it("refuses amendments with no reviewer act (PV-2)", () => {
     const input = { fields: [{ name: "F", value: 1 }] };
 
     expect(() => canonicalString(input, { F: 2 })).toThrow(/PV-2/);
-    expect(() => reviewerActTag("")).toThrow(/PV-2/);
   });
 
   it("refuses an amendment naming a field the Affidavit does not carry (DK-2)", () => {
     const input = { fields: [{ name: "F", value: 1 }] };
 
-    expect(() => canonicalString(input, { Absent: 2 }, { reviewerActRef: "d-1" })).toThrow(/DK-2/);
+    expect(() => canonicalString(input, { Absent: 2 }, { reviewerAct: act })).toThrow(/DK-2/);
   });
 
   it("refuses amendments against an input with no fields array", () => {
-    expect(() => canonicalString({}, { F: 2 }, { reviewerActRef: "d-1" })).toThrow(/SR-1/);
+    expect(() => canonicalString({}, { F: 2 }, { reviewerAct: act })).toThrow(/SR-1/);
   });
 });
 
