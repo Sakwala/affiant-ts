@@ -46,35 +46,47 @@ describe("runtime envelope (RT-1)", () => {
       "AFFIDAVIT_FIELD_KINDS",
       "AffiantError",
       "BINDING_KINDS",
+      "BLOCKED_CODES",
       "CORE_VERSION",
+      "DOCKET_STATUSES",
       "ERROR_CODES",
+      "EXECUTION_OUTCOMES",
       "ErrorCode",
       "PROTOCOL_VERSION",
       "PROVENANCE_LADDER",
+      "REQUIREMENT_KINDS",
       "TELEMETRY_KEYS",
       "TELEMETRY_REGISTRY_VERSION",
       "applyAmendments",
       "buildAffidavit",
       "chainOf",
+      "compareFilingOrder",
       "computeConfidence",
       "defaultClock",
       "determinismRank",
       "emptyTag",
       "fromWire",
       "hasAmendment",
+      "instantMs",
       "isAffiantError",
       "isBound",
+      "isDue",
       "isErrorCode",
       "isHonourable",
       "isJsonValue",
       "isMoney",
       "isTelemetryKey",
+      "isTerminal",
       "merge",
       "mintConversation",
       "mintInference",
       "mintInferred",
       "mintTag",
+      "newEntry",
       "noopTelemetry",
+      "readStatus",
+      "remainingMs",
+      "requireInstant",
       "requiresBinding",
       "resolveAmendments",
       "supersede",
@@ -83,6 +95,12 @@ describe("runtime envelope (RT-1)", () => {
       "wireCarryOf",
       "withConfidence",
     ]);
+  });
+
+  it("exports the reference stores from the store-memory entry point", async () => {
+    const stores = await import("@affiant/core/store-memory");
+
+    expect(Object.keys(stores).sort()).toEqual(["InMemoryDocketStore", "InMemorySessionStore"]);
   });
 
   it("reads the clock through the Web-standard Date, with no timer of its own", async () => {

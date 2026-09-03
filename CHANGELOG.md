@@ -46,9 +46,8 @@ was made against.
   `FieldInterceptor`), the closed `ErrorCode` registry with `AffiantError`, and the
   versioned telemetry-key registry generated from `telemetry-keys.json`. Ships a
   lint that fails the build if anything under `packages/core/src` can reach Durable
-  Object storage, and runs its suite on Node, Bun and workerd. The gate's model,
-  canonical form, stores, pipeline and decision path land behind this. Not
-  published to npm.
+  Object storage, and runs its suite on Node, Bun and workerd. The gate's canonical
+  form, pipeline and decision path land behind this. Not published to npm.
 - `packages/contract/protocol/SHA256SUMS`, written by `sync-protocol.mjs` from the
   bytes at the pinned tag. `protocol-pin.test.ts` verifies every vendored copy
   against it on every run, offline included; the byte comparison against the tag
@@ -79,6 +78,18 @@ was made against.
   protocol tag `v0.0.1-seed` — which carries `aggregateConfidence: 0.95`, the mean
   of its two fields, where this package computes `0.9`, their minimum. Field values
   are the contract's `JsonValue`, with a deep runtime guard at the wire boundary.
+- `@affiant/core` — the Docket: `DocketEntry` (status, execution outcome, the
+  blocked marker, the attestation record, amendments, lineage and expiry), the
+  `DocketStore` and `SessionStore` contracts, and the in-memory reference stores
+  behind `@affiant/core/store-memory`. Filing is idempotent by entry id and never
+  refreshes a deadline; every transition out of `pending` is a guarded
+  compare-and-set; an entry past its expiry reads `expired` on every query whether
+  or not a sweep has run, and the amendments a late decision carried are preserved
+  on the row for resubmission; the expiry sweep is bounded, paged and scheduled by
+  the host — the package owns no timer; retention, purge and export are hooks, and
+  a session rehydrates entries awaiting a decision before entries awaiting
+  execution. Every operation is tenant-scoped: a lookup in the wrong tenant is a
+  miss, never another tenant's row.
 - `@affiant/evidence-card@0.1.0-alpha.0` — `<affiant-evidence-card>`, a
   dependency-free custom element that renders an Affidavit for a person to
   approve, amend or reject, and emits one `affiant-decision` event. Ships a demo
