@@ -1,14 +1,18 @@
 {
   "name": "@affiant/core",
   "version": "0.1.0-alpha.0",
-  "description": "The Affiant gate for TypeScript: turn context, the ports a host supplies, the error-code registry and the telemetry-key registry.",
+  "description": "The Affiant gate for TypeScript: every database write an AI agent proposes becomes an Affidavit a person approves, amends or rejects - or a policy approves with nobody present, on the record.",
   "keywords": [
     "affiant",
     "affidavit",
     "provenance",
     "human-in-the-loop",
     "guardrails",
-    "ai-agents"
+    "ai-agents",
+    "agent-tools",
+    "approval-workflow",
+    "audit-trail",
+    "tool-calling"
   ],
   "private": false,
   "type": "module",
@@ -40,7 +44,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "telemetry-keys.json"
   ],
   "publishConfig": {
     "access": "public",
@@ -48,6 +53,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepack": "node scripts/prepack-guard.mjs",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:workers": "vitest run --config vitest.workers.config.ts",

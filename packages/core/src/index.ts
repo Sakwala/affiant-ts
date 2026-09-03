@@ -35,13 +35,19 @@
  * force, the execution outcome a host reports, resubmission lineage and rehydration
  * order (AZ-1..AZ-3, AZ-5..AZ-7, DK-1, DK-2, DK-5, AF-4, PV-2).
  *
- * **What is not here yet:** the seeded end-to-end fixtures for the two v0.1
- * sequences and the fixture runner behind `@affiant/core/testing`, which arrive in
- * the next pull request.
+ * Three checks stand between a policy's verdict and a write with no person present, and
+ * each degrades to asking a person rather than refusing: a proposed field marked
+ * mandatory that reads `Empty` (GT-5), a declared provenance input above `Conversation`
+ * pointing at nothing (PV-4), and a host risk score above the policy's threshold (GT-5).
  *
- * **Not on npm.** The version string exists so the conformance driver can pin it;
- * publishing waits on the public parity report and a green TypeScript conformance
- * driver.
+ * The fixtures for both v0.1 sequences and the runner that executes them are behind
+ * `@affiant/core/testing`, which a host can point at its own ports.
+ *
+ * **Not on npm.** The version string exists so the conformance driver can pin it.
+ * Publishing waits on two things — a public parity report naming what each
+ * implementation does not yet pass, and a green, merge-blocking TypeScript conformance
+ * driver — and a `prepack` guard enforces the wait rather than documenting it. See the
+ * package README.
  *
  * @packageDocumentation
  */

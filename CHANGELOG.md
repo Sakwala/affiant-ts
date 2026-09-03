@@ -39,6 +39,14 @@ was made against.
 
 ### Added
 
+- `@affiant/core` — [a README](packages/core/README.md) written for a host developer
+  who has never seen this framework (what the gate is, the ports to supply, a worked
+  example, the pipeline in order, the decision rules, and what the package does not
+  claim), [its own changelog](packages/core/CHANGELOG.md), and a **publish guard**:
+  `prepack` exits non-zero with "@affiant/core is not published until the parity report
+  and the conformance driver are green", so `npm pack` and `npm publish` both fail until
+  `AFFIANT_ALLOW_PUBLISH=1` is set. The condition was documentation; it is now a
+  mechanism.
 - `@affiant/core/testing` — the declarative fixture format, the runner that executes
   it against a real gate, and the stub ports a fixture is wired from
   (`scriptedInference`, `entityProjection`, `allowlistAuthorization`, `fixedClock`).
@@ -49,7 +57,7 @@ was made against.
   — so the same documents can be run by this package's suites, by a host checking its
   own ports, and by the conformance driver that will publish what each implementation
   does not yet pass. Documented in `packages/core/test/README.md`.
-- `@affiant/core` — fifty-one declarative fixtures covering both v0.1 sequences.
+- `@affiant/core` — fifty-four declarative fixtures covering both v0.1 sequences.
   Sequence A end to end (a chat turn through a wrapped tool to an executor's report,
   a rejection, typed inputs carried onto the card, a picker resolved from a system of
   record with an `external-ref` binding, a mandatory field left empty that no Standing
@@ -75,6 +83,21 @@ was made against.
 
 ### Changed
 
+- **A Standing Order never fires while a proposed field marked mandatory reads
+  `Empty`** (GT-5). The verdict degrades to `ReviewerConfirmation`,
+  `standing-order.blocked` says so, and a person may still approve — they can see the
+  hole, and an approval is of what was sworn to, not a licence to invent the missing
+  value. The confidence numbers could not express the case: the aggregate is already
+  `0.0` whenever any proposed field is `Empty`, so a policy keyed on
+  `populatedConfidence` reads a high number over a proposal missing something the write
+  cannot do without. An **optional** empty field does not block by rule; a floor there
+  is a host policy. New on the public surface: `emptyMandatoryFields(affidavit)` and
+  `PolicyOutcome.emptyMandatoryFields`; two new fixtures put the rule on both sides of
+  the line.
+- `standing-order.blocked` carries `blocked.reason` — a stable code
+  (`mandatory-field-empty`, `unbound-declared-input`, `risk-above-threshold`) an
+  operator can alert on without matching on prose, which would break the first time the
+  wording improved — and `affidavit.empty_mandatory_fields`, the field names.
 - `DocketEntry` keeps **both** the Affidavit as the agent proposed it (`affidavit`,
   never edited) and the state an approval accepted (`amendedAffidavit`, `null` until
   an amendment is accepted). An accepted amendment used to overwrite the proposal,

@@ -8,16 +8,20 @@ This repository is the TypeScript implementation. It is held equivalent to the .
 
 ## Packages
 
-| Package                                            | What it is                                                                                  | State                                                                                    |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [`@affiant/contract`](packages/contract)           | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                  |
-| [`@affiant/evidence-card`](packages/evidence-card) | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                  |
-| [`@affiant/core`](packages/core)                   | the gate — Affidavit capture, interceptors, projection, policy, the Docket                  | in repo — not on npm until the public parity report and the conformance driver are green |
-| `@affiant/conformance-driver`                      | runs the protocol's fixture suite against this implementation                               | planned                                                                                  |
+| Package                                            | What it is                                                                                  | State                                                                                                            |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [`@affiant/contract`](packages/contract)           | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                                          |
+| [`@affiant/evidence-card`](packages/evidence-card) | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                                          |
+| [`@affiant/core`](packages/core)                   | the gate — Affidavit capture, interceptors, projection, policy, the Docket, decisions       | in repo, complete for Sequences A and C; not on npm until the parity report and the conformance driver are green |
+| `@affiant/conformance-driver`                      | runs the protocol's fixture suite against this implementation                               | planned                                                                                                          |
 
 Later: `@affiant/store-postgres`, `@affiant/adapter-ai-sdk`, `@affiant/adapter-langchain`.
 
-Nothing is on npm yet. The packages here are consumed through the workspace; publishing is a separate, deliberate step.
+**Sequence A** is a chat capture end to end: a turn, a tool call the gate intercepts, an Affidavit, a person's decision, an executor's report. **Sequence C** is a capture arriving over a trusted relay's MCP surface, decided or auto-approved with the relay named on the record.
+
+**Runtimes:** Node 22 or newer, Cloudflare workerd and Bun — no Node-only API, no filesystem, no timer owned by a package here, and Web Crypto only, which is why the canonical hash is asynchronous everywhere. All three run the whole suite in CI.
+
+Nothing is on npm yet. The packages here are consumed through the workspace; publishing is a separate, deliberate step. For `@affiant/core` the condition is exact and mechanical: a public parity report naming what each implementation does not yet pass, and a green, merge-blocking TypeScript conformance driver. A `prepack` guard fails `npm pack` and `npm publish` with that reason until `AFFIANT_ALLOW_PUBLISH=1` is set.
 
 ## Try the card
 
@@ -53,7 +57,7 @@ The protocol tag this repository pins is in [`packages/contract/protocol/PIN`](p
 
 ## Status
 
-Opened 2026-09-04, building in public from day 0. `@affiant/contract` and `@affiant/evidence-card` are in the repository against protocol tag `v0.0.1-seed`, and `@affiant/core` has its first commit — the turn context, the ports a host supplies, the error codes and the telemetry-key registry, with the gate itself landing behind them. Nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
+Opened 2026-09-04, building in public from day 0. `@affiant/contract` and `@affiant/evidence-card` are in the repository against protocol tag `v0.0.1-seed`, and `@affiant/core` is complete for both v0.1 sequences — the pipeline, the Docket, the decision path and fifty-four declarative fixtures, run on all three runtimes. Nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
 
 ## Related
 
