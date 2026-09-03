@@ -1,0 +1,66 @@
+{
+  "id": "canonical/wire-evidence-card-request-amended",
+  "rules": [
+    "SR-1",
+    "DK-2",
+    "PV-2",
+    "AF-4"
+  ],
+  "note": "The same Affidavit as `canonical/wire-evidence-card-request`, with a reviewer's accepted amendments applied: `Status` changed to Retired, `Weight` cleared with an explicit null (DK-2 — null clears, an absent key leaves untouched). Each amended field's provenance chain now carries the reviewer's act in force, with the machine's pre-correction tag preserved at the head of `prior` (AF-4, PV-2). The bytes and the hash differ from the unamended vector: that difference is what stops an execution grant minted for the proposal a reviewer was shown from validating the proposal they amended.",
+  "input": {
+    "operationType": "WriteUpdate",
+    "entityType": "Widget",
+    "entityId": "W-1",
+    "fields": [
+      {
+        "name": "Status",
+        "value": "Active",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "UserStated",
+            "confidence": 1,
+            "evidence": "User stated: Status",
+            "conversationTurn": null
+          },
+          "prior": []
+        },
+        "isMandatory": true,
+        "kind": "enum",
+        "allowedValues": [
+          "Active",
+          "Retired"
+        ],
+        "pattern": null
+      },
+      {
+        "name": "Weight",
+        "value": 12.5,
+        "previousValue": 10,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "evidence": "Extracted from search_widget",
+            "conversationTurn": 3
+          },
+          "prior": []
+        },
+        "isMandatory": false,
+        "kind": "number",
+        "allowedValues": null,
+        "pattern": "^\\d+(\\.\\d+)?$"
+      }
+    ],
+    "aggregateConfidence": 0.95,
+    "warnings": [],
+    "requiresConfirmation": true
+  },
+  "amendments": {
+    "Status": "Retired",
+    "Weight": null
+  },
+  "reviewerActRef": "docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1",
+  "expectedBytesUtf8": "{\"aggregateConfidence\":0.95,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"reviewer-act\",\"ref\":\"docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1\"},\"source\":\"UserStated\"},\"prior\":[{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"User stated: Status\",\"source\":\"UserStated\"}]},\"value\":\"Retired\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"pattern\":\"^\\\\d+(\\\\.\\\\d+)?$\",\"previousValue\":10,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"reviewer-act\",\"ref\":\"docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1\"},\"source\":\"UserStated\"},\"prior\":[{\"confidence\":0.9,\"conversationTurn\":3,\"evidence\":\"Extracted from search_widget\",\"source\":\"Conversation\"}]},\"value\":null}],\"operationType\":\"WriteUpdate\",\"requiresConfirmation\":true,\"warnings\":[]}",
+  "expectedSha256": "dc5e25654f2c44bf38fce0f86692fd21861bb4b079e54aa055e96f8e29ebc4d2"
+}

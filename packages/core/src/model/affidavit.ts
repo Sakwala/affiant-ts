@@ -115,37 +115,23 @@ function asJsonValue(value: unknown, where: string): JsonValue {
 }
 
 // ---------------------------------------------------------------------------
-// Money (SR-2, shape only)
+// Money (SR-2)
 // ---------------------------------------------------------------------------
 
 /**
- * A monetary amount: a decimal string plus an ISO 4217 currency code (SR-2).
+ * Money is one definition, and it lives in `./money.ts` — the SR-2 module, which
+ * owns the {@link Money} shape, the decimal-string and ISO 4217 validators, and the
+ * scale check a host declares. Re-exported here because an Affidavit is where a
+ * caller meets a monetary field, and because the export path `@affiant/core` offers
+ * should not depend on which pull request wrote which half.
  *
- * A string, never a binary float, because `0.1 + 0.2` is not `0.3` and a reviewer
- * approving "£4,000.01" must be approving the number that will be written. The
- * amount and the currency travel together because an amount with no currency is
- * not money.
+ * Note that `isMoney` **validates**: it is `false` for `{ amount: "1e3" }` and for
+ * `{ currency: "usd" }`, not only for a missing property. A shape-only guard on a
+ * public surface would answer "yes, money" for values SR-2 refuses, which is the
+ * wrong answer to give a host that is about to swear to one.
  */
-export interface Money {
-  /** The amount as a decimal string: no exponent, no thousands separators. */
-  readonly amount: string;
-  /** The ISO 4217 currency code, e.g. `"GBP"`. */
-  readonly currency: string;
-}
-
-/**
- * Whether `value` has the {@link Money} **shape** — two string properties.
- *
- * Shape only, on purpose: whether `amount` is a well-formed decimal within the
- * currency's minor-unit scale, and whether `currency` is a real ISO 4217 code, is
- * the canonical-form validator's job (SR-2, pull request C3). Splitting them keeps
- * this module free of a currency table.
- */
-export function isMoney(value: unknown): value is Money {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const candidate = value as { amount?: unknown; currency?: unknown };
-  return typeof candidate.amount === "string" && typeof candidate.currency === "string";
-}
+export { isMoney } from "./money.js";
+export type { Money } from "./money.js";
 
 // ---------------------------------------------------------------------------
 // The Affidavit

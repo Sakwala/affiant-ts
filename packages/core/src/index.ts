@@ -214,3 +214,36 @@ export type {
   TransitionPatch,
   TransitionResult,
 } from "./docket/store.js";
+
+// canonical
+// ---------------------------------------------------------------------------
+// Added by pull request C3 (`core/canonical`). `Money` and `isMoney` are exported
+// from the model block above, which sources them from `./model/money.js` — one
+// definition, reachable by the path a caller expects.
+
+export {
+  applyAmendmentsForCanonical,
+  canonicalHash,
+  canonicalize,
+  canonicalJson,
+  canonicalString,
+  reviewerActTag,
+  sha256Hex,
+} from "./model/canonical.js";
+export type {
+  CanonicalField,
+  CanonicalInput,
+  CanonicalizeOptions,
+  ReviewerActTag,
+} from "./model/canonical.js";
+
+export {
+  assertMoney,
+  MONEY_AMOUNT_PATTERN,
+  MONEY_CURRENCY_PATTERN,
+  moneyScaleOk,
+  parseMoney,
+} from "./model/money.js";
+
+// end canonical
+// ---------------------------------------------------------------------------
