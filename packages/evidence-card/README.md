@@ -21,6 +21,10 @@ No Lit, no React, no runtime dependency of any kind. It is one class extending
 `HTMLElement` with its own open shadow root, so it drops into a React app, a Blazor
 page, a Rails view or a plain HTML file the same way.
 
+Importing it where there is no DOM — a server-side render, a bundler, a Node test
+— is safe: it registers nothing and throws nothing, and the element defines itself
+when the same bundle reaches a browser.
+
 Every value on the card is written with `textContent`, never `innerHTML`. The
 values were proposed by an agent; a card that rendered them as markup would be a
 hole.
@@ -69,6 +73,15 @@ than on each card.
 | `readonly`         | attribute, `readOnly` property — render the evidence with no buttons and no amendment inputs.                     |
 | `affiant-decision` | event — `detail: { docketId, decision, amendments }`.                                                             |
 
+**When the payload is wrong.** The card checks the envelope against every key the
+pinned schemas require before it renders anything, and a payload that does not fit
+— a missing key, a fetch that fails, a response that is not JSON — becomes a
+visible `<p role="alert">` inside the shadow root naming the reason. It never
+throws at the host and never leaves a blank card, because a reviewer who sees
+nothing has no way to know that something was about to be written. This is a
+structural check, not schema validation; `@affiant/contract` ships the JSON
+Schemas for that.
+
 **Amending.** Every field gets a text box. Type into any of them and the primary
 button becomes _Approve with amendments_; pressing it emits `decision: "amend"`
 with only the fields that were typed into. Whitespace-only entries are ignored. A
@@ -104,7 +117,8 @@ describing a coloured bar. Amendment inputs carry their own `aria-label`.
 `demo/` is the page published at the link above: the card, a read-only toggle and
 a log of every `affiant-decision` event. It renders
 `conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol
-tag — a real payload captured off a shipped implementation's wire, not a mock.
+tag — a hand-authored example from the rulebook's seed fixtures, whose key set is
+asserted against the shipped .NET serializer by the demo hosts' wire-shape tests.
 
 ```bash
 pnpm build                                   # builds the element and demo/dist
