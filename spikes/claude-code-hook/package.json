@@ -1,0 +1,33 @@
+{
+  "name": "@affiant/spike-claude-code-hook",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A Claude Code PreToolUse hook that puts an Affiant Evidence Card in front of a coding agent's file write.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "spikes/claude-code-hook"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "affiant-hook": "./dist/hook.js",
+    "affiant-hook-bash": "./dist/bash-hook.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@affiant/contract": "workspace:*",
+    "@affiant/evidence-card": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
