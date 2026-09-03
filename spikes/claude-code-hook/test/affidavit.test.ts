@@ -1,17 +1,20 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 
 import type { AffidavitField } from "@affiant/contract";
 
 import {
+  amendableFields,
   applyAmendments,
   buildRequest,
   CONTENT_FIELD,
   PATH_FIELD,
   PREVIEW_FIELD,
   readFileState,
+  refusalRequest,
+  unmatchedEdits,
 } from "../src/affidavit.js";
 import { DIFF_LINE_BUDGET, unifiedDiff } from "../src/diff.js";
 import type { EditToolInput, MultiEditToolInput, WriteToolInput } from "../src/protocol.js";
@@ -169,6 +172,107 @@ describe("buildRequest", () => {
     const state = readFileState(join(workspace, "definitely-not-here"));
     expect(state).toEqual({ exists: false, content: "", unreadable: null });
   });
+
+  it("swears where a relative path resolves, and says on the card that it did", () => {
+    // The reference says file_path is always absolute. If one ever is not, the
+    // hook process's own cwd is not the tool's, so a create/update judgement made
+    // against it would be about a different file entirely.
+    fileWith("already-here.ts", "export const a = 1;\n");
+    const { affidavit } = buildRequest(
+      "Write",
+      { file_path: "already-here.ts", content: "export const a = 2;\n" },
+      { ...OPTIONS, cwd: workspace },
+    );
+
+    expect(affidavit.operationType).toBe("FileUpdate");
+    expect(affidavit.entityId).toBe(join(workspace, "already-here.ts"));
+    expect(byName(affidavit.fields, PATH_FIELD).value).toBe(join(workspace, "already-here.ts"));
+    expect(byName(affidavit.fields, PATH_FIELD).provenance.current.evidence).toContain(
+      "already-here.ts",
+    );
+    expect(affidavit.warnings.join(" ")).toContain("not the absolute path");
+    // The warning that matters most is still there, which it was not before.
+    expect(affidavit.warnings.join(" ")).toContain("whole-file write");
+  });
+
+  it("normalises a path laden with .. rather than rendering it as written", () => {
+    // Written out rather than `join`ed, because `join` would normalise it here and
+    // the point is that the payload can carry a path that reads project-local and
+    // resolves outside the project.
+    const written = `${workspace}/a/../../escaped.ts`;
+    const { affidavit } = buildRequest(
+      "Write",
+      { file_path: written, content: "x" },
+      { ...OPTIONS, cwd: workspace },
+    );
+
+    expect(byName(affidavit.fields, PATH_FIELD).value).toBe(resolve(workspace, "..", "escaped.ts"));
+    expect(affidavit.warnings.join(" ")).toContain("not the absolute path");
+  });
+
+  it("swears null, not an empty string, for a file it could not read", () => {
+    // The file exists; what it holds is unknown. `previousValue: ""` would assert
+    // that it is empty, which is a statement about the entity nothing established.
+    const directory = join(workspace, "a-directory");
+    mkdirSync(directory, { recursive: true });
+
+    const { affidavit } = buildRequest("Write", { file_path: directory, content: "x" }, OPTIONS);
+
+    expect(affidavit.operationType).toBe("FileUpdate");
+    expect(byName(affidavit.fields, CONTENT_FIELD).previousValue).toBeNull();
+    expect(affidavit.warnings.join(" ")).toContain("could not be read");
+  });
+});
+
+describe("unmatchedEdits", () => {
+  it("names an edit whose old_string is not in the file", () => {
+    const path = fileWith("no-match.ts", "alpha\nbeta\ngamma\n");
+    const state = readFileState(path);
+
+    expect(
+      unmatchedEdits({ file_path: path, old_string: "NOT-THERE", new_string: "x" }, state),
+    ).toEqual([1]);
+  });
+
+  it("applies each edit in order before checking the next, as the tool does", () => {
+    const path = fileWith("chained.ts", "one\n");
+    const state = readFileState(path);
+
+    // The second edit matches only what the first one leaves behind.
+    expect(
+      unmatchedEdits(
+        {
+          file_path: path,
+          edits: [
+            { old_string: "one", new_string: "two" },
+            { old_string: "two", new_string: "three" },
+          ],
+        },
+        state,
+      ),
+    ).toEqual([]);
+  });
+
+  it("says nothing about a file that is not there, which is a different warning", () => {
+    const path = join(workspace, "not-here-at-all.ts");
+    expect(
+      unmatchedEdits({ file_path: path, old_string: "a", new_string: "b" }, readFileState(path)),
+    ).toEqual([]);
+  });
+});
+
+describe("refusalRequest", () => {
+  it("is an affidavit with nothing sworn on it, carrying the reason", () => {
+    const request = refusalRequest("coverage refused: not inspected", {
+      now: Date.parse("2026-09-04T09:00:00.000Z"),
+      docketId: "r-1",
+    });
+
+    expect(request.affidavit.fields).toEqual([]);
+    expect(request.affidavit.operationType).toBe("CoverageRefused");
+    expect(request.affidavit.warnings).toEqual(["coverage refused: not inspected"]);
+    expect(request.requiredBy).toBe("2026-09-04T09:00:00.000Z");
+  });
 });
 
 describe("applyAmendments", () => {
@@ -219,6 +323,40 @@ describe("applyAmendments", () => {
       ok: false,
       unapplicable: ["edit-4"],
     });
+  });
+
+  it("refuses to redirect the write to another file", () => {
+    // `path` is a parameter of the call, but letting the card change it turns a
+    // review surface into a write primitive: anything that can reach the page can
+    // send the agent's content to ~/.claude/settings.json instead.
+    const input: WriteToolInput = { file_path: "/tmp/a.ts", content: "x" };
+    expect(applyAmendments("Write", input, { path: "/tmp/redirected.txt" })).toEqual({
+      ok: false,
+      unapplicable: ["path"],
+    });
+  });
+
+  it("refuses an amendment that is not a string rather than coercing it", () => {
+    // `String({})` is `"[object Object]"`, which nobody typed and which would have
+    // gone back to Claude Code inside an `allow`.
+    const input: WriteToolInput = { file_path: "/tmp/a.ts", content: "x" };
+    expect(applyAmendments("Write", input, { content: 12345 })).toEqual({
+      ok: false,
+      unapplicable: ["content"],
+    });
+  });
+
+  it("names the fields a reviewer may amend, so the card can say so", () => {
+    expect(amendableFields({ file_path: "/tmp/a.ts", content: "x" })).toEqual([CONTENT_FIELD]);
+    expect(
+      amendableFields({
+        file_path: "/tmp/a.ts",
+        edits: [
+          { old_string: "a", new_string: "b" },
+          { old_string: "c", new_string: "d" },
+        ],
+      }),
+    ).toEqual(["edit-1", "edit-2"]);
   });
 });
 

@@ -19,7 +19,13 @@ import type {
 } from "@affiant/contract";
 
 import { unifiedDiff } from "./diff.js";
-import type { MultiEditToolInput, ReviewedTool, ReviewedToolInput } from "./protocol.js";
+import { resolveTarget } from "./protocol.js";
+import type {
+  MultiEditToolInput,
+  ResolvedTarget,
+  ReviewedTool,
+  ReviewedToolInput,
+} from "./protocol.js";
 
 /** The name of the field carrying the target path. */
 export const PATH_FIELD = "path";
@@ -39,12 +45,19 @@ export function editFieldName(index: number): string {
  * The path is what the agent said, in the turn it said it — so its provenance is
  * `Conversation` at full confidence. The hook is not guessing at the path; it is
  * quoting it.
+ *
+ * The sworn *value* is the resolved absolute path, because that is where the
+ * write lands; the literal the agent wrote stays in the evidence line, so the two
+ * are both on the card when they differ.
  */
-function pathProvenance(tool: ReviewedTool): ProvenanceTag {
+function pathProvenance(tool: ReviewedTool, target: ResolvedTarget): ProvenanceTag {
   return {
     source: "Conversation",
     confidence: 1,
-    evidence: `the path the coding agent named in this ${tool} call`,
+    evidence: target.rewritten
+      ? `the coding agent named "${target.literal}" in this ${tool} call, resolved against the ` +
+        "working directory the hook was given"
+      : `the path the coding agent named in this ${tool} call`,
     conversationTurn: null,
   };
 }
@@ -154,10 +167,53 @@ export function projectEdits(before: string, input: ReviewedToolInput): string {
   return applyReplacement(before, input.old_string, input.new_string, input.replace_all === true);
 }
 
+/** The edits a call carries, with a lone `Edit` read as a one-entry list. */
+export function editsOf(input: ReviewedToolInput): MultiEditToolInput["edits"] {
+  if ("content" in input) return [];
+  if ("edits" in input) return input.edits;
+  return [
+    {
+      old_string: input.old_string,
+      new_string: input.new_string,
+      ...(input.replace_all === undefined ? {} : { replace_all: input.replace_all }),
+    },
+  ];
+}
+
+/**
+ * The one-based indexes of the edits whose `old_string` is not in the file.
+ *
+ * The `Edit` tool errors on one of these, and `applyReplacement` returns the
+ * source unchanged, so the preview would read `(no change)` at full confidence
+ * while the field swore a `previousValue` the entity does not hold. Both are
+ * false statements, so the caller refuses the call rather than filing them.
+ */
+export function unmatchedEdits(input: ReviewedToolInput, state: FileState): number[] {
+  if (!state.exists || state.unreadable !== null) return [];
+  let projected = state.content;
+  const missing: number[] = [];
+  editsOf(input).forEach((edit, index) => {
+    if (edit.old_string === "") return;
+    if (!projected.includes(edit.old_string)) {
+      missing.push(index + 1);
+      return;
+    }
+    projected = applyReplacement(
+      projected,
+      edit.old_string,
+      edit.new_string,
+      edit.replace_all === true,
+    );
+  });
+  return missing;
+}
+
 /** Everything the caller must supply that is not in the tool payload. */
 export interface BuildOptions {
   /** How long the reviewer has, in milliseconds. */
   timeoutMs: number;
+  /** The `cwd` the hook payload carried, which a relative `file_path` resolves against. */
+  cwd?: string;
   /** Overridable so a test can pin the deadline. Defaults to `Date.now()`. */
   now?: number;
   /** Overridable so a test can pin the docket id. Defaults to a fresh UUID. */
@@ -184,19 +240,34 @@ export function buildRequest(
   options: BuildOptions,
 ): EvidenceCardRequest {
   const now = options.now ?? Date.now();
-  const state = options.fileState ?? readFileState(input.file_path);
+  const target = resolveTarget(input.file_path, options.cwd);
+  const path = target.resolved;
+  const state = options.fileState ?? readFileState(path);
   const warnings: string[] = [];
+
+  if (target.rewritten) {
+    warnings.push(
+      `The call named "${target.literal}", which is not the absolute path it will be written ` +
+        `to. This card swears ${path}, resolved against the working directory in the hook ` +
+        "payload. Check it is the file you mean.",
+    );
+  }
 
   if (state.unreadable !== null) {
     warnings.push(
-      `The file at ${input.file_path} exists but could not be read (${state.unreadable}), ` +
+      `The file at ${path} exists but could not be read (${state.unreadable}), ` +
         `so the values it would replace are not on this card.`,
     );
   }
 
   const fields: AffidavitField[] = [
-    field(PATH_FIELD, input.file_path, null, pathProvenance(tool), true),
+    field(PATH_FIELD, path, null, pathProvenance(tool, target), true),
   ];
+
+  // A file that exists but cannot be read has an unknown previous value, not an
+  // empty one. Swearing `""` would assert that the file is empty, which is a
+  // statement about the entity that nothing here has established.
+  const previousContent = state.exists && state.unreadable === null ? state.content : null;
 
   if ("content" in input) {
     if (state.exists) {
@@ -205,33 +276,19 @@ export function buildRequest(
           "proposed content is being dropped.",
       );
     }
-    fields.push(
-      field(
-        CONTENT_FIELD,
-        input.content,
-        state.exists ? state.content : null,
-        proposalProvenance(),
-        true,
-      ),
-    );
+    fields.push(field(CONTENT_FIELD, input.content, previousContent, proposalProvenance(), true));
   } else {
-    const edits: MultiEditToolInput["edits"] =
-      "edits" in input
-        ? input.edits
-        : [
-            {
-              old_string: input.old_string,
-              new_string: input.new_string,
-              ...(input.replace_all === undefined ? {} : { replace_all: input.replace_all }),
-            },
-          ];
+    const edits = editsOf(input);
 
     edits.forEach((edit, index) => {
       fields.push(
         field(
           editFieldName(index + 1),
           edit.new_string,
-          edit.old_string,
+          // The value the entity holds, or `null` when the file is not there to
+          // hold one. Never the `old_string` of an edit that will not apply — the
+          // caller refuses those before this runs.
+          state.exists && state.unreadable === null ? edit.old_string : null,
           proposalProvenance(),
           true,
         ),
@@ -240,7 +297,7 @@ export function buildRequest(
 
     if (!state.exists) {
       warnings.push(
-        `The file at ${input.file_path} is not on disk, so this edit has nothing to match ` +
+        `The file at ${path} is not on disk, so this edit has nothing to match ` +
           "against and the preview shows the proposal alone.",
       );
     }
@@ -248,7 +305,7 @@ export function buildRequest(
     fields.push(
       field(
         PREVIEW_FIELD,
-        unifiedDiff(state.content, projectEdits(state.content, input), input.file_path),
+        unifiedDiff(state.content, projectEdits(state.content, input), path),
         null,
         previewProvenance(),
         false,
@@ -264,7 +321,7 @@ export function buildRequest(
   const affidavit: Affidavit = {
     operationType: state.exists ? "FileUpdate" : "FileCreate",
     entityType: "file",
-    entityId: state.exists ? input.file_path : null,
+    entityId: state.exists ? path : null,
     fields,
     aggregateConfidence,
     warnings,
@@ -280,12 +337,59 @@ export function buildRequest(
 }
 
 /**
+ * The Evidence Card request for a call this hook could not cover.
+ *
+ * A refusal is still a decision about a write, so it gets a docket row: a call
+ * this hook cannot cover is refused and *marked*, never silently allowed.
+ * There are no sworn fields, because the whole point is that nothing was sworn;
+ * the reason the hook gives the agent is on the affidavit as a warning.
+ */
+export function refusalRequest(
+  detail: string,
+  options: { now?: number; docketId?: string } = {},
+): EvidenceCardRequest {
+  const now = options.now ?? Date.now();
+  return {
+    docketId: options.docketId ?? randomUUID(),
+    affidavit: {
+      operationType: "CoverageRefused",
+      entityType: "tool-call",
+      entityId: null,
+      fields: [],
+      aggregateConfidence: 0,
+      warnings: [detail],
+      requiresConfirmation: true,
+    },
+    requiredBy: new Date(now).toISOString(),
+    priorAmendments: null,
+  };
+}
+
+/** The message a `path` amendment is refused with. */
+export const PATH_NOT_AMENDABLE = "the target file cannot be amended on the card";
+
+/**
+ * The fields of this call a reviewer may amend, in the order they appear on the
+ * card. Everything else on the card — `path` and `preview` — is evidence about
+ * the write, not a parameter of it.
+ */
+export function amendableFields(input: ReviewedToolInput): string[] {
+  if ("content" in input) return [CONTENT_FIELD];
+  return editsOf(input).map((_edit, index) => editFieldName(index + 1));
+}
+
+/**
  * Folds a reviewer's amendments back into the `tool_input` Claude Code will run.
  *
  * A field name that maps to no tool input is refused rather than dropped: the
  * reviewer typed something, and a hook that silently discards it has lied about
  * what the approval meant. `preview` is the common case — it is a rendering of the
  * change, not a parameter of it.
+ *
+ * `path` is refused too, and deliberately. It is a parameter of the call, but
+ * letting the card change it means the page can redirect the agent's write to any
+ * file at all, which turns a review surface into a write primitive. The reviewer
+ * rejects and says where it should have gone.
  */
 export function applyAmendments(
   tool: ReviewedTool,
@@ -298,10 +402,17 @@ export function applyAmendments(
   const edits = "edits" in input ? input.edits.map((edit) => ({ ...edit })) : null;
 
   for (const [name, raw] of Object.entries(amendments)) {
-    const value = typeof raw === "string" ? raw : String(raw);
+    // Every field this hook swears is `kind: "text"`, so an amendment is a string.
+    // Coercing anything else with `String(raw)` put `"[object Object]"` inside an
+    // `allow` — a value the reviewer never typed.
+    if (typeof raw !== "string") {
+      unapplicable.push(name);
+      continue;
+    }
+    const value = raw;
 
     if (name === PATH_FIELD) {
-      updated["file_path"] = value;
+      unapplicable.push(name);
       continue;
     }
     if (name === CONTENT_FIELD && "content" in input) {

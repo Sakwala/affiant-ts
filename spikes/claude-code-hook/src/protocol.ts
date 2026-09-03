@@ -1,35 +1,50 @@
 /**
  * The Claude Code hook wire, as far as this spike uses it.
  *
- * Every shape here is transcribed from the hooks reference at
- * https://code.claude.com/docs/en/hooks (read 2026-09-04). The fields this spike
- * depends on, verbatim from that page:
+ * Every shape here comes from the hooks reference at
+ * https://code.claude.com/docs/en/hooks, re-read 2026-09-04. What that page
+ * states, with the section it states it in:
  *
- * - A `PreToolUse` hook receives JSON on stdin carrying the common fields
- *   (`session_id`, `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`)
- *   plus `tool_name`, `tool_input` and `tool_use_id`.
- * - `tool_input` for `Write` is `{ file_path, content }`; for `Edit` it is
- *   `{ file_path, old_string, new_string, replace_all }`. Both `file_path` values
- *   are always absolute — Claude Code expands `~` and relative paths before hooks
- *   run.
- * - A hook returns its decision on stdout inside `hookSpecificOutput`, which must
- *   carry `hookEventName: "PreToolUse"`, and may carry `permissionDecision`
- *   (`"allow" | "deny" | "ask" | "defer"`), `permissionDecisionReason`,
- *   `updatedInput` and `additionalContext`.
- * - `updatedInput` "modifies the tool's input parameters before execution.
- *   Replaces the entire input object, so include unchanged fields alongside
- *   modified ones." It is combined with `"allow"` to auto-approve the modified
- *   call. That is how this spike applies an amendment.
- * - Exit 0 means Claude Code reads the JSON. Exit 2 blocks whether or not JSON is
+ * - **Common input fields.** A hook receives JSON on stdin carrying `session_id`,
+ *   `transcript_path`, `cwd` ("Current working directory when the hook is
+ *   invoked"), `permission_mode` and `hook_event_name`. *PreToolUse input* adds
+ *   `tool_name`, `tool_input` and `tool_use_id`.
+ * - **PreToolUse input** carries a per-tool `tool_input` table for Bash,
+ *   PowerShell, Write, Edit, Read, Glob and Grep. `Write` is
+ *   `{ file_path, content }`; `Edit` is
+ *   `{ file_path, old_string, new_string, replace_all }`; both `file_path` fields
+ *   are described as "Absolute path to the file". The section above the table says
+ *   "For the file tools `Write`, `Edit`, and `Read`, `tool_input.file_path` is
+ *   always absolute" and "Claude Code expands `~` and relative paths before hooks
+ *   run".
+ *
+ *   This spike **does not rely on that**. A relative `file_path` would make the
+ *   card silently wrong about the one thing it exists to show — create versus
+ *   overwrite — so {@link resolveTarget} resolves whatever arrives against the
+ *   payload's own `cwd`, swears the resolved path, and warns on the card when the
+ *   two differ. A guarantee that holds costs nothing to check.
+ * - **PreToolUse decision control.** A hook returns its decision on stdout inside
+ *   `hookSpecificOutput`, carrying `hookEventName: "PreToolUse"` and
+ *   `permissionDecision` — the reference lists `allow`, `deny`, `ask` and `defer`
+ *   — plus `permissionDecisionReason`, and optionally `updatedInput` and
+ *   `additionalContext`. `"defer"` is honoured "only in non-interactive mode with
+ *   the `-p` flag", so this spike never returns it.
+ * - **`updatedInput`** "Modified tool input object to replace the original" —
+ *   it replaces the entire input object, so unchanged fields have to be included
+ *   alongside modified ones. Combined with `"allow"` it runs the modified call.
+ *   That is how this spike applies an amendment.
+ * - **Exit codes.** Exit 0 means Claude Code reads the JSON, and "Exit code 0 with
+ *   no output means the hook has no decision to report, so the tool call continues
+ *   through the normal permission flow". Exit 2 blocks whether or not JSON is
  *   printed, using stderr as the reason. Any other exit code is a non-blocking
- *   error and the tool proceeds — which is why this hook only ever exits 0 or 2.
+ *   error and the tool proceeds — which is why these bins only ever exit 0 or 2.
  *
- * `MultiEdit` is **not** in that page's `tool_input` table; the table lists Bash,
- * PowerShell, Write, Edit, Read, Glob and Grep. The `MultiEdit` shape below
+ * `MultiEdit` is **not** in that `tool_input` table. The `MultiEdit` shape below
  * (`{ file_path, edits: [{ old_string, new_string, replace_all }] }`) is the
- * tool's own documented input schema, and the parser treats it as best-effort: a
- * payload that does not match is handled as unrecognised rather than guessed at.
+ * tool's own input schema, and the parser treats it as best-effort: a payload that
+ * does not match is handled as unrecognised rather than guessed at.
  */
+import { isAbsolute, resolve } from "node:path";
 
 /** The three tools this hook reviews field by field. */
 export const REVIEWED_TOOLS = ["Write", "Edit", "MultiEdit"] as const;
@@ -168,6 +183,32 @@ export function parseToolInput(tool: ReviewedTool, raw: unknown): ReviewedToolIn
     edits.push(edit);
   }
   return { file_path: filePath, edits };
+}
+
+/** A `file_path` as it arrived, and as it resolves on this machine. */
+export interface ResolvedTarget {
+  /** Exactly what the payload carried. */
+  literal: string;
+  /** The absolute, normalised path the write would land on. */
+  resolved: string;
+  /** True when the two differ: a relative path, a `~`, or unnormalised `..` segments. */
+  rewritten: boolean;
+}
+
+/**
+ * Resolves a payload's `file_path` against the payload's own `cwd`.
+ *
+ * The reference says `file_path` is always absolute, and in practice it is. The
+ * cost of checking is one `resolve()`; the cost of not checking is a card that
+ * says *create* over a file that exists, with no "this drops every byte" warning
+ * on it, because the hook process's own working directory is not the tool's.
+ * `..` segments are normalised for the same reason: `…/work/../../../etc/hosts`
+ * renders as project-local and resolves outside the project.
+ */
+export function resolveTarget(filePath: string, cwd: string | undefined): ResolvedTarget {
+  const base = cwd !== undefined && cwd !== "" && isAbsolute(cwd) ? cwd : process.cwd();
+  const resolved = resolve(base, filePath);
+  return { literal: filePath, resolved, rewritten: resolved !== filePath };
 }
 
 /** Parses the stdin payload. Returns `null` when it is not a JSON object. */

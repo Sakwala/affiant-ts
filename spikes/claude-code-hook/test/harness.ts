@@ -147,7 +147,9 @@ export function spawnBin(bin: string, stdin: unknown, env: NodeJS.ProcessEnv = {
   return {
     child,
     done,
-    url: () => waitFor(/http:\/\/127\.0\.0\.1:\d+\//, "the review URL"),
+    // The URL carries the run's secret path prefix, so the whole of it is the
+    // address — a bare `http://127.0.0.1:<port>/` reaches nothing.
+    url: () => waitFor(/http:\/\/127\.0\.0\.1:\d+\/[0-9a-f]{32}\//, "the review URL"),
     docketId: () =>
       waitFor(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/, "a docket id"),
   };

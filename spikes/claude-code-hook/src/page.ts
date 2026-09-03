@@ -6,12 +6,24 @@
  * already ships; the page hands it a request object and listens for one event.
  */
 
-/** The path the built `@affiant/evidence-card` module tree is served under. */
+/** The path the built `@affiant/evidence-card` module tree is served under, after the run's prefix. */
 export const ELEMENT_MOUNT = "/element";
 
-/** Renders the review page for one docket entry. */
-export function renderPage(docketId: string): string {
+/**
+ * Renders the review page for one docket entry.
+ *
+ * `prefix` is the per-run secret path every route lives under, so the page's own
+ * fetches have to carry it too; `amendable` is the list of fields the server will
+ * accept an amendment for, which the page says out loud so a reviewer does not
+ * type into a box whose value will be refused.
+ */
+export function renderPage(docketId: string, prefix: string, amendable: readonly string[]): string {
   const id = JSON.stringify(docketId);
+  const base = JSON.stringify(prefix);
+  const amendableText =
+    amendable.length === 0
+      ? "No field of this call can be amended here."
+      : `Only ${amendable.join(", ")} can be amended here — <code>path</code> and <code>preview</code> are evidence about the write, not parameters of it, so an amendment to either is refused and this entry stays open.`;
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -84,7 +96,7 @@ export function renderPage(docketId: string): string {
       footer a { color: inherit; }
       code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95em; }
     </style>
-    <script type="module" src="${ELEMENT_MOUNT}/register.js"></script>
+    <script type="module" src="${prefix}${ELEMENT_MOUNT}/register.js"></script>
   </head>
   <body>
     <main>
@@ -103,6 +115,8 @@ export function renderPage(docketId: string): string {
         <affiant-evidence-card id="card"></affiant-evidence-card>
       </section>
 
+      <p class="lede">${amendableText}</p>
+
       <label class="note">
         A note for the agent (optional — it is what the agent is told when you reject)
         <textarea id="note" placeholder="e.g. wrong file; put the helper in src/lib/ instead"></textarea>
@@ -118,6 +132,7 @@ export function renderPage(docketId: string): string {
 
     <script type="module">
       const docketId = ${id};
+      const base = ${base};
       const card = document.querySelector("#card");
       const note = document.querySelector("#note");
       const outcome = document.querySelector("#outcome");
@@ -143,7 +158,7 @@ export function renderPage(docketId: string): string {
         }
       }
 
-      const response = await fetch("/entries/" + encodeURIComponent(docketId), {
+      const response = await fetch(base + "/entries/" + encodeURIComponent(docketId), {
         headers: { accept: "application/json" },
       });
       if (!response.ok) {
@@ -165,9 +180,11 @@ export function renderPage(docketId: string): string {
         card.readOnly = true;
         say("Sending…");
         try {
-          const posted = await fetch("/decision/" + encodeURIComponent(docketId), {
+          // The JSON content type is what keeps this endpoint out of the browser's
+          // simple-request set, so it is required by the server, not decoration.
+          const posted = await fetch(base + "/decision/" + encodeURIComponent(docketId), {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               docketId,
               decision,
@@ -177,12 +194,20 @@ export function renderPage(docketId: string): string {
           });
           const body = await posted.json();
           if (!posted.ok) {
+            // 400 means the amendment could not be applied and nothing was spent:
+            // the entry is still open, so hand the card back rather than freezing it.
+            if (posted.status === 400) card.readOnly = false;
             say("Refused: " + (body.error ?? posted.status), "no");
             return;
           }
+          // Only an approval is good news. An amended approval says so; anything
+          // else takes the "no" tone, because it is not what the reviewer asked for.
           say(
-            "Recorded as " + body.status + ". You can close this tab — the agent has its answer.",
-            body.status === "rejected" || body.status === "expired" ? "no" : "ok",
+            body.status === "approved"
+              ? (body.amended ? "Recorded as approved, with your amendment." : "Recorded as approved.") +
+                  " You can close this tab — the agent has its answer."
+              : "Recorded as " + body.status + ". You can close this tab — the agent has its answer.",
+            body.status === "approved" ? "ok" : "no",
           );
         } catch (cause) {
           say("Could not reach the hook process: " + String(cause), "no");
