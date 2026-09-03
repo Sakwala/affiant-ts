@@ -1,0 +1,48 @@
+name: pages
+
+# Publishes the <affiant-evidence-card> demo — the card rendering a real payload
+# captured off a shipped implementation's wire — at
+# https://sakwala.github.io/affiant-ts/
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; never cancel one that is mid-flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Emits packages/evidence-card/dist (the element) and, from it,
+      # packages/evidence-card/demo/dist (the page, the bundled module, the
+      # fixture it fetches, and a copy of the built element under element/).
+      - run: pnpm build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/evidence-card/demo/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

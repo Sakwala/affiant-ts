@@ -27,5 +27,7 @@ was made against.
 - pnpm workspace (`packages/*`, `spikes/*`), TypeScript 5 in strict mode with
   `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`, ESM only, Node 22+.
 - Continuous integration on three runtimes: Node 22, Bun and Cloudflare workerd.
+- The card demo published to GitHub Pages on every push to `main`:
+  <https://sakwala.github.io/affiant-ts/>.
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
