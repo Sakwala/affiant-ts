@@ -1,0 +1,125 @@
+{
+  "id": "decide/expired-amendments-preserved",
+  "rules": ["DK-1"],
+  "note": "An entry past its deadline reads expired whether or not a sweep has run, and a decision arriving after it is refused. The amendments that decision carried are preserved on the row so a resubmission can prefill them; nothing else is written, because nobody decided anything.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": null,
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:45:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": {
+          "kind": "approve",
+          "amendments": {
+            "amount": "4000",
+            "note": null
+          },
+          "reason": null
+        },
+        "outcome": null,
+        "detail": null
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": {
+          "code": "decision-expired"
+        }
+      }
+    ],
+    "entry": {
+      "status": "expired",
+      "execution": null,
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": null,
+      "amendments": {
+        "amount": "4000",
+        "note": null
+      },
+      "decision": null,
+      "supersededByFresh": false,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": null
+  }
+}

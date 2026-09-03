@@ -66,7 +66,31 @@ describe("telemetry-key registry (TL-1)", () => {
     const transition = TELEMETRY_KEYS.find((entry) => entry.key === "docket.transition");
 
     expect(transition).toBeDefined();
-    expect(transition?.attributes).toEqual(["from", "to", "execution"]);
+    expect(transition?.attributes).toEqual([
+      "entry.id",
+      "gen_ai.conversation.id",
+      "from",
+      "to",
+      "execution",
+      "decision.kind",
+      "attestation.kind",
+      "amended",
+    ]);
+  });
+
+  it("names the attributes an unauthorized decision carries (AZ-2)", () => {
+    const refused = TELEMETRY_KEYS.find((entry) => entry.key === "decision.unauthorized");
+
+    expect(refused).toBeDefined();
+    // The principal's *kind*, never its id: an event stream is not an audit record,
+    // and the record of who decided is the attestation on the row (AZ-1).
+    expect(refused?.attributes).toEqual([
+      "entry.id",
+      "gen_ai.conversation.id",
+      "reason",
+      "principal.kind",
+      "path",
+    ]);
   });
 
   it("versions the registry itself", () => {

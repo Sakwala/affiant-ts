@@ -1,0 +1,126 @@
+{
+  "id": "decide/blocked-refused",
+  "rules": ["AZ-4", "DK-1"],
+  "note": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run, which is the shipped .NET behaviour of routing MultiParty to the single-card branch.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": {
+        "id": "joint-sign-off",
+        "version": "1.0.0",
+        "requirement": "MultiParty"
+      },
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": {
+          "kind": "approve",
+          "amendments": null,
+          "reason": null
+        },
+        "outcome": null,
+        "detail": null
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": {
+          "code": "decision-not-pending"
+        }
+      }
+    ],
+    "entry": {
+      "status": "pending",
+      "execution": null,
+      "requirement": "MultiParty",
+      "blocked": {
+        "code": "requirement-not-implemented",
+        "level": "MultiParty"
+      },
+      "attestation": null,
+      "amendments": null,
+      "decision": null,
+      "supersededByFresh": false,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": null
+  }
+}

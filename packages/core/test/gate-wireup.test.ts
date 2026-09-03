@@ -169,13 +169,15 @@ describe("what a gate without options still refuses", () => {
     ).rejects.toThrow(/carries neither prepared fields nor a field schema/);
   });
 
-  it("has no decide, resubmit or markExecuted to call yet", () => {
+  it("has a decision path, and no executor to go with it (AZ-7)", () => {
     const gate = createGate(options()) as unknown as Record<string, unknown>;
 
-    // They arrive with the authorization rules they exist to enforce (AZ-2, AZ-3,
-    // DK-1). A stub that threw would promise a decision path this version does not have.
-    expect(gate["decide"]).toBeUndefined();
-    expect(gate["resubmit"]).toBeUndefined();
-    expect(gate["markExecuted"]).toBeUndefined();
+    expect(typeof gate["decide"]).toBe("function");
+    expect(typeof gate["resubmit"]).toBe("function");
+    expect(typeof gate["markExecuted"]).toBe("function");
+    // AZ-7: no package in an implementation writes to a host's store, so there is
+    // nothing here that could. `markExecuted` records what the host says it did.
+    expect(gate["execute"]).toBeUndefined();
+    expect(gate["executor"]).toBeUndefined();
   });
 });

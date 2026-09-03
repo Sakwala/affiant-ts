@@ -43,8 +43,10 @@
  * @packageDocumentation
  */
 
-// The **core** amendment map (ledger BD-31): a row holds the core model, and the
-// wire shapes are reached only at the boundary. See the note in `entry.ts`.
+// The **core** Affidavit and amendment map (ledger BD-31): a row holds the core
+// model, and the wire shapes are reached only at the boundary. See the note in
+// `entry.ts`.
+import type { Affidavit } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 
 import type {
@@ -121,9 +123,18 @@ export interface RetentionPolicy {
  * What a transition out of `pending` writes.
  *
  * The patch is exactly the set of later facts a decision produces, and nothing
- * else: it cannot touch the Affidavit, the requirement, the deadline, the filing
- * instant or the entry's own id. That is DK-4's read-forward property in the type —
- * a row accumulates facts, it is never rewritten.
+ * else: it cannot touch the requirement, the deadline, the filing instant or the
+ * entry's own id. That is DK-4's read-forward property in the type — a row
+ * accumulates facts, it is never rewritten.
+ *
+ * {@link TransitionPatch.affidavit} is the one apparent exception, and it is not
+ * one: the only Affidavit a caller may write is the *amended* Affidavit AF-4
+ * requires, produced by `applyAmendments` from the row's own. That operation adds a
+ * `UserStated` tag carrying a `reviewer-act` binding on top of each amended field's
+ * chain and leaves the displaced tag in the chain's history (PV-2), so the row still
+ * reads forward — what the machine proposed is still on it, under what the reviewer
+ * decided. A store cannot check that, so the rule is stated here and enforced by the
+ * gate, which is the only caller that builds one.
  *
  * `supersedes` is absent on purpose: it is fixed when an entry is filed and names
  * the entry this one *replaces*, which cannot change afterwards. `supersededBy` is
@@ -147,6 +158,16 @@ export interface TransitionPatch {
    * clears the field, an absent key leaves it untouched.
    */
   readonly amendments?: AmendmentMap | null;
+  /**
+   * The amended Affidavit, when the approval accepted amendments (AF-4).
+   *
+   * Absent leaves the sworn record as filed, which is what a rejection, a sweep and
+   * an unamended approval all want. Present, it must be the result of applying
+   * {@link TransitionPatch.amendments} to *this row's* Affidavit — the three
+   * confidence numbers recomputed over the amended fields, and each amended field's
+   * provenance the reviewer's act with the machine's tag preserved beneath it.
+   */
+  readonly affidavit?: Affidavit;
   /** Who agreed (AZ-1). A decision without one is a decision nobody can be held to. */
   readonly attestation?: Attestation | null;
   /** When the row left `pending`. Defaults to the store's clock reading. */

@@ -49,7 +49,7 @@ export const TELEMETRY_KEYS = [
     key: "docket.transition",
     since: "0.1.0-alpha.0",
     description: "A Docket entry changed state (DK-1).",
-    attributes: ["from", "to", "execution"],
+    attributes: ["entry.id", "gen_ai.conversation.id", "from", "to", "execution", "decision.kind", "attestation.kind", "amended"],
   },
   /** A pending Docket entry passed its expiry (DK-3). Since 0.1.0-alpha.0. */
   {
@@ -63,7 +63,7 @@ export const TELEMETRY_KEYS = [
     key: "decision.unauthorized",
     since: "0.1.0-alpha.0",
     description: "A decision was refused on identity grounds: no resolved principal, another tenant, or the host's authorization port said no (AZ-2).",
-    attributes: [],
+    attributes: ["entry.id", "gen_ai.conversation.id", "reason", "principal.kind", "path"],
   },
   /** A Standing Order policy approved a write with no person present (AZ-1). Since 0.1.0-alpha.0. */
   {

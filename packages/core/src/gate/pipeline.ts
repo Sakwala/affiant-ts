@@ -48,6 +48,10 @@
  * would file a second row for a retried call and start a second clock, which is the
  * shape GT-4 names as wrong.
  *
+ * A resubmission adds the id of the entry it supersedes to that material, so it is a
+ * different entry from the one it replaces (DK-1) and resubmitting the same expired
+ * entry twice is still one row.
+ *
  * @packageDocumentation
  */
 
@@ -181,6 +185,22 @@ export interface PipelineProposal {
   readonly preparedFields: readonly PreparedField[] | null;
   /** The host's own verb for the operation, carried onto the card. */
   readonly operationLabel: string | null;
+  /**
+   * The entry this filing supersedes, or `null` for a first filing (DK-1).
+   *
+   * Set only by `resubmit`. It goes onto the new row's `lineage.supersedes` **and**
+   * into the entry id's derivation, which is what makes a resubmission a different
+   * entry from the one it replaces while keeping the id deterministic: resubmitting
+   * the same superseded entry twice derives the same id, so the second call is an
+   * idempotent replay rather than a second row.
+   */
+  readonly supersedes: string | null;
+  /**
+   * The amendments already made on the superseded entry, carried onto the card so a
+   * reviewer sees the corrections they are being asked to confirm (DK-2). `null` for
+   * a first filing.
+   */
+  readonly priorAmendments: AmendmentMap | null;
 }
 
 /** Everything the pipeline needs from the host, assembled once by `createGate`. */
@@ -419,6 +439,9 @@ export async function runPipeline(
     requirement: outcome.requirement,
     filedAt: now,
     expiresAt,
+    // DK-1: a resubmission names what it replaces on the way in. The successor link
+    // is written on the *other* row, by `resubmit`, after this filing succeeds.
+    ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
     // A Standing Order writes status, execution outcome and attestation in the same
     // operation as the filing (AZ-1) — never a file followed by an approve, which
     // would leave a window in which an approved write had no attestation.
@@ -554,7 +577,7 @@ function evidenceCard(
     docketId: entry.entryId,
     affidavit: toWire(entry.affidavit, wireCarry(entry, proposal, outcome)),
     requiredBy: entry.expiresAt,
-    priorAmendments: entry.amendments,
+    priorAmendments: proposal.priorAmendments ?? entry.amendments,
     protocolVersion: entry.protocolVersion,
   };
 }
@@ -628,7 +651,7 @@ function wireCarry(
  */
 export async function deriveEntryId(
   ctx: TurnContext,
-  proposal: Pick<PipelineProposal, "toolName" | "operation" | "args">,
+  proposal: Pick<PipelineProposal, "toolName" | "operation" | "args" | "supersedes">,
 ): Promise<string> {
   const material = canonicalJson({
     tenantId: ctx.tenantId,
@@ -636,6 +659,9 @@ export async function deriveEntryId(
     toolName: proposal.toolName,
     operation: proposal.operation,
     args: proposal.args ?? null,
+    // Only when there is one, so a first filing's id is exactly what it was before
+    // resubmission existed, and a retry of the original call is still a replay.
+    ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
   });
   const digest = await sha256Hex(new TextEncoder().encode(material));
   return uuidFromDigest(digest);

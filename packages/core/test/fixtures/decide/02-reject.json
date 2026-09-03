@@ -1,0 +1,123 @@
+{
+  "id": "decide/reject",
+  "rules": ["DK-1", "AZ-1"],
+  "note": "A rejection is terminal and carries no execution outcome: nothing was authorised, so there is nothing for an executor to have failed at. The reviewer's stated reason is on the row, because a refusal nobody explained teaches the host nothing.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": null,
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": {
+          "kind": "reject",
+          "amendments": null,
+          "reason": "the amount is an order of magnitude out"
+        },
+        "outcome": null,
+        "detail": null
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": null
+      }
+    ],
+    "entry": {
+      "status": "rejected",
+      "execution": null,
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "amendments": null,
+      "decision": {
+        "kind": "reject",
+        "reason": "the amount is an order of magnitude out"
+      },
+      "supersededByFresh": false,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": null
+  }
+}

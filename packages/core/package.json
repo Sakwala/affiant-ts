@@ -54,7 +54,8 @@
     "lint": "node scripts/lint-no-durable-object.mjs",
     "generate": "node scripts/generate-telemetry-keys.mjs",
     "generate:fixtures": "node scripts/generate-canonical-fixtures.mjs",
-    "generate:gate-fixtures": "node scripts/generate-gate-fixtures.mjs"
+    "generate:gate-fixtures": "node scripts/generate-gate-fixtures.mjs",
+    "generate:decide-fixtures": "node scripts/generate-decide-fixtures.mjs"
   },
   "dependencies": {
     "@affiant/contract": "workspace:^"

@@ -1,0 +1,168 @@
+{
+  "id": "decide/resubmit-prefills",
+  "rules": ["DK-1", "DK-2", "PV-2"],
+  "note": "A resubmission is a new entry, never a reopened one: the expired entry keeps its terminal state and gains a successor link, and the new row names what it supersedes. The amendments the refused late decision left behind are prefilled as values, each carrying the reviewer's act with a reviewer-act binding that names the superseded entry.",
+  "given": {
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "authorization": true,
+    "filing": {
+      "toolName": "update_invoice",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "amount", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "40",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "kept",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ],
+      "policy": null,
+      "defaultTtlMs": 1800000
+    },
+    "acts": [
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:45:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": {
+          "kind": "approve",
+          "amendments": {
+            "amount": "4000",
+            "note": null
+          },
+          "reason": null
+        },
+        "outcome": null,
+        "detail": null
+      },
+      {
+        "kind": "resubmit",
+        "at": "2026-09-04T09:46:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": null,
+        "decision": null,
+        "outcome": null,
+        "detail": null
+      }
+    ]
+  },
+  "expect": {
+    "acts": [
+      {
+        "error": {
+          "code": "decision-expired"
+        }
+      },
+      {
+        "error": null
+      }
+    ],
+    "entry": {
+      "status": "expired",
+      "execution": null,
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": null,
+      "amendments": {
+        "amount": "4000",
+        "note": null
+      },
+      "decision": null,
+      "supersededByFresh": true,
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    },
+    "resubmission": {
+      "status": "pending",
+      "execution": null,
+      "supersedesOriginal": true,
+      "priorAmendments": {
+        "amount": "4000",
+        "note": null
+      },
+      "fields": [
+        {
+          "name": "status",
+          "value": "Active",
+          "source": "Conversation",
+          "bound": false
+        },
+        {
+          "name": "amount",
+          "value": "4000",
+          "source": "UserStated",
+          "bound": true
+        },
+        {
+          "name": "note",
+          "value": null,
+          "source": "UserStated",
+          "bound": true
+        }
+      ]
+    }
+  }
+}

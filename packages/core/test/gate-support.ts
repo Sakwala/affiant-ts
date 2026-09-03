@@ -1,6 +1,6 @@
 import type { Principal, TurnContext } from "../src/context.js";
-import type { DocketStore } from "../src/docket/store.js";
-import { InMemoryDocketStore } from "../src/docket/memory.js";
+import type { DocketStore, SessionStore } from "../src/docket/store.js";
+import { InMemoryDocketStore, InMemorySessionStore } from "../src/docket/memory.js";
 import type { ApprovalPolicy, Verdict } from "../src/gate/policy.js";
 import type { ToolDefinition, UncoveredCategory } from "../src/gate/coverage.js";
 import type { Gate, GateOptions } from "../src/gate/gate.js";
@@ -156,12 +156,73 @@ export function projectionPort(
   };
 }
 
-/** An {@link AuthorizationPort} that admits everyone. C6 is where this starts to matter. */
+/** An {@link AuthorizationPort} that admits everyone. */
 export const permissiveAuthorization: AuthorizationPort = {
   async mayDecide() {
     return true;
   },
 };
+
+/** An {@link AuthorizationPort} that admits nobody — the host's own "no" (AZ-2). */
+export const decliningAuthorization: AuthorizationPort = {
+  async mayDecide() {
+    return false;
+  },
+};
+
+/** An {@link AuthorizationPort} that falls over. A port that throws is a refusal (AZ-2). */
+export const throwingAuthorization: AuthorizationPort = {
+  async mayDecide() {
+    throw new Error("the host's directory is down");
+  },
+};
+
+/** An {@link AuthorizationPort} that records what it was asked and answers `admit`. */
+export function recordingAuthorization(
+  admit: boolean,
+  seen: { principal: Principal; entryId: string }[],
+): AuthorizationPort {
+  return {
+    async mayDecide(principal, entry) {
+      seen.push({ principal, entryId: entry.entryId });
+      return admit;
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Principals (AZ-3)
+// ---------------------------------------------------------------------------
+
+/** A human-verified session. */
+export function member(id = "member-1"): Principal {
+  return { kind: "member", id };
+}
+
+/** A machine caller acting on its own behalf: nothing to relay, nobody to speak for. */
+export function service(id = "svc-1"): Principal {
+  return { kind: "service", id };
+}
+
+/** A relay carrying a named person's message on a named channel. */
+export function relay(
+  init: {
+    readonly id?: string;
+    readonly assertedMember?: string;
+    readonly channelIdentity?: string;
+    readonly messageId?: string;
+  } = {},
+): Principal {
+  return {
+    kind: "service",
+    id: init.id ?? "relay-1",
+    assertedMember: init.assertedMember ?? "member-1",
+    relay: {
+      channelIdentity: init.channelIdentity ?? "+94770000000",
+      messageId: init.messageId ?? "wamid-1",
+    },
+  };
+}
 
 /** A {@link FieldInterceptor} that resolves `fields` for every operation. */
 export function interceptorPort(
@@ -325,6 +386,13 @@ export interface HarnessInit {
   readonly clock?: StubClock;
   readonly trace?: Trace;
   readonly uncovered?: readonly (readonly [string, UncoveredCategory])[];
+  /** Who may decide. Defaults to {@link permissiveAuthorization}. */
+  readonly authorization?: AuthorizationPort;
+  /**
+   * The rehydration surface (DK-5). Defaults to an {@link InMemorySessionStore} over
+   * the harness's Docket; pass `null` for a gate wired without one.
+   */
+  readonly sessions?: SessionStore | null;
 }
 
 /** A gate, its store, its clock, its telemetry log and the step trace. */
@@ -334,6 +402,8 @@ export interface Harness {
   readonly clock: StubClock;
   readonly telemetry: TelemetryLog;
   readonly trace: Trace;
+  /** The session store the gate was wired with, or `null`. */
+  readonly sessions: SessionStore | null;
 }
 
 /** A gate wired from stubs, with everything a fixture needs to look at afterwards. */
@@ -342,25 +412,27 @@ export function harness(init: HarnessInit = {}): Harness {
   const clock = init.clock ?? stubClock();
   const telemetry = telemetryLog();
   const store = init.store ?? new InMemoryDocketStore({ clock });
+  const sessions = init.sessions === undefined ? new InMemorySessionStore(store) : init.sessions;
   const options: GateOptions = {
     store,
     inference:
       init.inference ??
       inferencePort(init.inferred ?? { status: structured("Active", "literal", 0.9) }, trace),
     projection: projectionPort(init.previousValues ?? null, trace),
-    authorization: permissiveAuthorization,
+    authorization: init.authorization ?? permissiveAuthorization,
     policies: init.policies ?? [],
     interceptors: init.interceptors ?? [],
     clock,
     telemetry: telemetry.port,
     defaultTtlMs: init.defaultTtlMs ?? 30 * 60 * 1000,
+    ...(sessions === null ? {} : { sessions }),
     ...(init.riskScore === undefined ? {} : { riskScorer: riskScorer(init.riskScore, trace) }),
   };
   const gate = createGate(options);
   for (const [name, category] of init.uncovered ?? []) {
     gate.declareUncovered({ name }, category);
   }
-  return { gate, store, clock, telemetry, trace };
+  return { gate, store, clock, telemetry, trace, sessions };
 }
 
 /** `at` plus `ms`, as an ISO instant — the deadline GT-4 stamps. */
