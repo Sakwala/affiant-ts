@@ -12,6 +12,13 @@ was made against.
 
 ### Added
 
+- `@affiant/contract@0.1.0-alpha.0` — the Affiant wire format as hand-written
+  TypeScript types, faithful to protocol tag
+  [`v0.0.1-seed`](https://github.com/Sakwala/affiant-protocol/tree/v0.0.1-seed).
+  Vendors that tag's eight JSON Schemas and eight conformance fixtures
+  byte-for-byte under `protocol/`, exports the schemas as importable objects from
+  `@affiant/contract/schemas`, and checks the vendored copies against the tag over
+  the network on every run. Not published to npm.
 - pnpm workspace (`packages/*`, `spikes/*`), TypeScript 5 in strict mode with
   `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`, ESM only, Node 22+.
 - Continuous integration on three runtimes: Node 22, Bun and Cloudflare workerd.

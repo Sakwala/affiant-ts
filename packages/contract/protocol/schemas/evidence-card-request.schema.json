@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/evidence-card-request.schema.json",
+  "title": "EvidenceCardRequest",
+  "description": "The envelope that carries an affidavit to a reviewer surface: the docket entry it is filed under, the affidavit itself, the deadline, and — on a resubmission — the amendments already made on the expired original. A producer may send the same request for the same docketId more than once; a consumer must treat a repeat as the same card, updating in place rather than adding a second one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["docketId", "affidavit", "requiredBy", "priorAmendments"],
+  "properties": {
+    "docketId": {
+      "description": "The docket entry this card is filed under. A UUID string.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "affidavit": {
+      "$ref": "https://affiant.dev/schemas/0.0.1-seed/affidavit.schema.json"
+    },
+    "requiredBy": {
+      "description": "When the review window closes. An RFC 3339 date-time with an explicit offset.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "priorAmendments": {
+      "description": "Set only when this card resubmits a review that expired: the amendments a reviewer made on the original entry, keyed by field name, so the next reviewer can see what was already agreed. A null value under a key means the reviewer explicitly cleared that field, which is distinct from the key being absent. Null for a first filing.",
+      "type": ["object", "null"],
+      "additionalProperties": {
+        "description": "The reviewer's replacement value for the named field. Any JSON value, including null."
+      }
+    }
+  }
+}

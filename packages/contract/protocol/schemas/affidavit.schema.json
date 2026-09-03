@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/affidavit.schema.json",
+  "title": "Affidavit",
+  "description": "The sworn evidence record for one proposed write. Every write an agent proposes — create, update or delete — is wrapped in one of these, carrying per-field provenance, before any person sees it and before anything is committed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "operationType",
+    "entityType",
+    "entityId",
+    "fields",
+    "aggregateConfidence",
+    "warnings",
+    "requiresConfirmation"
+  ],
+  "properties": {
+    "operationType": {
+      "description": "The operation being proposed, named by the host's own operation vocabulary (e.g. \"WriteUpdate\"). An open string, not a closed set, in this seed.",
+      "type": "string"
+    },
+    "entityType": {
+      "description": "The kind of domain entity being written, named by the host.",
+      "type": "string"
+    },
+    "entityId": {
+      "description": "The identifier of the entity being written; null for a create operation, where no identifier exists yet.",
+      "type": ["string", "null"]
+    },
+    "fields": {
+      "description": "The sworn fields. Not nullable — an empty array, never null.",
+      "type": "array",
+      "items": {
+        "$ref": "https://affiant.dev/schemas/0.0.1-seed/affidavit-field.schema.json"
+      }
+    },
+    "aggregateConfidence": {
+      "description": "Confidence across the whole affidavit, 0.0 to 1.0. Single-precision float in the .NET wire; not nullable.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "warnings": {
+      "description": "Human-readable warnings a reviewer should see. Not nullable — an empty array, never null.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requiresConfirmation": {
+      "description": "Whether a person must confirm this write before it commits.",
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "@affiant/contract",
+  "version": "0.1.0-alpha.0",
+  "description": "Wire types and vendored JSON Schemas for the Affiant protocol, pinned to a protocol tag.",
+  "keywords": [
+    "affiant",
+    "provenance",
+    "affidavit",
+    "json-schema",
+    "ai-agents"
+  ],
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "packages/contract"
+  },
+  "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/contract#readme",
+  "bugs": "https://github.com/Sakwala/affiant-ts/issues",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "default": "./dist/schemas.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "protocol"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "generate": "node scripts/generate-sources.mjs",
+    "sync-protocol": "node scripts/sync-protocol.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

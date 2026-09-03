@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/docket-expired.schema.json",
+  "title": "DocketExpiredNotification",
+  "description": "Sent when a pending docket entry has lapsed without a reviewer decision. The write it carried is not committed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["docketId"],
+  "properties": {
+    "docketId": {
+      "description": "The docket entry that expired. A UUID string.",
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

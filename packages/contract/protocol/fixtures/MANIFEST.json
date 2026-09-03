@@ -1,0 +1,99 @@
+{
+  "protocolVersion": "0.0.1-seed",
+  "capturedFrom": {
+    "framework": "Sakwala/affiant v1.0.0-beta.1 (b37e139)",
+    "hosts": "Meridian and HR Portal, Sakwala/affiant-host-apps 966d6df",
+    "date": "2026-09-04"
+  },
+  "fixtures": [
+    {
+      "id": "wire/evidence-card-request",
+      "file": "wire/evidence-card-request.json",
+      "kind": "affidavit-envelope",
+      "schema": "schemas/evidence-card-request.schema.json",
+      "schemaRelevant": true,
+      "notes": "A first filing: an affidavit for an update to an existing entity, two fields, one of kind \"enum\" with an allowed-value set and one of kind \"number\" with a validation pattern and a previous value. priorAmendments is explicitly null, which is what a first filing looks like on the wire."
+    },
+    {
+      "id": "wire/evidence-card-request-resubmission",
+      "file": "wire/evidence-card-request-resubmission.json",
+      "kind": "affidavit-envelope",
+      "schema": "schemas/evidence-card-request.schema.json",
+      "schemaRelevant": true,
+      "notes": "The same envelope with priorAmendments populated: the resubmission branch, carrying the amendments a reviewer made on an entry that expired before it was acted on. The pair with wire/evidence-card-request exists so the nullable branch of priorAmendments is covered by a real payload, not only by the null one."
+    },
+    {
+      "id": "wire/docket-expiring",
+      "file": "wire/docket-expiring.json",
+      "kind": "notification",
+      "schema": "schemas/docket-expiring.schema.json",
+      "schemaRelevant": true,
+      "notes": "The deadline warning for a pending docket entry. Re-sent on every sweep while the entry stays inside the warning window, so a consumer must treat repeats for the same docketId as the same warning."
+    },
+    {
+      "id": "wire/docket-expired",
+      "file": "wire/docket-expired.json",
+      "kind": "notification",
+      "schema": "schemas/docket-expired.schema.json",
+      "schemaRelevant": true,
+      "notes": "The lapse notice for a docket entry that reached its deadline with no reviewer decision. Carries the docket id and nothing else."
+    },
+    {
+      "id": "wire/action-decision-result",
+      "file": "wire/action-decision-result.json",
+      "kind": "host-hub-payload",
+      "schema": null,
+      "schemaRelevant": false,
+      "notes": "A host payload, not protocol core: how one host tells its own client what became of a review it was showing. Captured as a reference shape because its outcome field is one of the closed sets in enum-values.json. No schema in this seed."
+    },
+    {
+      "id": "wire/session-rehydrated",
+      "file": "wire/session-rehydrated.json",
+      "kind": "host-hub-payload",
+      "schema": null,
+      "schemaRelevant": false,
+      "notes": "A host payload, not protocol core: how one host tells a reconnecting client how many reviews are still waiting. Captured as a reference shape. No schema in this seed."
+    },
+    {
+      "id": "wire/guide-ui",
+      "file": "wire/guide-ui.json",
+      "kind": "transport-ui",
+      "schema": null,
+      "schemaRelevant": false,
+      "notes": "A transport payload for a UI walkthrough: a route to navigate to and an ordered list of steps, each naming an element by its registered semantic id rather than a selector. Its meaning stays with the host surface that renders it; captured here as a reference shape. No schema in this seed."
+    },
+    {
+      "id": "wire/system-notification",
+      "file": "wire/system-notification.json",
+      "kind": "transport-ui",
+      "schema": null,
+      "schemaRelevant": false,
+      "notes": "A transport payload for a transient message to a UI. Captured as a reference shape because its level field is one of the closed sets in enum-values.json. No schema in this seed."
+    }
+  ],
+  "enums": {
+    "file": "enum-values.json",
+    "sets": [
+      {
+        "id": "enum/actionDecisionResultOutcome",
+        "appliesTo": "the outcome field of wire/action-decision-result",
+        "schema": null
+      },
+      {
+        "id": "enum/provenanceSource",
+        "appliesTo": "the source field of every provenance tag",
+        "schema": "schemas/provenance-source.schema.json"
+      },
+      {
+        "id": "enum/systemNotificationLevel",
+        "appliesTo": "the level field of wire/system-notification",
+        "schema": null
+      },
+      {
+        "id": "enum/getActionStatusesValue",
+        "appliesTo": "the per-entry value a host's action-status query returns; no wire fixture in this seed",
+        "schema": null
+      }
+    ]
+  }
+}

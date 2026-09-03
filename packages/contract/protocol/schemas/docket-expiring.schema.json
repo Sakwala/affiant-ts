@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/docket-expiring.schema.json",
+  "title": "DocketExpiringNotification",
+  "description": "Sent when a pending docket entry is approaching its deadline. A producer re-sends this on every sweep while the entry stays inside the warning window, so a consumer must treat repeats for the same docketId as idempotent — key a countdown off expiresAt rather than counting notifications.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["docketId", "expiresAt"],
+  "properties": {
+    "docketId": {
+      "description": "The docket entry approaching expiry. A UUID string.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "expiresAt": {
+      "description": "When the entry expires. An RFC 3339 date-time with an explicit offset.",
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
