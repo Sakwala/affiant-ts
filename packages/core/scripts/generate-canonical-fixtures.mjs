@@ -6,7 +6,7 @@
  * Two outputs, from one input:
  *
  *   test/fixtures/canonical/*.json      the vectors — `input`, `amendments` and
- *                                       `reviewerActRef` are hand-authored; this
+ *                                       `reviewerAct` are hand-authored; this
  *                                       script writes `expectedBytesUtf8` and
  *                                       `expectedSha256` into them
  *   test/fixtures/canonical.generated.ts  the same vectors as a module
@@ -28,7 +28,7 @@
  *
  * Run after building the package, from `packages/core`:
  *
- *   pnpm build && pnpm generate:fixtures
+ *   pnpm build && pnpm generate:vectors
  */
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -48,8 +48,8 @@ const vectors = [];
 for (const file of files) {
   const path = join(vectorDir, file);
   const vector = JSON.parse(readFileSync(path, "utf8"));
-  const { input, amendments, reviewerActRef } = vector;
-  const options = reviewerActRef === null ? undefined : { reviewerActRef };
+  const { input, amendments, reviewerAct } = vector;
+  const options = reviewerAct === null ? undefined : { reviewerAct };
 
   vector.expectedBytesUtf8 = canonicalString(input, amendments, options);
   vector.expectedSha256 = await canonicalHash(input, amendments, options);
@@ -95,7 +95,7 @@ const module = `// GENERATED FILE - DO NOT EDIT BY HAND.
 // Produced by scripts/generate-canonical-fixtures.mjs from test/fixtures/canonical/*.json.
 // The JSON files are the record; this module is how the suites read them on Node, Bun
 // and workerd alike. To change a vector: edit its JSON file, then run
-// \`pnpm build && pnpm generate:fixtures\` from packages/core.
+// \`pnpm build && pnpm generate:vectors\` from packages/core.
 
 /**
  * One SR-1 byte vector: an input, the amendments accepted on it, and the canonical
@@ -116,8 +116,15 @@ export interface CanonicalVector {
   readonly input: unknown;
   /** The accepted amendments, or \`null\` for none. */
   readonly amendments: { readonly [fieldName: string]: unknown } | null;
-  /** The Docket decision the amendments arrived on (PV-2), or \`null\` where there are none. */
-  readonly reviewerActRef: string | null;
+  /**
+   * The decision the amendments arrived on — its entry, its instant and its
+   * principal (PV-2) — or \`null\` where there are no amendments.
+   */
+  readonly reviewerAct: {
+    readonly entryId: string;
+    readonly decisionAt: string;
+    readonly by: string;
+  } | null;
   /** The canonical form as a string - the bytes before UTF-8 encoding. */
   readonly expectedBytesUtf8: string;
   /** The SHA-256 of the UTF-8 bytes, lowercase hex. */

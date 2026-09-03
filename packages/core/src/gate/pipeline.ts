@@ -467,6 +467,9 @@ export async function runPipeline(
     tenantId: ctx.tenantId,
     conversationId: ctx.conversationId,
     channel: ctx.channel,
+    // On the row so a resubmission can re-run the coverage lookup against the tool
+    // that actually proposed the write (CV-4), and so an audit can name it.
+    toolName: proposal.toolName,
     affidavit,
     requirement: outcome.requirement,
     filedAt: now,
@@ -608,15 +611,16 @@ function evidenceCard(
   // AF-2's three numbers come off the stored Affidavit, so the card and the record
   // can never disagree about them: `aggregateConfidence` rides the wire Affidavit,
   // the other two ride the envelope.
-  const numbers = computeConfidence(entry.affidavit.fields);
+  const sworn = entry.amendedAffidavit ?? entry.affidavit;
+  const numbers = computeConfidence(sworn.fields);
   return {
     docketId: entry.entryId,
-    affidavit: toWire(entry.affidavit, wireCarry(entry, proposal, outcome)),
+    affidavit: toWire(sworn, wireCarry(entry, proposal, outcome)),
     requiredBy: entry.expiresAt,
-    priorAmendments: proposal.priorAmendments ?? entry.amendments,
+    priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
     protocolVersion: entry.protocolVersion,
-    populatedConfidence: entry.affidavit.populatedConfidence ?? numbers.populatedConfidence,
-    emptyFieldCount: entry.affidavit.emptyFieldCount ?? numbers.emptyFieldCount,
+    populatedConfidence: sworn.populatedConfidence ?? numbers.populatedConfidence,
+    emptyFieldCount: sworn.emptyFieldCount ?? numbers.emptyFieldCount,
     blocked: entry.blocked,
   };
 }
@@ -654,7 +658,7 @@ function wireCarry(
   const schemaByName = new Map(
     (proposal.schema?.fields ?? []).map((entry_) => [entry_.name, entry_]),
   );
-  for (const field of entry.affidavit.fields) {
+  for (const field of (entry.amendedAffidavit ?? entry.affidavit).fields) {
     const schemaEntry = schemaByName.get(field.name);
     constraints[field.name] = {
       allowedValues: schemaEntry?.allowedValues ?? null,
@@ -668,7 +672,9 @@ function wireCarry(
   return {
     operationType:
       proposal.operationLabel ??
-      (entry.affidavit.operationType === "create" ? "WriteCreate" : "WriteUpdate"),
+      ((entry.amendedAffidavit ?? entry.affidavit).operationType === "create"
+        ? "WriteCreate"
+        : "WriteUpdate"),
     warnings,
     // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
     // it is not a card a person can confirm. Saying `true` here would offer a

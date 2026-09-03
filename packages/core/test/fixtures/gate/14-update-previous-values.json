@@ -1,90 +1,96 @@
 {
   "id": "gate/update-previous-values",
   "rules": ["AF-3", "AF-1", "AF-2"],
-  "note": "An update names its entity and carries the previousValue key on every field, holding null where the entity had no stored value. The shipped .NET projection fills previous values on creates only.",
+  "title": "An update names its entity and carries the previousValue key on every field, holding null where the entity had no stored value. The shipped .NET projection fills previous values on creates only.",
   "given": {
-    "history": [],
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "entities": {
+        "Invoice/invoice-1": {
+          "status": "Draft"
+        }
+      }
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
-      "utterance": "Set the invoice status to Active",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "args": null,
-    "toolName": "relay_capture",
-    "operation": {
-      "kind": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": ["status", "note"]
-    },
-    "schema": null,
-    "inference": null,
-    "preparedFields": [
-      {
-        "name": "status",
-        "kind": "text",
-        "value": "Active",
-        "provenance": {
-          "source": "Conversation",
-          "confidence": 0.9,
-          "bound": false
-        }
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
       },
-      {
-        "name": "note",
-        "kind": "text",
-        "value": "urgent",
-        "provenance": {
-          "source": "Conversation",
-          "confidence": 0.9,
-          "bound": false
-        }
-      }
-    ],
-    "previousValues": {
-      "status": "Draft"
+      "utterance": "Set the invoice status to Active",
+      "messageId": "msg-1"
     },
-    "policies": [],
-    "riskScore": null,
-    "declareUncovered": null,
-    "defaultTtlMs": 1800000
+    "prior": [],
+    "step": {
+      "kind": "file",
+      "toolName": "relay_capture",
+      "operation": {
+        "kind": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": ["status", "note"]
+      },
+      "preparedFields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "urgent",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ]
+    }
   },
   "expect": {
-    "error": null,
     "entry": {
       "status": "pending",
       "requirement": "ReviewerConfirmation",
       "execution": null,
       "blocked": null,
       "expiresAtOffsetMs": 1800000,
-      "attestation": null
-    },
-    "affidavit": {
-      "operationType": "update",
-      "entityId": "invoice-1",
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "fields": [
-        {
-          "name": "status",
-          "value": "Active",
-          "previousValue": "Draft",
-          "source": "Conversation",
-          "bound": false
-        },
-        {
-          "name": "note",
-          "value": "urgent",
-          "previousValue": null,
-          "source": "Conversation",
-          "bound": false
-        }
-      ]
-    },
-    "card": null
+      "attestation": null,
+      "toolName": "relay_capture",
+      "affidavit": {
+        "operationType": "update",
+        "entityId": "invoice-1",
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "previousValue": "Draft",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "urgent",
+            "previousValue": null,
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      }
+    }
   }
 }

@@ -17,7 +17,17 @@
  * still validate the proposal they *amended* — the one substitution the whole
  * framework exists to prevent. Two conformance fixtures in this package's vector
  * set differ only by an amendment, and their hashes differ; that is the rule made
- * checkable.
+ * checkable. On a Docket row the same thing is spelled {@link canonicalizeEntry}:
+ * the row keeps the proposal and the accepted state separately, and the form is
+ * taken over the accepted state where there is one.
+ *
+ * **What applying an amendment does, exactly**, is `model/amendments.ts`'s answer and
+ * not this module's: the tag in force comes from `amendmentTag`, so the bytes a
+ * decision produces here and the row that decision writes cannot disagree. That
+ * carries AF-1's clearing rule with it — a cleared **mandatory** field stays, tagged
+ * `Empty` at confidence `0`, and a cleared **optional** field leaves the field list,
+ * because a field the write no longer proposes is absent rather than present with
+ * nothing in it — and AF-4's recompute, where the document carries an aggregate.
  *
  * **Why a canonical form at all.** Three things depend on two independent
  * implementations agreeing byte for byte: the conformance suite compares canonical
@@ -91,7 +101,12 @@
 
 import type { AmendmentMap } from "@affiant/contract";
 
+import type { DocketEntry } from "../docket/entry.js";
+
+import type { ReviewerAct } from "./amendments.js";
+import { amendmentTag, resolveAmendments } from "./amendments.js";
 import { MONEY_AMOUNT_PATTERN, MONEY_CURRENCY_PATTERN } from "./money.js";
+import type { ProvenanceTag } from "./provenance.js";
 
 // ---------------------------------------------------------------------------
 // The input shape
@@ -135,32 +150,12 @@ export interface CanonicalInput {
 /** Options for {@link canonicalize}, {@link canonicalString} and {@link canonicalHash}. */
 export interface CanonicalizeOptions {
   /**
-   * What the reviewer's act was: the id of the Docket decision that carried the
-   * amendments. Required whenever a non-empty {@link AmendmentMap} is applied,
+   * The decision the amendments arrived on — its entry, **its instant** and its
+   * principal. Required whenever a non-empty {@link AmendmentMap} is applied,
    * because PV-2 says a `reviewer-act` binding names the decision that amended the
    * field, and a binding that names nothing is not a binding.
    */
-  readonly reviewerActRef?: string;
-}
-
-/**
- * The provenance tag an amendment mints: the reviewer's own act, bound to the
- * decision that carried it.
- *
- * `UserStated` because a reviewer typing a value *is* the person stating it — the
- * one place that source is legitimate (PV-3 forbids an implementation's own
- * inference from minting it).
- */
-export interface ReviewerActTag {
-  /** Always `"UserStated"`: a person stated this value. */
-  readonly source: "UserStated";
-  /** What to look at to check the act: the Docket decision that amended the field. */
-  readonly binding: {
-    /** Always `"reviewer-act"`. */
-    readonly kind: "reviewer-act";
-    /** The decision the amendment arrived on. */
-    readonly ref: string;
-  };
+  readonly reviewerAct?: ReviewerAct;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,73 +163,48 @@ export interface ReviewerActTag {
 // ---------------------------------------------------------------------------
 
 /**
- * The tag an amended field carries: `UserStated`, bound to the decision.
- *
- * Exported as one function on purpose. The **full** tag shape — the confidence, the
- * evidence line, the conversation turn — belongs to the core provenance model in
- * pull request C2, and the real `applyAmendments` lives there. This is the minimal
- * placeholder the canonical form is defined against, and it is the single place to
- * change when C2's shape lands; the byte vectors in `test/fixtures/canonical/` are
- * regenerated from that one edit. See {@link applyAmendmentsForCanonical} for why
- * the vectors are the authority and not this function.
- *
- * @param ref The Docket decision that carried the amendment.
- * @throws TypeError when `ref` is not a non-empty string (PV-2).
- */
-export function reviewerActTag(ref: string): ReviewerActTag {
-  if (typeof ref !== "string" || ref.length === 0) {
-    throw new TypeError(
-      "PV-2: a reviewer-act binding names the Docket decision that amended the field; " +
-        "applying amendments needs a non-empty reviewerActRef. A binding that names nothing " +
-        "is not a binding.",
-    );
-  }
-  return { source: "UserStated", binding: { kind: "reviewer-act", ref } };
-}
-
-/**
  * Apply an {@link AmendmentMap} to an Affidavit, returning a new object: each
- * amended field's `value` replaced, and a {@link reviewerActTag} put in force on
- * its provenance chain with the tag it supersedes preserved.
+ * amended field's `value` replaced and the reviewer's own tag put in force on its
+ * provenance chain, with the tag it supersedes preserved beneath it.
  *
- * **DK-2**: a `null` under a key clears that field's value; a key that is absent
- * leaves the field untouched. The two are never conflated — `null` is written into
- * the canonical bytes and changes the hash, exactly as any other amended value
- * does.
+ * **The tag is `model/amendments.ts`'s, not this module's.** `amendmentTag` is the
+ * single definition of what an accepted amendment does to a field's provenance, and
+ * both paths call it — so the bytes this function produces for a decision are the
+ * bytes the Docket row's own `amendedAffidavit` produces for the same decision.
+ * There is no second, nearly-identical tag to drift.
  *
- * **AF-4 / PV-2**: an amended field's provenance is the reviewer's act, never the
- * machine's pre-correction tag. So the new tag becomes `current` and the tag it
- * replaces moves to the head of the chain's history — nothing is discarded, and the
- * chain still reads newest first.
+ * **DK-2**: `null` under a key clears the field; an absent key leaves it untouched.
+ * The two are never conflated.
  *
- * **Why this function exists next to C2's `applyAmendments`.** SR-1 defines the
- * canonical form over "the Affidavit **and** its accepted amendments", and a
- * definition that could only be evaluated by calling another package's not-yet-
- * written function would not be a definition. So the form is defined here, and the
- * byte vectors in `test/fixtures/canonical/` pin the answer. The vectors — not this
- * code — are the authority: any implementation must produce those bytes whether it
- * applies the amendments **before** canonicalizing (the path a host takes, using
- * C2's `applyAmendments`, then calling {@link canonicalize} with no amendment
- * argument) or **during** (this path). A test in `test/canonical.test.ts` asserts
- * the two agree on every vector.
+ * **AF-1**, on what a clear does: a **mandatory** field keeps its place with value
+ * `null` under an `Empty` tag at confidence `0`, and an **optional** field leaves
+ * `fields[]` entirely — a reviewer clearing an optional field is saying "do not
+ * write this one", and a field the write no longer proposes is absent rather than
+ * present with nothing in it. A field with no `isMandatory` property is read as
+ * optional, which is what the property's absence means everywhere else.
  *
- * @param affidavit        The Affidavit as filed.
- * @param amendments       The reviewer's accepted amendments, keyed by field name.
- * @param reviewerActRef   The Docket decision the amendments arrived on (PV-2).
+ * **AF-4**: where the document carries an `aggregateConfidence`, it is recomputed
+ * over the amended fields. A canonical form that kept the pre-correction number
+ * would let a grant bind to an Affidavit whose own summary contradicts its fields.
+ *
+ * @param affidavit The Affidavit as filed.
+ * @param amendments The reviewer's accepted amendments, keyed by field name.
+ * @param act       The decision the amendments arrived on (PV-2).
  * @throws TypeError when the input carries no `fields` array, when a field is not
  *         an object, or when an amendment names a field the Affidavit does not
  *         carry — an amendment to something nobody swore to is a bug in the caller,
  *         and swallowing it would let two implementations disagree in silence.
+ * @throws RangeError when `amendments` holds `undefined` under a key (DK-2).
  */
 export function applyAmendmentsForCanonical(
   affidavit: CanonicalInput,
   amendments: AmendmentMap,
-  reviewerActRef: string,
+  act: ReviewerAct,
 ): CanonicalInput {
-  const names = Object.keys(amendments);
-  if (names.length === 0) return affidavit;
+  const resolved = resolveAmendments(amendments);
+  if (resolved.length === 0) return affidavit;
 
-  const tag = reviewerActTag(reviewerActRef);
+  const byName = new Map(resolved.map((entry) => [entry.name, entry.amendment]));
   const record = asRecord(affidavit, "the Affidavit");
   const fields = record["fields"];
   if (!Array.isArray(fields)) {
@@ -244,21 +214,39 @@ export function applyAmendmentsForCanonical(
     );
   }
 
+  const conversationTurn =
+    typeof record["conversationTurn"] === "number" ? record["conversationTurn"] : null;
+
   const amended = new Set<string>();
-  const nextFields = fields.map((field, index) => {
+  const nextFields: unknown[] = [];
+  for (const [index, field] of fields.entries()) {
     const entry = asRecord(field, `fields[${String(index)}]`);
     const name = entry["name"];
-    if (typeof name !== "string") return field;
-    if (!Object.prototype.hasOwnProperty.call(amendments, name)) return field;
+    if (typeof name !== "string") {
+      nextFields.push(field);
+      continue;
+    }
+    const amendment = byName.get(name);
+    if (amendment === undefined) {
+      nextFields.push(field);
+      continue;
+    }
     amended.add(name);
-    return {
-      ...entry,
-      value: amendments[name],
-      provenance: withReviewerAct(entry["provenance"], tag),
-    };
-  });
 
-  for (const name of names) {
+    // AF-1: a cleared optional field is a field the write no longer proposes.
+    if (amendment.kind === "clear" && entry["isMandatory"] !== true) continue;
+
+    nextFields.push({
+      ...entry,
+      value: amendment.kind === "clear" ? null : amendment.value,
+      provenance: withReviewerAct(
+        entry["provenance"],
+        amendmentTag(amendment, act, conversationTurn),
+      ),
+    });
+  }
+
+  for (const { name } of resolved) {
     if (!amended.has(name)) {
       throw new TypeError(
         `DK-2: the amendment map names the field ${JSON.stringify(name)}, which this Affidavit ` +
@@ -268,20 +256,45 @@ export function applyAmendmentsForCanonical(
     }
   }
 
-  return { ...record, fields: nextFields } as CanonicalInput;
+  const next: Record<string, unknown> = { ...record, fields: nextFields };
+  if (typeof record["aggregateConfidence"] === "number") {
+    next["aggregateConfidence"] = aggregateOf(nextFields);
+  }
+  return next as CanonicalInput;
+}
+
+/**
+ * AF-2's aggregate over already-serialized fields: the minimum confidence, with an
+ * `Empty` tag counting as `0` and no proposed field at all counting as `0`.
+ *
+ * Written out here rather than reached for from `model/affidavit.ts` because this
+ * module serializes *whatever object it is handed*, including the wire shape whose
+ * fields are not core `AffidavitField`s. A field whose chain says nothing readable
+ * contributes `0`: an unreadable grade is not evidence of a good one.
+ */
+function aggregateOf(fields: readonly unknown[]): number {
+  let lowest = 1;
+  for (const field of fields) {
+    const chain = (field as { readonly provenance?: unknown }).provenance;
+    const current = (chain as { readonly current?: unknown } | undefined)?.current as
+      { readonly source?: unknown; readonly confidence?: unknown } | undefined;
+    const confidence =
+      current?.source === "Empty" || typeof current?.confidence !== "number"
+        ? 0
+        : current.confidence;
+    if (confidence < lowest) lowest = confidence;
+  }
+  return fields.length === 0 ? 0 : lowest;
 }
 
 /**
  * Put `tag` in force on a provenance chain, preserving the tag it supersedes.
  *
  * Two spellings of the history array are accepted — `prior`, which the protocol's
- * seed schemas and wire fixtures use, and `history`, which the core model's working
- * draft uses. A chain that carries neither gets `prior`, the spelling that is on
- * the wire today. Recognising both is not indecision: this module lands beside a
- * concurrently written model, and a canonical form that threw on the other
- * spelling would be a merge hazard rather than a rule.
+ * seed schemas, the wire fixtures and the core model all use, and `history`, which
+ * an earlier working draft used. A chain that carries neither gets `prior`.
  */
-function withReviewerAct(chain: unknown, tag: ReviewerActTag): unknown {
+function withReviewerAct(chain: unknown, tag: ProvenanceTag): unknown {
   if (chain === null || chain === undefined) return { current: tag, prior: [] };
   const record = asRecord(chain, "provenance");
   const key =
@@ -306,8 +319,8 @@ function withReviewerAct(chain: unknown, tag: ReviewerActTag): unknown {
  *
  * @param affidavit  The Affidavit as filed.
  * @param amendments The accepted amendments, or `null` / omitted for none. An empty
- *                   map is the same as none and needs no `reviewerActRef`.
- * @param options    {@link CanonicalizeOptions.reviewerActRef}, required whenever
+ *                   map is the same as none and needs no `reviewerAct`.
+ * @param options    {@link CanonicalizeOptions.reviewerAct}, required whenever
  *                   `amendments` is non-empty.
  * @throws RangeError on a non-finite number; TypeError on anything else with no
  *         canonical form (see the module header).
@@ -355,6 +368,49 @@ export async function canonicalHash(
   return sha256Hex(canonicalize(affidavit, amendments, options));
 }
 
+// ---------------------------------------------------------------------------
+// The canonical form of a Docket row
+// ---------------------------------------------------------------------------
+
+/**
+ * The Affidavit a Docket row's canonical form is taken over: the state a reviewer's
+ * amendments produced if there is one, and the proposal otherwise (SR-1).
+ *
+ * This is what SR-1's "the Affidavit **and its accepted amendments**" means on a
+ * row. The row keeps both — `affidavit` as the agent proposed it, never edited, and
+ * `amendedAffidavit` as the approval accepted it — so the sworn form and the
+ * proposal are separately readable and only one of them is what a grant binds to.
+ */
+export function swornAffidavitOf(entry: DocketEntry): CanonicalInput {
+  return entry.amendedAffidavit ?? entry.affidavit;
+}
+
+/**
+ * The canonical form of a Docket row, as UTF-8 bytes (SR-1).
+ *
+ * Equivalent to `canonicalize(entry.amendedAffidavit ?? entry.affidavit)`, with no
+ * amendment argument: the amendments were applied when the approval was recorded,
+ * by the same `amendmentTag` this module uses, so there is nothing left to apply.
+ *
+ * **This is the function a host's execution grant hashes over.** Binding a grant to
+ * the proposal instead would let a grant minted for the Affidavit a reviewer was
+ * shown validate the one they amended — the substitution the framework exists to
+ * prevent.
+ */
+export function canonicalizeEntry(entry: DocketEntry): Uint8Array {
+  return canonicalize(swornAffidavitOf(entry));
+}
+
+/** The canonical form of a Docket row as a string — {@link canonicalizeEntry} one encoding step earlier. */
+export function canonicalStringEntry(entry: DocketEntry): string {
+  return canonicalString(swornAffidavitOf(entry));
+}
+
+/** The SHA-256 of a Docket row's canonical form, as lowercase hex (SR-1, RT-1). */
+export async function canonicalHashEntry(entry: DocketEntry): Promise<string> {
+  return canonicalHash(swornAffidavitOf(entry));
+}
+
 /**
  * SHA-256 over arbitrary bytes, as lowercase hex, through Web Crypto (RT-1).
  *
@@ -395,15 +451,16 @@ function withAmendments(
 ): CanonicalInput {
   if (amendments === null || amendments === undefined) return affidavit;
   if (Object.keys(amendments).length === 0) return affidavit;
-  const ref = options?.reviewerActRef;
-  if (ref === undefined) {
+  const act = options?.reviewerAct;
+  if (act === undefined) {
     throw new TypeError(
-      "PV-2: applying amendments to the canonical form needs options.reviewerActRef — the id of " +
-        "the Docket decision the amendments arrived on. The reviewer-act binding names that " +
-        "decision, and a binding whose source cannot be checked is not a binding.",
+      "PV-2: applying amendments to the canonical form needs options.reviewerAct — the Docket " +
+        "decision the amendments arrived on, its instant and its principal. The reviewer-act " +
+        "binding names that decision, and a binding whose source cannot be checked is not a " +
+        "binding.",
     );
   }
-  return applyAmendmentsForCanonical(affidavit, amendments, ref);
+  return applyAmendmentsForCanonical(affidavit, amendments, act);
 }
 
 // ---------------------------------------------------------------------------

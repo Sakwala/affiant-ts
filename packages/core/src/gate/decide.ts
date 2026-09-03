@@ -163,7 +163,7 @@ export async function decide(
   const amendments = decision.kind === "approve" ? (decision.amendments ?? null) : null;
   const reads = readStatus(entry, now);
   if (reads === "expired") {
-    throw await refuseExpired(entryId, scope, entry, amendments, principal, deps);
+    throw await refuseExpired(entryId, scope, entry, amendments, principal, now, deps);
   }
   if (reads !== "pending") {
     throw new AffiantError(
@@ -226,7 +226,9 @@ export async function decide(
     amendments,
     attestation,
     decidedAt: now,
-    ...(amended === null ? {} : { affidavit: amended }),
+    // Beside the proposal, never over it: the row keeps what the agent swore to and
+    // gains what the reviewer accepted (DK-4, AF-4).
+    ...(amended === null ? {} : { amendedAffidavit: amended }),
   };
 
   const result = await deps.store.transition(entryId, scope, "pending", patch);
@@ -251,7 +253,7 @@ export async function decide(
     const current = await deps.store.get(entryId, scope);
     if (current === null) throw notFound(entryId, ctx);
     if (readStatus(current, deps.clock.now()) === "expired") {
-      throw await refuseExpired(entryId, scope, current, amendments, principal, deps);
+      throw await refuseExpired(entryId, scope, current, amendments, principal, now, deps);
     }
     throw new AffiantError(
       "decision-not-pending",
@@ -394,7 +396,7 @@ export async function resubmit(
     );
   }
 
-  const filed = await runPipeline(resubmissionProposal(entry, now), ctx, deps);
+  const filed = await runPipeline(resubmissionProposal(entry), ctx, deps);
 
   // The successor link goes on afterwards and on the *other* row: an appended later
   // fact on a terminal entry (DK-4), never an edit of the decision it recorded.
@@ -403,19 +405,8 @@ export async function resubmit(
   return filed;
 }
 
-/**
- * The tool name a resubmission is filed under when the row does not name one.
- *
- * A Docket entry records the Affidavit, not the tool the proposal came from, so a
- * resubmission cannot in general re-run the CV-4 coverage lookup against the original
- * tool. The one case where the name *is* on the record — an entry blocked
- * `coverage-refused`, whose marker carries it — is carried through, so an uncovered
- * tool's proposal resubmits blocked rather than resubmitting clean.
- */
-const RESUBMISSION_TOOL_NAME = "affiant.resubmission";
-
 /** The proposal a resubmission of `entry` files: same operation, amendments prefilled. */
-function resubmissionProposal(entry: DocketEntry, now: string): PipelineProposal {
+function resubmissionProposal(entry: DocketEntry): PipelineProposal {
   const sworn = entry.affidavit;
   const fieldNames = sworn.fields.map((field) => field.name);
 
@@ -435,7 +426,11 @@ function resubmissionProposal(entry: DocketEntry, now: string): PipelineProposal
         }
       : { kind: "create", entityType: sworn.entityType, entityId: null, fields: fieldNames };
 
-  const prior = entry.amendments;
+  // What a *refused late decision* left behind, with the act that left it (DK-1).
+  // An approval's accepted amendments are a different fact and cannot be here: only
+  // an expired row is resubmitted, and an expired row was never approved.
+  const preserved = entry.preservedAmendments;
+  const prior = preserved?.amendments ?? null;
   // `resolveAmendments` is DK-2's discipline: `null` is a clear, an absent key says
   // nothing, and `undefined` under a key is refused rather than guessed at.
   const prefills = new Map(
@@ -451,17 +446,22 @@ function resubmissionProposal(entry: DocketEntry, now: string): PipelineProposal
     }
   }
 
-  // PV-2: the binding names the entry the correction was made on. The instant is when
-  // that row left `pending` — the last moment the record can place the correction at,
-  // since a decision refused as late is not itself recorded (DK-1).
-  const binding: Binding = {
-    kind: "reviewer-act",
-    ref: { entryId: entry.entryId, decisionAt: entry.decidedAt ?? entry.expiresAt },
-  };
+  // PV-2: the binding names the entry the correction was made on **and the instant
+  // the correction was made**, which the row carries because `preserveAmendments`
+  // recorded the refused decision's own act. Dating it to the row's deadline instead
+  // would place a person's correction at the moment the gate refused it, and dating
+  // it to this call would place it whenever somebody happened to press resubmit.
+  //
+  // `preserved` is non-null whenever `prefills` is non-empty — they come from the
+  // same fact — so there is no case where a prefilled value has no act behind it.
+  const binding: Binding | null =
+    preserved === null
+      ? null
+      : { kind: "reviewer-act", ref: { entryId: entry.entryId, decisionAt: preserved.at } };
 
   const preparedFields = sworn.fields.map((field): PreparedField => {
     const prefill = prefills.get(field.name);
-    if (prefill === undefined) {
+    if (prefill === undefined || preserved === null || binding === null) {
       return {
         name: field.name,
         kind: field.kind,
@@ -479,9 +479,11 @@ function resubmissionProposal(entry: DocketEntry, now: string): PipelineProposal
         mintTag({
           source: "UserStated",
           confidence: 1,
-          at: now,
+          // The act's instant, not this call's: a value a person typed at 09:05 is
+          // theirs from 09:05, whoever resubmits it and whenever (PV-2).
+          at: preserved.at,
           note:
-            `Prefilled from the amendment carried by the decision on Docket entry ` +
+            `Prefilled from the amendment ${preserved.by} carried on Docket entry ` +
             `${entry.entryId}`,
           conversationTurn: sworn.conversationTurn,
           binding,
@@ -493,7 +495,9 @@ function resubmissionProposal(entry: DocketEntry, now: string): PipelineProposal
 
   return {
     operation,
-    toolName: entry.blocked?.toolName ?? RESUBMISSION_TOOL_NAME,
+    // The tool that proposed the write, off the row (CV-4): a resubmission of an
+    // uncovered tool's proposal is filed blocked again rather than resubmitting clean.
+    toolName: entry.toolName,
     schema: null,
     args: null,
     preparedFields,
@@ -704,13 +708,21 @@ async function refuseExpired(
   entry: DocketEntry,
   amendments: AmendmentMap | null,
   principal: Principal,
+  now: string,
   deps: DecideDeps,
 ): Promise<AffiantError> {
   let preserved = false;
   if (amendments !== null && Object.keys(amendments).length > 0) {
     requireAmendableFields(entry.affidavit, amendments);
-    if (attestorOf(principal) !== null) {
-      const result = await deps.store.preserveAmendments(entryId, scope, amendments);
+    const attestor = attestorOf(principal);
+    if (attestor !== null) {
+      // The refused decision's **own** instant and principal (DK-1, PV-2): a
+      // resubmission binds each prefilled field's tag to this act, and dating it to
+      // the row's deadline would place the correction at a moment nobody typed.
+      const result = await deps.store.preserveAmendments(entryId, scope, amendments, {
+        at: now,
+        by: subjectOf(attestor),
+      });
       preserved = typeof result !== "string";
     }
   }

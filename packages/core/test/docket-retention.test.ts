@@ -201,7 +201,9 @@ describe("a tenant mismatch is a miss, not another tenant's row (AZ-2)", () => {
     expect(await store.transition("entry-1", OTHER, "pending", { status: "rejected" })).toBe(
       "not-found",
     );
-    expect(await store.preserveAmendments("entry-1", OTHER, {})).toBe("not-found");
+    expect(await store.preserveAmendments("entry-1", OTHER, {}, { at: NOON, by: "person-7" })).toBe(
+      "not-found",
+    );
     expect(await store.recordExecution("entry-1", OTHER, "executed", null)).toBe("not-found");
     expect(await store.recordSupersession("entry-1", OTHER, "entry-2")).toBe("not-found");
     expect((await store.get("entry-1", TENANT))?.status).toBe("pending");

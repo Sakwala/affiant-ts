@@ -7,7 +7,8 @@ import { InMemoryDocketStore } from "../src/docket/memory.js";
 import { isAffiantError } from "../src/errors.js";
 import type { Decision } from "../src/gate/decide.js";
 import type { PreparedField } from "../src/gate/pipeline.js";
-import type { JsonValue } from "../src/model/affidavit.js";
+import type { Affidavit, JsonValue } from "../src/model/affidavit.js";
+import { canonicalHash, canonicalHashEntry } from "../src/model/canonical.js";
 import { chainOf, mintConversation } from "../src/model/provenance.js";
 
 import {
@@ -102,9 +103,9 @@ function countingStore(inner: DocketStore): { store: DocketStore; calls: string[
       calls.push("transition");
       return inner.transition(entryId, scope, expected, patch);
     },
-    async preserveAmendments(entryId, scope, amendments) {
+    async preserveAmendments(entryId, scope, amendments, act) {
       calls.push("preserveAmendments");
-      return inner.preserveAmendments(entryId, scope, amendments);
+      return inner.preserveAmendments(entryId, scope, amendments, act);
     },
     async recordExecution(entryId, scope, outcome, detail) {
       calls.push("recordExecution");
@@ -465,7 +466,15 @@ describe("the review outcome (DK-1)", () => {
     expect(code).toBe("decision-expired");
     const after = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
     expect(after?.status).toBe("expired");
-    expect(after?.amendments).toEqual({ amount: "4000", note: null });
+    // Its own fact, with its own act: the instant the person decided and the person
+    // they are, not the store's clock and not the row's deadline (PV-2).
+    expect(after?.preservedAmendments).toEqual({
+      amendments: { amount: "4000", note: null },
+      at: plus(AT, 90_000),
+      by: "member-1",
+    });
+    // Nobody accepted anything, so the accepted-amendment map stays empty.
+    expect(after?.amendments, "a refused decision accepts nothing").toBeNull();
     expect(after?.attestation, "a refused decision attests nothing").toBeNull();
     expect(after?.decision, "a refused decision is not recorded").toBeNull();
   });
@@ -482,7 +491,9 @@ describe("the review outcome (DK-1)", () => {
         turnContext(),
       ),
     ).rejects.toBeInstanceOf(RangeError);
-    expect((await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.amendments).toBeNull();
+    expect(
+      (await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.preservedAmendments,
+    ).toBeNull();
   });
 
   it("preserves nothing for a caller that could not have attested (AZ-3, PV-3)", async () => {
@@ -501,7 +512,9 @@ describe("the review outcome (DK-1)", () => {
     );
 
     expect(code).toBe("decision-expired");
-    expect((await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.amendments).toBeNull();
+    expect(
+      (await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.preservedAmendments,
+    ).toBeNull();
   });
 
   it("preserves a relay's amendments, because a relay can attest (AZ-3)", async () => {
@@ -517,9 +530,9 @@ describe("the review outcome (DK-1)", () => {
       ),
     );
 
-    expect((await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.amendments).toEqual({
-      amount: "4000",
-    });
+    expect(
+      (await h.store.get(entry.entryId, { tenantId: "tenant-a" }))?.preservedAmendments,
+    ).toEqual({ amendments: { amount: "4000" }, at: plus(AT, 90_000), by: "ana" });
   });
 
   it("refuses every decision on a blocked entry, and never degrades it (AZ-4)", async () => {
@@ -570,7 +583,13 @@ describe("the review outcome (DK-1)", () => {
 
 describe("amendments (DK-2, AF-4, PV-2)", () => {
   /** Approve with one field set, one cleared and one left out of the map. */
-  async function amended(): Promise<{ h: Harness; entry: DocketEntry; decided: DocketEntry }> {
+  async function amended(): Promise<{
+    h: Harness;
+    entry: DocketEntry;
+    decided: DocketEntry;
+    /** The state the approval accepted — never the proposal, which is not edited (DK-4). */
+    accepted: Affidavit;
+  }> {
     const h = harness();
     const entry = await fileOne(h, turnContext());
     const decided = await h.gate.decide(
@@ -578,18 +597,42 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
       { kind: "approve", amendments: { amount: "4000", note: null } },
       turnContext({ principal: member("ana") }),
     );
-    return { h, entry, decided };
+    const accepted = decided.amendedAffidavit;
+    if (accepted === null) throw new Error("an accepted amendment writes amendedAffidavit");
+    return { h, entry, decided, accepted };
   }
 
-  it("sets an amended value, and takes a cleared optional field off the record (AF-1)", async () => {
+  it("keeps the proposal on the row, unedited, beside the accepted state (DK-4)", async () => {
+    const { entry, decided, accepted } = await amended();
+
+    // Read-forward is the property an auditor relies on: a row that overwrote its
+    // proposal could not show what the agent originally said.
+    expect(decided.affidavit).toEqual(entry.affidavit);
+    expect(accepted).not.toEqual(entry.affidavit);
+  });
+
+  it("binds the canonical form to the accepted state, not the proposal (SR-1)", async () => {
     const { decided } = await amended();
-    const byName = new Map(decided.affidavit.fields.map((field) => [field.name, field]));
+
+    // A grant minted over the Affidavit a reviewer was shown must not validate the
+    // one they amended, so the two hashes differ and `canonicalHashEntry` follows
+    // the accepted state.
+    const sworn = await canonicalHashEntry(decided);
+    const proposal = await canonicalHash(decided.affidavit);
+
+    expect(sworn).not.toBe(proposal);
+    expect(sworn).toBe(await canonicalHash(decided.amendedAffidavit ?? decided.affidavit));
+  });
+
+  it("sets an amended value, and takes a cleared optional field off the record (AF-1)", async () => {
+    const { accepted } = await amended();
+    const byName = new Map(accepted.fields.map((field) => [field.name, field]));
 
     expect(byName.get("amount")?.value).toBe("4000");
     // `note` is optional, and a reviewer who clears it is saying "do not write this
     // one" — a field the write no longer proposes, which AF-1 makes absent rather
     // than present with nothing in it.
-    expect(decided.affidavit.fields.map((field) => field.name)).toEqual(["status", "amount"]);
+    expect(accepted.fields.map((field) => field.name)).toEqual(["status", "amount"]);
     expect(byName.has("note")).toBe(false);
   });
 
@@ -618,7 +661,9 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
       { kind: "approve", amendments: { status: null } },
       turnContext({ principal: member("ana") }),
     );
-    const status = decided.affidavit.fields.find((field) => field.name === "status");
+    const cleared = decided.amendedAffidavit;
+    if (cleared === null) throw new Error("an accepted amendment writes amendedAffidavit");
+    const status = cleared.fields.find((field) => field.name === "status");
 
     // The entity still requires it, so it stays and is visibly unsourced rather than
     // carrying the reviewer's 1.0 over an emptied field — which would let a reviewer
@@ -630,22 +675,22 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
       kind: "reviewer-act",
       ref: { entryId: filed.entry.entryId, decisionAt: AT },
     });
-    expect(decided.affidavit.aggregateConfidence).toBe(0);
-    expect(decided.affidavit.emptyFieldCount).toBe(1);
-    expect(decided.affidavit.populatedConfidence).toBe(0.9);
+    expect(cleared.aggregateConfidence).toBe(0);
+    expect(cleared.emptyFieldCount).toBe(1);
+    expect(cleared.populatedConfidence).toBe(0.9);
   });
 
   it("leaves a field the map does not name exactly as it was", async () => {
-    const { entry, decided } = await amended();
+    const { entry, accepted } = await amended();
     const before = entry.affidavit.fields.find((field) => field.name === "status");
-    const after = decided.affidavit.fields.find((field) => field.name === "status");
+    const after = accepted.fields.find((field) => field.name === "status");
 
     expect(after).toEqual(before);
   });
 
   it("puts the reviewer's act on top, with the machine's tag preserved beneath (PV-2)", async () => {
-    const { entry, decided } = await amended();
-    const field = decided.affidavit.fields.find((candidate) => candidate.name === "amount");
+    const { entry, accepted } = await amended();
+    const field = accepted.fields.find((candidate) => candidate.name === "amount");
 
     expect(field?.provenance.current.source).toBe("UserStated");
     expect(field?.provenance.current.binding).toEqual({
@@ -657,14 +702,14 @@ describe("amendments (DK-2, AF-4, PV-2)", () => {
   });
 
   it("recomputes the three numbers over the amended fields (AF-4)", async () => {
-    const { decided } = await amended();
+    const { accepted } = await amended();
 
     // status is Conversation at 0.9 and amount is the reviewer's act at 1; `note`
     // was cleared and, being optional, is no longer proposed. Nothing here is
     // `Empty`, so the count is 0 and the minimum is status's 0.9.
-    expect(decided.affidavit.aggregateConfidence).toBe(0.9);
-    expect(decided.affidavit.populatedConfidence).toBe(0.9);
-    expect(decided.affidavit.emptyFieldCount).toBe(0);
+    expect(accepted.aggregateConfidence).toBe(0.9);
+    expect(accepted.populatedConfidence).toBe(0.9);
+    expect(accepted.emptyFieldCount).toBe(0);
   });
 
   it("records the map itself on the row, so a resubmission can read it (DK-2)", async () => {
@@ -889,7 +934,11 @@ describe("resubmission (DK-1, PV-2)", () => {
     const superseded = await h.store.get(original.entryId, { tenantId: "tenant-a" });
 
     expect(superseded?.status).toBe("expired");
-    expect(superseded?.amendments).toEqual({ amount: "4000", note: null });
+    expect(superseded?.preservedAmendments).toEqual({
+      amendments: { amount: "4000", note: null },
+      at: plus(AT, 90_000),
+      by: "member-1",
+    });
   });
 
   it("prefills the amended values, tagged as the reviewer's act (PV-2)", async () => {
@@ -901,7 +950,10 @@ describe("resubmission (DK-1, PV-2)", () => {
     expect(byName.get("amount")?.provenance.current.source).toBe("UserStated");
     expect(byName.get("amount")?.provenance.current.binding).toEqual({
       kind: "reviewer-act",
-      ref: { entryId: original.entryId, decisionAt: original.expiresAt },
+      // The instant the person actually typed the correction, carried on the row by
+      // `preserveAmendments` — not the row's deadline and not the resubmission's own
+      // clock reading (PV-2).
+      ref: { entryId: original.entryId, decisionAt: plus(AT, 90_000) },
     });
     expect(byName.get("amount")?.provenance.prior[0]?.source).toBe("Conversation");
   });

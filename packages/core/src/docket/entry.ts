@@ -253,6 +253,27 @@ export interface Lineage {
   readonly supersededBy: string | null;
 }
 
+/**
+ * The amendments a decision carried after the entry had already expired, with the
+ * act that carried them (DK-1).
+ *
+ * The instant and the principal are here, and not merely implied, because a
+ * resubmission prefills these values as **a person's own correction**: each
+ * prefilled field is tagged `UserStated` with a `reviewer-act` binding, and PV-2
+ * says that binding names the decision the correction was made on. Without the
+ * instant the binding would have to point at the row's deadline — the moment the
+ * gate refused, not the moment the person typed — and without the principal the
+ * record could not say whose correction it is.
+ */
+export interface PreservedAmendments {
+  /** The map the refused decision carried. DK-2 holds inside it. */
+  readonly amendments: AmendmentMap;
+  /** When the refused decision was made, as an ISO 8601 instant in UTC. */
+  readonly at: string;
+  /** Who made it, as the host identifies them. */
+  readonly by: string;
+}
+
 // ---------------------------------------------------------------------------
 // The entry
 // ---------------------------------------------------------------------------
@@ -288,8 +309,33 @@ export interface DocketEntry {
   readonly conversationId: string;
   /** Where the turn arrived from — `"chat"` for Sequence A, `"mcp"` for Sequence C. */
   readonly channel: TurnContext["channel"];
-  /** The sworn evidence record this entry exists to get agreement on. */
+  /**
+   * The tool or capture source the proposal came from.
+   *
+   * On the row because two later questions need it and neither can be answered
+   * from the Affidavit: a resubmission re-runs the coverage lookup against the
+   * original tool (CV-4), and an audit of a filed write has to be able to say
+   * which tool proposed it.
+   */
+  readonly toolName: string;
+  /**
+   * The sworn evidence record **as the agent proposed it**. Never edited (DK-4).
+   *
+   * An accepted amendment does not rewrite this; it writes
+   * {@link DocketEntry.amendedAffidavit} beside it. A row that overwrote its
+   * proposal could not show what the agent originally said, which is the fact an
+   * auditor is reading the row for.
+   */
   readonly affidavit: Affidavit;
+  /**
+   * The state a reviewer's accepted amendments produced, or `null` while no
+   * amendment has been accepted (AF-4, DK-4).
+   *
+   * The form a host's execution grant binds to is
+   * `canonicalize(amendedAffidavit ?? affidavit)` — see `canonicalizeEntry` — which
+   * is what SR-1's "the Affidavit and its accepted amendments" means on a row.
+   */
+  readonly amendedAffidavit: Affidavit | null;
   /** What the policy chain decided this write needs before it may execute (AZ-4). */
   readonly requirement: RequirementKind;
   /** What the row says. What it *reads* is {@link readStatus}. */
@@ -309,14 +355,26 @@ export interface DocketEntry {
   /** Who agreed, or `null` while nobody has (AZ-1). */
   readonly attestation: Attestation | null;
   /**
-   * The amendments in force: the map a reviewer's approval accepted, or the map a
-   * late decision carried and the row preserved for resubmission (DK-1).
+   * The amendments a reviewer's approval **accepted**, or `null` when the approval
+   * carried none.
    *
-   * `null` means no amendment map at all. Within a map, DK-2 holds: a key whose
-   * value is `null` was **cleared** by the reviewer, and an absent key was left
-   * untouched. The two are never conflated.
+   * Within a map, DK-2 holds: a key whose value is `null` was **cleared** by the
+   * reviewer, and an absent key was left untouched. The two are never conflated.
+   *
+   * A map a *refused* late decision carried is a different fact and lives under
+   * {@link DocketEntry.preservedAmendments}: nobody accepted it, and conflating the
+   * two would let a resubmission present a refused caller's corrections as an
+   * approval's.
    */
   readonly amendments: AmendmentMap | null;
+  /**
+   * The amendments a decision carried after the deadline had passed, with the act
+   * that carried them, or `null` (DK-1).
+   *
+   * An appended later fact on an expired row, written by the store's
+   * `preserveAmendments` and read by `resubmit` to prefill the new proposal.
+   */
+  readonly preservedAmendments: PreservedAmendments | null;
   /** What a reviewer chose, or `null` for a pending row or a Standing Order. */
   readonly decision: DecisionRecord | null;
   /** What this entry replaces and what replaced it (DK-1). */
@@ -360,7 +418,9 @@ export interface NewEntryInit {
   readonly conversationId: string;
   /** Where the turn arrived from. */
   readonly channel: TurnContext["channel"];
-  /** The sworn evidence record. */
+  /** The tool or capture source the proposal came from (CV-4). */
+  readonly toolName: string;
+  /** The sworn evidence record, as proposed. */
   readonly affidavit: Affidavit;
   /** What the policy chain decided this write needs. */
   readonly requirement: RequirementKind;
@@ -444,7 +504,11 @@ export function newEntry(init: NewEntryInit): DocketEntry {
     tenantId: requireIdentifier(init.tenantId, "tenantId"),
     conversationId: requireIdentifier(init.conversationId, "conversationId"),
     channel: requireIdentifier(init.channel, "channel"),
+    toolName: requireIdentifier(init.toolName, "toolName"),
     affidavit: init.affidavit,
+    // A filing records what was proposed and nothing else: an amendment is a later
+    // fact, appended by a decision, never present at birth (DK-4).
+    amendedAffidavit: null,
     requirement: init.requirement,
     status,
     execution,
@@ -452,6 +516,7 @@ export function newEntry(init: NewEntryInit): DocketEntry {
     compositeRef: init.compositeRef ?? null,
     attestation: init.attestation ?? null,
     amendments: null,
+    preservedAmendments: null,
     decision: null,
     lineage: { supersedes: init.supersedes ?? null, supersededBy: null },
     filedAt,

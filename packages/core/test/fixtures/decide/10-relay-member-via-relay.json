@@ -1,87 +1,92 @@
 {
   "id": "decide/relay-member-via-relay",
   "rules": ["AZ-3", "AZ-1"],
-  "note": "Sequence C-2: a decision made by a person through a trusted relay attests member-via-relay, naming both the person the relay speaks for and the relay, its channel identity and the message the decision arrived on. It is the strongest claim available, and it is visibly not a member attestation.",
+  "title": "Sequence C-2: a decision made by a person through a trusted relay attests member-via-relay, naming both the person the relay speaks for and the relay, its channel identity and the message the decision arrived on. It is the strongest claim available, and it is visibly not a member attestation.",
   "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "mcp",
-      "utterance": "Set the invoice status to Active and the amount to 40",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "authorization": true,
-    "filing": {
-      "toolName": "update_invoice",
-      "operation": {
-        "kind": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": ["status", "amount", "note"]
+      "principal": {
+        "kind": "member",
+        "id": "filer"
       },
-      "preparedFields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        }
-      ],
-      "policy": null,
-      "defaultTtlMs": 1800000
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
     },
-    "acts": [
+    "prior": [
       {
-        "kind": "decide",
+        "kind": "file",
+        "as": "filed",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
-          "kind": "service",
-          "id": "whatsapp-relay",
-          "assertedMember": "ana",
-          "relay": {
-            "channelIdentity": "+94770000000",
-            "messageId": "wamid-42"
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
+        },
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
           }
-        },
-        "tenantId": null,
-        "decision": {
-          "kind": "approve",
-          "amendments": null,
-          "reason": null
-        },
-        "outcome": null,
-        "detail": null
-      }
-    ]
-  },
-  "expect": {
-    "acts": [
-      {
-        "error": null
+        ]
       }
     ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-04T09:00:00.000Z",
+      "principal": {
+        "kind": "service",
+        "id": "whatsapp-relay",
+        "assertedMember": "ana",
+        "relay": {
+          "channelIdentity": "+94770000000",
+          "messageId": "wamid-42"
+        }
+      },
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
     "entry": {
       "status": "approved",
       "execution": "unexecuted",
@@ -101,7 +106,6 @@
         "kind": "approve",
         "reason": null
       },
-      "supersededByFresh": false,
       "affidavit": {
         "aggregateConfidence": 0.9,
         "populatedConfidence": 0.9,
@@ -126,8 +130,10 @@
             "bound": false
           }
         ]
+      },
+      "lineage": {
+        "supersededBy": null
       }
-    },
-    "resubmission": null
+    }
   }
 }

@@ -1,84 +1,91 @@
 {
   "id": "decide/wrong-tenant",
   "rules": ["AZ-2"],
-  "note": "A decision made from another tenant is reported as entry not found, exactly as an id that never existed. Answering unauthorized for that tenant would confirm the id to anyone who could guess one, and the tenant is the boundary the rule exists to hold.",
+  "title": "A decision made from another tenant is reported as entry not found, exactly as an id that never existed. Answering unauthorized for that tenant would confirm the id to anyone who could guess one, and the tenant is the boundary the rule exists to hold.",
   "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
     "ctx": {
       "tenantId": "tenant-a",
       "conversationId": "conv-1",
       "channel": "chat",
-      "utterance": "Set the invoice status to Active and the amount to 40",
-      "messageId": "msg-1",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "authorization": true,
-    "filing": {
-      "toolName": "update_invoice",
-      "operation": {
-        "kind": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": ["status", "amount", "note"]
+      "principal": {
+        "kind": "member",
+        "id": "filer"
       },
-      "preparedFields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "provenance": {
-            "source": "Conversation",
-            "confidence": 0.9
-          }
-        }
-      ],
-      "policy": null,
-      "defaultTtlMs": 1800000
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
     },
-    "acts": [
+    "prior": [
       {
-        "kind": "decide",
+        "kind": "file",
+        "as": "filed",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
-          "id": "ana"
+          "id": "filer"
         },
-        "tenantId": "tenant-b",
-        "decision": {
-          "kind": "approve",
-          "amendments": null,
-          "reason": null
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
         },
-        "outcome": null,
-        "detail": null
-      }
-    ]
-  },
-  "expect": {
-    "acts": [
-      {
-        "error": {
-          "code": "entry-not-found"
-        }
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
       }
     ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-04T09:00:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "tenantId": "tenant-b",
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "entry-not-found"
+    },
     "entry": {
       "status": "pending",
       "execution": null,
@@ -87,7 +94,6 @@
       "attestation": null,
       "amendments": null,
       "decision": null,
-      "supersededByFresh": false,
       "affidavit": {
         "aggregateConfidence": 0.9,
         "populatedConfidence": 0.9,
@@ -112,8 +118,10 @@
             "bound": false
           }
         ]
+      },
+      "lineage": {
+        "supersededBy": null
       }
-    },
-    "resubmission": null
+    }
   }
 }

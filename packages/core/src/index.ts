@@ -110,7 +110,12 @@ export type {
   WireCarry,
 } from "./model/affidavit.js";
 
-export { applyAmendments, hasAmendment, resolveAmendments } from "./model/amendments.js";
+export {
+  amendmentTag,
+  applyAmendments,
+  hasAmendment,
+  resolveAmendments,
+} from "./model/amendments.js";
 export type {
   Amendment,
   AmendmentMap,
@@ -200,6 +205,7 @@ export type {
   ExecutionOutcome,
   Lineage,
   NewEntryInit,
+  PreservedAmendments,
   RequirementKind,
 } from "./docket/entry.js";
 
@@ -216,6 +222,7 @@ export type {
   DocketStore,
   Page,
   PageResult,
+  PreservedAct,
   PreserveAmendmentsResult,
   RecordExecutionResult,
   RecordSupersessionResult,
@@ -235,18 +242,16 @@ export type {
 export {
   applyAmendmentsForCanonical,
   canonicalHash,
+  canonicalHashEntry,
   canonicalize,
+  canonicalizeEntry,
   canonicalJson,
   canonicalString,
-  reviewerActTag,
+  canonicalStringEntry,
   sha256Hex,
+  swornAffidavitOf,
 } from "./model/canonical.js";
-export type {
-  CanonicalField,
-  CanonicalInput,
-  CanonicalizeOptions,
-  ReviewerActTag,
-} from "./model/canonical.js";
+export type { CanonicalField, CanonicalInput, CanonicalizeOptions } from "./model/canonical.js";
 
 export {
   assertMoney,

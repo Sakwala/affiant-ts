@@ -104,6 +104,7 @@ describe("newEntry defaults (DK-1)", () => {
         tenantId: "tenant-a",
         conversationId: "conv-1",
         channel: "chat",
+        toolName: "update_invoice",
         affidavit: affidavit(),
         requirement: "Whatever" as never,
         filedAt: "2026-09-04T09:00:00.000Z",

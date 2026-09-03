@@ -53,9 +53,8 @@
     "test:workers": "vitest run --config vitest.workers.config.ts",
     "lint": "node scripts/lint-no-durable-object.mjs",
     "generate": "node scripts/generate-telemetry-keys.mjs",
-    "generate:fixtures": "node scripts/generate-canonical-fixtures.mjs",
-    "generate:gate-fixtures": "node scripts/generate-gate-fixtures.mjs",
-    "generate:decide-fixtures": "node scripts/generate-decide-fixtures.mjs"
+    "generate:vectors": "node scripts/generate-canonical-fixtures.mjs",
+    "generate:fixtures": "node scripts/generate-fixtures.mjs"
   },
   "dependencies": {
     "@affiant/contract": "workspace:^"

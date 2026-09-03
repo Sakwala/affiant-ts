@@ -2,7 +2,7 @@
 // Produced by scripts/generate-canonical-fixtures.mjs from test/fixtures/canonical/*.json.
 // The JSON files are the record; this module is how the suites read them on Node, Bun
 // and workerd alike. To change a vector: edit its JSON file, then run
-// `pnpm build && pnpm generate:fixtures` from packages/core.
+// `pnpm build && pnpm generate:vectors` from packages/core.
 
 /**
  * One SR-1 byte vector: an input, the amendments accepted on it, and the canonical
@@ -23,8 +23,15 @@ export interface CanonicalVector {
   readonly input: unknown;
   /** The accepted amendments, or `null` for none. */
   readonly amendments: { readonly [fieldName: string]: unknown } | null;
-  /** The Docket decision the amendments arrived on (PV-2), or `null` where there are none. */
-  readonly reviewerActRef: string | null;
+  /**
+   * The decision the amendments arrived on — its entry, its instant and its
+   * principal (PV-2) — or `null` where there are no amendments.
+   */
+  readonly reviewerAct: {
+    readonly entryId: string;
+    readonly decisionAt: string;
+    readonly by: string;
+  } | null;
   /** The canonical form as a string - the bytes before UTF-8 encoding. */
   readonly expectedBytesUtf8: string;
   /** The SHA-256 of the UTF-8 bytes, lowercase hex. */
@@ -94,7 +101,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "requiresConfirmation": true,
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"aggregateConfidence\":0,\"emptyFieldCount\":1,\"entityId\":null,\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":0.9,\"conversationTurn\":1,\"evidence\":\"Extracted from the turn\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":\"Active\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"text\",\"name\":\"Owner\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":0,\"conversationTurn\":null,\"evidence\":null,\"source\":\"Empty\"},\"prior\":[]},\"value\":null}],\"operationType\":\"WriteCreate\",\"populatedConfidence\":0.9,\"requiresConfirmation\":true,\"warnings\":[]}",
     "expectedSha256": "4f4f83330f99ae64e36b54439efcf9556e1b7a46054d750a9485bc41a992b48f",
   },
@@ -197,7 +204,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "requiresConfirmation": true,
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"aggregateConfidence\":0.82,\"emptyFieldCount\":0,\"entityId\":\"INV-2026-0044\",\"entityType\":\"Invoice\",\"fields\":[{\"allowedValues\":null,\"isMandatory\":true,\"kind\":\"date\",\"name\":\"DueDate\",\"pattern\":null,\"previousValue\":\"2026-09-15\",\"provenance\":{\"current\":{\"confidence\":0.82,\"conversationTurn\":4,\"evidence\":\"Extracted from the turn\",\"source\":\"Conversation\"},\"prior\":[{\"confidence\":0.4,\"conversationTurn\":4,\"evidence\":\"Guessed from the payment terms\",\"source\":\"Inferred\"}]},\"value\":\"2026-10-01\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"text\",\"name\":\"Reference\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"external-ref\",\"ref\":\"erp:purchase-order/77\"},\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"Read from the purchase-order system\",\"source\":\"External\"},\"prior\":[]},\"value\":\"PO-77\"},{\"allowedValues\":null,\"isMandatory\":true,\"kind\":\"number\",\"name\":\"Total\",\"pattern\":null,\"previousValue\":{\"amount\":\"40.00\",\"currency\":\"GBP\"},\"provenance\":{\"current\":{\"binding\":{\"kind\":\"computation-ref\",\"ref\":\"invoice.total@v3\"},\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"Sum of the line items\",\"source\":\"Computed\"},\"prior\":[]},\"value\":{\"amount\":\"4000.10\",\"currency\":\"GBP\"}}],\"operationType\":\"WriteUpdate\",\"populatedConfidence\":0.82,\"requiresConfirmation\":true,\"warnings\":[\"The total changed by more than 10x.\"]}",
     "expectedSha256": "125220b31c330f0b05a176c9652b8037a0aea55fefed7b1e59d1e5b1edfff333",
   },
@@ -259,7 +266,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "requiresConfirmation": true,
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"aggregateConfidence\":0.95,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"User stated: Status\",\"source\":\"UserStated\"},\"prior\":[]},\"value\":\"Active\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"pattern\":\"^\\\\d+(\\\\.\\\\d+)?$\",\"previousValue\":10,\"provenance\":{\"current\":{\"confidence\":0.9,\"conversationTurn\":3,\"evidence\":\"Extracted from search_widget\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":12.5}],\"operationType\":\"WriteUpdate\",\"requiresConfirmation\":true,\"warnings\":[]}",
     "expectedSha256": "5bd969aeb4a19bc4f54c6fadc78c83da42ab78c8d5a2d8a826851482b5a95bb0",
   },
@@ -268,11 +275,13 @@ export const canonicalVectors: readonly CanonicalVector[] = [
     "id": "canonical/wire-evidence-card-request-amended",
     "rules": [
       "SR-1",
+      "AF-1",
+      "AF-2",
+      "AF-4",
       "DK-2",
       "PV-2",
-      "AF-4",
     ],
-    "note": "The same Affidavit as `canonical/wire-evidence-card-request`, with a reviewer's accepted amendments applied: `Status` changed to Retired, `Weight` cleared with an explicit null (DK-2 — null clears, an absent key leaves untouched). Each amended field's provenance chain now carries the reviewer's act in force, with the machine's pre-correction tag preserved at the head of `prior` (AF-4, PV-2). The bytes and the hash differ from the unamended vector: that difference is what stops an execution grant minted for the proposal a reviewer was shown from validating the proposal they amended.",
+    "note": "The same Affidavit as `canonical/wire-evidence-card-request`, with a reviewer's accepted amendments applied: `Status` changed to Retired, `Weight` cleared with an explicit null (DK-2 - null clears, an absent key leaves untouched). The bytes and the hash differ from the unamended vector, and that difference is the point: an execution grant minted for the proposal a reviewer was shown must not validate the proposal they amended.\n\nThree things about these bytes changed when the canonical form stopped minting a placeholder tag of its own and started calling the model's `amendmentTag`, so that the form and a Docket row's accepted state cannot disagree about the same decision.\n\n1. The reviewer-act binding now carries **the decision's instant** as well as its entry - `{\"decisionAt\":\"2026-09-04T09:12:00.000Z\",\"entryId\":\"8f14e45f-...\"}` in place of a single opaque string. PV-2's binding is the pointer an auditor follows years later, and a pointer that cannot say when the act happened cannot place it against the proposal's own instants.\n2. The tag in force is now a whole provenance tag - source, confidence, the note naming who amended the field, the conversation turn, the instant - not a source and a binding. That is what a Docket row carries, so it is what the canonical form carries.\n3. `Weight` is **gone** from `fields[]` rather than present holding null. It is optional, and a reviewer clearing an optional field is saying the write no longer proposes it; AF-1 says a field the operation does not propose is absent rather than present with nothing in it. A mandatory field cleared the same way would stay, tagged `Empty` at confidence 0. With `Weight` gone, `aggregateConfidence` is recomputed over what is left (AF-4) rather than left at the machine's pre-correction 0.95.",
     "input": {
       "operationType": "WriteUpdate",
       "entityType": "Widget",
@@ -326,9 +335,13 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "Status": "Retired",
       "Weight": null,
     },
-    "reviewerActRef": "docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1",
-    "expectedBytesUtf8": "{\"aggregateConfidence\":0.95,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"reviewer-act\",\"ref\":\"docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1\"},\"source\":\"UserStated\"},\"prior\":[{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"User stated: Status\",\"source\":\"UserStated\"}]},\"value\":\"Retired\"},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"pattern\":\"^\\\\d+(\\\\.\\\\d+)?$\",\"previousValue\":10,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"reviewer-act\",\"ref\":\"docket:8f14e45f-ceea-467e-bd76-000000000001#decision-1\"},\"source\":\"UserStated\"},\"prior\":[{\"confidence\":0.9,\"conversationTurn\":3,\"evidence\":\"Extracted from search_widget\",\"source\":\"Conversation\"}]},\"value\":null}],\"operationType\":\"WriteUpdate\",\"requiresConfirmation\":true,\"warnings\":[]}",
-    "expectedSha256": "dc5e25654f2c44bf38fce0f86692fd21861bb4b079e54aa055e96f8e29ebc4d2",
+    "reviewerAct": {
+      "entryId": "8f14e45f-ceea-467e-bd76-000000000001",
+      "decisionAt": "2026-09-04T09:12:00.000Z",
+      "by": "ana",
+    },
+    "expectedBytesUtf8": "{\"aggregateConfidence\":1,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"allowedValues\":[\"Active\",\"Retired\"],\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"at\":\"2026-09-04T09:12:00.000Z\",\"binding\":{\"kind\":\"reviewer-act\",\"ref\":{\"decisionAt\":\"2026-09-04T09:12:00.000Z\",\"entryId\":\"8f14e45f-ceea-467e-bd76-000000000001\"}},\"confidence\":1,\"conversationTurn\":null,\"note\":\"Amended by ana on Docket entry 8f14e45f-ceea-467e-bd76-000000000001\",\"source\":\"UserStated\"},\"prior\":[{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"User stated: Status\",\"source\":\"UserStated\"}]},\"value\":\"Retired\"}],\"operationType\":\"WriteUpdate\",\"requiresConfirmation\":true,\"warnings\":[]}",
+    "expectedSha256": "6da4ce05a06a73a73d614782ec337bac27384b3ee65d69a1dd00858710c7ec9d",
   },
   // 05-key-order-stress.json
   {
@@ -373,7 +386,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "alpha": "written last, sorts first",
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"alpha\":\"written last, sorts first\",\"middle\":[{\"first\":1,\"second\":2},{\"a\":{\"x\":true,\"y\":null},\"b\":[3,2,1]}],\"zeta\":{\"\":\"the empty key\",\"10\":\"integer-shaped key\",\"2\":\"another integer-shaped key\",\"A\":\"uppercase A\",\"B\":\"uppercase B\",\"a\":\"prefix\",\"a/b\":\"a solidus, which JSON never escapes\",\"ab\":\"prefix plus one\",\"b\":\"lowercase b\",\"é\":\"e plus combining acute, U+0065 U+0301\",\"é\":\"e-acute precomposed, U+00E9\",\"\":\"private use, U+E000\",\"😀\":\"emoji key, U+1F600\"}}",
     "expectedSha256": "bfb9d23217cd75bc12976620e641b735b73448db6072104d09d94489246fec3a",
   },
@@ -390,7 +403,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "negativeInteger": -17,
       "half": 0.5,
       "sumOfTenths": 0.30000000000000004,
-      "negativeZero": -0,
+      "negativeZero": 0,
       "exp21": 1e+21,
       "exp23": 1.2345678901234569e+23,
       "beyond2p53": 9007199254740992,
@@ -407,7 +420,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       ],
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"beyond2p53\":9007199254740992,\"exp21\":1000000000000000000000,\"exp23\":123456789012345690000000,\"half\":0.5,\"integer\":42,\"negativeInteger\":-17,\"negativeTiny\":-0.000000012345,\"negativeZero\":0,\"nested\":[0,-0.5,0.000001,0.00001,1000000,100000000000000000000],\"one\":1,\"sumOfTenths\":0.30000000000000004,\"tinier\":0.0000000015,\"tiny\":0.0000001}",
     "expectedSha256": "61a744d2ab4b9285a2706e3f26c2b4e8baa14c85ddfc0b3252bcde0274a3aaf6",
   },
@@ -524,7 +537,7 @@ export const canonicalVectors: readonly CanonicalVector[] = [
       "requiresConfirmation": true,
     },
     "amendments": null,
-    "reviewerActRef": null,
+    "reviewerAct": null,
     "expectedBytesUtf8": "{\"aggregateConfidence\":0.7,\"emptyFieldCount\":0,\"entityId\":\"INV-2026-0045\",\"entityType\":\"Invoice\",\"fields\":[{\"allowedValues\":null,\"isMandatory\":true,\"kind\":\"number\",\"name\":\"Total\",\"pattern\":null,\"previousValue\":{\"amount\":\"0\",\"currency\":\"GBP\"},\"provenance\":{\"current\":{\"binding\":{\"kind\":\"computation-ref\",\"ref\":\"invoice.total@v3\"},\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"Sum of the line items\",\"source\":\"Computed\"},\"prior\":[]},\"value\":{\"amount\":\"4000.10\",\"currency\":\"GBP\"}},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Refund\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"Reviewer typed it\",\"source\":\"UserStated\"},\"prior\":[]},\"value\":{\"amount\":\"-1250\",\"currency\":\"JPY\"}},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Ceiling\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"binding\":{\"kind\":\"external-ref\",\"ref\":\"ledger:limit/9\"},\"confidence\":1,\"conversationTurn\":null,\"evidence\":\"Read from the ledger\",\"source\":\"External\"},\"prior\":[]},\"value\":{\"amount\":\"123456789012345678901234567890.99\",\"currency\":\"LKR\"}},{\"allowedValues\":null,\"isMandatory\":false,\"kind\":\"text\",\"name\":\"Memo\",\"pattern\":null,\"previousValue\":null,\"provenance\":{\"current\":{\"confidence\":0.7,\"conversationTurn\":2,\"evidence\":\"Taken verbatim from the turn\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":\"quote \\\" backslash \\\\ tab \\t newline \\n cr \\r backspace \\b formfeed \\f nul \\u0000 unit-separator \\u001f solidus a/b accented éüñ script 日本語 emoji 😀 private-use \"}],\"operationType\":\"WriteUpdate\",\"populatedConfidence\":0.7,\"requiresConfirmation\":true,\"warnings\":[]}",
     "expectedSha256": "2970e9ad511c5b2a7d9b96e2fd6cf4389620dcbb616422e1e80a22670536b9c1",
   },
