@@ -495,6 +495,133 @@ describe("a payload that is not an evidence card request", () => {
   });
 });
 
+describe("the three confidence numbers (AF-2)", () => {
+  /** `firstFiling` with `extra` merged onto the envelope. */
+  function withEnvelope(extra: Record<string, unknown>): EvidenceCardRequest {
+    return { ...firstFiling, ...extra } as EvidenceCardRequest;
+  }
+
+  function totals(card: HTMLElement): string {
+    return card.shadowRoot?.querySelector(".totals")?.textContent ?? "";
+  }
+
+  it("shows all three when the envelope carries the two the affidavit cannot", () => {
+    // The pinned affidavit schema is closed over seven properties, of which
+    // `aggregateConfidence` is one — so a producer that wants to show all three puts
+    // the other two beside `protocolVersion` on the envelope.
+    const card = mount(withEnvelope({ populatedConfidence: 0.9, emptyFieldCount: 2 }));
+
+    expect(totals(card)).toContain("Aggregate confidence");
+    expect(totals(card)).toContain("Populated fields");
+    expect(totals(card)).toContain("Empty fields");
+
+    const meters = [...(card.shadowRoot?.querySelectorAll('[role="meter"]') ?? [])];
+    // One per field, the aggregate, and now the populated minimum.
+    expect(meters).toHaveLength(firstFiling.affidavit.fields.length + 2);
+    expect(meters.at(-1)?.getAttribute("aria-valuenow")).toBe("0.90");
+    expect(card.shadowRoot?.querySelector(".totals .total:last-child strong")?.textContent).toBe(
+      "2",
+    );
+  });
+
+  it("shows an empty-field count of zero rather than hiding it", () => {
+    const card = mount(withEnvelope({ populatedConfidence: 0.9, emptyFieldCount: 0 }));
+
+    // `0` is an answer — "nothing is unsourced" — and a reviewer who cannot see the
+    // count cannot tell the difference between that and a producer that never said.
+    expect(totals(card)).toContain("Empty fields");
+    expect(card.shadowRoot?.querySelector(".totals .total:last-child strong")?.textContent).toBe(
+      "0",
+    );
+  });
+
+  it("shows only the aggregate when the envelope carries neither", () => {
+    const card = mount(firstFiling);
+
+    expect(totals(card)).toContain("Aggregate confidence");
+    expect(totals(card)).not.toContain("Populated fields");
+    expect(totals(card)).not.toContain("Empty fields");
+    expect([...(card.shadowRoot?.querySelectorAll('[role="meter"]') ?? [])]).toHaveLength(
+      firstFiling.affidavit.fields.length + 1,
+    );
+  });
+
+  it("still reads them off an affidavit whose own type is open", () => {
+    const card = mount({
+      ...firstFiling,
+      affidavit: {
+        ...firstFiling.affidavit,
+        populatedConfidence: 0.5,
+        emptyFieldCount: 1,
+      },
+    } as unknown as EvidenceCardRequest);
+
+    expect(totals(card)).toContain("Populated fields");
+    expect(card.shadowRoot?.querySelector(".totals .total:last-child strong")?.textContent).toBe(
+      "1",
+    );
+  });
+
+  it("prefers the envelope, which is the place the schema permits", () => {
+    const card = mount({
+      ...firstFiling,
+      populatedConfidence: 0.9,
+      emptyFieldCount: 2,
+      affidavit: {
+        ...firstFiling.affidavit,
+        populatedConfidence: 0.1,
+        emptyFieldCount: 9,
+      },
+    } as unknown as EvidenceCardRequest);
+
+    const meters = [...(card.shadowRoot?.querySelectorAll('[role="meter"]') ?? [])];
+    expect(meters.at(-1)?.getAttribute("aria-valuenow")).toBe("0.90");
+    expect(card.shadowRoot?.querySelector(".totals .total:last-child strong")?.textContent).toBe(
+      "2",
+    );
+  });
+
+  it("invents nothing from a value that is not a number", () => {
+    const card = mount(withEnvelope({ populatedConfidence: "0.9", emptyFieldCount: Number.NaN }));
+
+    expect(totals(card)).not.toContain("Populated fields");
+    expect(totals(card)).not.toContain("Empty fields");
+  });
+});
+
+describe("an entry no decision will be accepted on", () => {
+  it("says so, where a reviewer cannot miss it", () => {
+    const card = mount({
+      ...firstFiling,
+      blocked: { code: "requirement-not-implemented", level: "MultiParty" },
+    } as unknown as EvidenceCardRequest);
+
+    const banner = card.shadowRoot?.querySelector(".blocked");
+    expect(banner?.textContent).toContain("No decision on this entry will be accepted");
+    expect(banner?.textContent).toContain("MultiParty");
+    expect(banner?.getAttribute("role")).toBe("alert");
+  });
+
+  it("names the uncovered category when that is why", () => {
+    const card = mount({
+      ...firstFiling,
+      blocked: { code: "coverage-refused", category: "provider-executed", toolName: "x" },
+    } as unknown as EvidenceCardRequest);
+
+    expect(card.shadowRoot?.querySelector(".blocked")?.textContent).toContain("provider-executed");
+  });
+
+  it("shows no banner on an entry a person can decide", () => {
+    expect(mount(firstFiling).shadowRoot?.querySelector(".blocked")).toBeNull();
+    expect(
+      mount({
+        ...firstFiling,
+        blocked: null,
+      } as unknown as EvidenceCardRequest).shadowRoot?.querySelector(".blocked"),
+    ).toBeNull();
+  });
+});
+
 describe("the demo fixture", () => {
   it("is the vendored wire fixture, unedited", () => {
     const demo = readFileSync(join(packageRoot, "demo", "fixture.json"), "utf8");

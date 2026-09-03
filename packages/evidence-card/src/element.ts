@@ -212,11 +212,55 @@ function errorState(message: string): HTMLElement {
   return alert;
 }
 
-/** Reads a number a host may have added to the affidavit that the pinned schema does not define. */
+/** Reads a number a producer may have added that the pinned schema does not define. */
 function optionalNumber(source: unknown, key: string): number | null {
   if (typeof source !== "object" || source === null) return null;
   const value = (source as Record<string, unknown>)[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * The two of the three confidence numbers the pinned affidavit schema has nowhere to
+ * put, read from wherever the producer could put them.
+ *
+ * The schema at `v0.0.1-seed` is `additionalProperties: false` over seven properties,
+ * of which `aggregateConfidence` is one — so a producer that wants to show all three
+ * puts the other two on the **envelope**, beside `protocolVersion`. A producer whose
+ * own affidavit type is open may put them there instead. The envelope wins where both
+ * are present, because it is the one the schema permits; neither is ever invented.
+ */
+function extraConfidence(request: EvidenceCardRequest): {
+  populated: number | null;
+  emptyFields: number | null;
+} {
+  const affidavit: unknown = request.affidavit;
+  return {
+    populated:
+      optionalNumber(request, "populatedConfidence") ??
+      optionalNumber(affidavit, "populatedConfidence"),
+    emptyFields:
+      optionalNumber(request, "emptyFieldCount") ?? optionalNumber(affidavit, "emptyFieldCount"),
+  };
+}
+
+/**
+ * Why this entry cannot be decided, in one line, or `null` when nothing says it is
+ * blocked.
+ *
+ * A producer marks an entry blocked on the **envelope** — the affidavit's schema has
+ * no room for it — and the reviewer surface has to show it, because the same card
+ * carries no confirm flag and its buttons would post a decision nothing will accept.
+ */
+function blockedReason(request: EvidenceCardRequest): string | null {
+  const blocked: unknown = (request as unknown as Record<string, unknown>)["blocked"];
+  if (!isRecord(blocked)) return null;
+  const code = blocked["code"];
+  if (typeof code !== "string" || code === "") return null;
+  const level = blocked["level"];
+  const category = blocked["category"];
+  const detail = typeof level === "string" ? level : typeof category === "string" ? category : null;
+  const what = detail === null ? code : `${code} (${detail})`;
+  return `No decision on this entry will be accepted: ${what}.`;
 }
 
 /**
@@ -448,6 +492,13 @@ export class AffiantEvidenceCard extends CardBase {
       card.append(this.#renderResubmission(request.priorAmendments));
     }
 
+    const blocked = blockedReason(request);
+    if (blocked !== null) {
+      const banner = element("p", "blocked", blocked);
+      banner.setAttribute("role", "alert");
+      card.append(banner);
+    }
+
     if (affidavit.warnings.length > 0) {
       const warnings = element("ul", "warnings");
       for (const warning of affidavit.warnings) warnings.append(element("li", undefined, warning));
@@ -597,16 +648,15 @@ export class AffiantEvidenceCard extends CardBase {
     aggregate.append(meter(affidavit.aggregateConfidence, "Aggregate confidence"));
     totals.append(aggregate);
 
-    // Some hosts add these alongside the schema's fields. Shown when they are
-    // there; never invented when they are not.
-    const populated = optionalNumber(affidavit, "populatedConfidence");
+    // The other two of the three numbers, from the envelope or from an open
+    // affidavit. Shown when they are there; never invented when they are not.
+    const { populated, emptyFields } = extraConfidence(request);
     if (populated !== null) {
       const entry = element("div", "total");
       entry.append(element("span", undefined, "Populated fields"));
       entry.append(meter(populated, "Confidence across populated fields"));
       totals.append(entry);
     }
-    const emptyFields = optionalNumber(affidavit, "emptyFieldCount");
     if (emptyFields !== null) {
       const entry = element("div", "total");
       entry.append(element("span", undefined, "Empty fields"));

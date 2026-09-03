@@ -85,6 +85,16 @@ export const CARD_STYLES = `
 
 .warnings { margin: 0; padding: 10px 16px 10px 34px; border-bottom: 1px solid var(--_line); font-size: 13px; color: var(--affiant-warn); }
 
+.blocked {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--_line);
+  background: var(--_warn-inset);
+  color: var(--affiant-warn);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .fields { list-style: none; margin: 0; padding: 0; }
 
 .field { padding: 14px 16px; border-bottom: 1px solid var(--_line); display: grid; gap: 8px; }
