@@ -22,9 +22,11 @@
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
- * and amendment semantics with the recompute they force (DK-2, AF-4). The canonical
- * form, the Docket stores, the pipeline and the decision path land in the pull
- * requests named in each module's header.
+ * and amendment semantics with the recompute they force (DK-2, AF-4) — and the
+ * Docket: the entry, the store contract and the in-memory reference stores (DK-1,
+ * DK-3, DK-4, DK-5), the last of these behind `@affiant/core/store-memory`. The
+ * canonical form, the pipeline and the decision path land in the pull requests
+ * named in each module's header.
  *
  * **Not on npm.** The version string exists so the conformance driver can pin it;
  * publishing waits on the public parity report and a green TypeScript conformance
@@ -149,7 +151,6 @@ export { defaultClock } from "./ports.js";
 export type {
   AuthorizationPort,
   Clock,
-  DocketEntry,
   FieldInterceptor,
   FieldSchema,
   FieldSchemaEntry,
@@ -164,3 +165,52 @@ export type {
   StructuredResult,
   UtteranceSpan,
 } from "./ports.js";
+
+// --------------------------------------------------------------------- docket
+
+export {
+  BLOCKED_CODES,
+  DOCKET_STATUSES,
+  EXECUTION_OUTCOMES,
+  isTerminal,
+  newEntry,
+  readStatus,
+  REQUIREMENT_KINDS,
+} from "./docket/entry.js";
+export type {
+  Attestation,
+  AttestationRelay,
+  Attestor,
+  BlockedCode,
+  BlockedMarker,
+  DecisionRecord,
+  DocketEntry,
+  DocketStatus,
+  ExecutionOutcome,
+  Lineage,
+  NewEntryInit,
+  RequirementKind,
+} from "./docket/entry.js";
+
+export {
+  compareFilingOrder,
+  instantMs,
+  isDue,
+  remainingMs,
+  requireInstant,
+} from "./docket/expiry.js";
+export type { Expirable } from "./docket/expiry.js";
+
+export type {
+  DocketStore,
+  Page,
+  PageResult,
+  PreserveAmendmentsResult,
+  RecordExecutionResult,
+  RecordSupersessionResult,
+  RetentionPolicy,
+  Scope,
+  SessionStore,
+  TransitionPatch,
+  TransitionResult,
+} from "./docket/store.js";

@@ -21,6 +21,7 @@
  */
 
 import type { Principal, TurnContext, Turn } from "./context.js";
+import type { DocketEntry } from "./docket/entry.js";
 import type { Affidavit } from "./model/affidavit.js";
 import type { InterceptorBinding } from "./model/provenance.js";
 
@@ -34,28 +35,6 @@ export type { TelemetryPort, TelemetryEvent, TelemetryAttributes } from "./telem
  * should not have to know which module the binding came from.
  */
 export type { InterceptorBinding };
-
-// ---------------------------------------------------------------------------
-// Forward declarations
-// ---------------------------------------------------------------------------
-
-/**
- * A filed Docket entry, as much of it as a port implementation needs today.
- *
- * Pull request C4 (`core/store`) replaces this forward declaration with the full
- * shape in `docket/entry.ts` — status, execution outcome, expiry, lineage, the
- * Affidavit and its accepted amendments. The two properties here are the ones the
- * v0.1 design already fixes for {@link AuthorizationPort}: a tenant-scoped
- * fail-closed check reads `tenantId`, and everything that names an entry reads
- * `entryId`. Widening an interface a host only ever *receives* is not a breaking
- * change, so the port signature below does not move when C4 lands.
- */
-export interface DocketEntry {
-  /** The entry's id. Stable across its whole lifetime; a resubmission gets a new one. */
-  readonly entryId: string;
-  /** The tenant the entry is scoped to. Compared against `ctx.tenantId` on every decision (AZ-2). */
-  readonly tenantId: string;
-}
 
 // ---------------------------------------------------------------------------
 // What the gate is being asked to swear to
