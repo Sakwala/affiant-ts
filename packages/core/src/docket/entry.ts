@@ -23,15 +23,14 @@
  */
 
 import { PROTOCOL_VERSION } from "@affiant/contract";
-// The *wire* Affidavit and amendment map, deliberately aliased. `@affiant/core`
-// also exports an `Affidavit` and an `AmendmentMap` of its own — the core model
-// from pull request C2 — and the two are different types today. The entry carries
-// the wire shapes at this pull request; C7 swaps the core model in behind the same
-// field names, and the aliases are where that swap happens.
-import type {
-  Affidavit as WireAffidavit,
-  AmendmentMap as WireAmendmentMap,
-} from "@affiant/contract";
+// The **core** Affidavit and amendment map (ledger BD-31, 2026-09-04). The entry
+// carried the wire shapes at pull request C4, because the core model and the store
+// landed in parallel; C5 makes the swap the ledger ruled on. The wire shapes are
+// reached only at the boundary - `fromWire` on the way in, `toWire` on the way out
+// to an Evidence Card - so a row holds provenance chains with their bindings and
+// their instants, which the wire at protocol tag `0.0.1-seed` cannot carry.
+import type { Affidavit } from "../model/affidavit.js";
+import type { AmendmentMap } from "../model/amendments.js";
 
 import type { ChannelIdentity, TurnContext } from "../context.js";
 
@@ -291,7 +290,7 @@ export interface DocketEntry {
   /** Where the turn arrived from — `"chat"` for Sequence A, `"mcp"` for Sequence C. */
   readonly channel: TurnContext["channel"];
   /** The sworn evidence record this entry exists to get agreement on. */
-  readonly affidavit: WireAffidavit;
+  readonly affidavit: Affidavit;
   /** What the policy chain decided this write needs before it may execute (AZ-4). */
   readonly requirement: RequirementKind;
   /** What the row says. What it *reads* is {@link readStatus}. */
@@ -318,7 +317,7 @@ export interface DocketEntry {
    * value is `null` was **cleared** by the reviewer, and an absent key was left
    * untouched. The two are never conflated.
    */
-  readonly amendments: WireAmendmentMap | null;
+  readonly amendments: AmendmentMap | null;
   /** What a reviewer chose, or `null` for a pending row or a Standing Order. */
   readonly decision: DecisionRecord | null;
   /** What this entry replaces and what replaced it (DK-1). */
@@ -363,7 +362,7 @@ export interface NewEntryInit {
   /** Where the turn arrived from. */
   readonly channel: TurnContext["channel"];
   /** The sworn evidence record. */
-  readonly affidavit: WireAffidavit;
+  readonly affidavit: Affidavit;
   /** What the policy chain decided this write needs. */
   readonly requirement: RequirementKind;
   /** When the entry is being filed, as an ISO 8601 instant in UTC. */

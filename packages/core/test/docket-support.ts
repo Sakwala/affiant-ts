@@ -1,4 +1,6 @@
-import type { Affidavit, AffidavitField, JsonValue } from "@affiant/contract";
+import type { AffidavitField, Affidavit, JsonValue } from "../src/model/affidavit.js";
+import { withConfidence } from "../src/model/affidavit.js";
+import { chainOf, mintConversation } from "../src/model/provenance.js";
 
 import type { Clock } from "../src/ports.js";
 import type { DocketEntry, NewEntryInit } from "../src/docket/entry.js";
@@ -35,33 +37,38 @@ export function field(name: string, value: JsonValue): AffidavitField {
     name,
     value,
     previousValue: null,
-    provenance: {
-      current: {
-        source: "Conversation",
+    provenance: chainOf(
+      mintConversation({
         confidence: 0.9,
-        evidence: `User stated: ${name}`,
+        at: "2026-09-04T09:00:00.000Z",
+        note: `User stated: ${name}`,
         conversationTurn: 1,
-      },
-      prior: [],
-    },
+      }),
+    ),
     isMandatory: false,
     kind: "text",
-    allowedValues: null,
-    pattern: null,
   };
 }
 
-/** An Affidavit over `names`, shaped like something a pipeline would actually file. */
+/**
+ * An Affidavit over `names`, shaped like something a pipeline would actually file.
+ *
+ * Built through {@link withConfidence} rather than as an object literal so the three
+ * numbers on a fixture are the ones AF-2 computes, never numbers a fixture author
+ * typed. The Docket carries the **core** model since ledger BD-31; the wire shape is
+ * reached only at the `toWire` boundary, on the Evidence Card the gate hands back.
+ */
 export function affidavit(names: readonly string[] = ["status"]): Affidavit {
-  return {
-    operationType: "WriteUpdate",
-    entityType: "Invoice",
-    entityId: "invoice-1",
-    fields: names.map((name) => field(name, `${name}-value`)),
-    aggregateConfidence: 0.9,
-    warnings: [],
-    requiresConfirmation: true,
-  };
+  return withConfidence(
+    {
+      operationType: "update",
+      entityType: "Invoice",
+      entityId: "invoice-1",
+      conversationTurn: 1,
+      createdAt: "2026-09-04T09:00:00.000Z",
+    },
+    names.map((name) => field(name, `${name}-value`)),
+  );
 }
 
 /** The defaults every Docket fixture starts from. */

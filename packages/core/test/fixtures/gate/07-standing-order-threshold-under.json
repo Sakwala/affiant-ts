@@ -1,0 +1,72 @@
+{
+  "id": "gate/standing-order-threshold-under",
+  "rules": ["GT-5"],
+  "note": "A declared threshold fires iff the host's score is at or under it. The core owns the comparison and no formula.",
+  "given": {
+    "history": [],
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "args": null,
+    "toolName": "relay_capture",
+    "operation": {
+      "kind": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": ["status"]
+    },
+    "schema": null,
+    "inference": null,
+    "preparedFields": [
+      {
+        "name": "status",
+        "kind": "text",
+        "value": "Active",
+        "provenance": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "bound": false
+        }
+      }
+    ],
+    "previousValues": null,
+    "policies": [
+      {
+        "id": "under-a-thousand",
+        "version": "1.0.0",
+        "declaredInputs": [],
+        "declaresThreshold": true,
+        "defaultTtlMs": null,
+        "verdict": {
+          "requirement": "StandingOrder",
+          "threshold": 0.5
+        }
+      }
+    ],
+    "riskScore": 0.5,
+    "declareUncovered": null,
+    "defaultTtlMs": 1800000
+  },
+  "expect": {
+    "error": null,
+    "entry": {
+      "status": "approved",
+      "requirement": "StandingOrder",
+      "execution": "unexecuted",
+      "blocked": null,
+      "expiresAtOffsetMs": 1800000,
+      "attestation": {
+        "kind": "standing-order",
+        "policyId": "under-a-thousand",
+        "version": "1.0.0"
+      }
+    },
+    "affidavit": null,
+    "card": null
+  }
+}

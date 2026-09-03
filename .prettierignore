@@ -8,6 +8,7 @@ packages/contract/src/schemas.ts
 packages/contract/test/fixtures.generated.ts
 packages/core/src/telemetry-keys.ts
 packages/core/test/fixtures/canonical.generated.ts
+packages/core/test/fixtures/gate.generated.ts
 # SR-1 byte vectors: scripts/generate-canonical-fixtures.mjs writes these files whole,
 # expectations included, so their formatting is the generator's and not prettier's.
 packages/core/test/fixtures/canonical/

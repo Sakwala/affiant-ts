@@ -1,0 +1,69 @@
+{
+  "id": "gate/standing-order-unbound-input",
+  "rules": ["PV-4"],
+  "note": "Sequence C's negative case: a relayed capture whose External tag points at nothing. The policy predicates on External, so the Standing Order is not honoured and a person is asked.",
+  "given": {
+    "history": [],
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "mcp",
+      "utterance": "Set the invoice status to Active",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "args": null,
+    "toolName": "relay_capture",
+    "operation": {
+      "kind": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": ["status"]
+    },
+    "schema": null,
+    "inference": null,
+    "preparedFields": [
+      {
+        "name": "status",
+        "kind": "text",
+        "value": "Active",
+        "provenance": {
+          "source": "External",
+          "confidence": 1.0,
+          "bound": false
+        }
+      }
+    ],
+    "previousValues": null,
+    "policies": [
+      {
+        "id": "relay-capture",
+        "version": "1.0.0",
+        "declaredInputs": ["External"],
+        "declaresThreshold": false,
+        "defaultTtlMs": null,
+        "verdict": {
+          "requirement": "StandingOrder"
+        }
+      }
+    ],
+    "riskScore": null,
+    "declareUncovered": null,
+    "defaultTtlMs": 1800000
+  },
+  "expect": {
+    "error": null,
+    "entry": {
+      "status": "pending",
+      "requirement": "ReviewerConfirmation",
+      "execution": null,
+      "blocked": null,
+      "expiresAtOffsetMs": 1800000,
+      "attestation": null
+    },
+    "affidavit": null,
+    "card": {
+      "warningsContain": ["carries a External tag with no binding"]
+    }
+  }
+}

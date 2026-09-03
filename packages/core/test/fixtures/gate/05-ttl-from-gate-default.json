@@ -1,0 +1,56 @@
+{
+  "id": "gate/ttl-from-gate-default",
+  "rules": ["GT-4"],
+  "note": "With no verdict and no policy default, the gate's required defaultTtlMs applies. Every filed entry carries a deadline (ledger BD-31).",
+  "given": {
+    "history": [],
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "utterance": "Set the invoice status to Active",
+      "messageId": "msg-1",
+      "at": "2026-09-04T09:00:00.000Z"
+    },
+    "args": null,
+    "toolName": "relay_capture",
+    "operation": {
+      "kind": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": ["status"]
+    },
+    "schema": null,
+    "inference": null,
+    "preparedFields": [
+      {
+        "name": "status",
+        "kind": "text",
+        "value": "Active",
+        "provenance": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "bound": false
+        }
+      }
+    ],
+    "previousValues": null,
+    "policies": [],
+    "riskScore": null,
+    "declareUncovered": null,
+    "defaultTtlMs": 1800000
+  },
+  "expect": {
+    "error": null,
+    "entry": {
+      "status": "pending",
+      "requirement": "ReviewerConfirmation",
+      "execution": null,
+      "blocked": null,
+      "expiresAtOffsetMs": 1800000,
+      "attestation": null
+    },
+    "affidavit": null,
+    "card": null
+  }
+}

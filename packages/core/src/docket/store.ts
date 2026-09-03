@@ -43,10 +43,9 @@
  * @packageDocumentation
  */
 
-// The *wire* amendment map. See the alias note in `entry.ts`: `@affiant/core` also
-// exports an `AmendmentMap` of its own (the core model, pull request C2), and the
-// two are different types until C7 swaps them.
-import type { AmendmentMap as WireAmendmentMap } from "@affiant/contract";
+// The **core** amendment map (ledger BD-31): a row holds the core model, and the
+// wire shapes are reached only at the boundary. See the note in `entry.ts`.
+import type { AmendmentMap } from "../model/amendments.js";
 
 import type {
   Attestation,
@@ -147,7 +146,7 @@ export interface TransitionPatch {
    * The amendments the approval accepted. DK-2 holds inside the map: a `null` value
    * clears the field, an absent key leaves it untouched.
    */
-  readonly amendments?: WireAmendmentMap | null;
+  readonly amendments?: AmendmentMap | null;
   /** Who agreed (AZ-1). A decision without one is a decision nobody can be held to. */
   readonly attestation?: Attestation | null;
   /** When the row left `pending`. Defaults to the store's clock reading. */
@@ -256,7 +255,7 @@ export interface DocketStore {
   preserveAmendments(
     entryId: string,
     scope: Scope,
-    amendments: WireAmendmentMap,
+    amendments: AmendmentMap,
   ): Promise<PreserveAmendmentsResult>;
 
   /**

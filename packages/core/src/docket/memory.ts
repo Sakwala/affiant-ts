@@ -33,7 +33,7 @@
  * @packageDocumentation
  */
 
-import type { AmendmentMap as WireAmendmentMap } from "@affiant/contract";
+import type { AmendmentMap } from "../model/amendments.js";
 
 import type { Clock } from "../ports.js";
 import { defaultClock } from "../ports.js";
@@ -227,7 +227,7 @@ export class InMemoryDocketStore implements DocketStore {
   async preserveAmendments(
     entryId: string,
     scope: Scope,
-    amendments: WireAmendmentMap,
+    amendments: AmendmentMap,
   ): Promise<PreserveAmendmentsResult> {
     const stored = this.#find(entryId, scope);
     if (stored === null) return "not-found";
