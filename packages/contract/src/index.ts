@@ -30,6 +30,18 @@
  */
 export const PROTOCOL_VERSION = "0.0.1-seed" as const;
 
+/**
+ * Any value JSON can carry — and nothing else.
+ *
+ * Used wherever a schema applies no type constraint but still lists the property
+ * as `required`. `unknown` would be wrong there: it admits `undefined`,
+ * `JSON.stringify` drops a key whose value is `undefined`, and the payload then
+ * fails the schema's `required` at the far end of a network hop. `JsonValue`
+ * permits every JSON value, `null` included, and refuses `undefined`.
+ */
+export type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 // ---------------------------------------------------------------------------
 // Protocol core
 // ---------------------------------------------------------------------------
@@ -136,14 +148,17 @@ export interface AffidavitField {
   name: string;
   /**
    * The proposed value. Any JSON value, including `null` — the wire applies no
-   * type constraint here, so a consumer must narrow before using it.
+   * type constraint here, so a consumer must narrow before using it. Not
+   * `undefined`: the key is required, and a key whose value is `undefined` does
+   * not survive `JSON.stringify`.
    */
-  value: unknown;
+  value: JsonValue;
   /**
    * The value being replaced. Any JSON value, including `null`; `null` for a
-   * create operation, and also for a field that had no previous value.
+   * create operation, and also for a field that had no previous value. Not
+   * `undefined`, for the same reason as {@link AffidavitField.value}.
    */
-  previousValue: unknown;
+  previousValue: JsonValue;
   /** The provenance chain behind {@link AffidavitField.value}. */
   provenance: ProvenanceChain;
   /** Whether the target entity requires this field. */
@@ -192,9 +207,10 @@ export interface Affidavit {
  * A map of reviewer amendments, keyed by {@link AffidavitField.name}.
  *
  * A `null` under a key means the reviewer explicitly cleared that field, which is
- * distinct from the key being absent.
+ * distinct from the key being absent — and distinct from `undefined`, which is
+ * not a JSON value and would vanish on serialization.
  */
-export type AmendmentMap = { readonly [fieldName: string]: unknown };
+export type AmendmentMap = { readonly [fieldName: string]: JsonValue };
 
 /**
  * The envelope that carries an {@link Affidavit} to a reviewer surface: the docket
@@ -254,7 +270,7 @@ export interface DocketExpiredNotification {
 // Host and transport vocabulary
 //
 // The shapes below are NOT protocol core. They are how one shipped host talks to
-// its own client, captured in the protocol's conformance fixtures as reference
+// its own client, recorded in the protocol's conformance fixtures as reference
 // shapes. They carry no schema at tag v0.0.1-seed, so nothing validates them; a
 // different host is free to use a different vocabulary. They are typed here
 // because their closed string sets are pinned in the protocol's

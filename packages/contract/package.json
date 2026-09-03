@@ -31,6 +31,7 @@
       "types": "./dist/schemas.d.ts",
       "default": "./dist/schemas.js"
     },
+    "./protocol/*": "./protocol/*",
     "./package.json": "./package.json"
   },
   "files": [

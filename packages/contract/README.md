@@ -21,12 +21,22 @@ import time.
 `0.0.1-seed` — the tag `v0.0.1-seed` of `Sakwala/affiant-protocol`, recorded in
 [`protocol/PIN`](protocol/PIN). Everything under `protocol/` is a byte-for-byte
 copy of that tag: the eight JSON Schemas, the eight conformance fixtures, the
-manifest and the pinned enum sets. `test/protocol-pin.test.ts` fetches the same
-files from the tag on every run and fails if a copy has drifted.
+manifest and the pinned enum sets. `test/protocol-pin.test.ts` checksums every
+copy against [`protocol/SHA256SUMS`](protocol/SHA256SUMS) on every run — offline
+included — and fetches the same files from the tag itself whenever the network is
+reachable. `test/generated.test.ts` then asserts that `src/schemas.ts` and
+`test/fixtures.generated.ts`, the two committed generated modules, are exactly
+what those copies say they should be.
 
-The seed is a capture of what one shipped implementation sends today, not a
-designed protocol version. Types here are faithful to that capture and say so, per
-type, in their doc comments.
+The seed fixtures are hand-authored examples of what one shipped implementation
+sends, not captures: their key sets — not their values — are asserted against the
+shipped .NET serializer by the demo hosts' wire-shape tests. It is a seed, not a
+designed protocol version. Types here are faithful to those examples and say so,
+per type, in their doc comments.
+
+The pinned tag `v0.0.1-seed` predates that correction, so its
+`protocol/fixtures/MANIFEST.json` still spells the field `capturedFrom`; the next
+tag renames it `derivedFrom`.
 
 ## Using it
 
@@ -55,6 +65,20 @@ const validate = ajv.getSchema(
 );
 ```
 
+The vendored JSON itself is shipped and reachable, for a host that would rather
+read the files than import the objects — a validator in another language, a build
+step that copies them, a checksum audit:
+
+```ts
+import affidavit from "@affiant/contract/protocol/schemas/affidavit.schema.json" with { type: "json" };
+
+// or, to hand the path to something that is not an ES module loader:
+const path = import.meta.resolve("@affiant/contract/protocol/fixtures/MANIFEST.json");
+```
+
+Every file under `protocol/` resolves this way, `protocol/PIN` and
+`protocol/SHA256SUMS` included.
+
 ## Two rules the types follow
 
 Both come from the schemas rather than from taste, and both are asserted in
@@ -75,7 +99,7 @@ Both come from the schemas rather than from taste, and both are asserted in
 
 `ActionDecisionResult`, `SessionRehydrated`, `SystemNotification` and `UiGuidance`
 are **host and transport shapes**, not protocol core. They are how one shipped host
-talks to its own client, captured in the protocol's fixtures as reference shapes.
+talks to its own client, recorded in the protocol's fixtures as reference shapes.
 They carry no schema at this tag, so nothing validates them, and a different host
 is free to use a different vocabulary. Their doc comments say so.
 

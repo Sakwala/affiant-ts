@@ -23,7 +23,7 @@ Nothing is on npm yet. The packages here are consumed through the workspace; pub
 
 **<https://sakwala.github.io/affiant-ts/>**
 
-The card renders `conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol tag — a real payload captured off a shipped implementation's wire, not a mock. Approve it, reject it, or type into an amendment box and approve; every `affiant-decision` event the card emits is printed underneath. There is a read-only toggle for the record-only rendering.
+The card renders `conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol tag — a hand-authored example from the rulebook's seed fixtures, whose key set is asserted against the shipped .NET serializer by the demo hosts' wire-shape tests. Approve it, reject it, or type into an amendment box and approve; every `affiant-decision` event the card emits is printed underneath. There is a read-only toggle for the record-only rendering.
 
 ## Develop
 
@@ -49,7 +49,7 @@ pnpm -C packages/contract test:workers        # Cloudflare workerd
 pnpm -C packages/core test:workers            # Cloudflare workerd
 ```
 
-The protocol tag this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it is a byte-for-byte copy of that tag. A test fetches the same files from the tag on every run and fails if a copy has drifted. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
+The protocol tag this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it is a byte-for-byte copy of that tag. A test checksums every vendored copy against `packages/contract/protocol/SHA256SUMS` on every run — offline included — and fetches the same files from the tag itself whenever the network is reachable. A second test asserts the two committed generated modules are exactly what the generator produces from those copies. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
 
 ## Status
 

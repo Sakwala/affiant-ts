@@ -12,8 +12,15 @@
  *   node scripts/sync-protocol.mjs           # fetch and write
  *   node scripts/sync-protocol.mjs --check   # fail if anything would change
  *
+ * It also writes `protocol/SHA256SUMS` — the sha256 of every vendored file, one
+ * per line, sorted by path, in the format `sha256sum` prints. That file is what
+ * lets `test/protocol-pin.test.ts` catch a hand-edit to a vendored copy with no
+ * network at all; the network check against the tag itself is then an extra layer
+ * rather than the only one.
+ *
  * Set GITHUB_TOKEN to lift the unauthenticated GitHub API rate limit.
  */
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,6 +78,8 @@ if (wanted.length === 0) {
 }
 
 const changed = [];
+/** local path -> sha256 of the bytes at the pinned tag. */
+const sums = new Map();
 
 for (const { upstream, local } of wanted) {
   const url = `https://raw.githubusercontent.com/${REPO}/${pin}/${upstream}`;
@@ -79,6 +88,7 @@ for (const { upstream, local } of wanted) {
     throw new Error(`could not fetch ${url}: ${response.status} ${response.statusText}`);
   }
   const contents = await response.text();
+  sums.set(local, createHash("sha256").update(contents).digest("hex"));
   const target = join(protocolDir, local);
 
   let existing = null;
@@ -111,6 +121,26 @@ for (const local of walk(protocolDir)) {
   if (expected.has(local)) continue;
   changed.push(`removed ${local}`);
   if (!check) rmSync(join(protocolDir, local));
+}
+
+// The manifest of checksums, over the bytes at the tag rather than over whatever
+// is on disk — so `--check` reports a stale SHA256SUMS instead of blessing it.
+const sumsPath = join(protocolDir, "SHA256SUMS");
+const sumsFile =
+  [...sums.keys()]
+    .sort()
+    .map((local) => `${sums.get(local)}  ${local}`)
+    .join("\n") + "\n";
+
+let existingSums = null;
+try {
+  existingSums = readFileSync(sumsPath, "utf8");
+} catch {
+  // not written yet
+}
+if (existingSums !== sumsFile) {
+  changed.push(existingSums === null ? "added   SHA256SUMS" : "updated SHA256SUMS");
+  if (!check) writeFileSync(sumsPath, sumsFile);
 }
 
 if (changed.length === 0) {
