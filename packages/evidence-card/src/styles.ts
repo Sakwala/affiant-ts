@@ -206,7 +206,7 @@ button:focus-visible { outline: 2px solid var(--affiant-accent); outline-offset:
 button.approve { background: var(--affiant-accent); border-color: var(--affiant-accent); color: var(--affiant-card-bg); }
 button.reject { color: var(--affiant-warn); border-color: var(--affiant-warn); }
 
-.state { padding: 16px; color: var(--_muted); font-size: 13px; }
+.state { margin: 0; padding: 16px; color: var(--_muted); font-size: 13px; }
 .state.error { color: var(--affiant-warn); }
 
 @container (max-width: 420px) {

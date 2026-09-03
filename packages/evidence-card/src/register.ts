@@ -5,10 +5,16 @@
  * ```ts
  * import "@affiant/evidence-card/register";
  * ```
+ *
+ * Importing this is safe where there is no DOM — a server-side render, a bundler,
+ * a Node test. Without `HTMLElement` and `customElements` there is nothing to
+ * register, so it registers nothing and returns; the element defines itself when
+ * the same bundle reaches a browser.
  */
 import { AffiantEvidenceCard, EVIDENCE_CARD_TAG_NAME } from "./element.js";
 
 if (
+  typeof HTMLElement !== "undefined" &&
   typeof customElements !== "undefined" &&
   customElements.get(EVIDENCE_CARD_TAG_NAME) === undefined
 ) {

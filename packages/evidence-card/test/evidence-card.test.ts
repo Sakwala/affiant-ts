@@ -371,8 +371,132 @@ describe("the src attribute", () => {
   });
 });
 
+describe("a payload that is not an evidence card request", () => {
+  /** The fixture with one required key removed, however deep it sits. */
+  function without(path: string): unknown {
+    const copy = JSON.parse(JSON.stringify(firstFiling)) as Record<string, unknown>;
+    const segments = path.split(".");
+    const last = segments.pop() as string;
+    let node = copy;
+    for (const segment of segments) {
+      node = node[segment] as Record<string, unknown>;
+    }
+    delete node[last];
+    return copy;
+  }
+
+  function alertText(card: HTMLElement): string {
+    return card.shadowRoot?.querySelector('[role="alert"]')?.textContent ?? "";
+  }
+
+  it.each([
+    ["priorAmendments", "priorAmendments is missing"],
+    ["affidavit.fields", "affidavit.fields is missing or not an array"],
+    ["affidavit.warnings", "affidavit.warnings is missing or not an array"],
+    [
+      "affidavit.requiresConfirmation",
+      "affidavit.requiresConfirmation is missing or not a boolean",
+    ],
+    ["docketId", "docketId is missing or not a string"],
+  ])("set as the request property with %s missing says why, and does not throw", (path, reason) => {
+    const card = mount(null);
+
+    expect(() => {
+      card.request = without(path) as EvidenceCardRequest;
+    }).not.toThrow();
+
+    expect(alertText(card)).toContain(reason);
+    expect(alertText(card)).toContain("Cannot show this evidence card");
+    expect(card.request).toBeNull();
+  });
+
+  it("names the field when a field inside the affidavit is malformed", () => {
+    const broken = JSON.parse(JSON.stringify(firstFiling)) as EvidenceCardRequest;
+    // @ts-expect-error deliberately malformed: the wire is not to be trusted.
+    delete broken.affidavit.fields[1].provenance;
+
+    const card = mount(null);
+    card.request = broken;
+
+    expect(alertText(card)).toContain("affidavit.fields[1] has no provenance object");
+  });
+
+  it("leaves the shadow root showing something a person can read, never blank", () => {
+    const card = mount(null);
+    card.request = without("affidavit.fields") as EvidenceCardRequest;
+
+    // The regression: the shadow root used to be left holding only <style>.
+    expect(card.shadowRoot?.childElementCount).toBeGreaterThan(1);
+    expect(shadowText(card).trim()).not.toBe("");
+  });
+
+  it("recovers when a good payload arrives after a bad one", () => {
+    const card = mount(null);
+    card.request = without("affidavit.fields") as EvidenceCardRequest;
+    card.request = firstFiling;
+
+    expect(card.shadowRoot?.querySelector('[role="alert"]')).toBeNull();
+    expect(shadowText(card)).toContain("UserStated");
+  });
+
+  it("fetched through src, says why in an alert rather than throwing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify(without("affidavit.fields")), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    );
+
+    const card = mount(null, { src: "/api/docket/current" });
+
+    await vi.waitFor(() => {
+      expect(alertText(card)).toContain("Could not load the evidence");
+    });
+    expect(alertText(card)).toContain("affidavit.fields is missing or not an array");
+    expect(card.request).toBeNull();
+  });
+
+  it("fetched through src, says so when the response is not JSON", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response("<!doctype html><title>login</title>", {
+            status: 200,
+            headers: { "content-type": "text/html" },
+          }),
+      ),
+    );
+
+    const card = mount(null, { src: "/api/docket/current" });
+
+    await vi.waitFor(() => {
+      expect(alertText(card)).toContain("the response was not JSON");
+    });
+    expect(card.request).toBeNull();
+  });
+
+  it("announces every failure with role=alert", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 503, statusText: "Service Unavailable" })),
+    );
+
+    const card = mount(null, { src: "/api/docket/current" });
+
+    await vi.waitFor(() => {
+      expect(alertText(card)).toContain("503");
+    });
+    expect(card.shadowRoot?.querySelector('p[role="alert"]')).not.toBeNull();
+  });
+});
+
 describe("the demo fixture", () => {
-  it("is the vendored wire capture, unedited", () => {
+  it("is the vendored wire fixture, unedited", () => {
     const demo = readFileSync(join(packageRoot, "demo", "fixture.json"), "utf8");
     const vendored = readFileSync(join(wireDir, "evidence-card-request.json"), "utf8");
     expect(demo).toBe(vendored);
