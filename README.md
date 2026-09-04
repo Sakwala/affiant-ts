@@ -8,12 +8,12 @@ This repository is the TypeScript implementation. It is held equivalent to the .
 
 ## Packages
 
-| Package                                                      | What it is                                                                                  | State                                                                                                            |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [`@affiant/contract`](packages/contract)                     | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                                          |
-| [`@affiant/evidence-card`](packages/evidence-card)           | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                                          |
-| [`@affiant/core`](packages/core)                             | the gate — Affidavit capture, interceptors, projection, policy, the Docket, decisions       | in repo, complete for Sequences A and C; not on npm until the parity report and the conformance driver are green |
-| [`@affiant/conformance-driver`](packages/conformance-driver) | runs the protocol's fixture suite against this implementation, on all three runtimes        | in repo, required in CI; private, never published                                                                |
+| Package                                                      | What it is                                                                                  | State                                                                                     |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [`@affiant/contract`](packages/contract)                     | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                   |
+| [`@affiant/evidence-card`](packages/evidence-card)           | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                   |
+| [`@affiant/core`](packages/core)                             | the gate — Affidavit capture, interceptors, projection, policy, the Docket, decisions       | in repo, complete for Sequences A and C; publishable at `v0.1.0` — awaiting the npm scope |
+| [`@affiant/conformance-driver`](packages/conformance-driver) | runs the protocol's fixture suite against this implementation, on all three runtimes        | in repo, required in CI; private, never published                                         |
 
 Later: `@affiant/store-postgres`, `@affiant/adapter-ai-sdk`, `@affiant/adapter-langchain`.
 
@@ -21,7 +21,7 @@ Later: `@affiant/store-postgres`, `@affiant/adapter-ai-sdk`, `@affiant/adapter-l
 
 **Runtimes:** Node 22 or newer, Cloudflare workerd and Bun — no Node-only API, no filesystem, no timer owned by a package here, and Web Crypto only, which is why the canonical hash is asynchronous everywhere. All three run the whole suite in CI.
 
-Nothing is on npm yet. The packages here are consumed through the workspace; publishing is a separate, deliberate step. For `@affiant/core` the condition is exact and mechanical: a public parity report naming what each implementation does not yet pass, and a green, merge-blocking TypeScript conformance driver. A `prepack` guard fails `npm pack` and `npm publish` with that reason until `AFFIANT_ALLOW_PUBLISH=1` is set.
+Nothing is on npm yet. The packages here are consumed through the workspace; publishing is a separate, deliberate step. For `@affiant/core` the condition was exact and mechanical: a public parity report naming what each implementation does not yet pass, and a green, merge-blocking TypeScript conformance driver. Both hold at the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0) tag — see [Conformance](#conformance) below — so `@affiant/core` is publishable and only the maintainer's `@affiant` npm scope and token are outstanding. A `prepack` guard still fails `npm pack` and `npm publish` with that reason until `AFFIANT_ALLOW_PUBLISH=1` is set.
 
 ## Try the card
 
@@ -91,7 +91,7 @@ Then it does the thing the driver exists for: it asserts that the set of documen
 
 That manifest lists nothing today. An empty list is the strongest possible statement, and it is worth something only because **the `conformance` job is required on `main`**: a red run cannot merge, on any of the three runtimes, and the failing set must be identical on each (RT-1).
 
-This is also the guard on publishing. `@affiant/core` goes to npm only when both implementations' parity manifests are public — the .NET line's names what it does not yet pass — and this check is green. Until then a `prepack` guard fails `npm pack` and `npm publish` with that reason.
+This is also the guard on publishing. `@affiant/core` goes to npm only when both implementations' parity manifests are public — the .NET line's names what it does not yet pass — and this check is green. Both conditions are now met at the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0) tag: the [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/dotnet-v0.1.json) is public, with its oracle run log alongside it under `conformance/results/`, and this repository's [`typescript-v0.1.json`](packages/conformance-driver/conformance/parity/typescript-v0.1.json) parity manifest records `"failing": []` against `"protocolTag": "v0.1.0"`, asserted by the `conformance` job required on `main`. `@affiant/core` is publishable; the only thing outstanding is the maintainer's own `@affiant` npm scope and token. A `prepack` guard still fails `npm pack` and `npm publish` until `AFFIANT_ALLOW_PUBLISH=1` is set for the release that runs once the scope and token exist.
 
 A host embedding `@affiant/core` can run the same suite against its own installation with `affiant-conformance`, and publish the run document beside whatever it claims about the framework it depends on.
 

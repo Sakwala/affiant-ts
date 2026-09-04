@@ -14,15 +14,21 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> **Not on npm.** This package lives in its repository and is consumed through the
-> workspace. The condition for publishing is exact: a **public parity report** — the
-> per-implementation list of conformance fixtures each implementation does not yet pass
-> — and a **green, merge-blocking TypeScript conformance driver** running the shared
-> fixture suite against this package. Until both hold, `@affiant/core` claiming to be
-> the same framework as the .NET packages would be a claim with nothing behind it. The
-> condition is enforced rather than promised: `prepack` refuses, so `npm pack` and
-> `npm publish` both fail with the reason, and `AFFIANT_ALLOW_PUBLISH=1` is the
-> deliberate override for the release that comes after.
+> **Publishable; awaiting the npm scope.** This package lives in its repository and is
+> consumed through the workspace. The condition for publishing was exact: a **public
+> parity report** — the per-implementation list of conformance fixtures each
+> implementation does not yet pass — and a **green, merge-blocking TypeScript
+> conformance driver** running the shared fixture suite against this package. Both now
+> hold, at the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0)
+> tag: the [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/dotnet-v0.1.json)
+> is public, with its oracle run log alongside it under `conformance/results/`, and
+> this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.1.json)
+> is green on Node, Bun and workerd, asserted by the `conformance` job that is
+> required on `main`. What remains is not a fixture or a check — it is the
+> maintainer's npm token. The gate is still enforced rather than relaxed on trust:
+> `prepack` refuses, so `npm pack` and `npm publish` both fail with the reason, until
+> the maintainer sets `AFFIANT_ALLOW_PUBLISH=1` once the `@affiant` scope and a
+> publish token for it exist.
 
 ## The rules this package is held to
 
