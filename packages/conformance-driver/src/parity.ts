@@ -178,11 +178,12 @@ export const parityManifest: ParityManifest = {
   ],
   exemptions: inheritedExemptions,
   notes:
-    "The protocolTag is a commit rather than a tag: the rulebook's v0.1 text is on its default " +
-    "branch and v0.1.0 has not been cut. A commit is as immutable as a tag and, unlike a tag, " +
-    "cannot be moved under a running build; this manifest and the driver's pin move to the tag in " +
-    "the same pull request that adopts it. The suite is run on all three claimed runtimes and the " +
-    "failing set is asserted identical on each.",
+    "The protocolTag is the rulebook's v0.1.0 tag, which this repository pins in " +
+    "packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The " +
+    "suite is run on all three claimed runtimes and the failing set is asserted identical on " +
+    "each; an empty failing set is what this implementation owes, being the one the fixtures " +
+    "were promoted from, and the run it is read off is published beside this manifest in the " +
+    "rulebook.",
 };
 
 /** What a run disagreed with the manifest about. Empty on both sides is the only green answer. */

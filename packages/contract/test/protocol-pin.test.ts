@@ -69,10 +69,10 @@ const reachable = await fetch(`${rawBase}/conformance/fixtures/MANIFEST.json`)
 
 describe("the pinned protocol ref", () => {
   it("is a tag naming the version the package advertises, or an immutable commit", () => {
-    // The rulebook's v0.1 text is on its default branch and `v0.1.0` has not been
-    // cut, so the pin is the commit that carries it. A full commit is as immutable
-    // as a tag and, unlike a tag, cannot be moved under a running build; when the
-    // tag exists the pin becomes `v0.1.0` and this assertion takes its first arm.
+    // The pin is the tag naming the version this package advertises. The second arm
+    // is for the window in which a version's text is on the rulebook's default
+    // branch and its tag has not been cut: a full commit is as immutable as a tag
+    // and, unlike a tag, cannot be moved under a running build.
     expect(pin === `v${PROTOCOL_VERSION}` || /^[0-9a-f]{40}$/.test(pin)).toBe(true);
   });
 
