@@ -241,6 +241,11 @@ export interface CanonicalVectorDocument {
   readonly amendments: JsonData;
   /** The reviewer act the amendments arrived on, or \`null\`. */
   readonly reviewerAct: JsonData;
+  /**
+   * The accepted state those amendments produce — the Affidavit the canonical form is
+   * actually taken over (SR-1). Present only on a vector that carries amendments.
+   */
+  readonly amendedInput?: JsonData;
   /** The exact canonical bytes, as a UTF-8 string. */
   readonly expectedBytesUtf8: string;
   /** The SHA-256 of those bytes, as 64 lowercase hex characters. */

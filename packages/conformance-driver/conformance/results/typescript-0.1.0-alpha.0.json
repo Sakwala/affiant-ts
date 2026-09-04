@@ -5,21 +5,21 @@
     "version": "0.1.0-alpha.0",
     "runtime": "node"
   },
-  "protocolTag": "v0.1.0",
-  "producedAt": "2026-09-04T03:30:35.216Z",
+  "protocolTag": "v0.1.1",
+  "producedAt": "2026-09-04T05:03:50.036Z",
   "summary": {
     "total": 63,
     "passed": 63,
     "failed": 0,
     "errored": 0,
     "skipped": 0,
-    "durationMs": 182
+    "durationMs": 170
   },
   "results": [
     {
       "id": "gate/substance-hollow-refused",
       "outcome": "pass",
-      "durationMs": 102
+      "durationMs": 96
     },
     {
       "id": "gate/substance-zero-field-refused",
@@ -29,22 +29,22 @@
     {
       "id": "gate/ttl-from-verdict",
       "outcome": "pass",
-      "durationMs": 19
+      "durationMs": 10
     },
     {
       "id": "gate/ttl-from-policy-default",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/ttl-from-gate-default",
       "outcome": "pass",
-      "durationMs": 4
+      "durationMs": 2
     },
     {
       "id": "gate/standing-order-by-the-book",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "gate/standing-order-threshold-under",
@@ -69,12 +69,12 @@
     {
       "id": "gate/multiparty-blocked",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "gate/referral-blocked",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/coverage-refused-declared",
@@ -84,17 +84,17 @@
     {
       "id": "gate/update-previous-values",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "gate/create-null-previous-values",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/inference-conversation-and-inferred",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 3
     },
     {
       "id": "gate/threshold-without-scorer",
@@ -119,12 +119,12 @@
     {
       "id": "decide/expired-amendments-preserved",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "decide/blocked-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/amend-recompute",
@@ -199,7 +199,7 @@
     {
       "id": "sequence-a/approve-round-trip",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/reject-round-trip",
@@ -209,7 +209,7 @@
     {
       "id": "sequence-a/typed-inputs-on-the-card",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "sequence-a/picker-external-binding",
@@ -254,7 +254,7 @@
     {
       "id": "sequence-a/rehydration-order",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "sequence-a/coverage-refused-at-wire-up",
@@ -264,7 +264,7 @@
     {
       "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/optional-field-empty-standing-order-fires",
@@ -274,12 +274,12 @@
     {
       "id": "sequence-c/relay-auto-approve-bound-external",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-c/relayed-decision-member-via-relay",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/unbound-external-asks-a-person",
@@ -299,12 +299,12 @@
     {
       "id": "canonical/create-shaped",
       "outcome": "pass",
-      "durationMs": 4
+      "durationMs": 5
     },
     {
       "id": "canonical/update-shaped",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/wire-evidence-card-request",
@@ -314,12 +314,12 @@
     {
       "id": "canonical/wire-evidence-card-request-amended",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/key-order-stress",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/number-forms",

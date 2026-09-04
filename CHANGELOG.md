@@ -12,6 +12,23 @@ was made against.
 
 ### Changed
 
+- **The protocol pin moves to [`v0.1.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.1).**
+  The rulebook re-promoted the seven canonical byte vectors from this repository and
+  added a lint that validates every vector's record against the Affidavit schema; the
+  wire, the `0.1.0` schemas and the 56 declarative fixtures are unchanged. What moves
+  here is `packages/contract/protocol/`, the two generated modules under
+  `packages/contract/src/`, and the conformance driver's committed run and parity
+  manifest, both now naming `v0.1.1`. 63 of 63 on Node, Bun and workerd, failing set
+  still empty.
+
+  The pin and the wire version are now different numbers, and
+  `packages/contract/test/protocol-pin.test.ts` says so: `PROTOCOL_VERSION` is the
+  wire version SR-4 stamps on an envelope, and the pin is a rulebook *release* tag,
+  which may carry a patch over a wire that did not change. The test requires the
+  tag's major and minor to be the wire's — a differing minor would mean this package
+  had vendored the schemas of a wire it does not target — and lets the patch be the
+  rulebook's own.
+
 - **The canonical byte vectors describe the v0.1 record.** They were promoted to the
   rulebook at [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0)
   from this implementation *before* it was aligned to the v0.1 wire, so their inputs

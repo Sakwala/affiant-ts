@@ -178,7 +178,7 @@ export const parityManifest: ParityManifest = {
   ],
   exemptions: inheritedExemptions,
   notes:
-    "The protocolTag is the rulebook's v0.1.0 tag, which this repository pins in " +
+    "The protocolTag is the rulebook's v0.1.1 tag, which this repository pins in " +
     "packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The " +
     "suite is run on all three claimed runtimes and the failing set is asserted identical on " +
     "each; an empty failing set is what this implementation owes, being the one the fixtures " +
