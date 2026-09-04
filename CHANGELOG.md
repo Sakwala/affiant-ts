@@ -13,11 +13,9 @@ was made against.
 ### Changed
 
 - **The wire is the rulebook's v0.1** (`protocolVersion` `0.1.0`), and
-  `packages/contract/protocol/PIN` moves from the tag `v0.0.1-seed` to the commit
-  that carries the v0.1 text. The rulebook's `v0.1.0` tag has not been cut; a commit
-  is as immutable as a tag and, unlike a tag, cannot be moved under a running build,
-  and the pin becomes the tag in the pull request that adopts it. What changed on the
-  wire, and why each thing moved:
+  `packages/contract/protocol/PIN` moves from the tag `v0.0.1-seed` to the tag
+  [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0). What
+  changed on the wire, and why each thing moved:
   - **Every envelope carries `protocolVersion`** (SR-4) — the Affidavit, the card
     envelope, the Docket row, the decision result and every notification. A consumer
     refuses a payload whose major differs and may warn on a newer minor.

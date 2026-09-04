@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 242964faba9e6852b8fbfcdef6c3296b5c705f59.
+// copy of Sakwala/affiant-protocol at v0.1.0.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "242964faba9e6852b8fbfcdef6c3296b5c705f59" as const;
+export const PROTOCOL_PIN = "v0.1.0" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must

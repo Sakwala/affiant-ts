@@ -118,12 +118,15 @@ const verdict = compareToManifest(run);
 if (!verdict.matches) process.exitCode = 1;
 ```
 
-## The gap this leaves open, on purpose
+## Where the manifest is published
 
-The parity manifest belongs beside the fixtures it is about, in the rulebook repository at
-`conformance/parity/typescript-v0.1.json`. It lives here until the rulebook cuts its `v0.1.0` tag, because a
-manifest names the ref it was produced against and this one names a commit. It moves upstream, and the pin
-moves from the commit to the tag, in the same pull request.
+The manifest belongs beside the fixtures it is about, and it is there: the rulebook carries it at
+[`conformance/parity/typescript-v0.1.json`](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/typescript-v0.1.json),
+with the run it was read off at
+[`conformance/results/typescript-0.1.0-alpha.0/`](https://github.com/Sakwala/affiant-protocol/tree/v0.1.0/conformance/results/typescript-0.1.0-alpha.0).
+The copy under `conformance/` here is the one this package's CI asserts against and the one the upstream copy is
+made from; the two move in the same pull request, because a manifest names the ref it was produced against and a
+copy that disagreed with its own run would be a claim nobody could check.
 
 ## Licence
 
