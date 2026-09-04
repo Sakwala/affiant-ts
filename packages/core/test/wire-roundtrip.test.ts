@@ -198,7 +198,15 @@ describe("a payload from another protocol version is refused, never guessed at (
   });
 
   it("accepts a newer minor, because a minor only adds", () => {
-    expect(fromWire({ ...wire, protocolVersion: "0.2.0" }, { at: AT })).toEqual(core);
+    // And keeps the version it arrived under (SR-4). The record is otherwise the
+    // same record: restamping it with this package's own version would make
+    // `toWire(fromWire(x))` a different document from `x`, and — since SR-1's
+    // canonical form is over the record as the schema defines it, `protocolVersion`
+    // included — a different hash for evidence nobody changed.
+    const newer = fromWire({ ...wire, protocolVersion: "0.2.0" }, { at: AT });
+
+    expect(newer).toEqual({ ...core, protocolVersion: "0.2.0" });
+    expect(toWire(newer).protocolVersion).toBe("0.2.0");
   });
 });
 

@@ -2329,7 +2329,7 @@ export const fixtures: readonly Fixture[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true,
       },
-      "canonicalHash": "8d1579d7c6e7463ae44e36adfc4db166066cf0ae4ddd3e3ea04b52f394ecff6a",
+      "canonicalHash": "d389401ddf036c47a3eaac5c830c97b671de1eeffd1b64571072eef383bd3402",
     },
   },
   // decide/07-unresolved-identity.json
@@ -4434,7 +4434,7 @@ export const fixtures: readonly Fixture[] = [
         "pending": 0,
         "approvedUnexecuted": 0,
       },
-      "canonicalHash": "776b7b407490fb96b4792a1aba4dd0ea23518e4fb5288324fa0ce56af6837275",
+      "canonicalHash": "2ce4c4afcf3c094f04acec7c447235d71455f5eb8e01013da5262d7c5840eca9",
     },
   },
   // sequence-a/02-reject-round-trip.json

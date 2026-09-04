@@ -1,19 +1,27 @@
 import { describe, expect, it } from "vitest";
 
 import type { AmendmentMap } from "@affiant/contract";
+import { PROTOCOL_VERSION } from "@affiant/contract";
 
-import { amendmentTag } from "../src/model/amendments.js";
+import type { Affidavit } from "../src/model/affidavit.js";
+import { buildAffidavit, fromWire, toWire } from "../src/model/affidavit.js";
+import { amendmentTag, applyAmendments } from "../src/model/amendments.js";
 import type { ReviewerAct } from "../src/model/amendments.js";
 import {
   applyAmendmentsForCanonical,
   canonicalHash,
+  canonicalHashEntry,
   canonicalJson,
   canonicalString,
+  canonicalStringEntry,
   canonicalize,
   sha256Hex,
+  swornAffidavitOf,
 } from "../src/model/canonical.js";
 import type { CanonicalInput, CanonicalizeOptions } from "../src/model/canonical.js";
+import { chainOf, mintConversation, mintTag } from "../src/model/provenance.js";
 
+import { anEntry } from "./docket-support.js";
 import { canonicalVector, canonicalVectors } from "./fixtures/canonical.generated.js";
 import type { CanonicalVector } from "./fixtures/canonical.generated.js";
 
@@ -711,6 +719,108 @@ describe("canonicalHash (SR-1, RT-1)", () => {
     // `echo -n '{}' | sha256sum`
     expect(await sha256Hex(new TextEncoder().encode("{}"))).toBe(
       "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// One record, one document (SR-1, SR-4)
+// ---------------------------------------------------------------------------
+
+/**
+ * The runtime model and the wire document are the same record, so they are the
+ * same bytes.
+ *
+ * SR-1 takes the canonical form over the Affidavit **as the schema defines it**,
+ * and `schemas/0.1.0/affidavit.schema.json` requires `protocolVersion` on an
+ * Affidavit. The runtime model did not carry it: `toWire` added it on the way out,
+ * so the document a host put on a card and the record a Docket row hashed were two
+ * different objects, and the hash a grant binds to was taken over a document the
+ * protocol does not have. Every promoted byte vector carries the property, so the
+ * document path was right and the runtime path was wrong.
+ *
+ * These are the checks that keep the two paths from parting again. They compare
+ * *bytes*, not hashes: a digest mismatch says only that something differs, and the
+ * bytes say what.
+ */
+describe("the runtime form and the document form are one document", () => {
+  /** The instant every record here is built at. Nothing in this file reads a clock. */
+  const AT = "2026-09-04T09:00:00.000Z";
+  /** The decision an amendment below arrives on (PV-2). */
+  const act: ReviewerAct = {
+    entryId: "8f14e45f-ceea-467e-bd76-000000000001",
+    decisionAt: "2026-09-04T09:12:00.000Z",
+    by: "ana",
+  };
+
+  /** A record built the way a host's gate builds one. */
+  function built(): Affidavit {
+    return buildAffidavit(
+      { kind: "update", entityType: "Widget", entityId: "W-1", fields: ["Status", "Weight"] },
+      [
+        {
+          name: "Status",
+          kind: "enum",
+          value: "Active",
+          previousValue: "Draft",
+          isMandatory: true,
+          provenance: chainOf(
+            mintTag({ source: "UserStated", confidence: 1, note: "User stated: Status", at: AT }),
+          ),
+        },
+        {
+          name: "Weight",
+          kind: "number",
+          value: 12.5,
+          previousValue: 10,
+          isMandatory: false,
+          provenance: chainOf(
+            mintConversation({
+              confidence: 0.9,
+              note: "Extracted from the turn",
+              at: AT,
+              conversationTurn: 3,
+            }),
+          ),
+        },
+      ],
+      { createdAt: AT, conversationTurn: 3 },
+    );
+  }
+
+  it("canonicalizes a record to the same bytes through the model and through the wire", () => {
+    const record = built();
+
+    expect(canonicalString(record)).toBe(canonicalString(toWire(record)));
+  });
+
+  it("puts the version the record conforms to in the bytes (SR-4)", () => {
+    const bytes = canonicalString(built());
+
+    expect(bytes).toContain(`"protocolVersion":"${PROTOCOL_VERSION}"`);
+    expect(JSON.parse(bytes)).toMatchObject({ protocolVersion: PROTOCOL_VERSION });
+  });
+
+  it("keeps the two paths together across an amendment", () => {
+    const amended = applyAmendments(built(), { Status: "Retired" }, act);
+
+    expect(canonicalString(amended)).toBe(canonicalString(toWire(amended)));
+    expect(canonicalString(amended)).not.toBe(canonicalString(built()));
+  });
+
+  it("hashes a Docket row over the same bytes the row's own record writes", async () => {
+    const entry = anEntry("8f14e45f-ceea-467e-bd76-000000000001");
+    const sworn = swornAffidavitOf(entry);
+
+    expect(canonicalStringEntry(entry)).toBe(canonicalString(toWire(sworn)));
+    expect(await canonicalHashEntry(entry)).toBe(await canonicalHash(toWire(sworn)));
+  });
+
+  it("keeps a record read back off the wire byte-identical to the one written out", () => {
+    const record = built();
+
+    expect(canonicalString(fromWire(toWire(record), { at: AT, conversationTurn: 3 }))).toBe(
+      canonicalString(record),
     );
   });
 });

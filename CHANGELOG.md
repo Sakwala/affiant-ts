@@ -153,6 +153,14 @@ was made against.
 
 ### Fixed
 
+- **The canonical form is taken over the Affidavit as the schema defines it,
+  `protocolVersion` included** (SR-1, SR-4). The runtime model omitted the property
+  and `toWire` added it, so the record a Docket row hashed was not the document the
+  same row put on a card. The fix and its reasoning are in the
+  [`@affiant/core` changelog](packages/core/CHANGELOG.md); two declarative fixtures
+  pinned hashes produced by the old runtime path and are re-pinned from the corrected
+  reference, which is why the protocol pin moves to `v0.1.2`.
+
 - **Every published package now ships its licence.** `@affiant/core`,
   `@affiant/contract` and `@affiant/evidence-card` each carry a `LICENSE` copied
   byte for byte from the repository root and named in their `files` list. npm does
