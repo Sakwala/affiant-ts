@@ -40,6 +40,28 @@ const check = process.argv.includes("--check");
 const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
 
 /**
+ * `protocol/PIN` must be a version tag or a full 40-character commit (see the
+ * doc comment above for why a commit is allowed) — never a branch or a short
+ * SHA, both of which the GitHub API and raw.githubusercontent.com would also
+ * happily resolve today, silently, to whatever they currently point at.
+ * `test/protocol-pin.test.ts` enforces this identical rule on the same file,
+ * with the same message, so a malformed pin is rejected the same way whichever
+ * tool reads it first.
+ */
+function assertValidPin(candidate) {
+  const isTag = /^v\d+\.\d+\.(0|[1-9]\d*)$/.test(candidate);
+  const isCommit = /^[0-9a-f]{40}$/.test(candidate);
+  if (!isTag && !isCommit) {
+    throw new Error(
+      `protocol/PIN must be a version tag (v<major>.<minor>.<patch>) or a full ` +
+        `40-character commit, not "${candidate}"`,
+    );
+  }
+}
+
+assertValidPin(pin);
+
+/**
  * Which upstream paths are vendored, and where each lands locally.
  *
  * The current wire version's schemas land at `protocol/schemas/`, so the path a

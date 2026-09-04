@@ -23,10 +23,11 @@ import time.
 description of what one implementation happened to send. The ref it is pinned to is
 in [`protocol/PIN`](protocol/PIN).
 
-That ref is the rulebook's **`v0.1.0`** tag. It may also be a full commit, which is
-what it holds while a version's text is on the rulebook's default branch and its tag
-has not been cut: a commit is as immutable as a tag and, unlike a tag, cannot be
-moved under a running build.
+That ref is the rulebook's **`v0.1.1`** tag — [`protocol/PIN`](protocol/PIN) above is
+the exact, current source of truth if this line has drifted from it again. It may
+also be a full commit, which is what it holds while a version's text is on the
+rulebook's default branch and its tag has not been cut: a commit is as immutable as
+a tag and, unlike a tag, cannot be moved under a running build.
 
 Everything under `protocol/` is a byte-for-byte copy at that ref — 176 documents:
 
@@ -41,11 +42,14 @@ Everything under `protocol/` is a byte-for-byte copy at that ref — 176 documen
 | `protocol/conformance/`                                  | the four formats a driver reads, and the coverage-exemption list it copies                     |
 
 `test/protocol-pin.test.ts` checksums every copy against
-[`protocol/SHA256SUMS`](protocol/SHA256SUMS) on every run — offline included — and
-fetches the same files from the ref itself whenever the network is reachable.
-`test/generated.test.ts` then asserts that `src/schemas.ts`, `src/conformance.ts`
-and `test/fixtures.generated.ts`, the three committed generated modules, are exactly
-what those copies say they should be.
+[`protocol/SHA256SUMS`](protocol/SHA256SUMS), and separately fetches the pinned ref
+itself — as one archive, retried on a transient network failure — and compares
+every copy against it byte for byte. A mismatch, a missing file, or a network that
+still cannot be reached after retrying all fail that test; none of them skip it,
+because this is a merge-blocking check and a skip would let ref drift merge
+unnoticed. `test/generated.test.ts` then asserts that `src/schemas.ts`,
+`src/conformance.ts` and `test/fixtures.generated.ts`, the three committed
+generated modules, are exactly what those copies say they should be.
 
 ### What changed from the seed
 
