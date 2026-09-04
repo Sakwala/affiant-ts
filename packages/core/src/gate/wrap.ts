@@ -38,6 +38,7 @@ import type { TurnContext } from "../context.js";
 import type { DocketStatus } from "../docket/entry.js";
 import type { ErrorCode } from "../errors.js";
 import { AffiantError, isAffiantError } from "../errors.js";
+import type { JsonValue } from "../model/affidavit.js";
 
 import type { ToolDefinition } from "./coverage.js";
 import { assessCoverage } from "./coverage.js";
@@ -206,7 +207,14 @@ export function wrapTool<TArgs, TResult>(
             operation: toOperation(args),
             toolName: tool.name,
             schema: tool.inputSchema,
-            args,
+            // A model's tool arguments are JSON — that is what a tool call is on
+            // every transport this gate sits behind. `TArgs` is the tool author's
+            // own type and `wrap` does not constrain it (an interface would not
+            // satisfy `JsonValue`'s index signature, and refusing those tools would
+            // buy nothing), so the value is admitted here. `deriveEntryId` still
+            // raises a TypeError naming the offending path if a host hands the gate
+            // something with no canonical form.
+            args: args as JsonValue,
             preparedFields: null,
             operationLabel,
             supersedes: null,

@@ -222,8 +222,17 @@ export type PreservedAct = Omit<PreservedAmendments, "amendments">;
 /** What {@link DocketStore.preserveAmendments} returns. */
 export type PreserveAmendmentsResult = DocketEntry | "not-found" | "not-expired";
 
-/** What {@link DocketStore.recordExecution} returns. */
-export type RecordExecutionResult = DocketEntry | "not-found" | "not-approved";
+/**
+ * What {@link DocketStore.recordExecution} returns.
+ *
+ * `"execution-already-recorded"` is the execution transition's half of DK-1's
+ * guarded compare-and-set: the row already carries an outcome, so this report is
+ * refused rather than written over the first one. It is a different answer from
+ * `"not-approved"` — that row was never approved and has no authorised write behind
+ * it at all, while this one is approved and already has its outcome on the record.
+ */
+export type RecordExecutionResult =
+  DocketEntry | "not-found" | "not-approved" | "execution-already-recorded";
 
 /** What {@link DocketStore.recordSupersession} returns. */
 export type RecordSupersessionResult = DocketEntry | "not-found" | "not-terminal";
@@ -307,20 +316,39 @@ export interface DocketStore {
   ): Promise<PreserveAmendmentsResult>;
 
   /**
-   * Record what the host's executor reported for an approved entry (DK-1).
+   * Record what the host's executor reported for an approved entry, **once**
+   * (DK-1, DK-4).
    *
    * `status` stays `approved`; only `execution` and `executionDetail` move. The
    * framework never performs the write (AZ-7) — it records what the host says
    * happened, so that an approved-but-failed write is distinguishable from an
    * approved-and-committed one on the row.
    *
-   * Returns `"not-approved"` for any row that is not `approved`.
+   * **A guarded compare-and-set, exactly like {@link DocketStore.transition}.**
+   * `expected` is `"unexecuted"` and only `"unexecuted"`: the execution transition
+   * runs once, out of the state a row is approved in, and a second report is refused
+   * with `"execution-already-recorded"` rather than written on top. Without the
+   * guard an `executed` row could be flipped to `failed` by a later caller — an edit
+   * in place of a recorded fact, which DK-4 forbids, leaving an approved-and-
+   * committed write indistinguishable from an approved-but-failed one, which DK-1
+   * forbids.
+   *
+   * The consequence for a host is one sentence: **a host that retries a write
+   * reports once, when it knows the outcome.** AZ-5 already says an outbox is a
+   * retry of an already-attested write and never a second authorization path; this
+   * is the same statement about the record — the retries are the host's business,
+   * the outcome is the Docket's.
+   *
+   * Returns `"not-approved"` for any row that is not `approved`, and
+   * `"execution-already-recorded"` for an approved row whose `execution` has already
+   * moved off `"unexecuted"`.
    */
   recordExecution(
     entryId: string,
     scope: Scope,
     outcome: Exclude<ExecutionOutcome, "unexecuted">,
     detail: string | null,
+    expected: "unexecuted",
   ): Promise<RecordExecutionResult>;
 
   /**

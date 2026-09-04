@@ -35,6 +35,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "LICENSE",
     "dist",
     "protocol"
   ],

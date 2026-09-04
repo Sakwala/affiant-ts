@@ -38,8 +38,15 @@ describe("ErrorCode (CV-1)", () => {
     }
   });
 
-  it("pins the registry order", () => {
-    expect([...ERROR_CODES]).toEqual(shipped);
+  /** The registry as it stands. Grows at the end; the prefix above never moves. */
+  const current = [...shipped, "execution-already-recorded"];
+
+  it("pins the registry order, and only ever appends", () => {
+    // A code may be added. Inserting one among the codes that already shipped, or
+    // reordering them, reads as a rename to every host branching on this list - so
+    // the shipped prefix is asserted in place, and additions land after it.
+    expect(ERROR_CODES.slice(0, shipped.length)).toEqual(shipped);
+    expect([...ERROR_CODES]).toEqual(current);
   });
 
   it("keys every code by itself, so there is one spelling to remember", () => {

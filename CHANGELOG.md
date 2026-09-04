@@ -12,6 +12,12 @@ was made against.
 
 ### Fixed
 
+- **Every published package now ships its licence.** `@affiant/core`,
+  `@affiant/contract` and `@affiant/evidence-card` each carry a `LICENSE` copied
+  byte for byte from the repository root and named in their `files` list. npm does
+  not reach outside a package directory, so the root copy never entered a tarball -
+  and Apache-2.0 section 4(a) says a recipient of the work gets a copy. A test in
+  `@affiant/core` asserts all three, so a `files` rewrite cannot drop one silently.
 - The seed fixtures were described as payloads captured off a shipped
   implementation's wire, on the README, in both package READMEs, in the Pages
   workflow and on the published demo page. They are not captures: they are

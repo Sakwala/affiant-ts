@@ -103,6 +103,7 @@ import type { AmendmentMap } from "@affiant/contract";
 
 import type { DocketEntry } from "../docket/entry.js";
 
+import type { Affidavit } from "./affidavit.js";
 import type { ReviewerAct } from "./amendments.js";
 import { amendmentTag, resolveAmendments } from "./amendments.js";
 import { MONEY_AMOUNT_PATTERN, MONEY_CURRENCY_PATTERN } from "./money.js";
@@ -381,7 +382,7 @@ export async function canonicalHash(
  * `amendedAffidavit` as the approval accepted it — so the sworn form and the
  * proposal are separately readable and only one of them is what a grant binds to.
  */
-export function swornAffidavitOf(entry: DocketEntry): CanonicalInput {
+export function swornAffidavitOf(entry: DocketEntry): Affidavit {
   return entry.amendedAffidavit ?? entry.affidavit;
 }
 

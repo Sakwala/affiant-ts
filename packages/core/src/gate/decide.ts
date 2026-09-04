@@ -24,9 +24,13 @@
  *    is about not doing any work on an entry for a caller who has not been
  *    identified. A read that happened before the refusal is a read an attacker can
  *    time.
- * 2. **The entry is fetched inside the caller's tenant.** A row in another tenant is
- *    reported as `entry-not-found`, exactly as an id that never existed — never
- *    "not authorized for that tenant", which would be an oracle for guessing ids.
+ * 2. **The entry is fetched inside the caller's tenant, and the row that comes back
+ *    is checked against it.** A row in another tenant is reported as
+ *    `entry-not-found`, exactly as an id that never existed — never "not authorized
+ *    for that tenant", which would be an oracle for guessing ids. The scope goes to
+ *    the store *and* the row's own `tenantId` is compared here, because AZ-2 makes
+ *    this the framework's check: a host store with a scope bug would otherwise fail
+ *    open with nothing above it noticing.
  * 3. **The host's authorization port.** Its answer is the host's own — role,
  *    ownership, separation of duties. A port that throws is a refusal.
  * 4. **What the entry reads *now*.** Expiry is state (DK-1): a row past its deadline
@@ -300,8 +304,17 @@ export async function decide(
  * and the host's authorization port still apply, so "which service may report on this
  * entry" is still the host's answer and not an open door.
  *
- * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`, or
- *         `"decision-not-pending"` when the row is not `approved`.
+ * **Reported once.** The execution transition is a guarded compare-and-set out of
+ * `"unexecuted"`, like every other transition on a row (DK-1): a second report is
+ * refused and the first stands. Overwriting would let an approved-and-committed row
+ * later read `failed` — an edit in place of a recorded fact (DK-4), and the loss of
+ * exactly the distinction DK-1 requires the row to keep. So a host that retries a
+ * write reports **once**, when it knows the outcome; the retries are the host's
+ * business (AZ-5), the outcome is the Docket's.
+ *
+ * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`,
+ *         `"decision-not-pending"` when the row is not `approved`, or
+ *         `"execution-already-recorded"` when it already carries an outcome.
  */
 export async function markExecuted(
   entryId: string,
@@ -317,8 +330,20 @@ export async function markExecuted(
   const entry = await requireEntry(entryId, ctx, "mark-executed", deps, now);
   await requireAuthorized(principal, entry, ctx, "mark-executed", deps, now);
 
-  const result = await deps.store.recordExecution(entryId, scope, outcome, detail);
+  const result = await deps.store.recordExecution(entryId, scope, outcome, detail, "unexecuted");
   if (result === "not-found") throw notFound(entryId, ctx);
+  if (result === "execution-already-recorded") {
+    const recorded = await deps.store.get(entryId, scope);
+    throw new AffiantError(
+      "execution-already-recorded",
+      `DK-4, DK-1: Docket entry ${JSON.stringify(entryId)} already carries an execution ` +
+        `outcome, so this report is refused rather than written over it. A recorded fact is ` +
+        `never edited in place, and an approved-and-committed write has to stay ` +
+        `distinguishable from an approved-but-failed one. A host that retries a write reports ` +
+        `once, when it knows the outcome.`,
+      { entryId, recorded: recorded?.execution ?? null, outcome },
+    );
+  }
   if (result === "not-approved") {
     throw new AffiantError(
       "decision-not-pending",
@@ -539,7 +564,17 @@ function requirePrincipal(
   );
 }
 
-/** The entry inside the caller's tenant, or `entry-not-found` — never an oracle (AZ-2). */
+/**
+ * The entry inside the caller's tenant, or `entry-not-found` — never an oracle (AZ-2).
+ *
+ * The scoped read is asked for **and** the answer is checked. AZ-2 says the tenant
+ * boundary is "checked by the framework … a rule the framework enforces is the only
+ * version of this check that every host gets" — and a check that consists solely of
+ * passing a `tenantId` to `store.get` is a check the *store* performs. A host store
+ * with a scope bug then fails open and the gate does not notice. So the row's own
+ * `tenantId` is compared here, after the read, whatever the store returned: two
+ * independent enforcements of one rule, which is what "fail closed" is worth.
+ */
 async function requireEntry(
   entryId: string,
   ctx: TurnContext,
@@ -548,16 +583,19 @@ async function requireEntry(
   now: string,
 ): Promise<DocketEntry> {
   const entry = await deps.store.get(entryId, { tenantId: ctx.tenantId });
-  if (entry !== null) return entry;
+  if (entry !== null && entry.tenantId === ctx.tenantId) return entry;
   // The host is told an attempt was made; the caller is told only that there is no
-  // such entry, which is also the answer a caller in another tenant gets.
+  // such entry, which is also the answer a caller in another tenant gets. The two
+  // reasons are separated for the host alone: `tenant-mismatch` means the store
+  // answered a scoped read with another tenant's row, which is a bug in that store
+  // and the one thing this second check exists to surface.
   deps.telemetry.emit({
     key: "decision.unauthorized",
     at: now,
     attributes: {
       "entry.id": entryId,
       "gen_ai.conversation.id": ctx.conversationId,
-      reason: "entry-not-found",
+      reason: entry === null ? "entry-not-found" : "tenant-mismatch",
       "principal.kind": ctx.principal?.kind ?? "unresolved",
       path,
     },

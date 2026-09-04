@@ -1,7 +1,7 @@
 {
-  "id": "decide/amend-recompute",
-  "rules": ["AF-1", "AF-4", "DK-2", "DK-4", "PV-2", "SR-1"],
-  "title": "An approval carrying an amendment map sets the named values and leaves a field the map does not name untouched. The row keeps the Affidavit as the agent proposed it - unedited, so a reader can still see what the machine said - and gains the accepted state beside it (DK-4). In that accepted state a set field's provenance is the reviewer's act with a reviewer-act binding, and a cleared optional field is off the record entirely, because a field the write no longer proposes is absent rather than present with nothing in it (AF-1) - and because writing the reviewer's confidence of 1 over an emptied field would let a reviewer wipe an Affidavit and leave it reporting perfect confidence over nothing (AF-2). The three numbers are recomputed over what is left. The canonical form follows the accepted state, so a grant minted over the proposal cannot validate the amendment (SR-1).",
+  "id": "decide/execution-second-report-refused",
+  "rules": ["DK-1", "DK-4", "AZ-5"],
+  "title": "The guard runs in both directions: a write reported failed cannot later be reported executed either. A host that retries a write reports once, when it knows the outcome - the retries are the host's business, and the Docket carries the one fact about what happened, not the last thing anybody said.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",
@@ -67,38 +67,58 @@
             }
           }
         ]
+      },
+      {
+        "kind": "decide",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve"
+        },
+        "refusal": null
+      },
+      {
+        "kind": "markExecuted",
+        "at": "2026-09-04T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "outcome": "failed",
+        "detail": "unique constraint on invoice_no",
+        "refusal": null
       }
     ],
     "step": {
-      "kind": "decide",
-      "at": "2026-09-04T09:00:00.000Z",
+      "kind": "markExecuted",
+      "at": "2026-09-04T09:02:00.000Z",
       "principal": {
         "kind": "member",
         "id": "ana"
       },
-      "decision": {
-        "kind": "approve",
-        "amendments": {
-          "amount": "4000",
-          "note": null
-        }
-      }
+      "outcome": "executed",
+      "detail": "retried and it worked"
     }
   },
   "expect": {
+    "error": {
+      "code": "execution-already-recorded",
+      "messageContains": "reports once"
+    },
     "entry": {
       "status": "approved",
-      "execution": "unexecuted",
+      "execution": "failed",
+      "executionDetail": "unique constraint on invoice_no",
       "requirement": "ReviewerConfirmation",
       "blocked": null,
       "attestation": {
         "kind": "member",
         "id": "ana"
       },
-      "amendments": {
-        "amount": "4000",
-        "note": null
-      },
+      "amendments": null,
       "decision": {
         "kind": "approve",
         "reason": null
@@ -128,34 +148,14 @@
           }
         ]
       },
+      "amendedAffidavit": null,
       "lineage": {
         "supersededBy": null
-      },
-      "amendedAffidavit": {
-        "aggregateConfidence": 0.9,
-        "populatedConfidence": 0.9,
-        "emptyFieldCount": 0,
-        "fields": [
-          {
-            "name": "status",
-            "value": "Active",
-            "source": "Conversation",
-            "bound": false
-          },
-          {
-            "name": "amount",
-            "value": "4000",
-            "source": "UserStated",
-            "bound": true,
-            "bindingKind": "reviewer-act",
-            "confidence": 1,
-            "priorSources": ["Conversation"]
-          }
-        ]
-      },
-      "preservedAmendments": null,
-      "canonicalDiffersFromProposal": true
+      }
     },
-    "canonicalHash": "8d1579d7c6e7463ae44e36adfc4db166066cf0ae4ddd3e3ea04b52f394ecff6a"
+    "store": {
+      "count": 1,
+      "approvedUnexecuted": 0
+    }
   }
 }
