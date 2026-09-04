@@ -6,18 +6,25 @@ import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { PROTOCOL_VERSION } from "../src/index.js";
+import { extractTarGz, fetchWithRetry } from "./support/tar-archive.js";
 
 /**
  * `protocol/` is vendored: a byte-for-byte copy of the schemas, the conformance
  * suite and the machine-readable formats at one ref of Sakwala/affiant-protocol.
- * Two checks guard it, and the first of them needs nothing but the disk:
+ * Two checks guard it:
  *
  * 1. **Against `protocol/SHA256SUMS`, always.** `scripts/sync-protocol.mjs`
  *    writes that file from the bytes it fetched at the ref. A hand-edit to a
- *    vendored copy changes its digest and fails here, online or off.
- * 2. **Against the ref itself, when the network is reachable.** This is what
- *    catches a `SHA256SUMS` edited to bless a doctored copy, and a tag that has
- *    been moved under us.
+ *    vendored copy changes its digest and fails here, with no network at all.
+ * 2. **Against the ref itself, always.** This is what catches a `SHA256SUMS`
+ *    edited to bless a doctored copy, and a tag that has been moved under us.
+ *    It fetches the ref as one archive — `codeload.github.com` serves a whole
+ *    tag or commit as a single gzipped tarball — rather than one request per
+ *    vendored file, and that one request is retried on a transient failure. A
+ *    request that still fails after retries fails this test with the network
+ *    detail in the message: this job is merge-blocking precisely so that ref
+ *    drift cannot slip through, so a network problem here is a red run, never a
+ *    silently skipped one.
  *
  * `generated.test.ts` closes the remaining gap: that the committed generated
  * modules are what these vendored copies produce.
@@ -26,7 +33,18 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const protocolDir = join(packageRoot, "protocol");
 
 const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
-const rawBase = `https://raw.githubusercontent.com/Sakwala/affiant-protocol/${pin}`;
+
+/**
+ * The ref segment of a `codeload.github.com` archive URL. A tag is addressed as
+ * `refs/tags/<tag>` — codeload also accepts a bare tag name, but only when no
+ * branch shares it, and this disambiguates. A pin that is not tag-shaped is the
+ * full 40-character commit `protocol/PIN`'s own doc comment describes (the
+ * window in which a version's text is on the rulebook's default branch and its
+ * tag has not been cut yet); codeload addresses a commit directly, with no
+ * `refs/` prefix.
+ */
+const archiveRef = /^[0-9a-f]{40}$/.test(pin) ? pin : `refs/tags/${pin}`;
+const archiveUrl = `https://codeload.github.com/Sakwala/affiant-protocol/tar.gz/${archiveRef}`;
 
 /** Where each tracked local file lives in the protocol repository. */
 function upstreamPathFor(localRelativePath: string): string {
@@ -62,10 +80,6 @@ const expectedSums = new Map(
 function sha256(bytes: string): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
-
-const reachable = await fetch(`${rawBase}/conformance/fixtures/MANIFEST.json`)
-  .then((response) => response.ok)
-  .catch(() => false);
 
 describe("the pinned protocol ref", () => {
   it("is a rulebook tag for the wire version this package targets, or an immutable commit", () => {
@@ -124,50 +138,46 @@ describe("the vendored copies match protocol/SHA256SUMS", () => {
   });
 });
 
-if (!reachable) {
-  describe("the vendored copies against the ref", () => {
-    it.skip(`skipped: could not reach ${rawBase} — the copies were checked against protocol/SHA256SUMS above; run this suite with network access to check them, and that file, against the ref itself`, () => {});
+describe("the vendored copies are byte-for-byte identical to the ref", () => {
+  /** The upstream bytes, fetched once as a single archive and keyed by local path. */
+  const upstream = new Map<string, string>();
+
+  beforeAll(async () => {
+    const response = await fetchWithRetry(archiveUrl);
+    const archiveFiles = extractTarGz(new Uint8Array(await response.arrayBuffer()));
+
+    for (const local of trackedFiles) {
+      const posix = local.split(sep).join("/");
+      const upstreamPath = upstreamPathFor(local);
+      const bytes = archiveFiles.get(upstreamPath);
+      if (bytes === undefined) {
+        throw new Error(
+          `${archiveUrl} did not contain ${upstreamPath} (vendored locally as protocol/${posix})`,
+        );
+      }
+      upstream.set(local, bytes.toString("utf8"));
+    }
+  }, 120_000);
+
+  it("fetched one upstream copy per tracked file", () => {
+    expect(upstream.size).toBe(trackedFiles.length);
   });
-} else {
-  describe("the vendored copies are byte-for-byte identical to the ref", () => {
-    /** The upstream bytes, fetched once. 175 sequential round trips would be minutes. */
-    const upstream = new Map<string, string>();
 
-    beforeAll(async () => {
-      const queue = [...trackedFiles];
-      const workers = Array.from({ length: 16 }, async () => {
-        for (let next = queue.pop(); next !== undefined; next = queue.pop()) {
-          const url = `${rawBase}/${upstreamPathFor(next)}`;
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`${url} returned ${String(response.status)}`);
-          }
-          upstream.set(next, await response.text());
-        }
-      });
-      await Promise.all(workers);
-    }, 120_000);
+  it("has identical bytes on every tracked file", () => {
+    const differing = trackedFiles.filter(
+      (path) => readFileSync(join(protocolDir, path), "utf8") !== upstream.get(path),
+    );
 
-    it("fetched one upstream copy per tracked file", () => {
-      expect(upstream.size).toBe(trackedFiles.length);
-    });
-
-    it("has identical bytes on every tracked file", () => {
-      const differing = trackedFiles.filter(
-        (path) => readFileSync(join(protocolDir, path), "utf8") !== upstream.get(path),
-      );
-
-      expect(differing).toEqual([]);
-    });
-
-    it("has a SHA256SUMS written over the upstream bytes, not over the copies", () => {
-      // Catches a SHA256SUMS rewritten to bless a doctored copy.
-      const wrong = trackedFiles.filter((path) => {
-        const bytes = upstream.get(path);
-        return bytes === undefined || expectedSums.get(path.split(sep).join("/")) !== sha256(bytes);
-      });
-
-      expect(wrong).toEqual([]);
-    });
+    expect(differing).toEqual([]);
   });
-}
+
+  it("has a SHA256SUMS written over the upstream bytes, not over the copies", () => {
+    // Catches a SHA256SUMS rewritten to bless a doctored copy.
+    const wrong = trackedFiles.filter((path) => {
+      const bytes = upstream.get(path);
+      return bytes === undefined || expectedSums.get(path.split(sep).join("/")) !== sha256(bytes);
+    });
+
+    expect(wrong).toEqual([]);
+  });
+});

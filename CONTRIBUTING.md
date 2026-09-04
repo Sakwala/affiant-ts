@@ -49,10 +49,12 @@ So:
 
 - **Do not hand-edit anything under `packages/contract/protocol/`.** It is
   vendored. `packages/contract/test/protocol-pin.test.ts` checksums every tracked
-  copy against `packages/contract/protocol/SHA256SUMS` on every run — offline
-  included — and fetches the same files from the pinned ref whenever the network
-  is reachable. `packages/contract/test/generated.test.ts` then asserts the three
-  committed generated modules are exactly what those copies produce.
+  copy against `packages/contract/protocol/SHA256SUMS`, and separately fetches the
+  pinned ref itself as one archive and compares every copy against it byte for
+  byte — a mismatch, a missing file, or a network that cannot be reached after
+  retrying all fail the run, never skip it, because this check is what stops ref
+  drift from merging. `packages/contract/test/generated.test.ts` then asserts the
+  three committed generated modules are exactly what those copies produce.
 - **To move to a newer protocol ref**, edit `packages/contract/protocol/PIN`, run
   `node packages/contract/scripts/sync-protocol.mjs` (which rewrites
   `protocol/SHA256SUMS`), run `node packages/contract/scripts/generate-sources.mjs`,
