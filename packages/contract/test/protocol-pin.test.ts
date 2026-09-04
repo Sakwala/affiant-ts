@@ -68,12 +68,21 @@ const reachable = await fetch(`${rawBase}/conformance/fixtures/MANIFEST.json`)
   .catch(() => false);
 
 describe("the pinned protocol ref", () => {
-  it("is a tag naming the version the package advertises, or an immutable commit", () => {
-    // The pin is the tag naming the version this package advertises. The second arm
-    // is for the window in which a version's text is on the rulebook's default
-    // branch and its tag has not been cut: a full commit is as immutable as a tag
-    // and, unlike a tag, cannot be moved under a running build.
-    expect(pin === `v${PROTOCOL_VERSION}` || /^[0-9a-f]{40}$/.test(pin)).toBe(true);
+  it("is a rulebook tag for the wire version this package targets, or an immutable commit", () => {
+    // Two versions, and they are not the same number. `PROTOCOL_VERSION` is the
+    // **wire** version SR-4 stamps on an envelope; the pin is a **rulebook release**
+    // tag, and the rulebook may cut a patch — new conformance vectors, a new lint —
+    // over a wire that did not change. So the tag's major and minor must be the
+    // wire's, and its patch is the rulebook's own. A differing minor would mean this
+    // package vendored the schemas of a wire it does not target.
+    //
+    // The second arm is for the window in which a version's text is on the rulebook's
+    // default branch and its tag has not been cut: a full commit is as immutable as a
+    // tag and, unlike a tag, cannot be moved under a running build.
+    const [major, minor] = PROTOCOL_VERSION.split(".");
+    const tag = new RegExp(`^v${major}\\.${minor}\\.(0|[1-9][0-9]*)$`);
+
+    expect(tag.test(pin) || /^[0-9a-f]{40}$/.test(pin), pin).toBe(true);
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
