@@ -538,7 +538,9 @@ export async function runDemo(): Promise<DemoResult> {
       entryId: blockedEntry.entry.entryId,
       status: blockedEntry.entry.status,
       blocked: marker,
-      warning: blockedEntry.card.affidavit.warnings.join(" "),
+      // Warnings moved from the Affidavit onto the card envelope in v0.1 (SR-1): a
+      // sentence for a reviewer is presentation, not part of the sworn record.
+      warning: (blockedEntry.card.warnings ?? []).join(" "),
     },
   });
 

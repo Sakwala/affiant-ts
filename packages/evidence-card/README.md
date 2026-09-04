@@ -82,11 +82,27 @@ nothing has no way to know that something was about to be written. This is a
 structural check, not schema validation; `@affiant/contract` ships the JSON
 Schemas for that.
 
-**Amending.** Every field gets a text box. Type into any of them and the primary
-button becomes _Approve with amendments_; pressing it emits `decision: "amend"`
-with only the fields that were typed into. Whitespace-only entries are ignored. A
-value for a field whose `kind` is `"number"` is sent as a number when the typed
-text parses as one, and as the typed text when it does not — never as `NaN`.
+**Amending.** Every field gets an amend control. A field with no closed value set
+gets a text box; a field the envelope's `presentation` gives an `allowedValues`
+hint for gets a `<select>` instead, with one option per allowed value, so a
+reviewer picks rather than retypes. A field with a `pattern` hint gets that
+pattern on its text box's `pattern` attribute. Type or pick into any control and
+the primary button becomes _Approve with amendments_; pressing it emits
+`decision: "amend"` with only the fields that were touched. Whitespace-only
+entries are ignored. A value picked from a closed set is sent back as the
+underlying value that produced its label — a numeric enum's amendment is a
+number, not the string a `<select>` always returns. Otherwise, a value for a
+field whose `kind` is `"number"` is sent as a number when the typed text parses
+as one, and as the typed text when it does not — never as `NaN`.
+
+**Presentation, not substance.** `allowedValues` and `pattern` are hints the host
+supplies on the card envelope's `presentation` array, never validated: a value
+outside `allowedValues`, or not matching `pattern`, is still sent in an
+amendment. A field with neither renders its amend control from its own `kind`
+alone. For backward compatibility this element also reads a field's own
+`allowedValues`/`pattern` and a tag's own `evidence` — the pre-v0.1
+`0.0.1-seed` shape, kept only until the shipped .NET framework sends the
+current wire.
 
 ## Theming
 
@@ -110,15 +126,18 @@ The card is a `<section>` with an `aria-label` naming the operation and the enti
 The controls are real `<button>`s. Every confidence — per field and in aggregate —
 is a `role="meter"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax` and an
 `aria-valuetext` percentage, so a screen reader announces the number rather than
-describing a coloured bar. Amendment inputs carry their own `aria-label`.
+describing a coloured bar. Amend controls — text box or `<select>` — carry their
+own `aria-label`.
 
 ## The demo
 
 `demo/` is the page published at the link above: the card, a read-only toggle and
 a log of every `affiant-decision` event. It renders
-`conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol
-tag — a hand-authored example from the rulebook's seed fixtures, whose key set is
-asserted against the shipped .NET serializer by the demo hosts' wire-shape tests.
+`demo/fixture.json`, a copy of the pinned protocol's
+`v0.1/evidence-card-request/04-presentation-hints.json` conformance fixture —
+checked against that copy by a test in this package — chosen because it carries
+both an `allowedValues` and a `pattern` hint, so the demo shows the `<select>`
+and the pattern-masked input as well as a plain text field.
 
 ```bash
 pnpm build                                   # builds the element and demo/dist

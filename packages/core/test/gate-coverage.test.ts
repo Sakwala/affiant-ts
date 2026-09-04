@@ -163,7 +163,7 @@ describe("a declared-uncovered tool's proposals are filed blocked (CV-4, AZ-4)",
       .execute({ status: "Active" });
 
     if (result.kind !== "write") expect.unreachable("a write tool produces a proposal");
-    expect(result.card.affidavit.warnings.join(" ")).toContain("declared uncovered");
+    expect((result.card.warnings ?? []).join(" ")).toContain("declared uncovered");
   });
 });
 

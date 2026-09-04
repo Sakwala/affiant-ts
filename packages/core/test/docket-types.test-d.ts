@@ -72,12 +72,20 @@ expectTypeOf<BlockedMarker["code"]>().toEqualTypeOf<
 expectTypeOf<RequirementKind>().toEqualTypeOf<
   "StandingOrder" | "ReviewerConfirmation" | "ReferralRequired" | "MultiParty"
 >();
-// The context properties are optional, because a marker names only what its own
-// code makes meaningful.
-expectTypeOf<Required<BlockedMarker>>().not.toEqualTypeOf<BlockedMarker>();
-expectTypeOf<BlockedMarker["level"]>().toEqualTypeOf<string | undefined>();
-expectTypeOf<BlockedMarker["category"]>().toEqualTypeOf<string | undefined>();
-expectTypeOf<BlockedMarker["toolName"]>().toEqualTypeOf<string | undefined>();
+// The marker is discriminated on its code, and each arm carries exactly the
+// context that code makes meaningful. A reader narrows on the code; sniffing for a
+// property is what AF-5 forbids, and here it does not even compile.
+declare const marker: BlockedMarker;
+if (marker.code === "requirement-not-implemented") {
+  expectTypeOf(marker.level).toEqualTypeOf<RequirementKind>();
+  // @ts-expect-error a requirement that is not implemented has no uncovered category.
+  type _CategoryOnRequirement = typeof marker.category;
+} else {
+  expectTypeOf(marker.category).toEqualTypeOf<"no-execute" | "provider-executed" | "hosted-mcp">();
+  expectTypeOf(marker.toolName).toEqualTypeOf<string>();
+  // @ts-expect-error a coverage refusal has no requirement level to report.
+  type _LevelOnCoverage = typeof marker.level;
+}
 
 // ------------------------------------------------------- DK-1: the state machine
 

@@ -24,6 +24,13 @@
  * `CHANGELOG.md` in the repository. Tests and fixtures are excluded: they are not
  * published, and a fixture whose note quotes a rule needs room to quote it.
  *
+ * **Generated modules are excluded too**, by their banner. A module written by a
+ * generator out of the vendored rulebook carries the rulebook's own words — a
+ * conformance fixture whose external reference reads `ledger:limit/9` is somebody
+ * else's accounting example, not this project's working vocabulary — and there is
+ * no doc comment in it for a person to fix. The rule is about prose a human wrote
+ * and a consumer will read; a data module has neither half.
+ *
  * Usage:
  *
  *   node scripts/lint-no-internal-refs.mjs                # lints the scope above
@@ -39,6 +46,9 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Only text sources are read; anything else in a target directory is skipped. */
 const LINTABLE = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json", ".md"]);
+
+/** The first line every generated module carries. A file starting with it is skipped. */
+const GENERATED_BANNER = "// GENERATED FILE — DO NOT EDIT BY HAND.";
 
 /** Directories never walked, whatever a target says. */
 const SKIP_DIRECTORIES = new Set(["node_modules", "dist", ".git"]);
@@ -130,13 +140,19 @@ const roots =
 const violations = [];
 const seen = new Set();
 let scanned = 0;
+let generated = 0;
 
 for (const root of roots) {
   for (const file of filesUnder(root)) {
     if (seen.has(file)) continue;
     seen.add(file);
+    const text = readFileSync(file, "utf8");
+    if (text.startsWith(GENERATED_BANNER)) {
+      generated += 1;
+      continue;
+    }
     scanned += 1;
-    const lines = readFileSync(file, "utf8").split("\n");
+    const lines = text.split("\n");
     lines.forEach((line, index) => {
       for (const [pattern, what] of FORBIDDEN) {
         if (pattern.test(line)) {
@@ -157,4 +173,7 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log(`No internal references: clean — ${scanned} published file(s) read.`);
+console.log(
+  `No internal references: clean — ${scanned} published file(s) read` +
+    (generated > 0 ? `, ${generated} generated module(s) skipped.` : "."),
+);

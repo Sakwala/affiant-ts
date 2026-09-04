@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 /**
- * Re-fetches the vendored protocol files from the tag named in `protocol/PIN`.
+ * Re-fetches the vendored protocol files from the ref named in `protocol/PIN`.
  *
- * `protocol/` holds byte-for-byte copies of the schemas and conformance fixtures
- * at one tag of Sakwala/affiant-protocol. This script is how the pin moves: edit
- * `protocol/PIN` to the new tag, run this, run `node scripts/generate-sources.mjs`,
- * and commit the whole diff in one pull request — so a wire-format change arrives
- * as a reviewable diff in this repository's own history rather than as a silent
- * upstream shift under a running build.
+ * `protocol/` holds byte-for-byte copies of the schemas, the conformance suite and
+ * the machine-readable formats at one ref of Sakwala/affiant-protocol. This script
+ * is how the pin moves: edit `protocol/PIN` to the new ref, run this, run
+ * `node scripts/generate-sources.mjs`, and commit the whole diff in one pull
+ * request — so a wire-format change arrives as a reviewable diff in this
+ * repository's own history rather than as a silent upstream shift under a running
+ * build.
  *
  *   node scripts/sync-protocol.mjs           # fetch and write
  *   node scripts/sync-protocol.mjs --check   # fail if anything would change
  *
+ * The pin is normally a git tag. It may also be a full 40-character commit,
+ * which is what it holds while a version's text is on the rulebook's default
+ * branch and its tag has not been cut: a commit is as immutable as a tag and,
+ * unlike a tag, cannot be moved under a running build.
+ *
  * It also writes `protocol/SHA256SUMS` — the sha256 of every vendored file, one
  * per line, sorted by path, in the format `sha256sum` prints. That file is what
  * lets `test/protocol-pin.test.ts` catch a hand-edit to a vendored copy with no
- * network at all; the network check against the tag itself is then an extra layer
+ * network at all; the network check against the ref itself is then an extra layer
  * rather than the only one.
  *
  * Set GITHUB_TOKEN to lift the unauthenticated GitHub API rate limit.
@@ -33,16 +39,41 @@ const check = process.argv.includes("--check");
 
 const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
 
-/** Which upstream paths are vendored, and where each lands locally. */
+/**
+ * Which upstream paths are vendored, and where each lands locally.
+ *
+ * The current wire version's schemas land at `protocol/schemas/`, so the path a
+ * consumer imports does not change when the rulebook cuts a new minor; the
+ * superseded `0.0.1-seed` set is kept beside them under `protocol/schemas/seed/`
+ * because the shipped .NET framework still sends that shape and a reader
+ * comparing the two needs both in one place.
+ *
+ * `conformance/` brings the whole promoted fixture suite, the per-schema example
+ * and negative fixtures, and the four machine-readable formats a driver needs:
+ * what a fixture may say (`fixture.schema.json`), what a canonical byte vector
+ * says (`canonical-vector.schema.json`), what a run reports
+ * (`results.schema.json`) and what a parity manifest claims
+ * (`parity/MANIFEST.schema.json`). `lint/coverage-exemptions.json` comes with
+ * them because a driver copies its entries into its own manifest rather than
+ * inventing exemptions of its own.
+ */
 function localPathFor(upstreamPath) {
+  const wireVersion = /^schemas\/(\d+\.\d+\.\d+)\/([^/]+\.schema\.json)$/.exec(upstreamPath);
+  if (wireVersion !== null) {
+    return `schemas/${wireVersion[2]}`;
+  }
   if (/^schemas\/[^/]+\.schema\.json$/.test(upstreamPath)) {
+    return `schemas/seed/${upstreamPath.slice("schemas/".length)}`;
+  }
+  if (/^conformance\/fixtures\/(?:[^/]+\/)*[^/]+\.json$/.test(upstreamPath)) {
+    return upstreamPath.slice("conformance/".length);
+  }
+  if (
+    /^conformance\/(?:fixture|canonical-vector|results)\.schema\.json$/.test(upstreamPath) ||
+    upstreamPath === "conformance/parity/MANIFEST.schema.json" ||
+    upstreamPath === "conformance/lint/coverage-exemptions.json"
+  ) {
     return upstreamPath;
-  }
-  if (/^conformance\/fixtures\/(MANIFEST|enum-values)\.json$/.test(upstreamPath)) {
-    return upstreamPath.slice("conformance/".length);
-  }
-  if (/^conformance\/fixtures\/wire\/[^/]+\.json$/.test(upstreamPath)) {
-    return upstreamPath.slice("conformance/".length);
   }
   return null;
 }
@@ -72,6 +103,22 @@ const wanted = tree.tree
   .map((node) => ({ upstream: node.path, local: localPathFor(node.path) }))
   .filter((entry) => entry.local !== null)
   .sort((a, b) => a.local.localeCompare(b.local));
+
+// Two upstream files landing on one local path would mean the last one fetched
+// silently won, and `--check` would then pass against whichever it happened to be.
+// The case this guards is a rulebook carrying two versioned schema directories at
+// once: both would map to `schemas/`, and the pin would have to say which.
+const claimed = new Map();
+for (const { upstream, local } of wanted) {
+  const already = claimed.get(local);
+  if (already !== undefined) {
+    throw new Error(
+      `${REPO}@${pin} maps both ${already} and ${upstream} onto protocol/${local}; ` +
+        `localPathFor must name which one this pin vendors`,
+    );
+  }
+  claimed.set(local, upstream);
+}
 
 if (wanted.length === 0) {
   throw new Error(`no vendorable files found in ${REPO}@${pin}`);

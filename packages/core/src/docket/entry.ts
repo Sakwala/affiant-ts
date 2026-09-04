@@ -132,24 +132,39 @@ export const BLOCKED_CODES = [
 ] as const satisfies readonly BlockedCode[];
 
 /**
+ * A requirement level this version recognises but does not run reached the
+ * pipeline — `ReferralRequired` or `MultiParty`, whose semantics are reserved. The
+ * level is recorded verbatim and never degraded to a weaker one (AZ-4).
+ */
+export interface RequirementNotImplementedMarker {
+  readonly code: "requirement-not-implemented";
+  /** The requirement level that is not implemented. */
+  readonly level: RequirementKind;
+}
+
+/**
+ * A proposal came from a write-capable tool the host declared the gate cannot
+ * intercept (CV-4). Its proposals are still recorded — blocked, never silently
+ * allowed to write — and the tool name is on the row so coverage can be
+ * re-assessed on a resubmission.
+ */
+export interface CoverageRefusedMarker {
+  readonly code: "coverage-refused";
+  /** The category the gate cannot cover. */
+  readonly category: "no-execute" | "provider-executed" | "hosted-mcp";
+  /** The tool the uncovered proposal came from. */
+  readonly toolName: string;
+}
+
+/**
  * The marker AZ-4 requires on an entry the implementation will not decide.
  *
- * The optional properties are the context each code carries: `level` for a
- * requirement kind this version does not run, `category` and `toolName` for a tool
- * the host declared uncovered (CV-4). They are optional rather than nullable
- * because a marker names only what its own code makes meaningful — a
- * `coverage-refused` marker has no requirement level to report.
+ * Discriminated on its `code`, and each arm carries exactly the context that code
+ * makes meaningful — a `coverage-refused` marker has no requirement level to
+ * report, and a reader narrows on the code rather than sniffing for a property
+ * (AF-5).
  */
-export interface BlockedMarker {
-  /** Why the entry is blocked. */
-  readonly code: BlockedCode;
-  /** The requirement level that is not implemented, for `requirement-not-implemented`. */
-  readonly level?: string;
-  /** The uncovered category, for `coverage-refused` (CV-4). */
-  readonly category?: string;
-  /** The tool the uncovered proposal came from, for `coverage-refused`. */
-  readonly toolName?: string;
-}
+export type BlockedMarker = RequirementNotImplementedMarker | CoverageRefusedMarker;
 
 // ---------------------------------------------------------------------------
 // Attestation (AZ-1, AZ-3)

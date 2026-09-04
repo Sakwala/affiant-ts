@@ -31,18 +31,29 @@ const asRoot = process.getuid?.() === 0;
 
 function request(id: string, requiredBy: string): EvidenceCardRequest {
   return {
+    protocolVersion: "0.1.0",
     docketId: id,
     affidavit: {
-      operationType: "FileCreate",
+      protocolVersion: "0.1.0",
+      // "create": entityId is null (AF-3), not the "FileCreate" host verb the
+      // pre-v0.1 wire carried on the record.
+      operationType: "create",
       entityType: "file",
       entityId: null,
       fields: [],
       aggregateConfidence: 0.5,
-      warnings: [],
-      requiresConfirmation: true,
+      populatedConfidence: null,
+      emptyFieldCount: 0,
+      conversationTurn: null,
+      createdAt: requiredBy,
     },
     requiredBy,
     priorAmendments: null,
+    populatedConfidence: null,
+    emptyFieldCount: 0,
+    blocked: null,
+    // warnings moved onto the envelope in v0.1 (SR-1); absent when empty.
+    requiresConfirmation: true,
   };
 }
 

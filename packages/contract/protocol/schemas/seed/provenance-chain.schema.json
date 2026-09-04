@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/provenance-chain.schema.json",
+  "title": "ProvenanceChain",
+  "description": "The ordered provenance history of a single field: the tag in force now, plus every superseded tag, newest first. This is the audit trail that answers \"how did this field arrive at its current value?\".",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["current", "prior"],
+  "properties": {
+    "current": {
+      "description": "The tag in force for this field's current value.",
+      "$ref": "https://affiant.dev/schemas/0.0.1-seed/provenance-tag.schema.json"
+    },
+    "prior": {
+      "description": "Superseded tags, newest first. Empty for a chain that has never been merged or appended to. Not nullable — an empty array, never null.",
+      "type": "array",
+      "items": {
+        "$ref": "https://affiant.dev/schemas/0.0.1-seed/provenance-tag.schema.json"
+      }
+    }
+  }
+}

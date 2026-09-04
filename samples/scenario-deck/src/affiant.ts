@@ -561,8 +561,12 @@ export function cardViewOf(entry: DocketEntry, card: EvidenceCardRequest): CardV
       emptyFieldCount: card.emptyFieldCount,
     },
     requiredBy: card.requiredBy,
-    requiresConfirmation: card.affidavit.requiresConfirmation,
-    warnings: card.affidavit.warnings,
+    // Both come off the envelope, not off the sworn record: whether a person must
+    // confirm is the policy chain's verdict, and a warning is a sentence a surface
+    // shows — neither is part of the canonical form a grant binds to (SR-1). A card
+    // with nothing to say omits `warnings` entirely.
+    requiresConfirmation: card.requiresConfirmation,
+    warnings: card.warnings ?? [],
     priorAmendments: card.priorAmendments,
   };
 }

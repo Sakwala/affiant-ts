@@ -158,7 +158,7 @@ describe("a by-the-book Standing Order fires (GT-5, AZ-1)", () => {
 
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
     expect(filed.status).toBe("approved");
-    expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+    expect(filed.card.requiresConfirmation).toBe(false);
   });
 
   it("never attests a policy on an entry a person must confirm", async () => {
@@ -232,7 +232,7 @@ describe("a threshold is compared against the host's score (GT-5)", () => {
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
 
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
-    expect(filed.card.affidavit.warnings.join(" ")).toContain("above the Standing Order's");
+    expect((filed.card.warnings ?? []).join(" ")).toContain("above the Standing Order's");
   });
 
   it("refuses a verdict that names a threshold with no scorer to compare against", async () => {
@@ -498,7 +498,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
     expect(filed.entry.attestation).toBeNull();
     expect(telemetry.keys()).not.toContain("standing-order.fired");
     // The person who is asked can see which field is missing, on the card itself.
-    expect(filed.card.affidavit.warnings.join(" ")).toContain("reference");
+    expect((filed.card.warnings ?? []).join(" ")).toContain("reference");
   });
 });
 
@@ -684,7 +684,7 @@ describe("a requirement this version does not run is blocked, never weakened (AZ
       turnContext(),
     );
 
-    expect(filed.card.affidavit.warnings.join(" ")).toContain("is not implemented in this version");
+    expect((filed.card.warnings ?? []).join(" ")).toContain("is not implemented in this version");
   });
 });
 

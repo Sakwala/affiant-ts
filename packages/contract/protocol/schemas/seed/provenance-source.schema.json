@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/provenance-source.schema.json",
+  "title": "ProvenanceSource",
+  "description": "Where a field value came from. Serialized as the member name, not an integer. The order below is the determinism hierarchy, most deterministic first: when two provenance tags carry equal confidence, the earlier member in this list wins the merge.",
+  "type": "string",
+  "enum": [
+    "UserStated",
+    "External",
+    "Computed",
+    "Conversation",
+    "Inferred",
+    "Default",
+    "Empty"
+  ]
+}

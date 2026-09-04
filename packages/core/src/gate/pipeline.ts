@@ -55,7 +55,7 @@
  * @packageDocumentation
  */
 
-import type { Affidavit as WireAffidavit } from "@affiant/contract";
+import type { Affidavit as WireAffidavit, FieldPresentation } from "@affiant/contract";
 
 import type { TurnContext } from "../context.js";
 import type {
@@ -76,7 +76,7 @@ import type {
   JsonValue,
   WireCarry,
 } from "../model/affidavit.js";
-import { buildAffidavit, computeConfidence, isJsonValue, toWire } from "../model/affidavit.js";
+import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 import { canonicalJson, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
@@ -104,28 +104,26 @@ import { evaluatePolicies } from "./policy.js";
 // ---------------------------------------------------------------------------
 
 /**
- * The Evidence Card envelope, plus the four facts the seed wire shape has nowhere
- * to put.
+ * The Evidence Card envelope: the entry a proposal was filed under, the sworn
+ * record, the deadline, and the presentation the core does not swear to.
  *
- * The wire type at protocol tag `0.0.1-seed` predates all four, and its Affidavit
- * schema is `additionalProperties: false` over exactly seven properties, so a fact
- * the rules require a card to show and the nested Affidavit cannot carry goes here,
- * on the envelope, where an extra property is simply ignored by a consumer of the
- * older shape. This type stays assignable to `@affiant/contract`'s
- * `EvidenceCardRequest`; `test/gate-types.test-d.ts` asserts that it does.
+ * The split is the whole point. The canonical form a host's execution grant binds
+ * to is defined over the Affidavit and its accepted amendments and nothing else
+ * (SR-1), so anything that is a **rendering decision** — the sentences a reviewer
+ * reads, whether a person must confirm, the closed set an input offers, the mask
+ * an input applies — travels here, on the envelope, where changing it cannot
+ * invalidate a grant minted over evidence that did not change. This type stays
+ * assignable to `@affiant/contract`'s `EvidenceCardRequest`;
+ * `test/gate-types.test-d.ts` asserts that it does.
  *
- * - `protocolVersion` (SR-4) — the version the envelope conforms to, taken from the
- *   Docket row.
- * - `populatedConfidence` and `emptyFieldCount` (AF-2) — two of the three numbers
- *   AF-2 says a card shows. The third, `aggregateConfidence`, is on the wire
- *   Affidavit already; these two are on the envelope **until the v0.1 schema adds
- *   them to the Affidavit**, at which point they move and this pair is kept for one
- *   version as a duplicate rather than dropped.
- * - `blocked` (AZ-4, CV-4) — the marker that says no decision on this entry will be
- *   accepted, so a reviewer surface can render it rather than inferring it from a
- *   warning string.
+ * The two confidence companions AF-2 requires a card to show are on the Affidavit
+ * itself and repeated here for one version, which is where the superseded
+ * `0.0.1-seed` wire carried them — so a consumer written against either shape
+ * finds them.
  */
 export interface EvidenceCardRequest {
+  /** The protocol version this envelope conforms to (SR-4). */
+  readonly protocolVersion: string;
   /** The Docket entry this card is filed under. */
   readonly docketId: string;
   /** The Affidavit awaiting a decision, in the wire shape. */
@@ -134,28 +132,55 @@ export interface EvidenceCardRequest {
   readonly requiredBy: string;
   /** The amendments already made on a superseded entry, or `null` for a first filing. */
   readonly priorAmendments: AmendmentMap | null;
-  /** The protocol version this envelope conforms to (SR-4). */
-  readonly protocolVersion: string;
   /**
    * Minimum confidence over the non-`Empty` proposed fields; `null` when there are
-   * none (AF-2).
-   *
-   * On the envelope until the v0.1 schema adds it to the Affidavit.
+   * none (AF-2). The same number the Affidavit carries.
    */
   readonly populatedConfidence: number | null;
   /**
-   * How many proposed fields are tagged `Empty` (AF-2).
-   *
-   * On the envelope until the v0.1 schema adds it to the Affidavit. Without it a
-   * person approving a card sees an aggregate of `0` and cannot tell how many fields
-   * are empty or how good the populated ones are.
+   * How many proposed fields are tagged `Empty` (AF-2). The same number the
+   * Affidavit carries. Without it a person approving a card sees an aggregate of
+   * `0` and cannot tell how many fields are empty or how good the populated ones
+   * are.
    */
   readonly emptyFieldCount: number;
   /**
-   * Why no decision on this entry will be accepted, or `null` when it can be decided
-   * (AZ-4, CV-4).
+   * Why no decision on this entry will be accepted, or `null` when it can be
+   * decided (AZ-4, CV-4). On the envelope so a reviewer surface can render it
+   * rather than inferring it from a warning string.
    */
   readonly blocked: BlockedMarker | null;
+  /**
+   * How a reviewer surface should render each field's input: one entry per field
+   * the host declared a hint for, naming a field the Affidavit carries. **Absent**
+   * when the host declared none — nothing swears to a hint, so a producer with
+   * nothing to say says nothing.
+   *
+   * The gate carries a hint and validates nothing against it: a proposed or
+   * amended value outside `allowedValues`, or not matching `pattern`, is still
+   * recorded, and a host that wants such a value refused enforces that in its own
+   * policy.
+   */
+  readonly presentation?: readonly FieldPresentation[];
+  /**
+   * Sentences a reviewer should see beside the record — the reason a policy gave,
+   * and the sentence a blocked entry shows. **Absent** when there are none.
+   *
+   * The machine-readable half of a blocked entry is
+   * {@link EvidenceCardRequest.blocked}, which a surface renders rather than
+   * parsing a string out of this array. A consumer never switches on the text of a
+   * warning.
+   */
+  readonly warnings?: readonly string[];
+  /**
+   * Whether a person must confirm this write before it commits — the policy
+   * chain's verdict, not a property of the evidence.
+   *
+   * `false` on a blocked entry: a card carrying a marker that says no decision will
+   * be accepted must not also offer a reviewer surface an approve button that
+   * cannot work (AZ-4, CV-4).
+   */
+  readonly requiresConfirmation: boolean;
 }
 
 /** What the pipeline returns: the row as the store holds it, and the card for a reviewer. */
@@ -616,26 +641,29 @@ function evidenceCard(
   outcome: PolicyOutcome,
 ): EvidenceCardRequest {
   // AF-2's three numbers come off the stored Affidavit, so the card and the record
-  // can never disagree about them: `aggregateConfidence` rides the wire Affidavit,
-  // the other two ride the envelope.
+  // can never disagree about them: all three ride the wire Affidavit, and two of
+  // them are repeated on the envelope for the one version the superseded wire's
+  // consumers are still reading.
   const sworn = entry.amendedAffidavit ?? entry.affidavit;
-  const numbers = computeConfidence(sworn.fields);
+  const carry = wireCarry(entry, proposal, outcome);
   return {
+    protocolVersion: entry.protocolVersion,
     docketId: entry.entryId,
-    affidavit: toWire(sworn, wireCarry(entry, proposal, outcome)),
+    affidavit: toWire(sworn, entry.protocolVersion),
     requiredBy: entry.expiresAt,
     priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
-    protocolVersion: entry.protocolVersion,
-    populatedConfidence: sworn.populatedConfidence ?? numbers.populatedConfidence,
-    emptyFieldCount: sworn.emptyFieldCount ?? numbers.emptyFieldCount,
+    populatedConfidence: sworn.populatedConfidence,
+    emptyFieldCount: sworn.emptyFieldCount,
     blocked: entry.blocked,
+    ...presentationToWire(carry),
+    requiresConfirmation: carry.requiresConfirmation,
   };
 }
 
 /**
- * The presentation the core does not own: the host's verb, the warnings a reviewer
- * should see, whether a person must confirm, and the reviewer surface's per-field
- * input constraints.
+ * The presentation the core does not own: the sentences a reviewer should see,
+ * whether a person must confirm, and the reviewer surface's per-field rendering
+ * hints.
  */
 function wireCarry(
   entry: DocketEntry,
@@ -658,37 +686,39 @@ function wireCarry(
     );
   }
 
-  const constraints: Record<
-    string,
-    { allowedValues: readonly string[] | null; pattern: string | null }
-  > = {};
+  // One entry per field the host declared something about, naming a field the
+  // Affidavit carries — a hint for a field the record does not carry would render
+  // a control over nothing. A field the host said nothing about gets no entry at
+  // all, rather than an entry full of nulls: absence is how the wire spells "no
+  // hint, render from the field's own kind".
+  const presentation: FieldPresentation[] = [];
   const schemaByName = new Map(
     (proposal.schema?.fields ?? []).map((entry_) => [entry_.name, entry_]),
   );
   for (const field of (entry.amendedAffidavit ?? entry.affidavit).fields) {
-    const schemaEntry = schemaByName.get(field.name);
-    constraints[field.name] = {
-      allowedValues: schemaEntry?.allowedValues ?? null,
-      // Carried from the host's field schema, never invented here: the reviewer
-      // surface renders it as an input constraint and the gate validates nothing
-      // against it.
-      pattern: schemaEntry?.pattern ?? null,
-    };
+    const declared = schemaByName.get(field.name);
+    const allowedValues = declared?.allowedValues ?? null;
+    // Carried from the host's field schema, never invented here: the reviewer
+    // surface renders it as an input constraint and the gate validates nothing
+    // against it.
+    const pattern = declared?.pattern ?? null;
+    if (allowedValues === null && pattern === null) continue;
+    presentation.push({
+      name: field.name,
+      kind: field.kind,
+      ...(allowedValues === null ? {} : { allowedValues }),
+      ...(pattern === null ? {} : { pattern }),
+    });
   }
 
   return {
-    operationType:
-      proposal.operationLabel ??
-      ((entry.amendedAffidavit ?? entry.affidavit).operationType === "create"
-        ? "WriteCreate"
-        : "WriteUpdate"),
     warnings,
     // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
     // it is not a card a person can confirm. Saying `true` here would offer a
     // reviewer surface an approve button that cannot work, on the same card that
     // carries a warning saying no decision will be accepted.
     requiresConfirmation: entry.status === "pending" && entry.blocked === null,
-    fieldConstraints: constraints,
+    presentation,
   };
 }
 
