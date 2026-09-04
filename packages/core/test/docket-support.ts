@@ -1,3 +1,5 @@
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 import type { AffidavitField, Affidavit, JsonValue } from "../src/model/affidavit.js";
 import { withConfidence } from "../src/model/affidavit.js";
 import { chainOf, mintConversation } from "../src/model/provenance.js";
@@ -61,6 +63,7 @@ export function field(name: string, value: JsonValue): AffidavitField {
 export function affidavit(names: readonly string[] = ["status"]): Affidavit {
   return withConfidence(
     {
+      protocolVersion: PROTOCOL_VERSION,
       operationType: "update",
       entityType: "Invoice",
       entityId: "invoice-1",

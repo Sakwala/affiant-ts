@@ -114,6 +114,35 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ### Fixed
 
+- **The canonical form includes `protocolVersion`, so a Docket row hashes the record
+  it actually carries** (SR-1, SR-4). `Affidavit` now carries `protocolVersion` on the
+  model. It did not: `toWire` stamped the version on the way out, so the wire document
+  and the runtime record were two different objects — and `canonicalHash`,
+  `canonicalHashEntry` and everything a host's execution grant binds to were taken
+  over the one *without* the property. SR-1 defines the form over the Affidavit **as
+  the schema defines it**, `schemas/0.1.0/affidavit.schema.json` requires
+  `protocolVersion` on an Affidavit, and all seven promoted byte vectors carry it in
+  their expected bytes. The document path was right; the runtime path was wrong, and
+  agreed with the vectors only because the vectors are generated through `toWire`.
+
+  The property is set from `PROTOCOL_VERSION` when a record is built, kept as it
+  arrived when one is read off the wire (`fromWire` no longer restamps a newer minor
+  with this package's version — re-emitting a record under a tag it did not arrive
+  under would forge its provenance), carried unchanged through an amendment, and
+  emitted by `toWire` from the record rather than invented there. The card the
+  pipeline builds now writes the *record's* version into its Affidavit; the row's own
+  `protocolVersion` remains the envelope's tag. `test/canonical.test.ts` holds the two
+  paths together in bytes: a record canonicalizes identically through the model and
+  through `toWire`, across an amendment, off a Docket row, and after a wire round
+  trip.
+
+  **Two pinned hashes moved**, both regenerated from the corrected reference:
+  `sequence-a/approve-round-trip`
+  `776b7b40…6837275` → `2ce4c4af…840eca9`, and `decide/amend-recompute`
+  `8d1579d7…4ecff6a` → `d389401d…3bd3402`. The corrected bytes are the old bytes with
+  one key inserted, and nothing else changed. The seven canonical vectors are
+  untouched — they already described the right document.
+
 - **An execution outcome is recorded once, under a guard** (DK-1, DK-4, AZ-5).
   `DocketStore.recordExecution` takes an `expected` current execution (`"unexecuted"`)
   and answers `"execution-already-recorded"` for a row that already carries one;

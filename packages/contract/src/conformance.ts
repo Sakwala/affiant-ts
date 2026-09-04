@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.1.1.
+// copy of Sakwala/affiant-protocol at v0.1.2.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.1.1" as const;
+export const PROTOCOL_PIN = "v0.1.2" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -80,13 +80,13 @@ export const conformanceManifest = {
   "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
   "promotedFrom": {
     "repository": "Sakwala/affiant-ts",
-    "commit": "f041cdd3af13a0c11bd5253159281c5cf2d98023",
+    "commit": "aa485f2946e4678a357544e0a115dc88536cca44",
     "package": "@affiant/core 0.1.0-alpha.0",
     "path": "packages/core/test/fixtures",
     "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
     "date": "2026-09-04",
     "unchanged": "Byte-identical. Ids, file names and content are the reference implementation's; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
-    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors from the commit above. The 56 declarative fixtures are unchanged from v0.1.0 and are byte-identical at both commits; only the vectors moved. conformance/fixtures/PROMOTED_FROM says why."
+    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why."
   },
   "sets": {
     "gate": "the pipeline: substance, provenance, the policy chain, deadlines, filing",
@@ -3149,7 +3149,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true
       },
-      "canonicalHash": "8d1579d7c6e7463ae44e36adfc4db166066cf0ae4ddd3e3ea04b52f394ecff6a"
+      "canonicalHash": "d389401ddf036c47a3eaac5c830c97b671de1eeffd1b64571072eef383bd3402"
     }
   },
   {
@@ -5240,7 +5240,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "pending": 0,
         "approvedUnexecuted": 0
       },
-      "canonicalHash": "776b7b407490fb96b4792a1aba4dd0ea23518e4fb5288324fa0ce56af6837275"
+      "canonicalHash": "2ce4c4afcf3c094f04acec7c447235d71455f5eb8e01013da5262d7c5840eca9"
     }
   },
   {

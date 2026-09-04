@@ -244,6 +244,10 @@ export function applyAmendments(
   // AF-4: the numbers are the amended Affidavit's, not the proposal's.
   return withConfidence(
     {
+      // SR-4: an amendment corrects values, never the version the record conforms
+      // to. Carried through so the accepted state canonicalizes to the same bytes
+      // the same record would on the wire.
+      protocolVersion: affidavit.protocolVersion,
       operationType: affidavit.operationType,
       entityType: affidavit.entityType,
       entityId: affidavit.entityId,

@@ -5,31 +5,31 @@
     "version": "0.1.0-alpha.0",
     "runtime": "node"
   },
-  "protocolTag": "v0.1.1",
-  "producedAt": "2026-09-04T05:03:50.036Z",
+  "protocolTag": "v0.1.2",
+  "producedAt": "2026-09-04T18:34:47.362Z",
   "summary": {
     "total": 63,
     "passed": 63,
     "failed": 0,
     "errored": 0,
     "skipped": 0,
-    "durationMs": 170
+    "durationMs": 123
   },
   "results": [
     {
       "id": "gate/substance-hollow-refused",
       "outcome": "pass",
-      "durationMs": 96
+      "durationMs": 69
     },
     {
       "id": "gate/substance-zero-field-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/ttl-from-verdict",
       "outcome": "pass",
-      "durationMs": 10
+      "durationMs": 8
     },
     {
       "id": "gate/ttl-from-policy-default",
@@ -39,7 +39,7 @@
     {
       "id": "gate/ttl-from-gate-default",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/standing-order-by-the-book",
@@ -54,7 +54,7 @@
     {
       "id": "gate/standing-order-threshold-over",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/standing-order-unbound-input",
@@ -69,7 +69,7 @@
     {
       "id": "gate/multiparty-blocked",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 0
     },
     {
       "id": "gate/referral-blocked",
@@ -79,27 +79,27 @@
     {
       "id": "gate/coverage-refused-declared",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/update-previous-values",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/create-null-previous-values",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/inference-conversation-and-inferred",
       "outcome": "pass",
-      "durationMs": 3
+      "durationMs": 1
     },
     {
       "id": "gate/threshold-without-scorer",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/approve",
@@ -109,7 +109,7 @@
     {
       "id": "decide/reject",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/second-decision-refused",
@@ -119,12 +119,12 @@
     {
       "id": "decide/expired-amendments-preserved",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "decide/blocked-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/amend-recompute",
@@ -134,7 +134,7 @@
     {
       "id": "decide/unresolved-identity",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/wrong-tenant",
@@ -164,17 +164,17 @@
     {
       "id": "decide/execution-failed",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/execution-on-pending-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/resubmit-prefills",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "decide/executed-only-through-a-report",
@@ -209,7 +209,7 @@
     {
       "id": "sequence-a/typed-inputs-on-the-card",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/picker-external-binding",
@@ -219,7 +219,7 @@
     {
       "id": "sequence-a/mandatory-field-left-empty",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/mandatory-field-reviewer-approves",
@@ -249,12 +249,12 @@
     {
       "id": "sequence-a/sweep-pages",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/rehydration-order",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/coverage-refused-at-wire-up",
@@ -264,12 +264,12 @@
     {
       "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/optional-field-empty-standing-order-fires",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/relay-auto-approve-bound-external",
@@ -299,17 +299,17 @@
     {
       "id": "canonical/create-shaped",
       "outcome": "pass",
-      "durationMs": 5
+      "durationMs": 3
     },
     {
       "id": "canonical/update-shaped",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/wire-evidence-card-request",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/wire-evidence-card-request-amended",

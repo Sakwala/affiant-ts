@@ -21,6 +21,18 @@
  * the row keeps the proposal and the accepted state separately, and the form is
  * taken over the accepted state where there is one.
  *
+ * **What the form is taken over: the Affidavit as the schema defines it.** Every
+ * property of the record is in the bytes, `protocolVersion` included — the schema
+ * requires it on an Affidavit, and the promoted byte vectors carry it. The card
+ * *envelope*'s presentation is not: `allowedValues`, `pattern`, `warnings` and
+ * `requiresConfirmation` are a host's rendering of a proposal rather than its sworn
+ * substance, and putting a rendering decision inside a hash a grant is checked
+ * against would let restyling an input invalidate a grant minted over evidence that
+ * did not change. Until this version the runtime model omitted `protocolVersion`
+ * and only `toWire` stamped it, so the bytes a Docket row's hash was taken over
+ * were not the bytes of the same record on a card. The model carries it now
+ * (`model/affidavit.ts`), and both paths produce one document for one record.
+ *
  * **What applying an amendment does, exactly**, is `model/amendments.ts`'s answer and
  * not this module's: the tag in force comes from `amendmentTag`, so the bytes a
  * decision produces here and the row that decision writes cannot disagree. That
@@ -146,6 +158,17 @@ export interface CanonicalField {
 export interface CanonicalInput {
   /** The sworn fields, in the order the Affidavit carries them. */
   readonly fields?: readonly CanonicalField[];
+  /**
+   * The protocol version the record conforms to (SR-4).
+   *
+   * Named here — optional, like `fields`, so a bare byte vector need not dress
+   * itself up as an Affidavit — because it is the property whose absence from the
+   * runtime model made the canonical form of a Docket row differ from the canonical
+   * form of the same record on the wire. A real `Affidavit` always carries it; a
+   * record handed here without it is canonicalized without it, because this module
+   * serializes the object it is given and never adds a property to a document.
+   */
+  readonly protocolVersion?: string;
 }
 
 /** Options for {@link canonicalize}, {@link canonicalString} and {@link canonicalHash}. */

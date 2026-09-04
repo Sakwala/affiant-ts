@@ -183,6 +183,25 @@ export interface AffidavitField {
  * it at all — a card carries the shape, and the host keeps its own vocabulary.
  */
 export interface Affidavit {
+  /**
+   * The protocol version this record conforms to (SR-4).
+   *
+   * **On the record, not only on the wire.** `schemas/0.1.0/affidavit.schema.json`
+   * requires `protocolVersion` on an Affidavit, and SR-1 takes the canonical form
+   * over the Affidavit *as the schema defines it* — so a runtime model that carried
+   * it only on the way out would hash a document the protocol does not have. It
+   * did, until this version: `toWire` stamped the version and the canonical form
+   * over the model omitted it, so the bytes a Docket row's `canonicalHash` was
+   * taken over were not the bytes of the record the same row put on a card. Every
+   * canonical byte vector in the conformance suite carries the property; the model
+   * now carries it too, and the two paths produce identical bytes for one record.
+   *
+   * Set from `PROTOCOL_VERSION` when a record is built, kept as it arrived when one
+   * is read off the wire (a newer minor is accepted and is not rewritten to this
+   * version — re-emitting a record under a tag it did not arrive under would be
+   * forging its provenance), and carried unchanged through an amendment.
+   */
+  readonly protocolVersion: string;
   /** `create` when nothing exists yet; `update` when an entity is being changed. */
   readonly operationType: "create" | "update";
   /** The kind of domain entity being written, named by the host. */
@@ -299,6 +318,14 @@ export interface AffidavitMeta {
   readonly createdAt: string;
   /** The conversation turn the proposal was made on. Defaults to `null`. */
   readonly conversationTurn?: number | null;
+  /**
+   * The protocol version the record conforms to (SR-4). Defaults to
+   * `PROTOCOL_VERSION`, which is what a host building a fresh proposal wants.
+   *
+   * It is here for one caller: {@link fromWire}, which must keep the version a
+   * record arrived under rather than restamp it with this package's own.
+   */
+  readonly protocolVersion?: string;
 }
 
 /**
@@ -383,6 +410,7 @@ export function buildAffidavit(
 
   return withConfidence(
     {
+      protocolVersion: meta.protocolVersion ?? PROTOCOL_VERSION,
       operationType: op.kind,
       entityType: op.entityType,
       entityId: op.entityId,
@@ -409,6 +437,7 @@ type AffidavitCore = Omit<
 export function withConfidence(core: AffidavitCore, fields: readonly AffidavitField[]): Affidavit {
   const numbers = computeConfidence(fields);
   return {
+    protocolVersion: core.protocolVersion,
     operationType: core.operationType,
     entityType: core.entityType,
     entityId: core.entityId,
@@ -566,6 +595,11 @@ export function fromWire(wire: WireAffidavit, stamp: FromWireStamp): Affidavit {
   return buildAffidavit(op, fields, {
     createdAt: stamp.at,
     conversationTurn: stamp.conversationTurn ?? wire.conversationTurn ?? null,
+    // SR-4: the version the record arrived under, not this package's own. A newer
+    // minor is readable (a minor only adds), and rewriting it to `PROTOCOL_VERSION`
+    // would make `toWire(fromWire(x))` a different document from `x` — and, since
+    // SR-1's form is over the record as the schema defines it, a different hash.
+    protocolVersion: wire.protocolVersion,
   });
 }
 
@@ -631,10 +665,17 @@ function chainFromWire(chain: WireAffidavitField["provenance"], at: string): Pro
  * `aggregateConfidence` is **the computed value** (AF-2). An implementation that
  * wrote back whatever number it was handed would let a mean computed elsewhere
  * travel under a name the rule defines as a minimum.
+ *
+ * `protocolVersion` is **the record's own** (SR-4), no longer stamped here. It used
+ * to be invented on the way out, which made the wire document and the runtime model
+ * two different records — the wire one carrying a property the model did not have —
+ * and SR-1's canonical form is over the record as the schema defines it, so the two
+ * hashed differently. The parameter is kept for a caller re-emitting a record under
+ * an explicit version, and defaults to the version the record carries.
  */
 export function toWire(
   affidavit: Affidavit,
-  protocolVersion: string = PROTOCOL_VERSION,
+  protocolVersion: string = affidavit.protocolVersion,
 ): WireAffidavit {
   return {
     protocolVersion,

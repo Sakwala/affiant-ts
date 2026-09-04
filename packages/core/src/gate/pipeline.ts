@@ -662,7 +662,14 @@ function evidenceCard(
   return {
     protocolVersion: entry.protocolVersion,
     docketId: entry.entryId,
-    affidavit: toWire(sworn, entry.protocolVersion),
+    // The record's own version, not the row's envelope tag (SR-4). SR-1's canonical
+    // form is over the Affidavit as the schema defines it, `protocolVersion`
+    // included, so re-stamping the record on the way onto the card would produce a
+    // document whose hash is not the row's `canonicalHash` — the substitution the
+    // form exists to make impossible. The two are the same value on every path a
+    // host takes; they differ only where a caller pinned the row to another tag,
+    // and then it is the envelope that carries the pin, not the sworn record.
+    affidavit: toWire(sworn),
     requiredBy: entry.expiresAt,
     priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
     populatedConfidence: sworn.populatedConfidence,
