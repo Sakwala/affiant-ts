@@ -1942,8 +1942,40 @@ function checkCardInvariants(filed: FiledEntry, failures: FixtureFailure[]): voi
   compare("card.emptyFieldCount", sworn.emptyFieldCount, card.emptyFieldCount, failures);
   compare("card.blocked", entry.blocked, card.blocked, failures);
   if (entry.blocked !== null) {
-    compare("card.requiresConfirmation", false, card.affidavit.requiresConfirmation, failures);
+    compare("card.requiresConfirmation", false, card.requiresConfirmation, failures);
   }
+}
+
+/**
+ * The card's rendering hints for one field, as the fixture format names them.
+ *
+ * The 56 promoted fixtures were written against the card the reference
+ * implementation emitted **before** it was aligned to the rulebook's v0.1 wire, and
+ * that card carried `allowedValues` and `pattern` on each field of the Affidavit.
+ * v0.1 moves both onto the envelope, into `presentation`, because neither is part
+ * of the canonical form a host's execution grant binds to (SR-1) — see the schema
+ * directory's "Presentation lives on the card envelope".
+ *
+ * A fixture's `expect.card.fields[].allowedValues` therefore names a key the card
+ * no longer has, and this is where that is reconciled: the hint is read off
+ * `presentation`, and a field the envelope carries no entry for answers `null` for
+ * both, which is exactly what "the host declared no hint" meant on the old shape.
+ * The fixtures are **not** edited to say `presentation` instead, because they are
+ * byte-identical to the promoted set and a parity manifest cites them by id — the
+ * rulebook re-promotes them from the aligned implementation when the version is
+ * tagged (Sakwala/affiant-protocol, "fixtures: card partials name pre-v0.1 field
+ * keys"). Until then the mapping lives here, in one function, rather than in
+ * fifty-six documents.
+ */
+function hintsFor(
+  card: EvidenceCardRequest,
+  name: string,
+): { allowedValues: readonly JsonValue[] | null; pattern: string | null } {
+  const hint = (card.presentation ?? []).find((candidate) => candidate.name === name);
+  return {
+    allowedValues: hint?.allowedValues ?? null,
+    pattern: hint?.pattern ?? null,
+  };
 }
 
 /** Check an Evidence Card against its partial matcher. */
@@ -1955,7 +1987,7 @@ function checkCard(
   compare(
     "card.requiresConfirmation",
     expected.requiresConfirmation,
-    card.affidavit.requiresConfirmation,
+    card.requiresConfirmation,
     failures,
   );
   compare("card.priorAmendments", expected.priorAmendments, card.priorAmendments, failures);
@@ -1975,13 +2007,17 @@ function checkCard(
   );
   compare("card.emptyFieldCount", expected.emptyFieldCount, card.emptyFieldCount, failures);
 
-  const warnings = card.affidavit.warnings.join(" ");
+  // The warnings moved onto the envelope in v0.1 for the same reason the hints did:
+  // a sentence a reviewer reads is presentation, and nothing swears to it. A card
+  // with none omits the property.
+  const stated = card.warnings ?? [];
+  const warnings = stated.join(" ");
   for (const [index, phrase] of (expected.warningsContain ?? []).entries()) {
     if (!warnings.includes(phrase)) {
       failures.push({
         at: `card.warningsContain[${String(index)}]`,
         expected: phrase,
-        actual: card.affidavit.warnings,
+        actual: stated,
       });
     }
   }
@@ -1997,10 +2033,11 @@ function checkCard(
     const field = card.affidavit.fields.find((candidate) => candidate.name === wanted.name);
     if (field === undefined) continue;
     const path = `card.fields[${String(index)}]`;
+    const hints = hintsFor(card, wanted.name);
     compare(`${path}.kind`, wanted.kind, field.kind, failures);
     compare(`${path}.value`, wanted.value, field.value, failures);
-    compare(`${path}.allowedValues`, wanted.allowedValues, field.allowedValues, failures);
-    compare(`${path}.pattern`, wanted.pattern, field.pattern, failures);
+    compare(`${path}.allowedValues`, wanted.allowedValues, hints.allowedValues, failures);
+    compare(`${path}.pattern`, wanted.pattern, hints.pattern, failures);
     compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
   }
 }

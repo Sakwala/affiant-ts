@@ -466,8 +466,8 @@ describe("the Evidence Card (SR-4)", () => {
       policies: [policyReturning({ requirement: "StandingOrder" })],
     }).gate.file(proposal(), turnContext());
 
-    expect(pending.card.affidavit.requiresConfirmation).toBe(true);
-    expect(approved.card.affidavit.requiresConfirmation).toBe(false);
+    expect(pending.card.requiresConfirmation).toBe(true);
+    expect(approved.card.requiresConfirmation).toBe(false);
   });
 
   it("does not ask for a confirmation on a blocked entry, and says why on the card", async () => {
@@ -479,7 +479,7 @@ describe("the Evidence Card (SR-4)", () => {
     // `requiresConfirmation: true` would hand a reviewer surface an approve button
     // that cannot work, on the same card whose warning says so.
     expect(filed.entry.status).toBe("pending");
-    expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+    expect(filed.card.requiresConfirmation).toBe(false);
     expect(filed.card.blocked).toEqual({
       code: "requirement-not-implemented",
       level: "MultiParty",
@@ -496,7 +496,7 @@ describe("the Evidence Card (SR-4)", () => {
       category: "provider-executed",
       toolName: "relay_capture",
     });
-    expect(filed.card.affidavit.requiresConfirmation).toBe(false);
+    expect(filed.card.requiresConfirmation).toBe(false);
   });
 
   it("carries the host schema's per-field input constraints, pattern included", async () => {
@@ -528,28 +528,41 @@ describe("the Evidence Card (SR-4)", () => {
       turnContext(),
     );
 
-    // The wire Affidavit has a `pattern` slot per field and the reviewer surface
-    // renders it as an input constraint, so the gate has to have somewhere to read
-    // one from. It carries it; it never validates against it.
+    // The hints ride the envelope, not the sworn record: a reviewer surface renders
+    // them and the gate validates nothing against them, so they are no part of the
+    // canonical form a host's execution grant binds to (SR-1).
+    expect(filed.card.presentation).toEqual([
+      {
+        name: "status",
+        kind: "enum",
+        allowedValues: ["Active", "Retired"],
+        pattern: "^(Active|Retired)$",
+      },
+    ]);
     const status = filed.card.affidavit.fields[0];
-    expect(status?.pattern).toBe("^(Active|Retired)$");
-    expect(status?.allowedValues).toEqual(["Active", "Retired"]);
+    expect(status).toBeDefined();
+    expect(status).not.toHaveProperty("pattern");
+    expect(status).not.toHaveProperty("allowedValues");
   });
 
-  it("carries a null pattern where the host schema names none", async () => {
+  it("omits the presentation entirely where the host schema names no hint", async () => {
     const { gate } = harness();
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
 
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
-    expect(filed.card.affidavit.fields[0]?.pattern).toBeNull();
+    // Absent rather than an array of nulls: nothing swears to a hint, so a producer
+    // with nothing to say says nothing, and a consumer reads "no hint, render from
+    // the field's own kind".
+    expect(filed.card.presentation).toBeUndefined();
+    expect("presentation" in filed.card).toBe(false);
   });
 
   it("carries no blocked marker on an entry a person can decide", async () => {
     const filed = await harness().gate.file(proposal(), turnContext());
 
     expect(filed.card.blocked).toBeNull();
-    expect(filed.card.affidavit.requiresConfirmation).toBe(true);
+    expect(filed.card.requiresConfirmation).toBe(true);
   });
 });
 

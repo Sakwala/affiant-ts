@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/provenance-tag.schema.json",
+  "title": "ProvenanceTag",
+  "description": "One provenance record for one field value: where the value came from, how confident the producer is in it, a human-readable explanation, and which conversation turn produced it. A field whose provenance is unknown carries a tag with source \"Empty\" rather than no tag at all.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "confidence", "evidence", "conversationTurn"],
+  "properties": {
+    "source": {
+      "$ref": "https://affiant.dev/schemas/0.0.1-seed/provenance-source.schema.json"
+    },
+    "confidence": {
+      "description": "Confidence in the value, 0.0 to 1.0. Single-precision float in the .NET wire; not nullable.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidence": {
+      "description": "Human-readable explanation of how the value was obtained, e.g. \"User stated: Status\". Null when there is nothing to say.",
+      "type": ["string", "null"]
+    },
+    "conversationTurn": {
+      "description": "Index of the conversation turn that produced the value, or null when the value did not come from a turn.",
+      "type": ["integer", "null"]
+    }
+  }
+}

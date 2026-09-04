@@ -291,10 +291,12 @@ describe("affiant-hook", () => {
 
     // Resolved against the hook process's own cwd this would have read as a
     // create, with no "every byte not in the proposal is being dropped" warning.
-    expect(entry.request.affidavit.operationType).toBe("FileUpdate");
+    expect(entry.request.affidavit.operationType).toBe("update");
     expect(entry.request.affidavit.entityId).toBe(target);
-    expect(entry.request.affidavit.warnings.join(" ")).toContain("not the absolute path");
-    expect(entry.request.affidavit.warnings.join(" ")).toContain("whole-file write");
+    // warnings moved from the affidavit onto the card envelope in v0.1 (SR-1).
+    const warnings = (entry.request.warnings ?? []).join(" ");
+    expect(warnings).toContain("not the absolute path");
+    expect(warnings).toContain("whole-file write");
 
     run.child.kill("SIGKILL");
     await run.done;

@@ -10,6 +10,53 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The gate emits the rulebook's v0.1 wire.** `toWire` stamps `protocolVersion`
+  (SR-4), writes the operation's **shape** rather than the host's verb (AF-3), carries
+  all three of AF-2's confidence numbers on the record itself, and writes each tag's
+  `note`, `at` and `binding`. The card envelope carries `presentation[]` and
+  `warnings` — both **absent** when there is nothing to say — beside
+  `requiresConfirmation` and `blocked`.
+
+  Presentation moved off the sworn record because the canonical form a host's
+  execution grant binds to is defined over the Affidavit and its accepted amendments
+  and nothing else (SR-1). A closed value set, a regular expression an input is masked
+  with and a sentence a reviewer reads are none of those things: swearing to them
+  would put a rendering decision inside a hash a grant is checked against, so that
+  restyling an input invalidates a grant minted over evidence that did not change. It
+  would also invite the misreading that the gate enforces them — it does not. A
+  proposed or amended value outside `allowedValues`, or not matching `pattern`, is
+  still recorded, and a host that wants it refused says so in its own policy.
+- **`fromWire` refuses a payload from another protocol version** rather than guessing
+  at a conversion (SR-4). The `0.0.1-seed` shape is a different document, not a
+  subset — the host's verb where the shape belongs, one confidence number rather than
+  three, the warnings and the presentation on the record — and reading it as this one
+  would produce a record that swore to things nobody said. A host still receiving it
+  translates at its own boundary; the seed schemas and `Seed*` types are exported from
+  `@affiant/contract` for exactly that.
+- **`toWire(affidavit, protocolVersion?)`** replaces `toWire(affidavit, carry)`.
+  `WireCarry` is now the envelope's presentation — `warnings`,
+  `requiresConfirmation`, `presentation` — with `wireCarryOf(card)` and
+  `presentationToWire(carry)` moving it on and off an envelope.
+- **`Affidavit.populatedConfidence` and `Affidavit.emptyFieldCount` are required.**
+  Every Affidavit this package builds always wrote all three numbers; they were
+  optional only because the seed schema had nowhere to put two of them.
+- **`BlockedMarker` is a discriminated union.** A reader narrows on `code` and each
+  arm carries exactly the context that code makes meaningful — a coverage refusal has
+  no requirement level to report (AZ-4, CV-4). Reading `blocked.level` off a marker
+  that might be a coverage refusal no longer compiles, which is the AF-5 habit made
+  mechanical.
+- **The fixture runner reads a card's hints off the envelope.** The 56 promoted
+  fixtures were written against the pre-alignment card, where `allowedValues` and
+  `pattern` sat on each field; the runner now reads them from `presentation`, and a
+  field the envelope carries no entry for answers `null` for both — exactly what "the
+  host declared no hint" meant on the old shape. The fixtures are not edited: they are
+  byte-identical to the promoted set and a parity manifest cites them by id, so the
+  rulebook re-promotes them from the aligned implementation when the version is
+  tagged.
+
+
 ### Fixed
 
 - **An execution outcome is recorded once, under a guard** (DK-1, DK-4, AZ-5).

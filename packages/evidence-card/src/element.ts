@@ -7,6 +7,12 @@ import type {
 
 import { CARD_STYLES } from "./styles.js";
 
+/** The presentation hints this element actually reads for one field, from whichever wire shape carried them. See {@link presentationFor}. */
+interface FieldHints {
+  allowedValues: readonly JsonValue[] | null;
+  pattern: string | null;
+}
+
 /** The tag name {@link https://developer.mozilla.org/docs/Web/API/CustomElementRegistry/define | customElements.define} registers under in `@affiant/evidence-card/register`. */
 export const EVIDENCE_CARD_TAG_NAME = "affiant-evidence-card";
 
@@ -30,9 +36,13 @@ export interface EvidenceCardDecisionDetail {
   decision: EvidenceCardDecision;
   /**
    * The reviewer's replacement values, keyed by {@link AffidavitField.name}. Empty
-   * for `"approve"` and `"reject"`. A value is a `number` when the field's `kind`
-   * is `"number"` and the typed text parses as one, and the typed text otherwise.
-   * Always a JSON value: this map goes back on the wire.
+   * for `"approve"` and `"reject"`. A value is the matching entry itself when the
+   * reviewer picked it from a closed set (`presentation[].allowedValues` — a
+   * `<select>` always returns a string, so a numeric enum's amendment is matched
+   * back to the number the host declared, never sent as its string label), a
+   * `number` when the field's `kind` is `"number"` and the typed text parses as
+   * one, and the typed text otherwise. Always a JSON value: this map goes back on
+   * the wire.
    */
   amendments: Record<string, JsonValue>;
 }
@@ -116,10 +126,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Why `value` is not an evidence card request, or `null` when it is one.
  *
- * Checks every key the pinned schemas mark required — which, at
- * `v0.0.1-seed`, is every key there is — and the kind of each. It is a structural
- * check, not schema validation: `@affiant/contract` ships the JSON Schemas for
- * that, and running a validator would cost this element its "no dependencies".
+ * Checks the keys common to both wire shapes this element accepts: the v0.1
+ * envelope `@affiant/contract` now pins, and the `0.0.1-seed` shape the shipped
+ * .NET framework still sends while it awaits alignment. `requiresConfirmation`
+ * and `warnings` moved from the affidavit to the envelope between the two — the
+ * policy chain's verdict and a reviewer's sentences are presentation, not
+ * evidence, and SR-1 defines the canonical form over the Affidavit alone — so
+ * this checks each wherever the payload actually put it rather than requiring one
+ * location; see {@link warningsFor} and {@link presentationFor}, which read them
+ * the same way. It is a structural check, not schema validation: `@affiant/contract`
+ * ships the JSON Schemas for that, and running a validator would cost this
+ * element its "no dependencies".
  *
  * Why check at all: the payload arrives from a host this element does not
  * control, over a network. Reading a missing key used to throw out of `#render`
@@ -153,10 +170,36 @@ function describeInvalidRequest(value: unknown): string | null {
   if (typeof affidavit["aggregateConfidence"] !== "number") {
     return "affidavit.aggregateConfidence is missing or not a number";
   }
-  if (typeof affidavit["requiresConfirmation"] !== "boolean") {
-    return "affidavit.requiresConfirmation is missing or not a boolean";
+  if (
+    typeof value["requiresConfirmation"] !== "boolean" &&
+    typeof affidavit["requiresConfirmation"] !== "boolean"
+  ) {
+    return "requiresConfirmation is missing or not a boolean, on the envelope or the affidavit";
   }
-  if (!Array.isArray(affidavit["warnings"])) return "affidavit.warnings is missing or not an array";
+  // Optional on both wire shapes at v0.1 (AZ-4): a card with nothing for a
+  // reviewer to read omits the key rather than carrying an empty array. Checked
+  // only when present, wherever a producer put it.
+  const warnings = value["warnings"];
+  if (warnings !== undefined && !Array.isArray(warnings)) {
+    return "warnings is present but not an array";
+  }
+  const legacyWarnings = affidavit["warnings"];
+  if (legacyWarnings !== undefined && !Array.isArray(legacyWarnings)) {
+    return "affidavit.warnings is present but not an array";
+  }
+
+  // `presentation` is the v0.1 home for the per-field hints the 0.0.1-seed shape
+  // carried on each field (SR-1) — absent entirely on a card with no hints, so
+  // only checked when the key is there at all.
+  const presentation = value["presentation"];
+  if (presentation !== undefined) {
+    if (!Array.isArray(presentation)) return "presentation is present but not an array";
+    for (const [index, hint] of presentation.entries()) {
+      const reason = describeInvalidPresentationHint(hint);
+      if (reason !== null) return `presentation[${String(index)}] ${reason}`;
+    }
+  }
+
   const fields = affidavit["fields"];
   if (!Array.isArray(fields)) return "affidavit.fields is missing or not an array";
 
@@ -168,7 +211,32 @@ function describeInvalidRequest(value: unknown): string | null {
   return null;
 }
 
-/** Why `value` is not an affidavit field, or `null` when it is one. */
+/** Why `value` is not a `presentation` entry, or `null` when it is one. */
+function describeInvalidPresentationHint(value: unknown): string | null {
+  if (!isRecord(value)) return "is not an object";
+  if (typeof value["name"] !== "string" || value["name"] === "") {
+    return "has no name, or a name that is not a string";
+  }
+  const allowedValues = value["allowedValues"];
+  if (allowedValues !== undefined && !Array.isArray(allowedValues)) {
+    return "has an allowedValues that is present but not an array";
+  }
+  const pattern = value["pattern"];
+  if (pattern !== undefined && typeof pattern !== "string") {
+    return "has a pattern that is present but not a string";
+  }
+  return null;
+}
+
+/**
+ * Why `value` is not an affidavit field, or `null` when it is one.
+ *
+ * Does not check `allowedValues` or `pattern`: they are gone from the field at
+ * v0.1 (SR-1 — they moved to the envelope's `presentation`, checked by
+ * {@link describeInvalidPresentationHint}) and were never required on the
+ * `0.0.1-seed` field either, so there is nothing on the field itself to require
+ * here.
+ */
 function describeInvalidField(value: unknown): string | null {
   if (!isRecord(value)) return "is not an object";
   if (typeof value["name"] !== "string") return "has no name, or a name that is not a string";
@@ -176,14 +244,6 @@ function describeInvalidField(value: unknown): string | null {
   if (!("previousValue" in value)) return "has no previousValue";
   if (typeof value["isMandatory"] !== "boolean") return "has no boolean isMandatory";
   if (typeof value["kind"] !== "string") return "has no string kind";
-  const allowedValues = value["allowedValues"];
-  if (allowedValues !== null && !Array.isArray(allowedValues)) {
-    return "has an allowedValues that is neither an array nor null";
-  }
-  const pattern = value["pattern"];
-  if (pattern !== null && typeof pattern !== "string") {
-    return "has a pattern that is neither a string nor null";
-  }
 
   const provenance = value["provenance"];
   if (!isRecord(provenance)) return "has no provenance object";
@@ -194,8 +254,16 @@ function describeInvalidField(value: unknown): string | null {
   if (typeof current["confidence"] !== "number") {
     return "has no provenance.current.confidence number";
   }
+  // `note` is the v0.1 name; `evidence` is the `0.0.1-seed` spelling the shipped
+  // .NET framework still sends (the whole record is the evidence, and this
+  // property is the sentence a person reads). Checked wherever it is present;
+  // neither is required, since a tag may have nothing to say.
+  const note = current["note"];
+  if (note !== undefined && note !== null && typeof note !== "string") {
+    return "has a provenance.current.note that is neither a string nor null";
+  }
   const evidence = current["evidence"];
-  if (evidence !== null && typeof evidence !== "string") {
+  if (evidence !== undefined && evidence !== null && typeof evidence !== "string") {
     return "has a provenance.current.evidence that is neither a string nor null";
   }
   const conversationTurn = current["conversationTurn"];
@@ -217,6 +285,29 @@ function optionalNumber(source: unknown, key: string): number | null {
   if (typeof source !== "object" || source === null) return null;
   const value = (source as Record<string, unknown>)[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Reads a string under `key`, or `null` when it is absent or not a string. */
+function optionalString(source: unknown, key: string): string | null {
+  if (typeof source !== "object" || source === null) return null;
+  const value = (source as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : null;
+}
+
+/** Reads an array under `key`, or `null` when it is absent or not an array. */
+function optionalJsonArray(source: unknown, key: string): readonly JsonValue[] | null {
+  if (typeof source !== "object" || source === null) return null;
+  const value = (source as Record<string, unknown>)[key];
+  return Array.isArray(value) ? (value as JsonValue[]) : null;
+}
+
+/** Reads an array of strings under `key`, or `null` when it is absent or not one. */
+function optionalStringArray(source: unknown, key: string): readonly string[] | null {
+  if (typeof source !== "object" || source === null) return null;
+  const value = (source as Record<string, unknown>)[key];
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? (value as string[])
+    : null;
 }
 
 /**
@@ -261,6 +352,43 @@ function blockedReason(request: EvidenceCardRequest): string | null {
   const detail = typeof level === "string" ? level : typeof category === "string" ? category : null;
   const what = detail === null ? code : `${code} (${detail})`;
   return `No decision on this entry will be accepted: ${what}.`;
+}
+
+/**
+ * Sentences a reviewer should see beside the record, read from wherever a
+ * producer put them: the **envelope**'s `warnings` at v0.1, or the affidavit's
+ * own `warnings` in the `0.0.1-seed` shape the shipped .NET framework still
+ * sends. They moved because they are presentation, not evidence — SR-1 defines
+ * the canonical form over the Affidavit alone, and a policy's sentence to a
+ * reviewer is no more part of that than the confirm flag is (AZ-4). The legacy
+ * key is a deliberate fallback, dropped once that framework is aligned.
+ */
+function warningsFor(request: EvidenceCardRequest): readonly string[] {
+  if (request.warnings !== undefined) return request.warnings;
+  return optionalStringArray(request.affidavit, "warnings") ?? [];
+}
+
+/**
+ * The rendering hints for one field, read from wherever a producer put them: the
+ * envelope's `presentation` array at v0.1 (looked up by {@link AffidavitField.name}),
+ * or the field's own `allowedValues`/`pattern` in the `0.0.1-seed` shape the
+ * shipped .NET framework still sends. A field with no hints in either place
+ * renders from its own `kind` alone.
+ *
+ * They moved off the field for the same reason `warnings` moved off the
+ * affidavit: a closed value set and an input mask are how a surface should
+ * *show* the record, decided by the host and changing when the host changes its
+ * mind, and swearing to them would put a rendering decision inside a hash a
+ * grant is checked against (SR-1). The gate carries a hint and validates
+ * nothing against it — a value outside `allowedValues`, or not matching
+ * `pattern`, is still recorded.
+ */
+function presentationFor(request: EvidenceCardRequest, field: AffidavitField): FieldHints {
+  const hint = request.presentation?.find((entry) => entry.name === field.name);
+  return {
+    allowedValues: hint?.allowedValues ?? optionalJsonArray(field, "allowedValues"),
+    pattern: hint?.pattern ?? optionalString(field, "pattern"),
+  };
 }
 
 /**
@@ -403,13 +531,28 @@ export class AffiantEvidenceCard extends CardBase {
   }
 
   #collectAmendments(): Record<string, JsonValue> {
-    const fields = new Map(this.#request?.affidavit.fields.map((f) => [f.name, f] as const) ?? []);
+    const request = this.#request;
+    const fields = new Map(request?.affidavit.fields.map((f) => [f.name, f] as const) ?? []);
     const amendments: Record<string, JsonValue> = {};
     for (const [name, raw] of this.#amendments) {
       const text = raw.trim();
       if (text === "") continue;
       const field = fields.get(name);
-      if (field?.kind === "number") {
+      // A `<select>`'s `.value` is always a string — the DOM has no other way to
+      // carry a selection — so a pick is matched back to the `allowedValues`
+      // entry whose `String(value)` produced its label before anything is sent.
+      // Without this a numeric enum's amendment would go back on the wire as the
+      // string `"12"` rather than the number the host declared (SR-2 is about
+      // Money specifically, but the same reasoning — a value's JSON type is part
+      // of what was approved — applies to any typed hint).
+      const allowedValues =
+        request !== null && field !== undefined
+          ? presentationFor(request, field).allowedValues
+          : null;
+      const picked = allowedValues?.find((candidate) => String(candidate) === text);
+      if (picked !== undefined) {
+        amendments[name] = picked;
+      } else if (field?.kind === "number") {
         const asNumber = Number(text);
         amendments[name] = Number.isFinite(asNumber) ? asNumber : text;
       } else {
@@ -499,14 +642,15 @@ export class AffiantEvidenceCard extends CardBase {
       card.append(banner);
     }
 
-    if (affidavit.warnings.length > 0) {
+    const warningLines = warningsFor(request);
+    if (warningLines.length > 0) {
       const warnings = element("ul", "warnings");
-      for (const warning of affidavit.warnings) warnings.append(element("li", undefined, warning));
+      for (const warning of warningLines) warnings.append(element("li", undefined, warning));
       card.append(warnings);
     }
 
     const fields = element("ol", "fields");
-    for (const field of affidavit.fields) fields.append(this.#renderField(field));
+    for (const field of affidavit.fields) fields.append(this.#renderField(field, request));
     card.append(fields);
 
     card.append(this.#renderFoot(request));
@@ -557,7 +701,7 @@ export class AffiantEvidenceCard extends CardBase {
     return note;
   }
 
-  #renderField(field: AffidavitField): HTMLElement {
+  #renderField(field: AffidavitField, request: EvidenceCardRequest): HTMLElement {
     const tag = field.provenance.current;
     const unsourced = tag.source === "Empty";
     const noConfidence = tag.confidence === 0;
@@ -594,15 +738,27 @@ export class AffiantEvidenceCard extends CardBase {
       item.append(element("p", "flag", reason));
     }
 
-    if (tag.evidence !== null && tag.evidence !== "") {
-      item.append(element("p", "evidence", tag.evidence));
+    // `note` is the v0.1 name for the sentence a person reads; `evidence` is the
+    // `0.0.1-seed` spelling the shipped .NET framework still sends. Read wherever
+    // the tag actually carries it — a genuine v0.1 tag has no `evidence` key at
+    // all, so the fallback costs nothing there.
+    const note = optionalString(tag, "note") ?? optionalString(tag, "evidence");
+    if (note !== null && note !== "") {
+      item.append(element("p", "evidence", note));
     }
 
-    if (field.allowedValues !== null && field.allowedValues.length > 0) {
-      item.append(element("p", "allowed", `One of: ${field.allowedValues.join(", ")}`));
+    const hints = presentationFor(request, field);
+    if (hints.allowedValues !== null && hints.allowedValues.length > 0) {
+      item.append(
+        element(
+          "p",
+          "allowed",
+          `One of: ${hints.allowedValues.map((value) => String(value)).join(", ")}`,
+        ),
+      );
     }
 
-    if (!this.readOnly) item.append(this.#renderAmendInput(field));
+    if (!this.readOnly) item.append(this.#renderAmendInput(field, hints));
 
     return item;
   }
@@ -615,27 +771,66 @@ export class AffiantEvidenceCard extends CardBase {
     return wrap;
   }
 
-  #renderAmendInput(field: AffidavitField): HTMLElement {
+  /**
+   * A closed value set renders as a real `<select>`, not a text box with the
+   * options listed in the placeholder: a reviewer picks rather than retypes.
+   * This is still only a hint, never a constraint (SR-1) — the gate validates
+   * nothing against `allowedValues`, and `#collectAmendments` matches a pick back
+   * to its original JSON value rather than trusting `<select>` to carry anything
+   * but a string.
+   */
+  #renderAmendInput(field: AffidavitField, hints: FieldHints): HTMLElement {
     const label = element("label", "amend");
     label.append(element("span", "amend-label", "Amend"));
 
-    const input = element("input");
-    input.type = "text";
-    input.placeholder =
-      field.allowedValues !== null && field.allowedValues.length > 0
-        ? field.allowedValues.join(" / ")
-        : "leave blank to accept";
-    input.value = this.#amendments.get(field.name) ?? "";
-    input.dataset["field"] = field.name;
-    input.setAttribute("aria-label", `Amend ${field.name}`);
-    if (field.pattern !== null) input.setAttribute("pattern", field.pattern);
-    input.addEventListener("input", () => {
-      this.#amendments.set(field.name, input.value);
+    const current = this.#amendments.get(field.name) ?? "";
+    const control: HTMLInputElement | HTMLSelectElement =
+      hints.allowedValues !== null && hints.allowedValues.length > 0
+        ? this.#renderAmendSelect(hints.allowedValues, current)
+        : this.#renderAmendTextInput(hints.pattern, current);
+
+    control.dataset["field"] = field.name;
+    control.setAttribute("aria-label", `Amend ${field.name}`);
+    control.addEventListener("input", () => {
+      this.#amendments.set(field.name, control.value);
       this.#syncApproveLabel();
     });
 
-    label.append(input);
+    label.append(control);
     return label;
+  }
+
+  #renderAmendSelect(allowedValues: readonly JsonValue[], current: string): HTMLSelectElement {
+    const select = document.createElement("select");
+
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "leave blank to accept";
+    select.append(blank);
+
+    for (const value of allowedValues) {
+      const option = document.createElement("option");
+      // The label and the option's own `value` are both `String(value)` — a
+      // `<select>` has no other way to carry a selection — but non-string entries
+      // are a legitimate hint (an enum of numbers), so the label is never assumed
+      // to already be the value a reviewer's pick should send.
+      const text = String(value);
+      option.value = text;
+      option.textContent = text;
+      select.append(option);
+    }
+
+    select.value = current;
+    return select;
+  }
+
+  #renderAmendTextInput(pattern: string | null, current: string): HTMLInputElement {
+    const input = element("input");
+    input.type = "text";
+    input.placeholder = "leave blank to accept";
+    input.value = current;
+    if (pattern !== null) input.setAttribute("pattern", pattern);
+    return input;
   }
 
   #renderFoot(request: EvidenceCardRequest): HTMLElement {

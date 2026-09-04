@@ -43,13 +43,19 @@ describe("buildRequest", () => {
     const path = join(workspace, "brand-new.ts");
     const input: WriteToolInput = { file_path: path, content: "export const a = 1;\n" };
 
-    const { affidavit, requiredBy, docketId } = buildRequest("Write", input, OPTIONS);
+    const request = buildRequest("Write", input, OPTIONS);
+    const { affidavit, requiredBy, docketId } = request;
 
-    expect(affidavit.operationType).toBe("FileCreate");
+    // "create", not "FileCreate": the protocol's own shape (AF-3), not this
+    // hook's verb for the call.
+    expect(affidavit.operationType).toBe("create");
     expect(affidavit.entityType).toBe("file");
     expect(affidavit.entityId).toBeNull();
-    expect(affidavit.requiresConfirmation).toBe(true);
-    expect(affidavit.warnings).toEqual([]);
+    // requiresConfirmation and warnings moved onto the card envelope in v0.1
+    // (SR-1): they are the policy chain's verdict and a reviewer's sentence, not
+    // part of the sworn record.
+    expect(request.requiresConfirmation).toBe(true);
+    expect(request.warnings ?? []).toEqual([]);
 
     const content = byName(affidavit.fields, CONTENT_FIELD);
     expect(content.value).toBe("export const a = 1;\n");
@@ -65,12 +71,13 @@ describe("buildRequest", () => {
     const path = fileWith("existing.ts", "export const a = 1;\n");
     const input: WriteToolInput = { file_path: path, content: "export const a = 2;\n" };
 
-    const { affidavit } = buildRequest("Write", input, OPTIONS);
+    const request = buildRequest("Write", input, OPTIONS);
+    const { affidavit } = request;
 
-    expect(affidavit.operationType).toBe("FileUpdate");
+    expect(affidavit.operationType).toBe("update");
     expect(affidavit.entityId).toBe(path);
     expect(byName(affidavit.fields, CONTENT_FIELD).previousValue).toBe("export const a = 1;\n");
-    expect(affidavit.warnings.join(" ")).toContain("whole-file write");
+    expect((request.warnings ?? []).join(" ")).toContain("whole-file write");
   });
 
   it("swears an Edit to an existing file as an update carrying what it replaces", () => {
@@ -83,7 +90,7 @@ describe("buildRequest", () => {
 
     const { affidavit } = buildRequest("Edit", input, OPTIONS);
 
-    expect(affidavit.operationType).toBe("FileUpdate");
+    expect(affidavit.operationType).toBe("update");
     expect(affidavit.entityId).toBe(path);
 
     const edit = byName(affidavit.fields, "edit-1");
@@ -129,10 +136,10 @@ describe("buildRequest", () => {
       new_string: "b",
     };
 
-    const { affidavit } = buildRequest("Edit", input, OPTIONS);
+    const request = buildRequest("Edit", input, OPTIONS);
 
-    expect(affidavit.entityId).toBeNull();
-    expect(affidavit.warnings.join(" ")).toContain("not on disk");
+    expect(request.affidavit.entityId).toBeNull();
+    expect((request.warnings ?? []).join(" ")).toContain("not on disk");
   });
 
   it("takes the aggregate as the minimum across fields, never the mean", () => {
@@ -164,7 +171,9 @@ describe("buildRequest", () => {
     expect(byName(affidavit.fields, CONTENT_FIELD).provenance.current).toMatchObject({
       source: "Inferred",
       confidence: 0.5,
-      evidence: "proposed by the coding agent",
+      // Spelled `evidence` before v0.1; renamed to `note` because the whole tag
+      // is the evidence and this property is only the sentence a reviewer reads.
+      note: "proposed by the coding agent",
     });
   });
 
@@ -178,21 +187,23 @@ describe("buildRequest", () => {
     // hook process's own cwd is not the tool's, so a create/update judgement made
     // against it would be about a different file entirely.
     fileWith("already-here.ts", "export const a = 1;\n");
-    const { affidavit } = buildRequest(
+    const request = buildRequest(
       "Write",
       { file_path: "already-here.ts", content: "export const a = 2;\n" },
       { ...OPTIONS, cwd: workspace },
     );
+    const { affidavit } = request;
 
-    expect(affidavit.operationType).toBe("FileUpdate");
+    expect(affidavit.operationType).toBe("update");
     expect(affidavit.entityId).toBe(join(workspace, "already-here.ts"));
     expect(byName(affidavit.fields, PATH_FIELD).value).toBe(join(workspace, "already-here.ts"));
-    expect(byName(affidavit.fields, PATH_FIELD).provenance.current.evidence).toContain(
+    expect(byName(affidavit.fields, PATH_FIELD).provenance.current.note).toContain(
       "already-here.ts",
     );
-    expect(affidavit.warnings.join(" ")).toContain("not the absolute path");
+    const warnings = (request.warnings ?? []).join(" ");
+    expect(warnings).toContain("not the absolute path");
     // The warning that matters most is still there, which it was not before.
-    expect(affidavit.warnings.join(" ")).toContain("whole-file write");
+    expect(warnings).toContain("whole-file write");
   });
 
   it("normalises a path laden with .. rather than rendering it as written", () => {
@@ -200,14 +211,16 @@ describe("buildRequest", () => {
     // the point is that the payload can carry a path that reads project-local and
     // resolves outside the project.
     const written = `${workspace}/a/../../escaped.ts`;
-    const { affidavit } = buildRequest(
+    const request = buildRequest(
       "Write",
       { file_path: written, content: "x" },
       { ...OPTIONS, cwd: workspace },
     );
 
-    expect(byName(affidavit.fields, PATH_FIELD).value).toBe(resolve(workspace, "..", "escaped.ts"));
-    expect(affidavit.warnings.join(" ")).toContain("not the absolute path");
+    expect(byName(request.affidavit.fields, PATH_FIELD).value).toBe(
+      resolve(workspace, "..", "escaped.ts"),
+    );
+    expect((request.warnings ?? []).join(" ")).toContain("not the absolute path");
   });
 
   it("swears null, not an empty string, for a file it could not read", () => {
@@ -216,11 +229,11 @@ describe("buildRequest", () => {
     const directory = join(workspace, "a-directory");
     mkdirSync(directory, { recursive: true });
 
-    const { affidavit } = buildRequest("Write", { file_path: directory, content: "x" }, OPTIONS);
+    const request = buildRequest("Write", { file_path: directory, content: "x" }, OPTIONS);
 
-    expect(affidavit.operationType).toBe("FileUpdate");
-    expect(byName(affidavit.fields, CONTENT_FIELD).previousValue).toBeNull();
-    expect(affidavit.warnings.join(" ")).toContain("could not be read");
+    expect(request.affidavit.operationType).toBe("update");
+    expect(byName(request.affidavit.fields, CONTENT_FIELD).previousValue).toBeNull();
+    expect((request.warnings ?? []).join(" ")).toContain("could not be read");
   });
 });
 
@@ -269,8 +282,11 @@ describe("refusalRequest", () => {
     });
 
     expect(request.affidavit.fields).toEqual([]);
-    expect(request.affidavit.operationType).toBe("CoverageRefused");
-    expect(request.affidavit.warnings).toEqual(["coverage refused: not inspected"]);
+    // "create": entityId is null here and AF-3 ties operationType to entityId,
+    // not to why the call was refused. The refusal itself is `detail`, on the
+    // card envelope's warnings — see the doc comment on refusalRequest.
+    expect(request.affidavit.operationType).toBe("create");
+    expect(request.warnings).toEqual(["coverage refused: not inspected"]);
     expect(request.requiredBy).toBe("2026-09-04T09:00:00.000Z");
   });
 });

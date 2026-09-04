@@ -19,7 +19,7 @@
  * `aggregateConfidence` of 0.95 is the **mean** of the two, which is what the
  * shipped .NET projection computes; AF-2 makes it the **minimum**, 0.9.
  */
-import type { EvidenceCardRequest } from "@affiant/contract";
+import type { SeedEvidenceCardRequest } from "@affiant/contract";
 
 export const evidenceCardRequest = {
   docketId: "8f14e45f-ceea-467e-bd76-000000000001",
@@ -71,4 +71,4 @@ export const evidenceCardRequest = {
   },
   requiredBy: "2026-08-01T00:00:00+00:00",
   priorAmendments: null,
-} satisfies EvidenceCardRequest;
+} satisfies SeedEvidenceCardRequest;

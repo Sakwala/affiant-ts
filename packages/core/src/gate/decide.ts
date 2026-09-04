@@ -188,8 +188,11 @@ export async function decide(
       {
         entryId,
         blocked: entry.blocked.code,
-        ...(entry.blocked.level === undefined ? {} : { level: entry.blocked.level }),
-        ...(entry.blocked.category === undefined ? {} : { category: entry.blocked.category }),
+        // Narrowed on the code, not sniffed for a property: each arm carries only
+        // the context its own code makes meaningful (AZ-4, CV-4).
+        ...(entry.blocked.code === "requirement-not-implemented"
+          ? { level: entry.blocked.level }
+          : { category: entry.blocked.category, toolName: entry.blocked.toolName }),
       },
     );
   }

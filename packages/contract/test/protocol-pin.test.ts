@@ -3,20 +3,20 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { PROTOCOL_VERSION } from "../src/index.js";
 
 /**
- * `protocol/` is vendored: a byte-for-byte copy of the schemas and conformance
- * fixtures at one tag of Sakwala/affiant-protocol. Two checks guard it, and the
- * first of them needs nothing but the disk:
+ * `protocol/` is vendored: a byte-for-byte copy of the schemas, the conformance
+ * suite and the machine-readable formats at one ref of Sakwala/affiant-protocol.
+ * Two checks guard it, and the first of them needs nothing but the disk:
  *
  * 1. **Against `protocol/SHA256SUMS`, always.** `scripts/sync-protocol.mjs`
- *    writes that file from the bytes it fetched at the tag. A hand-edit to a
+ *    writes that file from the bytes it fetched at the ref. A hand-edit to a
  *    vendored copy changes its digest and fails here, online or off.
- * 2. **Against the tag itself, when the network is reachable.** This is what
- *    catches a `SHA256SUMS` edited to match a doctored copy, and a tag that has
+ * 2. **Against the ref itself, when the network is reachable.** This is what
+ *    catches a `SHA256SUMS` edited to bless a doctored copy, and a tag that has
  *    been moved under us.
  *
  * `generated.test.ts` closes the remaining gap: that the committed generated
@@ -31,8 +31,10 @@ const rawBase = `https://raw.githubusercontent.com/Sakwala/affiant-protocol/${pi
 /** Where each tracked local file lives in the protocol repository. */
 function upstreamPathFor(localRelativePath: string): string {
   const posix = localRelativePath.split(sep).join("/");
-  if (posix.startsWith("schemas/")) return posix;
+  if (posix.startsWith("schemas/seed/")) return `schemas/${posix.slice("schemas/seed/".length)}`;
+  if (posix.startsWith("schemas/")) return `schemas/0.1.0/${posix.slice("schemas/".length)}`;
   if (posix.startsWith("fixtures/")) return `conformance/${posix}`;
+  if (posix.startsWith("conformance/")) return posix;
   throw new Error(`unmapped vendored path: ${posix}`);
 }
 
@@ -65,13 +67,32 @@ const reachable = await fetch(`${rawBase}/conformance/fixtures/MANIFEST.json`)
   .then((response) => response.ok)
   .catch(() => false);
 
-describe("the pinned protocol tag", () => {
-  it("is the version the package advertises", () => {
-    expect(pin).toBe(`v${PROTOCOL_VERSION}`);
+describe("the pinned protocol ref", () => {
+  it("is a tag naming the version the package advertises, or an immutable commit", () => {
+    // The rulebook's v0.1 text is on its default branch and `v0.1.0` has not been
+    // cut, so the pin is the commit that carries it. A full commit is as immutable
+    // as a tag and, unlike a tag, cannot be moved under a running build; when the
+    // tag exists the pin becomes `v0.1.0` and this assertion takes its first arm.
+    expect(pin === `v${PROTOCOL_VERSION}` || /^[0-9a-f]{40}$/.test(pin)).toBe(true);
   });
 
-  it("vendors every schema and every fixture the seed defines", () => {
-    expect(trackedFiles.length).toBe(18);
+  it("vendors every schema, every fixture and every format a driver needs", () => {
+    expect(trackedFiles.length).toBe(175);
+  });
+
+  it("vendors both wire versions: v0.1 at schemas/, the superseded seed beside it", () => {
+    const posix = trackedFiles.map((path) => path.split(sep).join("/"));
+    expect(posix.filter((path) => /^schemas\/[^/]+\.schema\.json$/.test(path))).toHaveLength(21);
+    expect(posix.filter((path) => path.startsWith("schemas/seed/"))).toHaveLength(8);
+  });
+
+  it("vendors the four formats a driver reads and the exemptions it copies", () => {
+    const posix = new Set(trackedFiles.map((path) => path.split(sep).join("/")));
+    expect(posix.has("conformance/fixture.schema.json")).toBe(true);
+    expect(posix.has("conformance/canonical-vector.schema.json")).toBe(true);
+    expect(posix.has("conformance/results.schema.json")).toBe(true);
+    expect(posix.has("conformance/parity/MANIFEST.schema.json")).toBe(true);
+    expect(posix.has("conformance/lint/coverage-exemptions.json")).toBe(true);
   });
 });
 
@@ -82,34 +103,62 @@ describe("the vendored copies match protocol/SHA256SUMS", () => {
     );
   });
 
-  it.each(trackedFiles)("%s", (localRelativePath) => {
-    const key = localRelativePath.split(sep).join("/");
-    const tracked = readFileSync(join(protocolDir, localRelativePath), "utf8");
+  it("has a matching digest for every tracked file", () => {
+    const mismatched = trackedFiles.filter((localRelativePath) => {
+      const key = localRelativePath.split(sep).join("/");
+      return (
+        sha256(readFileSync(join(protocolDir, localRelativePath), "utf8")) !== expectedSums.get(key)
+      );
+    });
 
-    expect(sha256(tracked), `${key} does not match its digest in protocol/SHA256SUMS`).toBe(
-      expectedSums.get(key),
-    );
+    expect(mismatched).toEqual([]);
   });
 });
 
 if (!reachable) {
-  describe("the vendored copies against the tag", () => {
-    it.skip(`skipped: could not reach ${rawBase} — the copies were checked against protocol/SHA256SUMS above; run this suite with network access to check them, and that file, against the tag itself`, () => {});
+  describe("the vendored copies against the ref", () => {
+    it.skip(`skipped: could not reach ${rawBase} — the copies were checked against protocol/SHA256SUMS above; run this suite with network access to check them, and that file, against the ref itself`, () => {});
   });
 } else {
-  describe("the vendored copies are byte-for-byte identical to the tag", () => {
-    it.each(trackedFiles)("%s", async (localRelativePath) => {
-      const url = `${rawBase}/${upstreamPathFor(localRelativePath)}`;
-      const response = await fetch(url);
+  describe("the vendored copies are byte-for-byte identical to the ref", () => {
+    /** The upstream bytes, fetched once. 175 sequential round trips would be minutes. */
+    const upstream = new Map<string, string>();
 
-      expect(response.ok, `${url} returned ${response.status}`).toBe(true);
+    beforeAll(async () => {
+      const queue = [...trackedFiles];
+      const workers = Array.from({ length: 16 }, async () => {
+        for (let next = queue.pop(); next !== undefined; next = queue.pop()) {
+          const url = `${rawBase}/${upstreamPathFor(next)}`;
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`${url} returned ${String(response.status)}`);
+          }
+          upstream.set(next, await response.text());
+        }
+      });
+      await Promise.all(workers);
+    }, 120_000);
 
-      const upstream = await response.text();
-      const tracked = readFileSync(join(protocolDir, localRelativePath), "utf8");
+    it("fetched one upstream copy per tracked file", () => {
+      expect(upstream.size).toBe(trackedFiles.length);
+    });
 
-      expect(tracked).toBe(upstream);
+    it("has identical bytes on every tracked file", () => {
+      const differing = trackedFiles.filter(
+        (path) => readFileSync(join(protocolDir, path), "utf8") !== upstream.get(path),
+      );
+
+      expect(differing).toEqual([]);
+    });
+
+    it("has a SHA256SUMS written over the upstream bytes, not over the copies", () => {
       // Catches a SHA256SUMS rewritten to bless a doctored copy.
-      expect(expectedSums.get(localRelativePath.split(sep).join("/"))).toBe(sha256(upstream));
+      const wrong = trackedFiles.filter((path) => {
+        const bytes = upstream.get(path);
+        return bytes === undefined || expectedSums.get(path.split(sep).join("/")) !== sha256(bytes);
+      });
+
+      expect(wrong).toEqual([]);
     });
   });
 }

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.0.1-seed/affidavit-field.schema.json",
+  "title": "AffidavitField",
+  "description": "One sworn field inside an affidavit: the proposed value, the value it replaces, and the full provenance chain behind it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "value",
+    "previousValue",
+    "provenance",
+    "isMandatory",
+    "kind",
+    "allowedValues",
+    "pattern"
+  ],
+  "properties": {
+    "name": {
+      "description": "The field's name on the target entity. Also the key used by the amendment maps.",
+      "type": "string"
+    },
+    "value": {
+      "description": "The proposed value. Any JSON value, including null — the .NET model types this as a nullable object, so no type constraint applies."
+    },
+    "previousValue": {
+      "description": "The value being replaced. Any JSON value, including null; null for a create operation, and also for a field that had no previous value."
+    },
+    "provenance": {
+      "$ref": "https://affiant.dev/schemas/0.0.1-seed/provenance-chain.schema.json"
+    },
+    "isMandatory": {
+      "description": "Whether the target entity requires this field.",
+      "type": "boolean"
+    },
+    "kind": {
+      "description": "Rendering hint for a reviewer surface. A plain string on the wire, not a serialized enum, but drawn from a fixed set defined once in the framework.",
+      "type": "string",
+      "enum": ["text", "number", "date", "enum"]
+    },
+    "allowedValues": {
+      "description": "The closed set a reviewer may pick from when kind is \"enum\"; null otherwise.",
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "pattern": {
+      "description": "A regular expression the value must satisfy, or null when the field is unconstrained.",
+      "type": ["string", "null"]
+    }
+  }
+}

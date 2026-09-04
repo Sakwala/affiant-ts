@@ -257,7 +257,8 @@ describe("affiant-hook-bash", () => {
     const entries = docketEntries();
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ status: "blocked", code: "coverage-refused" });
-    expect(entries[0]?.request.affidavit.warnings.join(" ")).toContain("rm");
+    // warnings moved from the affidavit onto the card envelope in v0.1 (SR-1).
+    expect((entries[0]?.request.warnings ?? []).join(" ")).toContain("rm");
   });
 
   it("asks about a command it cannot classify either way", async () => {

@@ -171,7 +171,8 @@ export const CARD_STYLES = `
 
 .amend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .amend-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-.amend input {
+.amend input,
+.amend select {
   flex: 1 1 180px;
   min-width: 0;
   font: inherit;
@@ -182,7 +183,8 @@ export const CARD_STYLES = `
   border-radius: 6px;
   padding: 5px 8px;
 }
-.amend input:focus-visible { outline: 2px solid var(--affiant-accent); outline-offset: 1px; }
+.amend input:focus-visible,
+.amend select:focus-visible { outline: 2px solid var(--affiant-accent); outline-offset: 1px; }
 .amend input:not(:placeholder-shown) { border-color: var(--affiant-accent); }
 
 .foot {

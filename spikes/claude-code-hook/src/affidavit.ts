@@ -17,6 +17,7 @@ import type {
   JsonValue,
   ProvenanceTag,
 } from "@affiant/contract";
+import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import { unifiedDiff } from "./diff.js";
 import { resolveTarget } from "./protocol.js";
@@ -49,16 +50,26 @@ export function editFieldName(index: number): string {
  * The sworn *value* is the resolved absolute path, because that is where the
  * write lands; the literal the agent wrote stays in the evidence line, so the two
  * are both on the card when they differ.
+ *
+ * `note` was spelled `evidence` before v0.1 — renamed because the whole tag is
+ * the evidence and this property is only the sentence a reviewer reads. `at` is
+ * the instant the tag was minted, which for every tag this hook mints is the same
+ * instant the Affidavit itself is built (nothing here reads a clock of its own).
+ * `binding` is `null`: nothing this hook records points an auditor at a system of
+ * record, a form control or a rule to re-run — the tag names where the value came
+ * from, not what to go check (PV-2).
  */
-function pathProvenance(tool: ReviewedTool, target: ResolvedTarget): ProvenanceTag {
+function pathProvenance(tool: ReviewedTool, target: ResolvedTarget, at: string): ProvenanceTag {
   return {
     source: "Conversation",
     confidence: 1,
-    evidence: target.rewritten
+    note: target.rewritten
       ? `the coding agent named "${target.literal}" in this ${tool} call, resolved against the ` +
         "working directory the hook was given"
       : `the path the coding agent named in this ${tool} call`,
+    at,
     conversationTurn: null,
+    binding: null,
   };
 }
 
@@ -66,12 +77,14 @@ function pathProvenance(tool: ReviewedTool, target: ResolvedTarget): ProvenanceT
  * The content is the agent's own proposal. Nothing has checked it, so it is
  * `Inferred` at 0.5 — the value a reviewer is there to raise or refuse.
  */
-function proposalProvenance(): ProvenanceTag {
+function proposalProvenance(at: string): ProvenanceTag {
   return {
     source: "Inferred",
     confidence: 0.5,
-    evidence: "proposed by the coding agent",
+    note: "proposed by the coding agent",
+    at,
     conversationTurn: null,
+    binding: null,
   };
 }
 
@@ -81,15 +94,23 @@ function proposalProvenance(): ProvenanceTag {
  * says nothing about the proposal it renders — the proposal's own 0.5 is what
  * drags the aggregate down.
  */
-function previewProvenance(): ProvenanceTag {
+function previewProvenance(at: string): ProvenanceTag {
   return {
     source: "Computed",
     confidence: 1,
-    evidence: "unified diff computed from the file on disk and the proposed change",
+    note: "unified diff computed from the file on disk and the proposed change",
+    at,
     conversationTurn: null,
+    binding: null,
   };
 }
 
+// `allowedValues` and `pattern` moved off the field and onto the card envelope's
+// `presentation` array in v0.1 (SR-1): they are how a surface should render an
+// input, not part of what the record swears to. Every field this hook swears is
+// free text with no closed value set and no mask, so there is nothing for a
+// `presentation` entry to say — the envelope's `presentation` property is left
+// absent rather than carrying empty hints for fields that have none.
 function field(
   name: string,
   value: JsonValue,
@@ -104,9 +125,42 @@ function field(
     provenance: { current: provenance, prior: [] },
     isMandatory,
     kind: "text",
-    allowedValues: null,
-    pattern: null,
   };
+}
+
+/**
+ * The three confidence numbers AF-2 requires (`aggregateConfidence` the minimum
+ * over every field with an `Empty` tag counting as `0`, `populatedConfidence` the
+ * minimum over the non-`Empty` fields or `null` when there are none,
+ * `emptyFieldCount` the count of `Empty`-tagged fields).
+ *
+ * No field this hook mints is ever tagged `Empty` — `pathProvenance`,
+ * `proposalProvenance` and `previewProvenance` always name a real source — so in
+ * practice `populatedConfidence` equals `aggregateConfidence` and
+ * `emptyFieldCount` is always `0`. The rule is still applied in full rather than
+ * assumed, so a future field that *can* go `Empty` computes correctly without
+ * anyone having to remember to revisit this. This mirrors `@affiant/core`'s own
+ * `computeConfidence`, reimplemented here because this package does not depend on
+ * `@affiant/core`.
+ */
+function confidenceNumbers(fields: readonly AffidavitField[]): {
+  aggregateConfidence: number;
+  populatedConfidence: number | null;
+  emptyFieldCount: number;
+} {
+  let aggregate: number | null = null;
+  let populated: number | null = null;
+  let emptyFieldCount = 0;
+
+  for (const entry of fields) {
+    const tag = entry.provenance.current;
+    const contribution = tag.source === "Empty" ? 0 : tag.confidence;
+    aggregate = aggregate === null ? contribution : Math.min(aggregate, contribution);
+    if (tag.source === "Empty") emptyFieldCount += 1;
+    else populated = populated === null ? tag.confidence : Math.min(populated, tag.confidence);
+  }
+
+  return { aggregateConfidence: aggregate ?? 0, populatedConfidence: populated, emptyFieldCount };
 }
 
 /** What the file looks like now, and whether it is there at all. */
@@ -230,6 +284,11 @@ export interface BuildOptions {
  * - `entityType` is `"file"`. `entityId` is the path when the file is already
  *   there — an update — and `null` when it is not, because the protocol spells a
  *   create as an affidavit with no entity id.
+ * - `operationType` is `"update"` exactly when `entityId` is non-null and
+ *   `"create"` otherwise (AF-3) — the protocol's own two-valued shape, not this
+ *   hook's own vocabulary for what it is reviewing (`Write`, `Edit`, `MultiEdit`).
+ *   That vocabulary is `tool`, which stays a parameter of this function and never
+ *   lands on the wire.
  * - `aggregateConfidence` is the **minimum** across the fields, not the mean: an
  *   affidavit is no more trustworthy than its least-evidenced field.
  * - Absent means `null`, never `undefined`, and arrays are never null.
@@ -240,6 +299,7 @@ export function buildRequest(
   options: BuildOptions,
 ): EvidenceCardRequest {
   const now = options.now ?? Date.now();
+  const at = new Date(now).toISOString();
   const target = resolveTarget(input.file_path, options.cwd);
   const path = target.resolved;
   const state = options.fileState ?? readFileState(path);
@@ -261,7 +321,7 @@ export function buildRequest(
   }
 
   const fields: AffidavitField[] = [
-    field(PATH_FIELD, path, null, pathProvenance(tool, target), true),
+    field(PATH_FIELD, path, null, pathProvenance(tool, target, at), true),
   ];
 
   // A file that exists but cannot be read has an unknown previous value, not an
@@ -276,7 +336,7 @@ export function buildRequest(
           "proposed content is being dropped.",
       );
     }
-    fields.push(field(CONTENT_FIELD, input.content, previousContent, proposalProvenance(), true));
+    fields.push(field(CONTENT_FIELD, input.content, previousContent, proposalProvenance(at), true));
   } else {
     const edits = editsOf(input);
 
@@ -289,7 +349,7 @@ export function buildRequest(
           // hold one. Never the `old_string` of an edit that will not apply — the
           // caller refuses those before this runs.
           state.exists && state.unreadable === null ? edit.old_string : null,
-          proposalProvenance(),
+          proposalProvenance(at),
           true,
         ),
       );
@@ -307,32 +367,46 @@ export function buildRequest(
         PREVIEW_FIELD,
         unifiedDiff(state.content, projectEdits(state.content, input), path),
         null,
-        previewProvenance(),
+        previewProvenance(at),
         false,
       ),
     );
   }
 
-  const aggregateConfidence = fields.reduce(
-    (lowest, entry) => Math.min(lowest, entry.provenance.current.confidence),
-    1,
-  );
+  const { aggregateConfidence, populatedConfidence, emptyFieldCount } = confidenceNumbers(fields);
 
   const affidavit: Affidavit = {
-    operationType: state.exists ? "FileUpdate" : "FileCreate",
+    protocolVersion: PROTOCOL_VERSION,
+    // AF-3: the shape, not this hook's own verb for the call. See the doc comment
+    // above.
+    operationType: state.exists ? "update" : "create",
     entityType: "file",
     entityId: state.exists ? path : null,
     fields,
     aggregateConfidence,
-    warnings,
-    requiresConfirmation: true,
+    populatedConfidence,
+    emptyFieldCount,
+    conversationTurn: null,
+    createdAt: at,
   };
 
   return {
+    protocolVersion: PROTOCOL_VERSION,
     docketId: options.docketId ?? randomUUID(),
     affidavit,
     requiredBy: new Date(now + options.timeoutMs).toISOString(),
     priorAmendments: null,
+    populatedConfidence,
+    emptyFieldCount,
+    // Nothing this hook files is ever undecidable in the protocol's own sense
+    // (AZ-4, CV-4) — a call it cannot review is refused outright by
+    // `refusalRequest` below rather than filed pending. A card built here always
+    // reaches a person.
+    blocked: null,
+    // Absent rather than an empty array when there is nothing to say (SR-1's
+    // "genuinely optional" slots) — mirrors `@affiant/core`'s `presentationToWire`.
+    ...(warnings.length > 0 ? { warnings } : {}),
+    requiresConfirmation: true,
   };
 }
 
@@ -342,26 +416,49 @@ export function buildRequest(
  * A refusal is still a decision about a write, so it gets a docket row: a call
  * this hook cannot cover is refused and *marked*, never silently allowed.
  * There are no sworn fields, because the whole point is that nothing was sworn;
- * the reason the hook gives the agent is on the affidavit as a warning.
+ * the reason the hook gives the agent is a warning on the card envelope.
+ *
+ * `operationType` is `"create"`: `entityId` is `null` here (nothing was
+ * identified well enough to write to), and AF-3 ties the two together — an
+ * `"update"` names the entity it changes, and this names none. The fact that this
+ * particular call was refused for *coverage* rather than proposed is not a fact
+ * about the shape of an operation, so it never lived in `operationType` even
+ * before v0.1; it is `detail`, carried as a warning here exactly as before, and
+ * the caller (`hook.ts`, `bash-hook.ts`) separately records it as the local
+ * Docket row's own `code: "coverage-refused"` — the protocol's `blocked` marker
+ * on the envelope is left `null` because this row is not a proposal that reached
+ * the protocol's Docket and needs its `blocked`/`pending` machinery at all; it is
+ * a call this hook is refusing to review, recorded on this hook's own local file
+ * for the same reason every refusal is recorded.
  */
 export function refusalRequest(
   detail: string,
   options: { now?: number; docketId?: string } = {},
 ): EvidenceCardRequest {
   const now = options.now ?? Date.now();
+  const at = new Date(now).toISOString();
   return {
+    protocolVersion: PROTOCOL_VERSION,
     docketId: options.docketId ?? randomUUID(),
     affidavit: {
-      operationType: "CoverageRefused",
+      protocolVersion: PROTOCOL_VERSION,
+      operationType: "create",
       entityType: "tool-call",
       entityId: null,
       fields: [],
       aggregateConfidence: 0,
-      warnings: [detail],
-      requiresConfirmation: true,
+      populatedConfidence: null,
+      emptyFieldCount: 0,
+      conversationTurn: null,
+      createdAt: at,
     },
-    requiredBy: new Date(now).toISOString(),
+    requiredBy: at,
     priorAmendments: null,
+    populatedConfidence: null,
+    emptyFieldCount: 0,
+    blocked: null,
+    warnings: [detail],
+    requiresConfirmation: true,
   };
 }
 

@@ -14,10 +14,7 @@
  * Why AF-2 is a minimum and not a mean: a mean that first discards every `Empty`
  * field lets a mostly-empty Affidavit report high confidence, which is the exact
  * hole once provenance authorises writes. The shipped .NET projection computes a
- * mean over non-`Empty` fields; the parity manifest names it. The seed wire fixture
- * carries `aggregateConfidence: 0.95` — the mean of `1.0` and `0.9` — where this
- * package computes `0.9`, and `test/wire-roundtrip.test.ts` asserts both numbers so
- * the difference is a fact the suite states rather than a surprise.
+ * mean over non-`Empty` fields; the parity manifest names it.
  *
  * Nothing here reads a clock or a database. `createdAt` is passed in and
  * `previousValue` comes from the host's projection port.
@@ -28,8 +25,12 @@
 import type {
   Affidavit as WireAffidavit,
   AffidavitField as WireAffidavitField,
+  EvidenceCardRequest as WireEvidenceCardRequest,
+  FieldPresentation,
   JsonValue,
+  ProvenanceTag as WireProvenanceTag,
 } from "@affiant/contract";
+import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import type { Operation } from "../ports.js";
 
@@ -178,7 +179,8 @@ export interface AffidavitField {
  * host's operation name, because AF-3 is a rule about the *shape* — an update names
  * the entity it updates and swears to what it replaces — and "create-only" has to
  * be a predicate a policy can test without knowing the host's verbs. The host's own
- * name for the operation is carried on the wire (see {@link WireCarry}).
+ * verb travels beside the record, never on it, and the v0.1 wire has no slot for
+ * it at all — a card carries the shape, and the host keeps its own vocabulary.
  */
 export interface Affidavit {
   /** `create` when nothing exists yet; `update` when an entity is being changed. */
@@ -193,18 +195,13 @@ export interface Affidavit {
   readonly aggregateConfidence: number;
   /**
    * Minimum confidence over the non-`Empty` proposed fields, or `null` when there
-   * are none (AF-2).
-   *
-   * Optional because the seed wire schema carries only `aggregateConfidence`; every
-   * Affidavit this package builds writes all three, and the schema catches up at
-   * protocol v0.1.
+   * are none (AF-2). `null` rather than `0`: "there is nothing populated to be
+   * confident about" is a different statement from "the populated fields are
+   * worthless", and a card showing `0` would say the second.
    */
-  readonly populatedConfidence?: number | null;
-  /**
-   * How many proposed fields are tagged `Empty` (AF-2). Optional for the same
-   * reason as {@link Affidavit.populatedConfidence}.
-   */
-  readonly emptyFieldCount?: number;
+  readonly populatedConfidence: number | null;
+  /** How many proposed fields are tagged `Empty` (AF-2). */
+  readonly emptyFieldCount: number;
   /** The conversation turn the proposal was made on, or `null`. */
   readonly conversationTurn: number | null;
   /** When the Affidavit was built, as an ISO 8601 instant. */
@@ -429,77 +426,110 @@ export function withConfidence(core: AffidavitCore, fields: readonly AffidavitFi
 // ---------------------------------------------------------------------------
 
 /**
- * The facts the wire Affidavit carries that the core Affidavit does not own.
+ * The presentation the card envelope carries beside a sworn record, which the
+ * Affidavit itself does not own.
  *
- * Three of them are the host's presentation of the proposal rather than its sworn
- * substance — the host's own operation verb (`"WriteUpdate"`), the warnings a card
- * should show, and whether a person must confirm (which is the policy chain's
- * verdict, not a property of the evidence). Per-field `allowedValues` and `pattern`
- * are the reviewer surface's input constraints, for the same reason.
+ * All three are the host's presentation of the proposal rather than its sworn
+ * substance: the sentences a reviewer should read, whether a person must confirm
+ * (which is the policy chain's verdict, not a property of the evidence), and the
+ * per-field rendering hints a surface builds its inputs from.
  *
- * Keeping them out of {@link Affidavit} and explicit here is the point: the core
- * swears to what a value is and where it came from, and hands presentation back to
- * whoever asked.
+ * They live on the envelope and not on the record because the canonical form a
+ * host's execution grant binds to is defined over the Affidavit and its accepted
+ * amendments and nothing else (SR-1). A closed value set, a regular expression an
+ * input is masked with, and a sentence a reviewer should read are none of those
+ * things: swearing to them would put a rendering decision inside a hash a grant is
+ * checked against, so that restyling an input invalidates a grant minted over
+ * evidence that did not change. It would also invite the misreading that the gate
+ * enforces them — it does not. A value outside `allowedValues`, or not matching
+ * `pattern`, is still recorded; a host that wants such a value refused enforces
+ * that in its own policy.
  */
 export interface WireCarry {
-  /** The host's own name for the operation, e.g. `"WriteUpdate"`. */
-  readonly operationType: string;
-  /** Human-readable warnings a reviewer should see. */
+  /** Sentences a reviewer should see beside the record. Empty when there are none. */
   readonly warnings: readonly string[];
   /** Whether a person must confirm this write before it commits. */
   readonly requiresConfirmation: boolean;
-  /** Per-field input constraints, keyed by field name. */
-  readonly fieldConstraints: {
-    readonly [fieldName: string]: {
-      readonly allowedValues: readonly string[] | null;
-      readonly pattern: string | null;
-    };
-  };
+  /**
+   * How a reviewer surface should render each field's input: one entry per field
+   * the host has a hint for, naming a field the Affidavit carries. Empty when the
+   * host declared none.
+   */
+  readonly presentation: readonly FieldPresentation[];
 }
 
-/** Lift the {@link WireCarry} out of a wire Affidavit, so a round trip can put it back. */
-export function wireCarryOf(wire: WireAffidavit): WireCarry {
-  const fieldConstraints: Record<
-    string,
-    { allowedValues: readonly string[] | null; pattern: string | null }
-  > = {};
-  for (const field of wire.fields) {
-    fieldConstraints[field.name] = {
-      allowedValues: field.allowedValues,
-      pattern: field.pattern,
-    };
-  }
+/**
+ * Lift the {@link WireCarry} off a card envelope, so a round trip can put it back.
+ *
+ * The two optional slots come back as empty arrays rather than `undefined`: a
+ * caller reading them wants something to iterate, and `toWire`'s companion,
+ * {@link presentationToWire}, turns an empty one back into an omitted property.
+ */
+export function wireCarryOf(card: WireEvidenceCardRequest): WireCarry {
   return {
-    operationType: wire.operationType,
-    warnings: wire.warnings,
-    requiresConfirmation: wire.requiresConfirmation,
-    fieldConstraints,
+    warnings: card.warnings ?? [],
+    requiresConfirmation: card.requiresConfirmation,
+    presentation: card.presentation ?? [],
   };
 }
 
-/** What {@link fromWire} must be told, because the wire shape at `0.0.1-seed` does not carry it. */
+/**
+ * The card envelope's two presentation slots as the wire spells them: **absent**
+ * when there is nothing to say, never `null`.
+ *
+ * Nothing swears to either, so a producer with nothing to say says nothing — the
+ * distinction the schemas draw between a value that is sometimes missing (spelled
+ * `null`) and a property that is meaningful only sometimes (spelled by its
+ * absence).
+ */
+export function presentationToWire(carry: WireCarry): {
+  presentation?: readonly FieldPresentation[];
+  warnings?: readonly string[];
+} {
+  return {
+    ...(carry.presentation.length > 0 ? { presentation: carry.presentation } : {}),
+    ...(carry.warnings.length > 0 ? { warnings: carry.warnings } : {}),
+  };
+}
+
+/** What {@link fromWire} must be told, because a wire Affidavit does not carry it. */
 export interface FromWireStamp {
-  /** The instant to stamp on the Affidavit and on every tag it derives. */
+  /**
+   * The instant to stamp on the Affidavit. A tag carries its own `at` on the wire
+   * from v0.1, so this is the record's `createdAt` and the fallback for a tag that
+   * somehow arrived without one.
+   */
   readonly at: string;
-  /** The conversation turn the proposal was made on. Defaults to `null`. */
+  /** The conversation turn the proposal was made on. Defaults to the wire's own, else `null`. */
   readonly conversationTurn?: number | null;
 }
 
 /**
  * Read a wire Affidavit into the core model.
  *
- * Two mappings are worth stating. **The operation shape is derived, not trusted:**
- * `entityId === null` is a create and anything else is an update (AF-3), so a host
- * verb the core has never heard of still lands on the right side of the rule.
- * **A grade is carried, never raised:** a wire tag has no `binding` field at
- * `0.0.1-seed`, so every tag read here is unbound, and the seed fixture's
- * `UserStated` tag is therefore a claim `isHonourable` reports as not honourable —
- * which is PV-5 exactly: no wire type promotes a grade.
+ * **A payload from another protocol version is refused, never guessed at.** The
+ * `0.0.1-seed` shape the shipped .NET framework still sends is a different
+ * document — the host's verb where the shape belongs, one confidence number rather
+ * than three, the warnings and the confirmation flag on the record, the
+ * presentation on each field — and reading it as though it were this one would
+ * produce a record that swore to things nobody said. SR-4 puts the version on the
+ * envelope precisely so a consumer can tell: a differing **major** is refused, and
+ * so is an older minor whose shape this version does not describe. A newer minor is
+ * accepted, because a minor only adds.
  *
- * @throws RangeError if a field value is not a JSON value, or if the wire shape
- *         violates AF-1 or AF-3.
+ * Two mappings are worth stating. **The operation shape is derived, not trusted:**
+ * `entityId === null` is a create and anything else is an update (AF-3), so a
+ * record whose `operationType` disagrees with its own `entityId` still lands on the
+ * right side of the rule. **A grade is carried, never raised:** a binding read off
+ * the wire is recorded as it arrived, and whether a tag may be relied on is PV-4's
+ * call, not the reader's.
+ *
+ * @throws RangeError if the payload names another protocol version, if a field
+ *         value is not a JSON value, or if the wire shape violates AF-1 or AF-3.
  */
 export function fromWire(wire: WireAffidavit, stamp: FromWireStamp): Affidavit {
+  assertReadableVersion(wire.protocolVersion);
+
   const entityId = wire.entityId;
   const names = wire.fields.map((field) => field.name);
 
@@ -522,20 +552,50 @@ export function fromWire(wire: WireAffidavit, stamp: FromWireStamp): Affidavit {
 
   return buildAffidavit(op, fields, {
     createdAt: stamp.at,
-    conversationTurn: stamp.conversationTurn ?? null,
+    conversationTurn: stamp.conversationTurn ?? wire.conversationTurn ?? null,
   });
 }
 
-function tagFromWire(tag: WireAffidavitField["provenance"]["current"], at: string): ProvenanceTag {
+/**
+ * Refuse a payload this version cannot read (SR-4).
+ *
+ * A differing major is a different protocol. An older minor is a shape this
+ * version does not describe — `0.0.1-seed` is the one that exists, and it is not a
+ * subset of v0.1 but a different document. A newer minor is accepted and not
+ * warned about here: a minor only adds, and the caller who wants to know can
+ * compare `PROTOCOL_VERSION` itself.
+ */
+function assertReadableVersion(version: string): void {
+  // A payload with no version at all is the seed, which predates the property.
+  // Checked as data rather than trusted from the type: this is a boundary, and the
+  // type is a claim about what arrived rather than a fact.
+  if (typeof version === "string") {
+    const [major, minor] = version.split(".");
+    const [targetMajor, targetMinor] = PROTOCOL_VERSION.split(".");
+    if (major === targetMajor && Number(minor) >= Number(targetMinor)) return;
+  }
+  throw new RangeError(
+    `SR-4: this package reads protocol ${PROTOCOL_VERSION} and was handed ` +
+      `${version === undefined ? "a payload carrying no protocolVersion at all" : JSON.stringify(version)}. ` +
+      `The 0.0.1-seed wire is a different document — the host's verb where the operation shape belongs, ` +
+      `one confidence number rather than three, the warnings and the presentation on the record rather ` +
+      `than on the card envelope — and is deliberately not converted: reading it as this shape would ` +
+      `produce a record that swore to things nobody said. Translate it at the host boundary instead; ` +
+      `its schemas are exported from @affiant/contract/schemas as seedSchemas.`,
+  );
+}
+
+function tagFromWire(tag: WireProvenanceTag, at: string): ProvenanceTag {
   return mintTag({
     source: tag.source,
     confidence: tag.confidence,
-    note: tag.evidence,
-    at,
+    note: tag.note,
+    at: tag.at ?? at,
     conversationTurn: tag.conversationTurn,
-    // PV-5: the wire at `0.0.1-seed` has no binding field, so nothing read from it
-    // is bound. The grade is recorded; whether it may be relied on is PV-4's call.
-    binding: null,
+    // PV-5: a binding is carried exactly as it arrived. Nothing here raises a
+    // grade; whether an unbound tag above `Conversation` may be relied on is
+    // PV-4's call.
+    binding: tag.binding,
   });
 }
 
@@ -547,50 +607,53 @@ function chainFromWire(chain: WireAffidavitField["provenance"], at: string): Pro
 }
 
 /**
- * Write a core Affidavit back out in the wire shape, putting `carry` back where it
- * came from.
+ * Write a core Affidavit back out in the wire shape.
  *
- * `aggregateConfidence` is **the computed value** (AF-2), which is the one place a
- * round trip through this pair does not return what it was given: the seed fixture
- * arrives carrying `0.95`, the mean of its two fields, and leaves carrying `0.9`,
- * their minimum. That is the rule doing its job, and `test/wire-roundtrip.test.ts`
- * asserts both numbers.
+ * Everything on the wire record is the record: the operation's **shape** rather
+ * than the host's verb (AF-3), the three confidence numbers (AF-2), the version
+ * the envelope conforms to (SR-4), and each field's value, previous value and
+ * whole provenance chain. The presentation a surface needs goes on the card
+ * envelope instead — see {@link WireCarry}.
  *
- * `at` and `binding` have nowhere to go on the wire at protocol tag `0.0.1-seed`
- * and are dropped; a tag's `note` is the wire's `evidence`.
+ * `aggregateConfidence` is **the computed value** (AF-2). An implementation that
+ * wrote back whatever number it was handed would let a mean computed elsewhere
+ * travel under a name the rule defines as a minimum.
  */
-export function toWire(affidavit: Affidavit, carry: WireCarry): WireAffidavit {
+export function toWire(
+  affidavit: Affidavit,
+  protocolVersion: string = PROTOCOL_VERSION,
+): WireAffidavit {
   return {
-    operationType: carry.operationType,
+    protocolVersion,
+    operationType: affidavit.operationType,
     entityType: affidavit.entityType,
     entityId: affidavit.entityId,
-    fields: affidavit.fields.map((field): WireAffidavitField => {
-      const constraints = carry.fieldConstraints[field.name];
-      return {
-        name: field.name,
-        value: field.value,
-        previousValue: field.previousValue,
-        provenance: {
-          current: tagToWire(field.provenance.current),
-          prior: field.provenance.prior.map(tagToWire),
-        },
-        isMandatory: field.isMandatory,
-        kind: field.kind,
-        allowedValues: constraints?.allowedValues ?? null,
-        pattern: constraints?.pattern ?? null,
-      };
-    }),
+    fields: affidavit.fields.map((field): WireAffidavitField => ({
+      name: field.name,
+      kind: field.kind,
+      value: field.value,
+      previousValue: field.previousValue,
+      provenance: {
+        current: tagToWire(field.provenance.current),
+        prior: field.provenance.prior.map(tagToWire),
+      },
+      isMandatory: field.isMandatory,
+    })),
     aggregateConfidence: affidavit.aggregateConfidence,
-    warnings: carry.warnings,
-    requiresConfirmation: carry.requiresConfirmation,
+    populatedConfidence: affidavit.populatedConfidence,
+    emptyFieldCount: affidavit.emptyFieldCount,
+    conversationTurn: affidavit.conversationTurn,
+    createdAt: affidavit.createdAt,
   };
 }
 
-function tagToWire(tag: ProvenanceTag): WireAffidavitField["provenance"]["current"] {
+function tagToWire(tag: ProvenanceTag): WireProvenanceTag {
   return {
     source: tag.source,
     confidence: tag.confidence,
-    evidence: tag.note,
+    note: tag.note,
+    at: tag.at,
     conversationTurn: tag.conversationTurn,
+    binding: tag.binding ?? null,
   };
 }

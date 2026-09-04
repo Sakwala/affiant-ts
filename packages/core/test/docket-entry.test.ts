@@ -1,3 +1,4 @@
+import { PROTOCOL_VERSION } from "@affiant/contract";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -38,7 +39,8 @@ describe("newEntry defaults (DK-1)", () => {
   });
 
   it("stamps the protocol tag the wire types are pinned to", () => {
-    expect(anEntry("entry-1").protocolVersion).toBe("0.0.1-seed");
+    expect(anEntry("entry-1").protocolVersion).toBe(PROTOCOL_VERSION);
+    expect(PROTOCOL_VERSION).toBe("0.1.0");
     expect(anEntry("entry-2", { protocolVersion: "9.9.9" }).protocolVersion).toBe("9.9.9");
   });
 

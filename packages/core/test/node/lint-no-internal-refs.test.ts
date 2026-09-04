@@ -110,6 +110,37 @@ describe("the no-internal-references lint", () => {
     expect(result.status).not.toBe(0);
   });
 
+  it("skips a generated module, whose words are the vendored rulebook's own", () => {
+    // A conformance fixture whose external reference reads `ledger:limit/9` is
+    // somebody else's accounting example, and there is no doc comment in a data
+    // module for a person to fix. The banner is what marks it.
+    const path = fileContaining(
+      "fixtures.generated.ts",
+      [
+        "// GENERATED FILE — DO NOT EDIT BY HAND.",
+        "// Produced by scripts/generate-sources.mjs from protocol/.",
+        'export const vector = { ref: "ledger:limit/9" };',
+        "",
+      ].join("\n"),
+    );
+
+    const result = runLint(path);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("1 generated module(s) skipped");
+  });
+
+  it("still reads a hand-written file that merely mentions a generator", () => {
+    const path = fileContaining(
+      "notes.ts",
+      ["// Produced by hand; see the ledger.", ""].join("\n"),
+    );
+
+    const result = runLint(path);
+
+    expect(result.status).not.toBe(0);
+  });
+
   it("passes over prose that cites the public rulebook instead", () => {
     const path = fileContaining(
       "fine.ts",

@@ -31,6 +31,10 @@
       "types": "./dist/schemas.d.ts",
       "default": "./dist/schemas.js"
     },
+    "./conformance": {
+      "types": "./dist/conformance.d.ts",
+      "default": "./dist/conformance.js"
+    },
     "./protocol/*": "./protocol/*",
     "./package.json": "./package.json"
   },
