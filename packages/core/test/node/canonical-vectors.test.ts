@@ -54,6 +54,29 @@ function hasSha256sum(): boolean {
 }
 
 describe("the canonical vectors on disk", () => {
+  it("is exactly what the implementation produces, byte for byte", () => {
+    // The record and the implementation cannot be allowed to disagree. Every
+    // property of a vector — its `input` included — is written by the generator
+    // from a scenario declared in it, so a hand-edit to a file here is a claim
+    // about this implementation that this implementation does not make. `--check`
+    // writes nothing and exits non-zero on any difference.
+    //
+    // Needs `dist/`: the generator builds each record through the built model, the
+    // same way the runtime suites import the package through its published entry
+    // points. CI builds before it tests.
+    const generator = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "..",
+      "scripts",
+      "generate-canonical-fixtures.mjs",
+    );
+
+    expect(() =>
+      execFileSync(process.execPath, [generator, "--check"], { stdio: "pipe" }),
+    ).not.toThrow();
+  });
+
   it("has one JSON file per vector in the generated module", () => {
     expect(vectorFiles().length).toBe(canonicalVectors.length);
     expect(canonicalVectors.length).toBeGreaterThanOrEqual(6);

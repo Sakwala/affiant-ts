@@ -193,6 +193,51 @@ describe("canonical byte vectors (SR-1)", () => {
     expect(new Set(canonicalVectors.map((vector) => vector.id)).size).toBe(7);
   });
 
+  it("states the record every vector canonicalises, and nothing it does not", () => {
+    // `amendedInput` is the accepted state, so it belongs to exactly the vectors
+    // that have amendments; on any other vector the input is already the state the
+    // bytes are taken over, and a second copy of it would be a second thing to
+    // drift.
+    for (const vector of canonicalVectors) {
+      expect(Object.hasOwn(vector, "amendedInput"), vector.id).toBe(vector.amendments !== null);
+      expect(vector.amendments === null, vector.id).toBe(vector.reviewerAct === null);
+    }
+  });
+
+  it("makes every vector's input a v0.1 record, not the superseded seed shape", () => {
+    // The defect this set was regenerated to close: at the rulebook's v0.1.0 the
+    // seven inputs described a seed-shaped record the Affidavit schema refuses.
+    // `test/node/canonical-vector-schema.test.ts` holds each one against the schema
+    // itself; this is the same statement in a form every runtime can make.
+    for (const vector of canonicalVectors) {
+      const record = vector.input as Record<string, unknown>;
+
+      expect(record["protocolVersion"], vector.id).toBe("0.1.0");
+      expect(["create", "update"], vector.id).toContain(record["operationType"]);
+      expect(Object.hasOwn(record, "conversationTurn"), vector.id).toBe(true);
+      expect(Object.hasOwn(record, "createdAt"), vector.id).toBe(true);
+      expect(Object.hasOwn(record, "populatedConfidence"), vector.id).toBe(true);
+      expect(Object.hasOwn(record, "emptyFieldCount"), vector.id).toBe(true);
+      // The seed spellings, gone: presentation on a field, the card's two envelope
+      // properties on the record, and `evidence` where a tag now says `note`.
+      expect(Object.hasOwn(record, "warnings"), vector.id).toBe(false);
+      expect(Object.hasOwn(record, "requiresConfirmation"), vector.id).toBe(false);
+      for (const field of record["fields"] as Record<string, unknown>[]) {
+        expect(Object.hasOwn(field, "allowedValues"), `${vector.id} ${String(field["name"])}`).toBe(
+          false,
+        );
+        expect(Object.hasOwn(field, "pattern"), `${vector.id} ${String(field["name"])}`).toBe(
+          false,
+        );
+        const chain = field["provenance"] as { current: Record<string, unknown> };
+        expect(Object.hasOwn(chain.current, "evidence"), vector.id).toBe(false);
+        expect(Object.hasOwn(chain.current, "note"), vector.id).toBe(true);
+        expect(Object.hasOwn(chain.current, "at"), vector.id).toBe(true);
+        expect(Object.hasOwn(chain.current, "binding"), vector.id).toBe(true);
+      }
+    }
+  });
+
   for (const vector of canonicalVectors) {
     describe(vector.id, () => {
       const { input, amendments, options } = argumentsOf(vector);
@@ -420,18 +465,78 @@ describe("amendments in the canonical form (SR-1, DK-2, PV-2)", () => {
   it("mints the model's own reviewer-act tag, not one of its own (PV-2, AF-4)", () => {
     // The canonical form and a Docket row's accepted state must not be able to
     // disagree about the same decision, so both call `amendmentTag`. The binding
-    // names the decision *and* the instant it was made at.
+    // names the decision *and* the instant it was made at, and the tag carries the
+    // record's own conversation turn rather than inventing one.
+    const turn = (amended.input as { conversationTurn: number | null }).conversationTurn;
     const parsed = JSON.parse(amended.expectedBytesUtf8) as {
       fields: readonly { provenance: { current: unknown } }[];
     };
 
     expect(parsed.fields[0]?.provenance.current).toEqual(
-      JSON.parse(JSON.stringify(amendmentTag({ kind: "set", value: "Retired" }, act, null))),
+      JSON.parse(JSON.stringify(amendmentTag({ kind: "set", value: "Retired" }, act, turn))),
     );
     expect(parsed.fields[0]?.provenance.current).toMatchObject({
       source: "UserStated",
+      conversationTurn: turn,
       binding: { kind: "reviewer-act", ref: { entryId: act.entryId, decisionAt: act.decisionAt } },
     });
+  });
+
+  it("writes down the accepted state the bytes are taken over, and it is the one the model builds", () => {
+    // SR-1 defines the canonical form over the accepted state, so the vector
+    // records that state rather than leaving it implicit: a state nobody can hold
+    // against the Affidavit schema is a state nobody has checked. It has to be the
+    // state this implementation actually produces, and its canonical form has to be
+    // the bytes the vector pins — otherwise it is decoration.
+    expect(amended.amendedInput).toBeDefined();
+    expect(
+      applyAmendmentsForCanonical(
+        amended.input as CanonicalInput,
+        amended.amendments as AmendmentMap,
+        act,
+      ),
+    ).toEqual(amended.amendedInput);
+    expect(canonicalJson(amended.amendedInput)).toBe(amended.expectedBytesUtf8);
+  });
+
+  it("recomputes all three confidence numbers over the accepted state (AF-2, AF-4)", () => {
+    // The proposal's populated minimum is the machine's 0.9, over a field the
+    // reviewer then cleared. Carrying that number into the accepted state would
+    // leave a record whose only remaining field is sworn at 1 contradicting its own
+    // summary — and those are the bytes an execution grant binds to.
+    const proposal = unamended.input as {
+      aggregateConfidence: number;
+      populatedConfidence: number | null;
+      emptyFieldCount: number;
+    };
+    const accepted = amended.amendedInput as {
+      fields: readonly unknown[];
+      aggregateConfidence: number;
+      populatedConfidence: number | null;
+      emptyFieldCount: number;
+    };
+
+    expect(proposal.populatedConfidence).toBe(0.9);
+    expect(accepted.fields.length).toBe(1);
+    expect(accepted.aggregateConfidence).toBe(1);
+    expect(accepted.populatedConfidence).toBe(1);
+    expect(accepted.emptyFieldCount).toBe(0);
+  });
+
+  it("leaves a record alone about a number it does not carry", () => {
+    // The seed-shaped record carried one confidence number, and a document that
+    // says nothing about the other two must not be given them by the serializer:
+    // the canonical form writes what the producer wrote, never more.
+    const written = canonicalString(
+      { fields: [{ name: "Only", value: "before" }] },
+      { Only: "after" },
+      { reviewerAct: act },
+    );
+    const parsed = JSON.parse(written) as Record<string, unknown>;
+
+    expect(Object.hasOwn(parsed, "aggregateConfidence")).toBe(false);
+    expect(Object.hasOwn(parsed, "populatedConfidence")).toBe(false);
+    expect(Object.hasOwn(parsed, "emptyFieldCount")).toBe(false);
   });
 
   it("keeps a cleared mandatory field, tagged Empty, and drops a cleared optional one (AF-1)", () => {

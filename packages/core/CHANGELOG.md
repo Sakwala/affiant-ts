@@ -12,6 +12,51 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ### Changed
 
+- **The seven canonical byte vectors are regenerated from v0.1-shaped inputs, and a
+  test holds every one of them against the Affidavit schema** (SR-1, AF-1, AF-5). The
+  vectors were written before this package was aligned to the v0.1 wire and nothing
+  checked them afterwards, so each one's `input` described a *seed-shaped* record:
+  `operationType: "WriteUpdate"`, `allowedValues` and `pattern` on the fields,
+  `warnings` and `requiresConfirmation` on the record, the superseded spelling
+  `evidence` where a tag now says `note`, and no `protocolVersion`,
+  `conversationTurn` or `createdAt` at all.
+  `schemas/0.1.0/affidavit.schema.json` refuses every one of those records, so the
+  vectors pinned the canonical bytes of a document the protocol does not have — and
+  SR-1 defines the canonical form over the accepted state of the Affidavit *as the
+  schema defines it*.
+
+  The seven scenarios are the same ones: a create-shaped record, an update-shaped
+  record with a null previous value, the record behind the protocol's seed card
+  fixture and its amended twin, key-order stress, number forms, and money with the
+  string-escaping rules. What changed is that `scripts/generate-canonical-fixtures.mjs`
+  now owns them and builds each record through `buildAffidavit` and `toWire` — the
+  same path a gate takes to produce the Affidavit on a card — so an input is what a
+  v0.1 implementation serialises by construction rather than by transcription. Every
+  byte and every digest moved. The two vectors that used to be bare JSON values are
+  now Affidavits carrying the same stress cases in a field's value, so *every* vector
+  is a record the schema can be held against.
+
+  Three checks now stand where none did.
+  `test/node/canonical-vector-schema.test.ts` validates every vector's `input` — and
+  the amended vector's `amendedInput` — against the vendored Affidavit schema with
+  ajv, on Node and under Bun, and asserts the schema still refuses the seed shape.
+  `test/node/canonical-vectors.test.ts` re-runs the generator with `--check`, so a
+  hand-edit to a vector file fails the build. And the generator itself refuses to
+  write an amended vector unless the serializer's accepted state and the core model's
+  `applyAmendments` agree byte for byte.
+- **The amended vector records the accepted state the bytes are taken over**, as
+  `amendedInput`. SR-1's canonical form is over the Affidavit *and its accepted
+  amendments*, and leaving that state implicit meant nobody could hold it against the
+  schema. It is produced by the model, never typed.
+- **`applyAmendmentsForCanonical` recomputes all three of AF-2's numbers**, not only
+  the aggregate — each one only where the document already carries it, so a
+  seed-shaped record that states one number still gets one number back. Under the
+  v0.1 record the old behaviour left `populatedConfidence` and `emptyFieldCount` at
+  their pre-correction values: an accepted state whose only remaining field is sworn
+  at `1` while its own summary still read the machine's `0.9`. Those are the bytes an
+  execution grant binds to, so a record contradicting itself there is not a cosmetic
+  fault (AF-4).
+
 - **The publish guard now states the gate is met, not pending.** `prepack-guard.mjs`
   and the three READMEs said publishing waited on a public parity report and a green
   conformance driver; both are now facts, cited by link — the .NET parity report at
