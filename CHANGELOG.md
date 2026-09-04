@@ -12,7 +12,17 @@ was made against.
 
 ### Changed
 
-- **The protocol pin moves to [`v0.1.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.1).**
+- **The protocol pin moves to [`v0.1.2`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.2).**
+  The rulebook's SR-1 now states what the canonical form is taken over — the Affidavit
+  as `schemas/0.1.0/affidavit.schema.json` defines it, `protocolVersion` included, and
+  not the card envelope's presentation — and re-promotes the two declarative fixtures
+  whose pinned `canonicalHash` this implementation's runtime path had produced without
+  it. No schema, no wire and no byte vector changed. What moves here is
+  `packages/contract/protocol/`, the three generated modules under
+  `packages/contract/`, and the driver's committed run and parity manifest, both now
+  naming `v0.1.2`. 63 of 63 on Node, Bun and workerd, failing set still empty.
+
+- **The protocol pin moved to [`v0.1.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.1).**
   The rulebook re-promoted the seven canonical byte vectors from this repository and
   added a lint that validates every vector's record against the Affidavit schema; the
   wire, the `0.1.0` schemas and the 56 declarative fixtures are unchanged. What moves

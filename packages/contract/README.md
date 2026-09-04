@@ -23,7 +23,7 @@ import time.
 description of what one implementation happened to send. The ref it is pinned to is
 in [`protocol/PIN`](protocol/PIN).
 
-That ref is the rulebook's **`v0.1.1`** tag — [`protocol/PIN`](protocol/PIN) above is
+That ref is the rulebook's **`v0.1.2`** tag — [`protocol/PIN`](protocol/PIN) above is
 the exact, current source of truth if this line has drifted from it again. It may
 also be a full commit, which is what it holds while a version's text is on the
 rulebook's default branch and its tag has not been cut: a commit is as immutable as
