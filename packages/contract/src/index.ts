@@ -925,6 +925,19 @@ export interface EvidenceCardRequest {
    */
   presentation?: readonly FieldPresentation[];
   /**
+   * The host's own verb for the operation — `"WriteUpdate"`, `"Reprice"`,
+   * `"Onboard"` — absent when the host named none.
+   *
+   * Presentation, like the three slots above it. {@link Affidavit.operationType} is
+   * the protocol's two-valued **shape**, because a rule about shape has to be a
+   * predicate a policy can test without knowing any host's vocabulary; this is the
+   * word that host uses for the same act, carried so a reviewer surface can show it
+   * as the heading a person recognises. Nothing swears to it and it is not part of
+   * the canonical form (SR-1): a host that renames a verb has not changed the
+   * evidence.
+   */
+  hostOperation?: string;
+  /**
    * Sentences a reviewer should see beside the record: the reason a policy gave,
    * and the sentence a blocked entry shows. Absent when there are none.
    *

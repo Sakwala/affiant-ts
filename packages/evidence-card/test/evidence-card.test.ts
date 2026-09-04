@@ -36,6 +36,7 @@ function legacyFixture(name: string): EvidenceCardRequest {
 const firstFiling = v01Fixture("01-first-filing");
 const resubmission = v01Fixture("03-resubmission");
 const presentationHints = v01Fixture("04-presentation-hints");
+const hostOperation = v01Fixture("06-host-operation");
 const legacyFirstFiling = legacyFixture("evidence-card-request");
 
 function mount(request: EvidenceCardRequest | null, attributes: Record<string, string> = {}) {
@@ -125,6 +126,23 @@ describe("rendering a first filing", () => {
   it("labels the card for assistive technology", () => {
     const section = card.shadowRoot?.querySelector("section");
     expect(section?.getAttribute("aria-label")).toBe("Evidence card: update on Invoice invoice-1");
+  });
+
+  it("heads the card with the host's own verb when the envelope carries one", () => {
+    // `operationType` is the protocol's two-valued shape — what a policy tests, and
+    // not what a person calls the act. A host that sent its own word for it gets that
+    // word in the heading; the shape is still on the record, unchanged.
+    const withVerb = mount(hostOperation);
+
+    expect(withVerb.shadowRoot?.querySelector(".operation")?.textContent).toBe("WriteUpdate");
+    expect(withVerb.shadowRoot?.querySelector("section")?.getAttribute("aria-label")).toBe(
+      "Evidence card: WriteUpdate on Invoice invoice-1",
+    );
+    expect(hostOperation.affidavit.operationType).toBe("update");
+  });
+
+  it("falls back to the shape when the envelope carries no host verb", () => {
+    expect(card.shadowRoot?.querySelector(".operation")?.textContent).toBe("update");
   });
 
   it("renders one row per sworn field, in wire order", () => {

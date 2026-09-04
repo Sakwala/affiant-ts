@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at f0d4ad0b5f0010676a96719682ea3920f0b1baf3.
+// copy of Sakwala/affiant-protocol at 242964faba9e6852b8fbfcdef6c3296b5c705f59.
 // Source: protocol/schemas/*.schema.json and protocol/schemas/seed/*.schema.json
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -1179,7 +1179,7 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://affiant.dev/schemas/0.1.0/evidence-card-request.schema.json",
   "title": "EvidenceCardRequest",
-  "description": "The envelope that carries an Affidavit to a reviewer surface: the entry it is filed under, the sworn record, the deadline, the amendments already made on a superseded entry, and the presentation the core does not swear to — whether a person must confirm, the per-field rendering hints, and the warnings a reviewer should see, none of which is part of the canonical form (SR-1). A producer may send the same request for the same docketId more than once; a consumer treats a repeat as the SAME card, updating in place rather than adding a second one — a re-file is an idempotent replay that re-broadcasts the existing deadline, never a fresh one (INVARIANTS.md GT-4). AF-2 requires a card to show all three confidence numbers; aggregateConfidence is on the Affidavit and the two companions are repeated here, where the seed carried them, so a consumer written against either shape finds them.",
+  "description": "The envelope that carries an Affidavit to a reviewer surface: the entry it is filed under, the sworn record, the deadline, the amendments already made on a superseded entry, and the presentation the core does not swear to — whether a person must confirm, the per-field rendering hints, the warnings a reviewer should see and the host's own verb for the operation, none of which is part of the canonical form (SR-1). A producer may send the same request for the same docketId more than once; a consumer treats a repeat as the SAME card, updating in place rather than adding a second one — a re-file is an idempotent replay that re-broadcasts the existing deadline, never a fresh one (INVARIANTS.md GT-4). AF-2 requires a card to show all three confidence numbers; aggregateConfidence is on the Affidavit and the two companions are repeated here, where the seed carried them, so a consumer written against either shape finds them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -1287,6 +1287,11 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
       "items": {
         "type": "string"
       }
+    },
+    "hostOperation": {
+      "description": "The host's own verb for the operation — \"WriteUpdate\", \"Reprice\", \"Onboard\" — absent when the host named none. PRESENTATION, like the three slots above it, and never part of the canonical form (SR-1): a host that renames a verb has not changed the evidence. affidavit.operationType is the protocol's two-valued SHAPE, because a rule about shape has to be a predicate a policy can test without knowing any host's vocabulary; this is the word that host uses for the same act, carried beside it so a reviewer surface can head the card with the term a person recognises rather than with \"create\" or \"update\". Never instead of it: a consumer that switched on this string would be switching on a host's vocabulary.",
+      "type": "string",
+      "minLength": 1
     },
     "requiresConfirmation": {
       "description": "Whether a person must confirm this write before it commits. The POLICY CHAIN's verdict, not a property of the evidence, which is why it sits on the envelope and not on the Affidavit. False on a blocked entry: a card carrying a marker that says no decision will be accepted must not also offer a reviewer surface an approve button that cannot work.",

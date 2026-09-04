@@ -335,6 +335,24 @@ function extraConfidence(request: EvidenceCardRequest): {
 }
 
 /**
+ * The verb this card is headed with: the host's own, when it sent one.
+ *
+ * `affidavit.operationType` is the protocol's two-valued **shape** from v0.1 —
+ * `"create"` or `"update"` — which is what a policy tests and what a rule about
+ * shape can be written against. It is not what a person calls the act: a host that
+ * reprices an order, onboards a supplier or retires a widget has a word for it, and
+ * `hostOperation` is where that word travels. Presentation, so a card without one
+ * simply shows the shape, and the `0.0.1-seed` cards the shipped .NET framework
+ * still sends put the host's verb in `operationType` itself, which is what this
+ * then reads.
+ */
+function operationLabel(request: EvidenceCardRequest): string {
+  // Typed `unknown`: a card can arrive from `src` as whatever a server sent.
+  const host: unknown = request.hostOperation;
+  return typeof host === "string" && host !== "" ? host : request.affidavit.operationType;
+}
+
+/**
  * Why this entry cannot be decided, in one line, or `null` when nothing says it is
  * blocked.
  *
@@ -626,7 +644,7 @@ export class AffiantEvidenceCard extends CardBase {
     const card = element("section", "card");
     card.setAttribute(
       "aria-label",
-      `Evidence card: ${affidavit.operationType} on ${affidavit.entityType} ${entityLabel}`,
+      `Evidence card: ${operationLabel(request)} on ${affidavit.entityType} ${entityLabel}`,
     );
 
     card.append(this.#renderHead(request, entityLabel));
@@ -662,7 +680,7 @@ export class AffiantEvidenceCard extends CardBase {
     const head = element("header", "head");
 
     const identity = element("div");
-    identity.append(element("span", "operation", affidavit.operationType));
+    identity.append(element("span", "operation", operationLabel(request)));
     const title = element("h2", "title", `${affidavit.entityType} `);
     title.append(element("span", "entity-id", entityLabel));
     identity.append(title);

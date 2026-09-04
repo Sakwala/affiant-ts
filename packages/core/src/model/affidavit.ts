@@ -429,10 +429,11 @@ export function withConfidence(core: AffidavitCore, fields: readonly AffidavitFi
  * The presentation the card envelope carries beside a sworn record, which the
  * Affidavit itself does not own.
  *
- * All three are the host's presentation of the proposal rather than its sworn
+ * All four are the host's presentation of the proposal rather than its sworn
  * substance: the sentences a reviewer should read, whether a person must confirm
- * (which is the policy chain's verdict, not a property of the evidence), and the
- * per-field rendering hints a surface builds its inputs from.
+ * (which is the policy chain's verdict, not a property of the evidence), the
+ * per-field rendering hints a surface builds its inputs from, and the host's own
+ * verb for the operation.
  *
  * They live on the envelope and not on the record because the canonical form a
  * host's execution grant binds to is defined over the Affidavit and its accepted
@@ -456,6 +457,15 @@ export interface WireCarry {
    * host declared none.
    */
   readonly presentation: readonly FieldPresentation[];
+  /**
+   * The host's own verb for the operation, or `null` when it named none.
+   *
+   * `Affidavit.operationType` is the protocol's two-valued shape, so that a rule
+   * about shape stays a predicate a policy can test without knowing any host's
+   * vocabulary. The host's word for the same act travels **beside** it, here, where
+   * a reviewer surface can show it and no hash is taken over it.
+   */
+  readonly hostOperation: string | null;
 }
 
 /**
@@ -470,25 +480,28 @@ export function wireCarryOf(card: WireEvidenceCardRequest): WireCarry {
     warnings: card.warnings ?? [],
     requiresConfirmation: card.requiresConfirmation,
     presentation: card.presentation ?? [],
+    hostOperation: card.hostOperation ?? null,
   };
 }
 
 /**
- * The card envelope's two presentation slots as the wire spells them: **absent**
- * when there is nothing to say, never `null`.
+ * The card envelope's three optional presentation slots as the wire spells them:
+ * **absent** when there is nothing to say, never `null`.
  *
- * Nothing swears to either, so a producer with nothing to say says nothing — the
- * distinction the schemas draw between a value that is sometimes missing (spelled
- * `null`) and a property that is meaningful only sometimes (spelled by its
+ * Nothing swears to any of them, so a producer with nothing to say says nothing —
+ * the distinction the schemas draw between a value that is sometimes missing
+ * (spelled `null`) and a property that is meaningful only sometimes (spelled by its
  * absence).
  */
 export function presentationToWire(carry: WireCarry): {
   presentation?: readonly FieldPresentation[];
   warnings?: readonly string[];
+  hostOperation?: string;
 } {
   return {
     ...(carry.presentation.length > 0 ? { presentation: carry.presentation } : {}),
     ...(carry.warnings.length > 0 ? { warnings: carry.warnings } : {}),
+    ...(carry.hostOperation === null ? {} : { hostOperation: carry.hostOperation }),
   };
 }
 

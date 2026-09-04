@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at f0d4ad0b5f0010676a96719682ea3920f0b1baf3.
+// copy of Sakwala/affiant-protocol at 242964faba9e6852b8fbfcdef6c3296b5c705f59.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -1865,6 +1865,127 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
     ],
     "requiresConfirmation": false
   },
+  "v0.1/evidence-card-request/06-host-operation": {
+    "protocolVersion": "0.1.0",
+    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
+    "affidavit": {
+      "protocolVersion": "0.1.0",
+      "operationType": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": [
+        {
+          "name": "status",
+          "kind": "enum",
+          "value": "Active",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: status",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        },
+        {
+          "name": "amount",
+          "kind": "number",
+          "value": 40,
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.8,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        },
+        {
+          "name": "dueOn",
+          "kind": "date",
+          "value": "2026-10-01",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Inferred",
+              "confidence": 0.6,
+              "note": "Inferred from the turn: dueOn",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": false
+        },
+        {
+          "name": "note",
+          "kind": "text",
+          "value": "raised in chat",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Inferred",
+              "confidence": 0.7,
+              "note": "Inferred from the turn: note",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": false
+        }
+      ],
+      "aggregateConfidence": 0.6,
+      "populatedConfidence": 0.6,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-04T09:00:00.000Z"
+    },
+    "requiredBy": "2026-09-04T09:30:00.000Z",
+    "priorAmendments": null,
+    "populatedConfidence": 0.6,
+    "emptyFieldCount": 0,
+    "blocked": null,
+    "presentation": [
+      {
+        "name": "status",
+        "kind": "enum",
+        "allowedValues": [
+          "Draft",
+          "Active",
+          "Retired"
+        ]
+      },
+      {
+        "name": "amount",
+        "kind": "number",
+        "pattern": "^\\d+(\\.\\d{1,2})?$"
+      },
+      {
+        "name": "dueOn",
+        "kind": "date"
+      },
+      {
+        "name": "note",
+        "kind": "text"
+      }
+    ],
+    "warnings": [],
+    "hostOperation": "WriteUpdate",
+    "requiresConfirmation": true
+  },
   "v0.1/evidence-card-request/90-missing-protocol-version": {
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
@@ -3123,6 +3244,14 @@ export const manifest = {
         "notes": "The same card as 02-blocked with the warning that run emitted, verbatim. The sentence and the blocked marker say the same thing twice on purpose: the marker is what a surface switches on, the sentence is what a person reads. presentation is absent — that host declared no field schema, so there were no constraints to carry — which shows the two properties are independent."
       },
       {
+        "id": "v0.1/evidence-card-request/06-host-operation",
+        "file": "v0.1/evidence-card-request/06-host-operation.json",
+        "schema": "schemas/0.1.0/evidence-card-request.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/typed-inputs-on-the-card (Sakwala/affiant-ts, packages/core/test/fixtures), with hostOperation authored: that fixture wires its tool up without an operation label, so no run of it emits one",
+        "notes": "The same card as 04-presentation-hints, carrying the host's own verb for the operation. The value is the one the shipped .NET wire puts in affidavit.operationType at 0.0.1-seed, \"WriteUpdate\", because that is the migration this property exists for: v0.1 makes operationType the protocol's two-valued SHAPE, so a rule about shape stays a predicate a policy can test without knowing any host's vocabulary, and the host's own word travels beside it on the envelope instead of being dropped. 04-presentation-hints carries no hostOperation, which is the other half of the check: the property is optional and a card without it is valid."
+      },
+      {
         "id": "v0.1/evidence-card-request/90-missing-protocol-version",
         "file": "v0.1/evidence-card-request/90-missing-protocol-version.json",
         "schema": "schemas/0.1.0/evidence-card-request.schema.json",
@@ -3455,7 +3584,7 @@ export const manifest = {
           "mustFailOn": [
             "dotnet@1.0.0-beta.1"
           ],
-          "defect": "The default risk scorer never returns `Low` while the default threshold is `Low`, so a by-the-book Standing Order never fires (corrected in a later point release; present in beta.1)"
+          "defect": "No attestation record on the row: nothing says who or what approved a write"
         }
       },
       {
@@ -3546,7 +3675,7 @@ export const manifest = {
           "mustFailOn": [
             "dotnet@1.0.0-beta.1"
           ],
-          "defect": "The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence"
+          "defect": "Every Affidavit is create-shaped: `EntityId` and every `PreviousValue` are hard-coded null"
         }
       },
       {
@@ -3916,7 +4045,7 @@ export const manifest = {
           "mustFailOn": [
             "dotnet@1.0.0-beta.1"
           ],
-          "defect": "Conversation-scope bleed: one process-global context store is shared by every conversation"
+          "defect": "The gate carries no conversation identity; isolation is the host's scoping discipline alone (the shipped adapters resolve the context store from the application's root provider)"
         }
       },
       {
