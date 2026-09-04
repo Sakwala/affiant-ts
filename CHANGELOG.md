@@ -45,6 +45,19 @@ was made against.
 
 ### Added
 
+- **[`samples/coverage-refusal`](samples/coverage-refusal)** — a standalone sample a
+  skeptic can run: it builds a gate over the in-memory Docket and four trivial ports,
+  hands it four tools shaped like the Vercel AI SDK's tool object (the SDK is not a
+  dependency), and prints what the gate does with each. A provider-executed write tool
+  and a write tool with no `execute` are refused at wire-up with their categories named
+  (CV-4, CV-1); a hosted-MCP write the host declared it cannot cover is filed `pending`
+  with `blocked: { code: "coverage-refused", … }` and cannot be decided (AZ-4); the one
+  interceptable write tool produces a proposal and its own `execute` never runs (GT-6);
+  the read tool passes through. Every instant comes from a pinned clock, so the run
+  reproduces byte for byte — and a test asserts the transcript in the sample's README is
+  exactly what the script prints. The sample is a workspace member (`samples/*`, private,
+  never published) built and tested by the repository's own commands on the Node job.
+
 - `@affiant/core` — [a README](packages/core/README.md) written for a host developer
   who has never seen this framework (what the gate is, the ports to supply, a worked
   example, the pipeline in order, the decision rules, and what the package does not

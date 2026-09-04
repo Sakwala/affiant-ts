@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Emit resolves workspace siblings through node_modules (their built .d.ts),
+    // not through the source-path mapping the type-check config uses.
+    "paths": {},
+    "types": ["node"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*.ts"]
+}
