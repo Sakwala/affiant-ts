@@ -90,6 +90,22 @@ importers:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(happy-dom@19.0.2)
 
+  samples/scenario-deck:
+    dependencies:
+      '@affiant/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.10
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.1)(happy-dom@19.0.2)
+
   spikes/claude-code-hook:
     dependencies:
       '@affiant/contract':
