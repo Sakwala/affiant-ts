@@ -12,6 +12,16 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ### Changed
 
+- **The publish guard now states the gate is met, not pending.** `prepack-guard.mjs`
+  and the three READMEs said publishing waited on a public parity report and a green
+  conformance driver; both are now facts, cited by link — the .NET parity report at
+  the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/dotnet-v0.1.json)
+  tag, and this package's own conformance parity manifest,
+  [`typescript-v0.1.json`](../conformance-driver/conformance/parity/typescript-v0.1.json),
+  green on Node, Bun and workerd and required by branch protection. `@affiant/core`
+  is publishable; only the maintainer's `@affiant` npm scope and token are
+  outstanding. The refusal behaviour is unchanged — `npm pack` and `npm publish`
+  still fail until `AFFIANT_ALLOW_PUBLISH=1` is set.
 - **The gate emits the rulebook's v0.1 wire.** `toWire` stamps `protocolVersion`
   (SR-4), writes the operation's **shape** rather than the host's verb (AF-3), carries
   all three of AF-2's confidence numbers on the record itself, and writes each tag's
