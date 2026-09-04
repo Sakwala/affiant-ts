@@ -1,0 +1,59 @@
+{
+  "name": "@affiant/conformance-driver",
+  "version": "0.1.0-alpha.0",
+  "description": "Runs the Affiant protocol's conformance suite against @affiant/core on Node, Bun and workerd, and asserts the failing set equals the published parity manifest.",
+  "keywords": [
+    "affiant",
+    "conformance",
+    "protocol",
+    "parity",
+    "json-schema"
+  ],
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "packages/conformance-driver"
+  },
+  "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/conformance-driver#readme",
+  "bugs": "https://github.com/Sakwala/affiant-ts/issues",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "affiant-conformance": "./dist/cli.js"
+  },
+  "files": [
+    "LICENSE",
+    "dist",
+    "conformance"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "conformance": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@affiant/contract": "workspace:^",
+    "@affiant/core": "workspace:^",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

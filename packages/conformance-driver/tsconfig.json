@@ -1,0 +1,18 @@
+{
+  // The runner and the parity assertion are checked as a program of their own,
+  // with `types: []` and no test file in it — the same isolation `@affiant/core`
+  // keeps, and for the same reason: the suite runs inside workerd, where nothing
+  // Node declares exists. `tsconfig.test.json` checks the tests, the CLI's Node
+  // half and the config files, where Node types are fine.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // `DOM` for Web Crypto: `@affiant/core` reaches for `crypto.subtle` because it
+    // is the only digest a package that must run on Node, Bun and workerd can
+    // reach (RT-1), and this program compiles that source through the workspace
+    // path mapping.
+    "lib": ["ES2023", "DOM"],
+    "types": []
+  },
+  "include": ["src/index.ts", "src/parity.ts", "src/run.ts"]
+}

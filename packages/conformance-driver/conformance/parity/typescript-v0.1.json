@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "0.1.0",
+  "implementation": "typescript",
+  "version": "0.1.0-alpha.0",
+  "protocolTag": "f0d4ad0b5f0010676a96719682ea3920f0b1baf3",
+  "producedAt": "2026-09-04T00:00:00.000Z",
+  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.0.json",
+  "failing": [],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": ">=22",
+      "claimed": true
+    },
+    {
+      "name": "bun",
+      "claimed": true,
+      "note": "the same suite, run under Bun in this repository's CI"
+    },
+    {
+      "name": "workerd",
+      "claimed": true,
+      "note": "run through @cloudflare/vitest-pool-workers — the runtime a Cloudflare Worker host would execute @affiant/core on"
+    }
+  ],
+  "exemptions": [
+    {
+      "rule": "SR-5",
+      "until": "always",
+      "reason": "exempt by construction: the transport is not the protocol; the negative case is the set of host-shaped seed examples no rule cites as a check",
+      "checkedInstead": "the superseded 0.0.1-seed wire fixtures are validated against their own schemas in @affiant/contract's schema suite, and no code path in @affiant/core reads a transport"
+    },
+    {
+      "rule": "CV-2",
+      "until": "0.2.0",
+      "reason": "text complete at v0.1; the call-site fixtures arrive with the first adapter"
+    },
+    {
+      "rule": "CV-3",
+      "until": "0.2.0",
+      "reason": "text complete at v0.1; the delegation fixtures arrive with the first adapter"
+    },
+    {
+      "rule": "CV-5",
+      "until": "0.2.0",
+      "reason": "text complete at v0.1; an adapter documentation lint arrives with the first adapter"
+    },
+    {
+      "rule": "AF-5",
+      "until": "always",
+      "reason": "a schema-level rule: checked by the schema lint over the tool-result fixtures and a type-level suite, not by a declarative gate fixture",
+      "checkedInstead": "@affiant/contract's schema suite validates the three tool-result fixtures and refuses a result carrying the seed's $type discriminator; its type-level suite narrows every union on its own discriminator and fails to compile on a property read from the wrong arm"
+    },
+    {
+      "rule": "SR-3",
+      "until": "always",
+      "reason": "a schema-level rule: checked by the schema lint over every fixture",
+      "checkedInstead": "@affiant/contract's schema suite validates all 45 positive v0.1 fixtures against schemas closed with additionalProperties: false, and asserts that all 22 schema negatives are refused"
+    },
+    {
+      "rule": "RT-1",
+      "until": "always",
+      "reason": "a runtime rule: checked by the three-runtime CI matrix and a no-Node-types type-check of the core sources",
+      "checkedInstead": "the three-runtime CI matrix — this driver and @affiant/core's whole suite on Node, Bun and workerd — plus a type-check of packages/core/src with types: [] so no Node global resolves"
+    },
+    {
+      "rule": "RT-2",
+      "until": "always",
+      "reason": "a runtime rule: checked by a budget suite on the implementation's own CI",
+      "checkedInstead": "packages/core/test/node/gate-budget.test.ts and docket-budget.test.ts: a ten-field Affidavit filed and decided a thousand times inside a stated per-request bound, and a Docket that does not slow down as it grows"
+    },
+    {
+      "rule": "RT-3",
+      "until": "always",
+      "reason": "a runtime rule: checked by a source lint that fails the build",
+      "checkedInstead": "packages/core/scripts/lint-no-durable-object.mjs, wired into pnpm lint: the package cannot reach a Durable Object API at all, so an import that is never called is caught too"
+    },
+    {
+      "rule": "TL-1",
+      "until": "always",
+      "reason": "a registry rule: checked by the registry-integrity suite and by every fixture that asserts telemetry",
+      "checkedInstead": "packages/core/test/node/telemetry-registry.test.ts, which pins the shipped registry against the generated module both ways, and every conformance fixture that asserts a telemetry key"
+    },
+    {
+      "rule": "TL-2",
+      "until": "always",
+      "reason": "a registry rule: checked by the attribute-name suite against the published standards",
+      "checkedInstead": "packages/core/telemetry-keys.json carries each key's attribute names, and the registry suite checks the generated module against it; the names themselves are reviewed against the conventions the rulebook names"
+    }
+  ],
+  "notes": "The protocolTag is a commit rather than a tag: the rulebook's v0.1 text is on its default branch and v0.1.0 has not been cut. A commit is as immutable as a tag and, unlike a tag, cannot be moved under a running build; this manifest and the driver's pin move to the tag in the same pull request that adopts it. The suite is run on all three claimed runtimes and the failing set is asserted identical on each."
+}

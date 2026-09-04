@@ -24,12 +24,16 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The two committed generated modules must be exactly what the generator
+      # The three committed generated modules must be exactly what the generator
       # produces from packages/contract/protocol/. Regenerating them here and
       # failing on any diff is what stops a `sync-protocol` without a `generate`
-      # from merging a schemas module that describes the previous protocol tag.
+      # from merging a schemas module that describes the previous protocol ref.
       - run: pnpm -C packages/contract generate
-      - run: git diff --exit-code -- packages/contract/src/schemas.ts packages/contract/test/fixtures.generated.ts
+      - run: >
+          git diff --exit-code --
+          packages/contract/src/schemas.ts
+          packages/contract/src/conformance.ts
+          packages/contract/test/fixtures.generated.ts
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
@@ -79,3 +83,55 @@ jobs:
       - run: pnpm -C packages/contract test:workers
       # RT-1 again: the core's runtime-neutral suites, inside workerd.
       - run: pnpm -C packages/core test:workers
+
+  # The protocol's conformance suite, run against @affiant/core on every runtime
+  # this implementation claims, with the failing set asserted equal to the
+  # published parity manifest — in both directions.
+  #
+  # REQUIRED on `main`: a red run here cannot merge. That is the whole point. An
+  # empty `failing[]` is a published claim about this implementation, and a claim
+  # nothing enforces is a press release. The three runtimes are one job on purpose:
+  # RT-1 says the failing set must be identical on each, and a matrix would let one
+  # runtime's job be red while another's was green and still call the difference a
+  # flake.
+  conformance:
+    name: conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: node
+        run: pnpm -C packages/conformance-driver test
+
+      - name: bun
+        run: bun run --bun vitest run --project conformance-driver
+
+      - name: workerd
+        run: pnpm -C packages/conformance-driver test:workers
+
+      # The evidence, not the claim: one run document per runtime, published with
+      # the run so a reader can check the manifest rather than take it. Written to
+      # a scratch directory so the committed document under
+      # packages/conformance-driver/conformance/results/ is never rewritten by CI.
+      - name: run documents
+        run: |
+          node packages/conformance-driver/dist/cli.js \
+            --runtime node --commit "$GITHUB_SHA" --out "$RUNNER_TEMP/conformance"
+          bun packages/conformance-driver/dist/cli.js \
+            --runtime bun --commit "$GITHUB_SHA" --out "$RUNNER_TEMP/conformance"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: conformance-results
+          path: ${{ runner.temp }}/conformance
+          if-no-files-found: error
