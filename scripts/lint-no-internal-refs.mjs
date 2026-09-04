@@ -19,7 +19,8 @@
  * becomes "**Required**: `expiresAt` is not nullable, so every filed entry carries a
  * deadline (GT-4)". The second is shorter *and* it answers the question.
  *
- * Scope: `packages/<name>/src/`, `spikes/<name>/src/`, and every `README.md` and
+ * Scope: `packages/<name>/src/`, `samples/<name>/src/`, `spikes/<name>/src/`, and every
+ * `README.md` and
  * `CHANGELOG.md` in the repository. Tests and fixtures are excluded: they are not
  * published, and a fixture whose note quotes a rule needs room to quote it.
  *
@@ -101,7 +102,7 @@ function publishedProse(directory) {
 /** The published sources, when no target is given on the command line. */
 function defaultTargets() {
   const out = [];
-  for (const group of ["packages", "spikes"]) {
+  for (const group of ["packages", "samples", "spikes"]) {
     const groupRoot = join(repoRoot, group);
     let entries;
     try {

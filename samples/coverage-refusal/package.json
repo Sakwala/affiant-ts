@@ -1,0 +1,30 @@
+{
+  "name": "@affiant/sample-coverage-refusal",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A standalone sample: the Affiant gate refusing a provider-executed tool at wire-up and filing a hosted-MCP write blocked (CV-4).",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "samples/coverage-refusal"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "demo": "node dist/demo.js"
+  },
+  "dependencies": {
+    "@affiant/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

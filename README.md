@@ -29,6 +29,17 @@ Nothing is on npm yet. The packages here are consumed through the workspace; pub
 
 The card renders `conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol tag — a hand-authored example from the rulebook's seed fixtures, whose key set is asserted against the shipped .NET serializer by the demo hosts' wire-shape tests. Approve it, reject it, or type into an amendment box and approve; every `affiant-decision` event the card emits is printed underneath. There is a read-only toggle for the record-only rendering.
 
+## See the boundary fail correctly
+
+**[`samples/coverage-refusal`](samples/coverage-refusal)** — a standalone sample that builds a gate, hands it four tools shaped like the Vercel AI SDK's, and prints what happens: a provider-executed write tool and a write tool with no `execute` are refused at wire-up with their categories named, a hosted-MCP write the host declared it cannot cover reaches the Docket `blocked` and cannot be decided, the one interceptable write tool produces a proposal, and the read tool passes through (CV-4, CV-1, AZ-4).
+
+```bash
+pnpm install && pnpm -C samples/coverage-refusal build
+node samples/coverage-refusal/dist/demo.js
+```
+
+It is a sample, not an adoption: no host, no database, no model, and nothing here writes to anything.
+
 ## Develop
 
 pnpm workspace, Node 22 or newer, ESM only, TypeScript in strict mode.

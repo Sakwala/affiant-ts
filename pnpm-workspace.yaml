@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "samples/*"
   - "spikes/*"
 
 # pnpm 10 refuses to run a dependency's install script unless it is named here.
