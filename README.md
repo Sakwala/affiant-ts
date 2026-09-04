@@ -8,12 +8,12 @@ This repository is the TypeScript implementation. It is held equivalent to the .
 
 ## Packages
 
-| Package                                            | What it is                                                                                  | State                                                                                                            |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [`@affiant/contract`](packages/contract)           | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                                          |
-| [`@affiant/evidence-card`](packages/evidence-card) | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                                          |
-| [`@affiant/core`](packages/core)                   | the gate — Affidavit capture, interceptors, projection, policy, the Docket, decisions       | in repo, complete for Sequences A and C; not on npm until the parity report and the conformance driver are green |
-| `@affiant/conformance-driver`                      | runs the protocol's fixture suite against this implementation                               | planned                                                                                                          |
+| Package                                                      | What it is                                                                                  | State                                                                                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [`@affiant/contract`](packages/contract)                     | the wire types and a vendorable JSON Schema, pinned to a protocol tag                       | in repo, not yet on npm                                                                                          |
+| [`@affiant/evidence-card`](packages/evidence-card)           | `<affiant-evidence-card>`, a framework-agnostic Web Component that renders an Evidence Card | in repo, not yet on npm                                                                                          |
+| [`@affiant/core`](packages/core)                             | the gate — Affidavit capture, interceptors, projection, policy, the Docket, decisions       | in repo, complete for Sequences A and C; not on npm until the parity report and the conformance driver are green |
+| [`@affiant/conformance-driver`](packages/conformance-driver) | runs the protocol's fixture suite against this implementation, on all three runtimes        | in repo, required in CI; private, never published                                                                |
 
 Later: `@affiant/store-postgres`, `@affiant/adapter-ai-sdk`, `@affiant/adapter-langchain`.
 
@@ -27,7 +27,7 @@ Nothing is on npm yet. The packages here are consumed through the workspace; pub
 
 **<https://sakwala.github.io/affiant-ts/>**
 
-The card renders `conformance/fixtures/wire/evidence-card-request.json` from the pinned protocol tag — a hand-authored example from the rulebook's seed fixtures, whose key set is asserted against the shipped .NET serializer by the demo hosts' wire-shape tests. Approve it, reject it, or type into an amendment box and approve; every `affiant-decision` event the card emits is printed underneath. There is a read-only toggle for the record-only rendering.
+The card renders `conformance/fixtures/v0.1/evidence-card-request/04-presentation-hints.json` from the pinned protocol ref, copied unedited — a v0.1 Evidence Card envelope carrying rendering hints the record does not swear to. Approve it, reject it, or type into an amendment box and approve; every `affiant-decision` event the card emits is printed underneath. There is a read-only toggle for the record-only rendering.
 
 ## See the boundary fail correctly
 
@@ -68,18 +68,36 @@ pnpm lint        # prettier --check
 The wire types and the fixture suite have to hold on every runtime a host might run them on, so CI runs three:
 
 ```bash
-pnpm test                                     # Node 22
-bun run --bun vitest run --project contract   # Bun
-bun run --bun vitest run --project core       # Bun
-pnpm -C packages/contract test:workers        # Cloudflare workerd
-pnpm -C packages/core test:workers            # Cloudflare workerd
+pnpm test                                                 # Node 22
+bun run --bun vitest run --project contract               # Bun
+bun run --bun vitest run --project core                   # Bun
+bun run --bun vitest run --project conformance-driver     # Bun
+pnpm -C packages/contract test:workers                    # Cloudflare workerd
+pnpm -C packages/core test:workers                        # Cloudflare workerd
+pnpm -C packages/conformance-driver test:workers          # Cloudflare workerd
 ```
 
-The protocol tag this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it is a byte-for-byte copy of that tag. A test checksums every vendored copy against `packages/contract/protocol/SHA256SUMS` on every run — offline included — and fetches the same files from the tag itself whenever the network is reachable. A second test asserts the two committed generated modules are exactly what the generator produces from those copies. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
+The protocol ref this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it — both wire versions' schemas, the whole conformance suite, and the four machine-readable formats a driver reads — is a byte-for-byte copy at that ref. A test checksums all 175 vendored copies against `packages/contract/protocol/SHA256SUMS` on every run — offline included — and fetches the same files from the ref itself whenever the network is reachable. A second test asserts the three committed generated modules are exactly what the generator produces from those copies. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
+
+The pin is a commit rather than a tag today: the rulebook's v0.1 text is on its default branch and `v0.1.0` has not been cut. A commit is as immutable as a tag and, unlike a tag, cannot be moved under a running build.
+
+## Conformance
+
+The rules this implementation is held to are numbered in the rulebook's `INVARIANTS.md`, and they are pinned by a **conformance suite**: 56 declarative documents — a wiring, a sequence of acts, and what must then be true — plus 7 canonical byte vectors fixing the exact bytes and digest a host's execution grant binds to. The documents name no class, no file and no language, and they were promoted from this repository's own test set, byte-identical.
+
+[`packages/conformance-driver`](packages/conformance-driver) is the program that binds them to `@affiant/core`. It validates every document against the rulebook's schema before running it, runs every one the manifest lists through the published `@affiant/core/testing` runner, reproduces the byte vectors through the published `canonicalize` and `canonicalHash` helpers, and emits a run document validating against the rulebook's `results.schema.json` — one entry per document, the passes included, because a run that reported only failures could not be checked for completeness.
+
+Then it does the thing the driver exists for: it asserts that the set of documents this implementation does **not** pass equals [`packages/conformance-driver/conformance/parity/typescript-v0.1.json`](packages/conformance-driver/conformance/parity/typescript-v0.1.json) exactly, in **both** directions. A document that starts failing and is not listed is a regression, or a rule nobody wrote down. A document that starts passing and is still listed is a gap that has been closed and not published — and a check that caught only the first would let a fix rot unrecorded until the manifest was a document nobody trusted.
+
+That manifest lists nothing today. An empty list is the strongest possible statement, and it is worth something only because **the `conformance` job is required on `main`**: a red run cannot merge, on any of the three runtimes, and the failing set must be identical on each (RT-1).
+
+This is also the guard on publishing. `@affiant/core` goes to npm only when both implementations' parity manifests are public — the .NET line's names what it does not yet pass — and this check is green. Until then a `prepack` guard fails `npm pack` and `npm publish` with that reason.
+
+A host embedding `@affiant/core` can run the same suite against its own installation with `affiant-conformance`, and publish the run document beside whatever it claims about the framework it depends on.
 
 ## Status
 
-Opened 2026-09-04, building in public from day 0. `@affiant/contract` and `@affiant/evidence-card` are in the repository against protocol tag `v0.0.1-seed`, and `@affiant/core` is complete for both v0.1 sequences — the pipeline, the Docket, the decision path and fifty-four declarative fixtures, run on all three runtimes. Nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
+Opened 2026-09-04, building in public from day 0. Every package is in the repository against the rulebook's v0.1 wire, and `@affiant/core` is complete for both v0.1 sequences — the pipeline, the Docket, the decision path, and the whole promoted conformance suite green on all three runtimes with the parity manifest asserted in a required CI check. Nothing is on npm. Follow progress in [Discussions](https://github.com/Sakwala/affiant-ts/discussions) and the [Affiant roadmap](https://github.com/Sakwala/affiant/blob/main/ROADMAP.md).
 
 ## Related
 

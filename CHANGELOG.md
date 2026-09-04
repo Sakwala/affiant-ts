@@ -10,6 +10,97 @@ was made against.
 
 ## [Unreleased]
 
+### Changed
+
+- **The wire is the rulebook's v0.1** (`protocolVersion` `0.1.0`), and
+  `packages/contract/protocol/PIN` moves from the tag `v0.0.1-seed` to the commit
+  that carries the v0.1 text. The rulebook's `v0.1.0` tag has not been cut; a commit
+  is as immutable as a tag and, unlike a tag, cannot be moved under a running build,
+  and the pin becomes the tag in the pull request that adopts it. What changed on the
+  wire, and why each thing moved:
+  - **Every envelope carries `protocolVersion`** (SR-4) — the Affidavit, the card
+    envelope, the Docket row, the decision result and every notification. A consumer
+    refuses a payload whose major differs and may warn on a newer minor.
+  - **The Affidavit carries all three of AF-2's numbers.** `populatedConfidence` and
+    `emptyFieldCount` join `aggregateConfidence` on the record they describe. The
+    card envelope keeps its pair for one version as a deliberate duplicate rather
+    than dropping it, so a consumer written against either shape finds them.
+  - **`operationType` is the operation's shape**, `create` or `update`, not the
+    host's own verb (AF-3). "Create-only" has to be a predicate a policy can test
+    without knowing what a host calls its operations. The v0.1 envelope has no slot
+    for the host's verb at all; `Affidavit.operationType` no longer carries it, and
+    `EvidenceCardRequest` has nowhere else to put it.
+  - **Presentation moved onto the card envelope.** Per-field `allowedValues` and
+    `pattern` become the envelope's `presentation[]`, and `warnings` and
+    `requiresConfirmation` sit beside them. The canonical form a host's execution
+    grant binds to is defined over the Affidavit and its accepted amendments and
+    nothing else (SR-1); a closed value set, an input mask and a sentence a reviewer
+    reads are none of those. Swearing to them would put a rendering decision inside a
+    hash a grant is checked against, so restyling an input would invalidate a grant
+    minted over evidence that did not change — and it would invite the misreading
+    that the gate enforces them. It does not: a value outside `allowedValues` is
+    still recorded, and a host that wants it refused says so in its own policy.
+    Both slots are **absent** rather than `null` when there is nothing to say.
+  - **`kind` is the discriminator everywhere** — a tool result, a binding, an
+    attestor, a notification. A consumer switches on it and never on the presence of
+    a field (AF-5). The seed's two notifications were told apart by which properties
+    they carried; v0.1 is one union with a `kind`, gaining `docket-transition`.
+  - **A provenance tag gains `at` and `binding` and renames `evidence` to `note`**
+    (PV-1, PV-2). A chain read off the seed could not say when a claim was made or
+    what to check it against.
+- **`@affiant/core`'s `fromWire` refuses a payload from another protocol version**
+  rather than guessing at a conversion (SR-4). The `0.0.1-seed` shape the shipped
+  .NET framework still sends is a different document, not a subset, and reading it as
+  this one would produce a record that swore to things nobody said. Its schemas stay
+  vendored, under `packages/contract/protocol/schemas/seed/`, and are exported as
+  `seedSchemas`; the `Seed*` types name the shape for a host translating at its own
+  boundary.
+- **`@affiant/core`'s `toWire` takes `(affidavit, protocolVersion?)`.** `WireCarry` is
+  now the card envelope's presentation — `warnings`, `requiresConfirmation`,
+  `presentation` — with `wireCarryOf(card)` lifting it off an envelope and
+  `presentationToWire(carry)` writing the two optional slots back out as absent
+  properties when they are empty.
+- **`@affiant/core`'s `BlockedMarker` is a discriminated union**, so a reader narrows
+  on `code` rather than checking whether `level` or `category` happens to be present
+  — each arm carries exactly the context its own code makes meaningful (AZ-4, CV-4).
+- **`packages/contract` vendors the whole rulebook, not four files.** 175 vendored
+  documents: both wire versions' schemas, the 56 promoted fixtures and 7 byte vectors,
+  the 45 positive and 23 negative per-schema fixtures, and the four machine-readable
+  formats a driver reads (`fixture.schema.json`, `canonical-vector.schema.json`,
+  `results.schema.json`, `parity/MANIFEST.schema.json`) plus the coverage-exemption
+  list a driver copies. All checksummed against `SHA256SUMS` on every run.
+- **`<affiant-evidence-card>` renders the presentation off the envelope**: a `<select>`
+  from a field's `allowedValues`, a `pattern` attribute from its `pattern`, and the
+  reviewer's sentences from the envelope's `warnings`. A hint for a field the record
+  does not carry is ignored rather than rendered as a control over nothing. It keeps
+  reading the superseded field-level keys as a deliberate fallback, because the
+  shipped .NET framework still sends them; that fallback goes when it is aligned. The
+  demo page now renders a v0.1 card fixture from the pinned ref, copied unedited.
+- **The vocabulary lint skips a generated module**, by its banner. A module a
+  generator wrote out of the vendored rulebook carries the rulebook's own words, and a
+  byte vector's external reference naming somebody else's accounting record is not
+  this project's working vocabulary — nor is there a doc comment in a data module for
+  a person to fix.
+
+### Added
+
+- **[`packages/conformance-driver`](packages/conformance-driver)** — the program that
+  binds the rulebook's conformance suite to `@affiant/core`, runs it on Node, Bun and
+  workerd, emits a `results.schema.json` run document, and asserts the failing set
+  equals the published parity manifest in both directions. **Required in CI on
+  `main`**, so a red run cannot merge. Its own changelog is
+  [here](packages/conformance-driver/CHANGELOG.md).
+- **`@affiant/contract/conformance`** — the conformance suite as a module: the 56
+  fixtures, the 7 byte vectors, the manifest section, the four formats and the
+  coverage exemptions. A module rather than the JSON directly because the suite has
+  to run inside workerd, which has no filesystem, and JSON module support differs
+  across the three runtimes.
+- **`presentationNamesUnknownFields(card)`** on `@affiant/contract` — the one rule the
+  card schema cannot state: a presentation hint must name a field the same card's
+  Affidavit carries, or it renders a control over nothing. That is a relation between
+  two objects inside one document, and JSON Schema has no way to say it.
+
+
 ### Fixed
 
 - **Every published package now ships its licence.** `@affiant/core`,
