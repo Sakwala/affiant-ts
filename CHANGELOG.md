@@ -45,6 +45,31 @@ was made against.
 
 ### Added
 
+- **[`samples/scenario-deck`](samples/scenario-deck)** — one realistic support-desk
+  scenario run twice, on the same four acts: once through a whole-call approval gate
+  (the reviewer sees a tool name and its raw arguments as one blob and answers yes or
+  no; written out in full, about twenty-five lines, no dependency) and once through
+  the Affiant gate. It prints a two-column comparison per act — what the reviewer saw,
+  what was recorded — then a closing table of the differences that are structural
+  rather than a matter of effort, each with the rule id it comes from: per-field
+  provenance and previous values against one arguments object (AF-1, AF-3, PV-1,
+  PV-2); the three confidence numbers against none (AF-2); a required field nobody
+  filled, present and tagged `Empty` against absent from the arguments and therefore
+  invisible (AF-1); an amendment as an approval carrying corrections, tagged
+  `UserStated` and bound to the reviewer's act over the machine's tag, against a
+  rejection and a re-proposal indistinguishable from the agent's own (DK-1, DK-2,
+  PV-2, AF-4); a Standing Order that degrades to a person because a mandatory field
+  reads `Empty`, emitting `standing-order.blocked` with
+  `blocked.reason: "mandatory-field-empty"`, against a rule keyed on a tool's name
+  that cannot see a field the arguments omit (GT-5); expiry as a state read with no
+  sweep run, and a resubmission whose lineage names what it supersedes, against a
+  fresh unrelated row (DK-1); and three attestation kinds against a free-text string
+  (AZ-1). No API key — the inference port is scripted, the projection port returns one
+  record and the clock is moved by hand, so the run reproduces byte for byte and a
+  test asserts the transcript in the sample's README is exactly what it prints. A
+  workspace member (`samples/*`, private, never published), built and tested by the
+  repository's own commands on the Node job.
+
 - **[`samples/coverage-refusal`](samples/coverage-refusal)** — a standalone sample a
   skeptic can run: it builds a gate over the in-memory Docket and four trivial ports,
   hands it four tools shaped like the Vercel AI SDK's tool object (the SDK is not a

@@ -40,6 +40,17 @@ node samples/coverage-refusal/dist/demo.js
 
 It is a sample, not an adoption: no host, no database, no model, and nothing here writes to anything.
 
+## See the difference, act by act
+
+**[`samples/scenario-deck`](samples/scenario-deck)** — one realistic support-desk scenario run twice: once through a whole-call approval gate, the shape every agent framework's "approve this tool call" gate has, and once through the Affiant gate. It prints, per act, what each surface showed the reviewer and what each one recorded — per-field provenance and previous values against one arguments blob (AF-1, AF-3), the three confidence numbers against none (AF-2), an amendment as a first-class act with the reviewer bound to it against a rejection and a re-proposal (DK-1, PV-2), a Standing Order that will not fire while a required field reads `Empty` against a rule keyed on a tool's name (GT-5), expiry as a queryable state and a resubmission with lineage against nothing at all (DK-1), and an attestation kind against a free-text string (AZ-1).
+
+```bash
+pnpm install && pnpm -C samples/scenario-deck build
+node samples/scenario-deck/dist/deck.js
+```
+
+No API key: the inference port is scripted and the clock is pinned. It is not a benchmark, not adoption, and not a claim that whole-call gates are wrong — they answer "may this call run?", and Affiant answers "is this field true, and who says so?".
+
 ## Develop
 
 pnpm workspace, Node 22 or newer, ESM only, TypeScript in strict mode.

@@ -1,0 +1,13 @@
+{
+  // The type-check pass resolves `@affiant/core` through the source-path mapping in
+  // `tsconfig.base.json`, so the gate's own sources join this program — and they use
+  // Web Crypto, which lives in the DOM lib. `tsconfig.build.json` clears `paths` and
+  // resolves the built `.d.ts` instead, so it needs neither.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"]
+}

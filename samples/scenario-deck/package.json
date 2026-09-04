@@ -1,0 +1,30 @@
+{
+  "name": "@affiant/sample-scenario-deck",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A standalone sample: one support-desk scenario run twice — through a whole-call approval gate and through the Affiant gate — with what each surface showed the reviewer and what each recorded, side by side.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "samples/scenario-deck"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "demo": "node dist/deck.js"
+  },
+  "dependencies": {
+    "@affiant/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
