@@ -58,10 +58,10 @@ const CLAIMED = [
 describe("the fixture set", () => {
   it("has every set populated", () => {
     expect(fixtureSet("gate").length).toBeGreaterThanOrEqual(17);
-    expect(fixtureSet("decide").length).toBeGreaterThanOrEqual(17);
+    expect(fixtureSet("decide").length).toBeGreaterThanOrEqual(19);
     expect(fixtureSet("sequence-a").length).toBeGreaterThanOrEqual(15);
     expect(fixtureSet("sequence-c").length).toBeGreaterThanOrEqual(5);
-    expect(fixtures.length).toBeGreaterThanOrEqual(54);
+    expect(fixtures.length).toBeGreaterThanOrEqual(56);
   });
 
   it("gives every fixture a unique id, a rule citation and a title", () => {
@@ -77,6 +77,25 @@ describe("the fixture set", () => {
     for (const rule of CLAIMED) {
       expect(cited.has(rule), `no fixture cites ${rule}`).toBe(true);
     }
+  });
+
+  it("pins the grant binding as a value, not only as a property", async () => {
+    // SR-1: a host's execution grant hashes `canonicalHashEntry` - the Affidavit and
+    // its accepted amendments. A fixture that stated only "the canonical form
+    // differs from the proposal" would pass for a second implementation that
+    // canonicalised the same two Affidavits differently, so at least one amended and
+    // one unamended approval carry the hash itself.
+    const stated = fixtures.filter((one) => one.expect.canonicalHash !== undefined);
+
+    expect(stated.length).toBeGreaterThanOrEqual(2);
+    for (const one of stated) {
+      expect(one.expect.canonicalHash, one.id).toMatch(/^[0-9a-f]{64}$/);
+      expect(one.rules, one.id).toContain("SR-1");
+    }
+    // One where an amendment was accepted, one where none was.
+    const amended = stated.filter((one) => one.expect.entry?.amendedAffidavit != null);
+    expect(amended.length).toBeGreaterThanOrEqual(1);
+    expect(stated.length - amended.length).toBeGreaterThanOrEqual(1);
   });
 
   it("runs as a set and reports structured results a driver can consume", async () => {

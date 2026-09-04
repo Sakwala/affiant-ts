@@ -58,7 +58,7 @@ function prepared(name: string, value: JsonValue, isMandatory = false): Prepared
 }
 
 /** File one pending entry through the gate's Sequence C entry point. */
-async function fileOne(h: Harness, ctx: TurnContext, args: unknown = null): Promise<DocketEntry> {
+async function fileOne(h: Harness, ctx: TurnContext, args: JsonValue = null): Promise<DocketEntry> {
   const filed = await h.gate.file(
     {
       operation: {
@@ -107,9 +107,9 @@ function countingStore(inner: DocketStore): { store: DocketStore; calls: string[
       calls.push("preserveAmendments");
       return inner.preserveAmendments(entryId, scope, amendments, act);
     },
-    async recordExecution(entryId, scope, outcome, detail) {
+    async recordExecution(entryId, scope, outcome, detail, expected) {
       calls.push("recordExecution");
-      return inner.recordExecution(entryId, scope, outcome, detail);
+      return inner.recordExecution(entryId, scope, outcome, detail, expected);
     },
     async recordSupersession(entryId, scope, supersededBy) {
       calls.push("recordSupersession");
@@ -141,6 +141,40 @@ function countingStore(inner: DocketStore): { store: DocketStore; calls: string[
     },
   };
   return { store, calls };
+}
+
+/**
+ * A {@link DocketStore} with a scope bug: every `get` is answered out of `tenantId`,
+ * whatever scope the caller asked for.
+ *
+ * Not a straw man. AZ-2 exists because "check the tenant, not just the acting user"
+ * is the check hosts hand-roll and get wrong, and a store is exactly where they
+ * hand-roll it - a `WHERE id = $1` that forgot its `AND tenant_id = $2`. A gate that
+ * delegated the whole boundary to the store would follow this one straight through.
+ */
+function scopeBlindStore(inner: DocketStore, tenantId: string): DocketStore {
+  return {
+    ...inner,
+    file: (entry) => inner.file(entry),
+    async get(entryId: string, _scope: Scope) {
+      return inner.get(entryId, { tenantId });
+    },
+    transition: (entryId, _scope, expected, patch) =>
+      inner.transition(entryId, { tenantId }, expected, patch),
+    preserveAmendments: (entryId, _scope, amendments, act) =>
+      inner.preserveAmendments(entryId, { tenantId }, amendments, act),
+    recordExecution: (entryId, _scope, outcome, detail, expected) =>
+      inner.recordExecution(entryId, { tenantId }, outcome, detail, expected),
+    recordSupersession: (entryId, _scope, supersededBy) =>
+      inner.recordSupersession(entryId, { tenantId }, supersededBy),
+    listPending: (scope: Scope, page: Page) => inner.listPending(scope, page),
+    listApprovedUnexecuted: (scope: Scope, page: Page) => inner.listApprovedUnexecuted(scope, page),
+    expireDue: (now: string, scope: Scope, limit: number) => inner.expireDue(now, scope, limit),
+    retention: (policy: RetentionPolicy, scope: Scope, limit: number) =>
+      inner.retention(policy, scope, limit),
+    purge: (tenant: string) => inner.purge(tenant),
+    export: (scope: Scope) => inner.export(scope),
+  };
 }
 
 const APPROVE: Decision = { kind: "approve" };
@@ -802,6 +836,65 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     ).toBe("decision-not-pending");
   });
 
+  it("refuses a second report, so a committed row never later reads failed", async () => {
+    const h = harness();
+    const entry = await approved(h);
+    await h.gate.markExecuted(entry.entryId, "executed", "row 41", turnContext());
+
+    const code = await codeOf(() =>
+      h.gate.markExecuted(entry.entryId, "failed", "actually it blew up", turnContext()),
+    );
+
+    expect(code).toBe("execution-already-recorded");
+    const row = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
+    expect(row?.execution).toBe("executed");
+    expect(row?.executionDetail).toBe("row 41");
+  });
+
+  it("refuses a second report the other way round as well", async () => {
+    const h = harness();
+    const entry = await approved(h);
+    await h.gate.markExecuted(entry.entryId, "failed", "unique constraint", turnContext());
+
+    const code = await codeOf(() =>
+      h.gate.markExecuted(entry.entryId, "executed", "retried", turnContext()),
+    );
+
+    expect(code).toBe("execution-already-recorded");
+    const row = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
+    expect(row?.execution).toBe("failed");
+    expect(row?.executionDetail).toBe("unique constraint");
+  });
+
+  it("tells a host it reports once, and names the outcome already on the row", async () => {
+    const h = harness();
+    const entry = await approved(h);
+    await h.gate.markExecuted(entry.entryId, "executed", null, turnContext());
+
+    await expect(h.gate.markExecuted(entry.entryId, "failed", null, turnContext())).rejects.toThrow(
+      /reports once/,
+    );
+    try {
+      await h.gate.markExecuted(entry.entryId, "failed", null, turnContext());
+    } catch (error) {
+      if (!isAffiantError(error)) throw error;
+      expect(error.details).toMatchObject({ recorded: "executed", outcome: "failed" });
+    }
+  });
+
+  it("lets exactly one of two interleaved reports win", async () => {
+    const h = harness();
+    const entry = await approved(h);
+
+    const outcomes = await Promise.all([
+      codeOf(() => h.gate.markExecuted(entry.entryId, "executed", "first", turnContext())),
+      codeOf(() => h.gate.markExecuted(entry.entryId, "failed", "second", turnContext())),
+    ]);
+
+    expect(outcomes.filter((code) => code === "execution-already-recorded")).toHaveLength(1);
+    expect(outcomes.filter((code) => code === null)).toHaveLength(1);
+  });
+
   it("admits a service principal to report an outcome it is not admitted to decide", async () => {
     const h = harness();
     const entry = await approved(h);
@@ -1066,6 +1159,87 @@ describe("rehydration (DK-5)", () => {
     expect((thrown as { code?: string }).code).toBe("wireup-invalid");
     expect((thrown as { details?: Record<string, unknown> }).details).toEqual({
       option: "sessions",
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AZ-2 - the tenant boundary is the framework's check, not the store's
+// ---------------------------------------------------------------------------
+
+describe("the gate compares the tenant itself (AZ-2)", () => {
+  /** A gate over a store that answers every scoped read out of tenant-a. */
+  async function blind(): Promise<{ h: Harness; entryId: string }> {
+    const clock = stubClock();
+    const inner = new InMemoryDocketStore({ clock });
+    const filing = harness({ clock, store: inner });
+    const entry = await fileOne(filing, turnContext({ tenantId: "tenant-a" }));
+    const h = harness({ clock, store: scopeBlindStore(inner, "tenant-a") });
+    return { h, entryId: entry.entryId };
+  }
+
+  it("still refuses a decision from another tenant when the store hands the row over", async () => {
+    const { h, entryId } = await blind();
+
+    // The store answered the scoped read with another tenant's row. AZ-2 makes this
+    // the framework's check, so the gate compares the row's own tenant and refuses -
+    // and refuses as `entry-not-found`, never as "not authorized for that tenant",
+    // which would confirm the id to whoever guessed it.
+    const code = await codeOf(() =>
+      h.gate.decide(entryId, APPROVE, turnContext({ tenantId: "tenant-b" })),
+    );
+
+    expect(code).toBe("entry-not-found");
+    const row = await h.store.get(entryId, { tenantId: "tenant-a" });
+    expect(row?.status).toBe("pending");
+    expect(row?.attestation).toBeNull();
+  });
+
+  it("still refuses an execution report from another tenant on the same store", async () => {
+    const { h, entryId } = await blind();
+    await h.gate.decide(entryId, APPROVE, turnContext({ tenantId: "tenant-a" }));
+
+    const code = await codeOf(() =>
+      h.gate.markExecuted(entryId, "executed", null, turnContext({ tenantId: "tenant-b" })),
+    );
+
+    expect(code).toBe("entry-not-found");
+    expect((await h.store.get(entryId, { tenantId: "tenant-a" }))?.execution).toBe("unexecuted");
+  });
+
+  it("still refuses a resubmission from another tenant on the same store", async () => {
+    const { h, entryId } = await blind();
+    h.clock.set(plus(AT, 40 * 60 * 1000));
+
+    const code = await codeOf(() =>
+      h.gate.resubmit(entryId, turnContext({ tenantId: "tenant-b" })),
+    );
+
+    expect(code).toBe("entry-not-found");
+    expect((await h.store.get(entryId, { tenantId: "tenant-a" }))?.lineage.supersededBy).toBeNull();
+  });
+
+  it("tells the host its store answered a scoped read with another tenant's row", async () => {
+    const { h, entryId } = await blind();
+
+    await codeOf(() => h.gate.decide(entryId, APPROVE, turnContext({ tenantId: "tenant-b" })));
+
+    // The caller learns nothing; the host is told which of the two things happened,
+    // because "your store has a scope bug" is the one fact this check exists to
+    // surface and it is invisible from the refusal a caller sees.
+    expect(h.telemetry.find("decision.unauthorized")?.attributes).toMatchObject({
+      reason: "tenant-mismatch",
+      path: "decide",
+    });
+  });
+
+  it("reports a genuinely missing entry as not found, not as a tenant mismatch", async () => {
+    const h = harness();
+
+    await codeOf(() => h.gate.decide("no-such-entry", APPROVE, turnContext()));
+
+    expect(h.telemetry.find("decision.unauthorized")?.attributes).toMatchObject({
+      reason: "entry-not-found",
     });
   });
 });

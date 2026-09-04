@@ -244,16 +244,25 @@ export class InMemoryDocketStore implements DocketStore {
     return this.#read(stored.entry);
   }
 
-  /** Record what the host's executor reported on an approved row (DK-1). */
+  /**
+   * Record what the host's executor reported on an approved row, once (DK-1, DK-4).
+   *
+   * A guarded compare-and-set on the row's own `execution`, read and written in the
+   * same synchronous block as every other mutation here, so two reports racing
+   * serialize and exactly one wins. The second is refused rather than applied on
+   * top: an outcome is a recorded fact, and a row reads forward.
+   */
   async recordExecution(
     entryId: string,
     scope: Scope,
     outcome: Exclude<ExecutionOutcome, "unexecuted">,
     detail: string | null,
+    expected: "unexecuted",
   ): Promise<RecordExecutionResult> {
     const stored = this.#find(entryId, scope);
     if (stored === null) return "not-found";
     if (readStatus(stored.entry, this.#clock.now()) !== "approved") return "not-approved";
+    if (stored.entry.execution !== expected) return "execution-already-recorded";
 
     stored.entry = { ...stored.entry, execution: outcome, executionDetail: detail };
     return this.#read(stored.entry);

@@ -210,8 +210,15 @@ export interface PipelineProposal {
   readonly toolName: string;
   /** The field schema the inference step works against, or `null` to skip inference. */
   readonly schema: FieldSchema | null;
-  /** The call's arguments, part of the entry id's derivation. */
-  readonly args: unknown;
+  /**
+   * The call's arguments, part of the entry id's derivation, or `null` when the
+   * capture came from no call.
+   *
+   * A {@link JsonValue}: {@link deriveEntryId} canonicalises this, and a value with
+   * no canonical form is a caller bug a typed host should hear about from the
+   * compiler rather than from a `TypeError` on the first filing.
+   */
+  readonly args: JsonValue | null;
   /** Host-tagged fields, or `null` to run interceptors and inference. */
   readonly preparedFields: readonly PreparedField[] | null;
   /** The host's own verb for the operation, carried onto the card. */

@@ -50,7 +50,9 @@ async function decided(
     decision: { kind, reason: null, at },
     decidedAt: at,
   });
-  if (kind === "approve") await store.recordExecution(entryId, TENANT, "executed", null);
+  if (kind === "approve") {
+    await store.recordExecution(entryId, TENANT, "executed", null, "unexecuted");
+  }
 }
 
 describe("retention ages out terminal entries in bounded pages (DK-4)", () => {
@@ -204,7 +206,9 @@ describe("a tenant mismatch is a miss, not another tenant's row (AZ-2)", () => {
     expect(await store.preserveAmendments("entry-1", OTHER, {}, { at: NOON, by: "person-7" })).toBe(
       "not-found",
     );
-    expect(await store.recordExecution("entry-1", OTHER, "executed", null)).toBe("not-found");
+    expect(await store.recordExecution("entry-1", OTHER, "executed", null, "unexecuted")).toBe(
+      "not-found",
+    );
     expect(await store.recordSupersession("entry-1", OTHER, "entry-2")).toBe("not-found");
     expect((await store.get("entry-1", TENANT))?.status).toBe("pending");
   });

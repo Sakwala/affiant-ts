@@ -33,6 +33,7 @@ import type { TurnContext } from "../context.js";
 import type { DocketEntry } from "../docket/entry.js";
 import type { DocketStore, Page, PageResult, Scope, SessionStore } from "../docket/store.js";
 import { AffiantError } from "../errors.js";
+import type { JsonValue } from "../model/affidavit.js";
 import type {
   Clock,
   FieldInterceptor,
@@ -121,8 +122,14 @@ export interface WriteProposal {
   readonly fields?: readonly PreparedField[];
   /** The field schema, for a proposal that should run inference. */
   readonly schema?: FieldSchema;
-  /** The arguments this capture came from, part of the entry id's derivation. */
-  readonly args?: unknown;
+  /**
+   * The arguments this capture came from, part of the entry id's derivation.
+   *
+   * A {@link JsonValue}, because that is what tool arguments are: the id derivation
+   * canonicalises them, and a value with no canonical form is a caller bug the type
+   * says so about rather than a `TypeError` at the first filing.
+   */
+  readonly args?: JsonValue;
   /** The host's own verb for the operation, carried onto the card. */
   readonly operationLabel?: string;
 }

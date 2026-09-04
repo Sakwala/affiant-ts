@@ -2329,6 +2329,7 @@ export const fixtures: readonly Fixture[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true,
       },
+      "canonicalHash": "8d1579d7c6e7463ae44e36adfc4db166066cf0ae4ddd3e3ea04b52f394ecff6a",
     },
   },
   // decide/07-unresolved-identity.json
@@ -3938,6 +3939,350 @@ export const fixtures: readonly Fixture[] = [
       ],
     },
   },
+  // decide/18-execution-recorded-once.json
+  {
+    "id": "decide/execution-recorded-once",
+    "rules": [
+      "DK-1",
+      "DK-4",
+      "AZ-5",
+    ],
+    "title": "An execution outcome is recorded once. A committed write is reported executed, and a later report saying the same write failed is refused: the row keeps the outcome it was given, because a recorded fact is appended to and never edited in place, and an approved-and-committed write has to stay distinguishable from an approved-but-failed one.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer",
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1",
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer",
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note",
+            ],
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+          ],
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana",
+          },
+          "decision": {
+            "kind": "approve",
+          },
+          "refusal": null,
+        },
+        {
+          "kind": "markExecuted",
+          "at": "2026-09-04T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana",
+          },
+          "outcome": "executed",
+          "detail": "invoice row 41",
+          "refusal": null,
+        },
+      ],
+      "step": {
+        "kind": "markExecuted",
+        "at": "2026-09-04T09:02:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "outcome": "failed",
+        "detail": "actually it blew up",
+      },
+    },
+    "expect": {
+      "error": {
+        "code": "execution-already-recorded",
+        "messageContains": "reports once",
+      },
+      "entry": {
+        "status": "approved",
+        "execution": "executed",
+        "executionDetail": "invoice row 41",
+        "requirement": "ReviewerConfirmation",
+        "blocked": null,
+        "attestation": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "amendments": null,
+        "decision": {
+          "kind": "approve",
+          "reason": null,
+        },
+        "affidavit": {
+          "aggregateConfidence": 0.9,
+          "populatedConfidence": 0.9,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": false,
+            },
+            {
+              "name": "amount",
+              "value": "40",
+              "source": "Conversation",
+              "bound": false,
+            },
+            {
+              "name": "note",
+              "value": "kept",
+              "source": "Conversation",
+              "bound": false,
+            },
+          ],
+        },
+        "amendedAffidavit": null,
+        "lineage": {
+          "supersededBy": null,
+        },
+      },
+      "store": {
+        "count": 1,
+        "approvedUnexecuted": 0,
+      },
+    },
+  },
+  // decide/19-execution-second-report-refused.json
+  {
+    "id": "decide/execution-second-report-refused",
+    "rules": [
+      "DK-1",
+      "DK-4",
+      "AZ-5",
+    ],
+    "title": "The guard runs in both directions: a write reported failed cannot later be reported executed either. A host that retries a write reports once, when it knows the outcome - the retries are the host's business, and the Docket carries the one fact about what happened, not the last thing anybody said.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer",
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1",
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer",
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note",
+            ],
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9,
+              },
+            },
+          ],
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana",
+          },
+          "decision": {
+            "kind": "approve",
+          },
+          "refusal": null,
+        },
+        {
+          "kind": "markExecuted",
+          "at": "2026-09-04T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana",
+          },
+          "outcome": "failed",
+          "detail": "unique constraint on invoice_no",
+          "refusal": null,
+        },
+      ],
+      "step": {
+        "kind": "markExecuted",
+        "at": "2026-09-04T09:02:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "outcome": "executed",
+        "detail": "retried and it worked",
+      },
+    },
+    "expect": {
+      "error": {
+        "code": "execution-already-recorded",
+        "messageContains": "reports once",
+      },
+      "entry": {
+        "status": "approved",
+        "execution": "failed",
+        "executionDetail": "unique constraint on invoice_no",
+        "requirement": "ReviewerConfirmation",
+        "blocked": null,
+        "attestation": {
+          "kind": "member",
+          "id": "ana",
+        },
+        "amendments": null,
+        "decision": {
+          "kind": "approve",
+          "reason": null,
+        },
+        "affidavit": {
+          "aggregateConfidence": 0.9,
+          "populatedConfidence": 0.9,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": false,
+            },
+            {
+              "name": "amount",
+              "value": "40",
+              "source": "Conversation",
+              "bound": false,
+            },
+            {
+              "name": "note",
+              "value": "kept",
+              "source": "Conversation",
+              "bound": false,
+            },
+          ],
+        },
+        "amendedAffidavit": null,
+        "lineage": {
+          "supersededBy": null,
+        },
+      },
+      "store": {
+        "count": 1,
+        "approvedUnexecuted": 0,
+      },
+    },
+  },
   // sequence-a/01-approve-round-trip.json
   {
     "id": "sequence-a/approve-round-trip",
@@ -3947,6 +4292,7 @@ export const fixtures: readonly Fixture[] = [
       "DK-1",
       "AZ-1",
       "AZ-5",
+      "SR-1",
     ],
     "title": "The whole of Sequence A: a chat turn calls a wrapped write tool, the gate files an Affidavit instead of writing, a person approves it, and the host's executor reports back. The tool's own execute is never called at any point - the wrapped one files a proposal and returns the card - so the only path to executed is a report against an approved, attested row.",
     "given": {
@@ -4088,6 +4434,7 @@ export const fixtures: readonly Fixture[] = [
         "pending": 0,
         "approvedUnexecuted": 0,
       },
+      "canonicalHash": "776b7b407490fb96b4792a1aba4dd0ea23518e4fb5288324fa0ce56af6837275",
     },
   },
   // sequence-a/02-reject-round-trip.json

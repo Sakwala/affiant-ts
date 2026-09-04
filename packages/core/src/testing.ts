@@ -23,6 +23,19 @@
  * }
  * ```
  *
+ * ## The runner is strict about the document, not only about the gate
+ *
+ * A fixture is checked against the format **before** it is run, and a fixture that
+ * fails that check is not run at all: an unknown key at any level fails the fixture
+ * naming its path, and an `expect` clause that states no fact — `{}`,
+ * `{ entry: {} }`, `{ telemetryAbsent: [] }` — fails as vacuous. Both are the same
+ * defect wearing different clothes: a fixture that asserts nothing, or asserts it in
+ * a key nothing reads, is passed by every implementation including a broken one, and
+ * the rulebook's negative-oracle clause exists to forbid exactly that. Since this
+ * runner is what a conformance driver executes against a second implementation and
+ * what its parity manifest is derived from, a silently-ignored key would be a rule
+ * silently unchecked in both implementations at once.
+ *
  * **One shape for every rule.** The gate's whole surface is reachable from
  * {@link FixtureStep} — `wrap-execute`, `file`, `decide`, `resubmit`,
  * `markExecuted`, `expireDue`, `get`, `rehydrate` — so a fixture about a decision
@@ -71,7 +84,7 @@ import type { EvidenceCardRequest, FiledEntry, PreparedField } from "./gate/pipe
 import type { ApprovalPolicy, Verdict } from "./gate/policy.js";
 import type { Affidavit, JsonValue } from "./model/affidavit.js";
 import type { AmendmentMap } from "./model/amendments.js";
-import { canonicalHash } from "./model/canonical.js";
+import { canonicalHash, canonicalHashEntry, swornAffidavitOf } from "./model/canonical.js";
 import type { Binding, ProvenanceSource } from "./model/provenance.js";
 import { chainOf, mintTag } from "./model/provenance.js";
 import type {
@@ -86,6 +99,7 @@ import type {
   RiskScorer,
   StructuredField,
 } from "./ports.js";
+import { TELEMETRY_KEYS } from "./telemetry-keys.js";
 import type { TelemetryEvent, TelemetryPort } from "./telemetry.js";
 
 // ---------------------------------------------------------------------------
@@ -374,12 +388,35 @@ export interface FixtureExpectation {
   } | null;
   /** Whether the row a `get` step read was found. */
   readonly found?: boolean;
+  /**
+   * The row's canonical hash, as 64 lowercase hex characters (SR-1).
+   *
+   * **This is the value a host's execution grant binds to**, taken through the
+   * package's own `canonicalHashEntry` — the Affidavit ⊕ its accepted amendments,
+   * never the proposal alone once an amendment has been accepted. Stating it pins
+   * the binding as a byte vector rather than as a property: an implementation that
+   * bound a grant to the unamended proposal would produce a different hash here and
+   * fail, where a `canonicalDiffersFromProposal` flag alone would not notice a
+   * second implementation that canonicalised the same two Affidavits differently.
+   *
+   * A fixture that states it is stating a value this implementation must reproduce
+   * byte for byte, which is what SR-1 asks conformance fixtures to carry.
+   */
+  readonly canonicalHash?: string;
 }
 
 /** A partial matcher over a Docket row. */
 export interface EntryExpectation {
   readonly status?: string;
   readonly execution?: string | null;
+  /**
+   * What the executor said, beside the outcome.
+   *
+   * Stated where a fixture is about a row being *unchanged*: a refused second
+   * execution report has to leave both halves of the first one standing, and an
+   * outcome alone would not show that the detail had been overwritten (DK-4).
+   */
+  readonly executionDetail?: string | null;
   readonly requirement?: RequirementKind;
   readonly blocked?: BlockedMarker | null;
   readonly toolName?: string;
@@ -498,6 +535,398 @@ export interface FixtureRunResult {
   readonly results: readonly FixtureResult[];
   /** The ids that failed, for a parity manifest. */
   readonly failedIds: readonly string[];
+}
+
+// ---------------------------------------------------------------------------
+// The fixture schema
+// ---------------------------------------------------------------------------
+
+/**
+ * Every key the fixture format defines, level by level.
+ *
+ * **Why a runtime schema when the format is already an interface.** A fixture is a
+ * JSON document read off disk or off a wire; the interfaces above type the *authors*
+ * of one and not the documents themselves. Without this table a misspelled
+ * expectation key — `statuz` for `status`, `valu` for `value` — is a key the checker
+ * never reads, so the fixture asserts nothing about that fact and passes. That is
+ * the shape the rulebook's negative-oracle clause exists to forbid: *a fixture a
+ * broken implementation passes is not a test*. This is the oracle a conformance
+ * driver runs against a second implementation and the parity manifest is derived
+ * from, so a silently-ignored key is a rule silently unchecked in both.
+ *
+ * The lists are exhaustive and the check is exact: an unknown key anywhere in a
+ * fixture fails that fixture, naming the path. Adding a clause to the format means
+ * adding it here in the same commit — which is the point.
+ */
+const FIXTURE_KEYS = {
+  fixture: ["id", "rules", "title", "given", "expect"],
+  given: ["gate", "store", "clock", "ctx", "prior", "step"],
+  gate: [
+    "policies",
+    "riskScorer",
+    "interceptors",
+    "defaultTtlMs",
+    "authorization",
+    "inference",
+    "entities",
+    "uncovered",
+    "sessions",
+  ],
+  ctx: ["tenantId", "conversationId", "channel", "principal", "utterance", "messageId"],
+  step: ["kind", "as", "at", "principal", "tenantId", "conversationId", "entry", "refusal"],
+  expect: [
+    "error",
+    "entry",
+    "card",
+    "superseded",
+    "telemetry",
+    "telemetryAbsent",
+    "store",
+    "expired",
+    "page",
+    "found",
+    "canonicalHash",
+  ],
+  error: ["code", "messageContains"],
+  entry: [
+    "status",
+    "execution",
+    "executionDetail",
+    "requirement",
+    "blocked",
+    "toolName",
+    "channel",
+    "tenantId",
+    "conversationId",
+    "attestation",
+    "decision",
+    "amendments",
+    "preservedAmendments",
+    "lineage",
+    "expiresAtOffsetMs",
+    "affidavit",
+    "amendedAffidavit",
+    "canonicalDiffersFromProposal",
+  ],
+  lineage: ["supersedes", "supersededBy"],
+  affidavit: [
+    "operationType",
+    "entityType",
+    "entityId",
+    "aggregateConfidence",
+    "populatedConfidence",
+    "emptyFieldCount",
+    "fields",
+  ],
+  affidavitField: [
+    "name",
+    "value",
+    "previousValue",
+    "kind",
+    "isMandatory",
+    "source",
+    "bound",
+    "bindingKind",
+    "confidence",
+    "priorSources",
+  ],
+  card: [
+    "requiresConfirmation",
+    "warningsContain",
+    "priorAmendments",
+    "blocked",
+    "protocolVersion",
+    "aggregateConfidence",
+    "populatedConfidence",
+    "emptyFieldCount",
+    "fields",
+  ],
+  cardField: ["name", "kind", "value", "allowedValues", "pattern", "isMandatory"],
+  store: ["count", "pending", "approvedUnexecuted"],
+  expired: ["count", "more"],
+  page: ["count", "more", "statuses"],
+} as const satisfies Record<string, readonly string[]>;
+
+/** The keys each kind of step adds to {@link FIXTURE_KEYS.step}. */
+const STEP_KEYS = {
+  "wrap-execute": ["tool", "args"],
+  file: ["toolName", "operation", "schema", "preparedFields", "args", "operationLabel"],
+  decide: ["decision"],
+  resubmit: [],
+  markExecuted: ["outcome", "detail"],
+  expireDue: ["limit", "scope"],
+  get: [],
+  rehydrate: ["page", "scope"],
+} as const satisfies Record<FixtureStep["kind"], readonly string[]>;
+
+/** The clauses {@link wireUpRefusal} can answer. Everything else is unanswerable there. */
+const WIRE_UP_ANSWERABLE = ["error", "telemetry", "telemetryAbsent", "store"] as const;
+
+/** Whether `value` is a plain object a key check applies to. */
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Push a failure for every key of `value` the format does not define. */
+function checkKeys(
+  value: unknown,
+  allowed: readonly string[],
+  path: string,
+  failures: FixtureFailure[],
+): void {
+  if (!isRecord(value)) return;
+  for (const key of Object.keys(value)) {
+    if (allowed.includes(key)) continue;
+    failures.push({
+      at: `${path}.${key}`,
+      expected: `one of: ${[...allowed].sort().join(", ")}`,
+      actual: "an unknown key",
+    });
+  }
+}
+
+/** Push a failure for every key `required` names that `value` does not carry. */
+function checkRequired(
+  value: unknown,
+  required: readonly string[],
+  path: string,
+  failures: FixtureFailure[],
+): void {
+  if (!isRecord(value)) {
+    failures.push({ at: path, expected: "an object", actual: value });
+    return;
+  }
+  for (const key of required) {
+    if (value[key] === undefined) {
+      failures.push({ at: `${path}.${key}`, expected: "stated", actual: "absent" });
+    }
+  }
+}
+
+/** Every telemetry key the registry names (TL-1). A fixture may not assert on another. */
+const REGISTERED_TELEMETRY: readonly string[] = TELEMETRY_KEYS.map((entry) => entry.key);
+
+/** Check one telemetry clause: an array of keys the registry knows. */
+function checkTelemetryKeys(value: unknown, path: string, failures: FixtureFailure[]): void {
+  if (value === undefined || value === null) return;
+  if (!Array.isArray(value)) {
+    failures.push({ at: path, expected: "an array of telemetry keys", actual: value });
+    return;
+  }
+  for (const [index, key] of value.entries()) {
+    if (typeof key !== "string" || !REGISTERED_TELEMETRY.includes(key)) {
+      failures.push({
+        at: `${path}[${String(index)}]`,
+        expected: `one of: ${[...REGISTERED_TELEMETRY].sort().join(", ")}`,
+        actual: key,
+      });
+    }
+  }
+}
+
+/** Check a row matcher and everything under it. */
+function checkRowKeys(value: unknown, path: string, failures: FixtureFailure[]): void {
+  if (!isRecord(value)) return;
+  checkKeys(value, FIXTURE_KEYS.entry, path, failures);
+  checkKeys(value["lineage"], FIXTURE_KEYS.lineage, `${path}.lineage`, failures);
+  for (const which of ["affidavit", "amendedAffidavit"] as const) {
+    const affidavit = value[which];
+    if (!isRecord(affidavit)) continue;
+    checkKeys(affidavit, FIXTURE_KEYS.affidavit, `${path}.${which}`, failures);
+    const fields = affidavit["fields"];
+    if (!Array.isArray(fields)) continue;
+    for (const [index, field] of fields.entries()) {
+      checkKeys(
+        field,
+        FIXTURE_KEYS.affidavitField,
+        `${path}.${which}.fields[${String(index)}]`,
+        failures,
+      );
+    }
+  }
+}
+
+/**
+ * Check a fixture document against the format before running it.
+ *
+ * Two families of defect, both of which pass silently without this: a key the format
+ * does not define (which the checker never reads, so the fact goes unasserted), and
+ * an `expect` clause that states no fact at all (`{}`, `{ entry: {} }`,
+ * `{ telemetryAbsent: [] }` — each of which any implementation passes, including one
+ * that does nothing).
+ */
+function validateFixture(fixture: Fixture): FixtureFailure[] {
+  const failures: FixtureFailure[] = [];
+  const document = fixture as unknown as Readonly<Record<string, unknown>>;
+
+  checkRequired(document, FIXTURE_KEYS.fixture, "fixture", failures);
+  checkKeys(document, FIXTURE_KEYS.fixture, "fixture", failures);
+
+  const given = document["given"];
+  if (isRecord(given)) {
+    checkRequired(given, ["gate", "clock", "ctx", "step"], "given", failures);
+    checkKeys(given, FIXTURE_KEYS.given, "given", failures);
+    checkKeys(given["gate"], FIXTURE_KEYS.gate, "given.gate", failures);
+    checkKeys(given["ctx"], FIXTURE_KEYS.ctx, "given.ctx", failures);
+
+    const prior = given["prior"];
+    if (Array.isArray(prior)) {
+      for (const [index, step] of prior.entries()) {
+        checkStepKeys(step, `given.prior[${String(index)}]`, failures);
+      }
+    }
+    checkStepKeys(given["step"], "given.step", failures);
+  }
+
+  const expectation = document["expect"];
+  if (isRecord(expectation)) {
+    checkKeys(expectation, FIXTURE_KEYS.expect, "expect", failures);
+    checkKeys(expectation["error"], FIXTURE_KEYS.error, "expect.error", failures);
+    checkRowKeys(expectation["entry"], "expect.entry", failures);
+    checkRowKeys(expectation["superseded"], "expect.superseded", failures);
+    checkKeys(expectation["store"], FIXTURE_KEYS.store, "expect.store", failures);
+    checkKeys(expectation["expired"], FIXTURE_KEYS.expired, "expect.expired", failures);
+    checkKeys(expectation["page"], FIXTURE_KEYS.page, "expect.page", failures);
+    checkTelemetryKeys(expectation["telemetry"], "expect.telemetry", failures);
+    checkTelemetryKeys(expectation["telemetryAbsent"], "expect.telemetryAbsent", failures);
+
+    const card = expectation["card"];
+    if (isRecord(card)) {
+      checkKeys(card, FIXTURE_KEYS.card, "expect.card", failures);
+      const fields = card["fields"];
+      if (Array.isArray(fields)) {
+        for (const [index, field] of fields.entries()) {
+          checkKeys(
+            field,
+            FIXTURE_KEYS.cardField,
+            `expect.card.fields[${String(index)}]`,
+            failures,
+          );
+        }
+      }
+    }
+
+    if (countAssertions(expectation) === 0) {
+      failures.push({
+        at: "expect",
+        expected: "at least one stated fact",
+        actual: "a fixture that asserts nothing",
+      });
+    }
+  }
+
+  return failures;
+}
+
+/** Check one step: the common keys plus the ones its `kind` adds. */
+function checkStepKeys(step: unknown, path: string, failures: FixtureFailure[]): void {
+  if (!isRecord(step)) {
+    failures.push({ at: path, expected: "a step object", actual: step });
+    return;
+  }
+  const kind = step["kind"];
+  if (typeof kind !== "string" || !Object.hasOwn(STEP_KEYS, kind)) {
+    failures.push({
+      at: `${path}.kind`,
+      expected: `one of: ${Object.keys(STEP_KEYS).sort().join(", ")}`,
+      actual: kind,
+    });
+    return;
+  }
+  const own = STEP_KEYS[kind as FixtureStep["kind"]];
+  checkKeys(step, [...FIXTURE_KEYS.step, ...own], path, failures);
+}
+
+/** How many leaf facts a clause states, counting only keys the format defines. */
+function countStated(value: unknown, keys: readonly string[]): number {
+  if (!isRecord(value)) return 0;
+  return keys.filter((key) => value[key] !== undefined).length;
+}
+
+/** How many leaf facts an Affidavit matcher states. `null` states one: "there is none". */
+function countAffidavit(value: unknown): number {
+  if (value === null) return 1;
+  if (!isRecord(value)) return 0;
+  let total = countStated(
+    value,
+    FIXTURE_KEYS.affidavit.filter((key) => key !== "fields"),
+  );
+  const fields = value["fields"];
+  if (Array.isArray(fields)) {
+    // Stating the list asserts the field names exactly (AF-1); each further key on a
+    // field is one more fact.
+    total += 1;
+    for (const field of fields) {
+      total += countStated(
+        field,
+        FIXTURE_KEYS.affidavitField.filter((key) => key !== "name"),
+      );
+    }
+  }
+  return total;
+}
+
+/** How many leaf facts a row matcher states. */
+function countRow(value: unknown): number {
+  if (!isRecord(value)) return 0;
+  const scalars = FIXTURE_KEYS.entry.filter(
+    (key) => key !== "lineage" && key !== "affidavit" && key !== "amendedAffidavit",
+  );
+  return (
+    countStated(value, scalars) +
+    countStated(value["lineage"], FIXTURE_KEYS.lineage) +
+    countAffidavit(value["affidavit"]) +
+    (Object.hasOwn(value, "amendedAffidavit") ? countAffidavit(value["amendedAffidavit"]) : 0)
+  );
+}
+
+/** How many leaf facts a card matcher states. */
+function countCard(value: unknown): number {
+  if (!isRecord(value)) return 0;
+  let total = countStated(
+    value,
+    FIXTURE_KEYS.card.filter((key) => key !== "fields" && key !== "warningsContain"),
+  );
+  const warnings = value["warningsContain"];
+  if (Array.isArray(warnings)) total += warnings.length;
+  const fields = value["fields"];
+  if (Array.isArray(fields)) {
+    total += 1;
+    for (const field of fields) {
+      total += countStated(
+        field,
+        FIXTURE_KEYS.cardField.filter((key) => key !== "name"),
+      );
+    }
+  }
+  return total;
+}
+
+/**
+ * How many facts a fixture's `expect` clause actually states.
+ *
+ * Zero means the fixture asserts nothing an implementation could fail — which every
+ * implementation passes, including one that files nothing at all. `expect: {}`,
+ * `{ entry: {} }` and `{ telemetryAbsent: [] }` are the three shapes this catches;
+ * they are counted here rather than by tallying the comparisons a run performed,
+ * because a run also performs the card invariants that hold for every filing, and a
+ * vacuous fixture with a filing step would clear that bar without stating a thing.
+ */
+function countAssertions(expectation: Readonly<Record<string, unknown>>): number {
+  const arrayLength = (value: unknown): number => (Array.isArray(value) ? value.length : 0);
+  return (
+    countStated(expectation["error"], FIXTURE_KEYS.error) +
+    (expectation["found"] === undefined ? 0 : 1) +
+    (expectation["canonicalHash"] === undefined ? 0 : 1) +
+    arrayLength(expectation["telemetry"]) +
+    arrayLength(expectation["telemetryAbsent"]) +
+    countStated(expectation["store"], FIXTURE_KEYS.store) +
+    countStated(expectation["expired"], FIXTURE_KEYS.expired) +
+    countStated(expectation["page"], FIXTURE_KEYS.page) +
+    countRow(expectation["entry"]) +
+    countRow(expectation["superseded"]) +
+    countCard(expectation["card"])
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -632,6 +1061,20 @@ export async function runFixture(
   fixture: Fixture,
   ports: FixturePorts = {},
 ): Promise<FixtureResult> {
+  // The document before the gate. A fixture the format does not recognise, or one
+  // that states no fact, is not run at all: running it would report a pass, and a
+  // pass is the one answer it must never give.
+  const structural = validateFixture(fixture);
+  if (structural.length > 0) {
+    return {
+      id: fixture.id,
+      rules: fixture.rules,
+      title: fixture.title,
+      pass: false,
+      failures: structural,
+    };
+  }
+
   const failures: FixtureFailure[] = [];
   const given = fixture.given;
 
@@ -677,9 +1120,16 @@ export async function runFixture(
     } else if (outcome.entryId !== null && step.as !== undefined) {
       labelled.set(step.as, outcome.entryId);
     }
-    const expectedRefusal = step.refusal ?? null;
-    if (where !== "step" && expectedRefusal !== outcome.code) {
-      failures.push({ at: `${where}.refusal`, expected: expectedRefusal, actual: outcome.code });
+    // A declared refusal is compared wherever it is declared — on a prior step and
+    // on the step under test alike. Skipping the final one let a fixture claim its
+    // own act was refused and pass when it was not; the step under test may still
+    // leave `refusal` off and state its refusal in `expect.error`, which is where
+    // the format asks for it and which is compared below.
+    if (step.refusal !== undefined || where !== "step") {
+      const expectedRefusal = step.refusal ?? null;
+      if (expectedRefusal !== outcome.code) {
+        failures.push({ at: `${where}.refusal`, expected: expectedRefusal, actual: outcome.code });
+      }
     }
     return outcome;
   };
@@ -727,6 +1177,23 @@ export async function runFixture(
       failures.push({ at: "entry", expected: "a Docket row", actual: null });
     } else {
       await checkEntry(row, entryExpectation, clock.now(), failures, "entry");
+    }
+  }
+
+  // SR-1: the exact bytes a host's execution grant binds to, through the package's
+  // own exported helper rather than re-derived here — an oracle that re-derived the
+  // binding could not catch an implementation whose exported helper disagreed with
+  // it, which is precisely the substitution SR-1 exists to prevent.
+  if (fixture.expect.canonicalHash !== undefined) {
+    if (row === null) {
+      failures.push({ at: "canonicalHash", expected: fixture.expect.canonicalHash, actual: null });
+    } else {
+      compare(
+        "canonicalHash",
+        fixture.expect.canonicalHash,
+        await canonicalHashEntry(row),
+        failures,
+      );
     }
   }
 
@@ -850,8 +1317,31 @@ function wireUpRefusal(
       failures.push({ at: `telemetry.${key}`, expected: "emitted", actual: emitted });
     }
   }
-  if ((fixture.expect.store?.count ?? 0) !== 0) {
-    failures.push({ at: "store.count", expected: fixture.expect.store?.count, actual: 0 });
+  for (const key of fixture.expect.telemetryAbsent ?? []) {
+    if (emitted.includes(key)) {
+      failures.push({ at: `telemetryAbsent.${key}`, expected: "never emitted", actual: emitted });
+    }
+  }
+  // Nothing was filed, so every count is zero and the store clause is answerable in
+  // full rather than in its first key only.
+  const storeExpectation = fixture.expect.store ?? null;
+  if (storeExpectation !== null) {
+    compare("store.count", storeExpectation.count, 0, failures);
+    compare("store.pending", storeExpectation.pending, 0, failures);
+    compare("store.approvedUnexecuted", storeExpectation.approvedUnexecuted, 0, failures);
+  }
+  // A clause this path cannot answer is a failure, not a silent pass: there is no
+  // row, no card and no page when the gate was never built, so a fixture that states
+  // one is a fixture stating something nobody will check (the same defect family as
+  // an unknown key).
+  for (const clause of Object.keys(fixture.expect)) {
+    if (!(WIRE_UP_ANSWERABLE as readonly string[]).includes(clause)) {
+      failures.push({
+        at: `${clause}`,
+        expected: `one of: ${[...WIRE_UP_ANSWERABLE].sort().join(", ")}`,
+        actual: "stated on a fixture whose wiring was refused, where nothing was filed",
+      });
+    }
   }
   return {
     id: fixture.id,
@@ -1252,6 +1742,7 @@ async function checkEntry(
   // about the read.
   compare(`${at}.status`, expected.status, readStatus(entry, now), failures);
   compare(`${at}.execution`, expected.execution, entry.execution, failures);
+  compare(`${at}.executionDetail`, expected.executionDetail, entry.executionDetail, failures);
   compare(`${at}.requirement`, expected.requirement, entry.requirement, failures);
   compare(`${at}.blocked`, expected.blocked, entry.blocked, failures);
   compare(`${at}.toolName`, expected.toolName, entry.toolName, failures);
@@ -1324,7 +1815,9 @@ async function checkEntry(
   }
 
   if (expected.canonicalDiffersFromProposal !== undefined) {
-    const sworn = await canonicalHash(entry.amendedAffidavit ?? entry.affidavit);
+    // Through the exported helper, not re-derived: `canonicalHashEntry` is what a
+    // host's grant hashes over, so it is what an oracle has to exercise (SR-1).
+    const sworn = await canonicalHashEntry(entry);
     const proposal = await canonicalHash(entry.affidavit);
     compare(
       `${at}.canonicalDiffersFromProposal`,
@@ -1425,7 +1918,12 @@ function checkAffidavit(
  */
 function checkCardInvariants(filed: FiledEntry, failures: FixtureFailure[]): void {
   const { entry, card } = filed;
-  const sworn = entry.amendedAffidavit ?? entry.affidavit;
+  // The exported helper, not the same expression written out again: the card's three
+  // numbers must be the *sworn* record's — the state an approval accepted where
+  // there is one, the proposal otherwise — and what "sworn" means is whatever
+  // `swornAffidavitOf` says it is, because that is the function a host's execution
+  // grant is taken over (SR-1).
+  const sworn = swornAffidavitOf(entry);
   compare("card.docketId", entry.entryId, card.docketId, failures);
   compare("card.requiredBy", entry.expiresAt, card.requiredBy, failures);
   compare("card.protocolVersion", entry.protocolVersion, card.protocolVersion, failures);

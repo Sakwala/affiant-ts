@@ -286,6 +286,7 @@ describe("execution outcome on an approved row (DK-1)", () => {
       TENANT,
       "executed",
       "wrote 1 row",
+      "unexecuted",
     )) as DocketEntry;
 
     expect(executed.status).toBe("approved");
@@ -301,8 +302,8 @@ describe("execution outcome on an approved row (DK-1)", () => {
     await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
     await store.transition("entry-2", TENANT, "pending", approval("entry-2"));
 
-    await store.recordExecution("entry-1", TENANT, "executed", null);
-    await store.recordExecution("entry-2", TENANT, "failed", "unique constraint");
+    await store.recordExecution("entry-1", TENANT, "executed", null, "unexecuted");
+    await store.recordExecution("entry-2", TENANT, "failed", "unique constraint", "unexecuted");
 
     expect((await store.get("entry-1", TENANT))?.execution).toBe("executed");
     const failed = await store.get("entry-2", TENANT);
@@ -315,8 +316,94 @@ describe("execution outcome on an approved row (DK-1)", () => {
     const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
     await store.file(anEntry("entry-1"));
 
-    expect(await store.recordExecution("entry-1", TENANT, "executed", null)).toBe("not-approved");
-    expect(await store.recordExecution("missing", TENANT, "executed", null)).toBe("not-found");
+    expect(await store.recordExecution("entry-1", TENANT, "executed", null, "unexecuted")).toBe(
+      "not-approved",
+    );
+    expect(await store.recordExecution("missing", TENANT, "executed", null, "unexecuted")).toBe(
+      "not-found",
+    );
+  });
+
+  it("records an outcome once, refusing a report that would flip a committed row", async () => {
+    // DK-4: a recorded fact is appended to, never edited in place. DK-1: an
+    // approved-and-committed write has to stay distinguishable from an
+    // approved-but-failed one - which it does not, if the last caller wins.
+    const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
+    await store.file(anEntry("entry-1"));
+    await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
+    await store.recordExecution("entry-1", TENANT, "executed", "invoice row 41", "unexecuted");
+
+    const second = await store.recordExecution(
+      "entry-1",
+      TENANT,
+      "failed",
+      "actually it blew up",
+      "unexecuted",
+    );
+
+    expect(second).toBe("execution-already-recorded");
+    const row = await store.get("entry-1", TENANT);
+    expect(row?.execution).toBe("executed");
+    expect(row?.executionDetail).toBe("invoice row 41");
+    expect(row?.status).toBe("approved");
+  });
+
+  it("refuses the flip in the other direction too: failed does not become executed", async () => {
+    const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
+    await store.file(anEntry("entry-1"));
+    await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
+    await store.recordExecution("entry-1", TENANT, "failed", "unique constraint", "unexecuted");
+
+    const second = await store.recordExecution(
+      "entry-1",
+      TENANT,
+      "executed",
+      "retried and it worked",
+      "unexecuted",
+    );
+
+    // A host that retries a write reports once, when it knows the outcome. The
+    // retries are the host's business; the Docket carries the one fact.
+    expect(second).toBe("execution-already-recorded");
+    const row = await store.get("entry-1", TENANT);
+    expect(row?.execution).toBe("failed");
+    expect(row?.executionDetail).toBe("unique constraint");
+  });
+
+  it("lets exactly one of two interleaved execution reports win", async () => {
+    const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
+    await store.file(anEntry("entry-1"));
+    await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
+
+    // Two executors reporting at once - an outbox and a retry, say. The guard is a
+    // compare-and-set, so one applies and the other is refused; neither is queued
+    // and neither is written on top of the other.
+    const results = await Promise.all([
+      store.recordExecution("entry-1", TENANT, "executed", "first", "unexecuted"),
+      store.recordExecution("entry-1", TENANT, "failed", "second", "unexecuted"),
+    ]);
+
+    const refused = results.filter((result) => result === "execution-already-recorded");
+    expect(refused).toHaveLength(1);
+    const row = await store.get("entry-1", TENANT);
+    expect(["executed", "failed"]).toContain(row?.execution);
+    expect(row?.executionDetail).toBe(row?.execution === "executed" ? "first" : "second");
+  });
+
+  it("refuses a second report on a row whose outcome was recorded, not a missing one", async () => {
+    // The three refusals are distinct answers a caller acts on differently: no such
+    // row, a row nobody approved, and a row that already said what happened.
+    const store = new InMemoryDocketStore({ clock: stubClock(NOON) });
+    await store.file(anEntry("entry-1"));
+    await store.transition("entry-1", TENANT, "pending", approval("entry-1"));
+    await store.recordExecution("entry-1", TENANT, "executed", null, "unexecuted");
+
+    expect(await store.recordExecution("missing", TENANT, "failed", null, "unexecuted")).toBe(
+      "not-found",
+    );
+    expect(await store.recordExecution("entry-1", TENANT, "failed", null, "unexecuted")).toBe(
+      "execution-already-recorded",
+    );
   });
 
   it("leaves an approved row out of the pending list and in the executor's list", async () => {
@@ -327,7 +414,7 @@ describe("execution outcome on an approved row (DK-1)", () => {
     expect((await store.listPending(TENANT, { limit: 10 })).items).toHaveLength(0);
     expect((await store.listApprovedUnexecuted(TENANT, { limit: 10 })).items).toHaveLength(1);
 
-    await store.recordExecution("entry-1", TENANT, "executed", null);
+    await store.recordExecution("entry-1", TENANT, "executed", null, "unexecuted");
     expect((await store.listApprovedUnexecuted(TENANT, { limit: 10 })).items).toHaveLength(0);
   });
 });

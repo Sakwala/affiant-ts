@@ -1,6 +1,6 @@
 {
   "id": "sequence-a/approve-round-trip",
-  "rules": ["GT-1", "GT-6", "DK-1", "AZ-1", "AZ-5"],
+  "rules": ["GT-1", "GT-6", "DK-1", "AZ-1", "AZ-5", "SR-1"],
   "title": "The whole of Sequence A: a chat turn calls a wrapped write tool, the gate files an Affidavit instead of writing, a person approves it, and the host's executor reports back. The tool's own execute is never called at any point - the wrapped one files a proposal and returns the card - so the only path to executed is a report against an approved, attested row.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
@@ -131,6 +131,7 @@
       "count": 1,
       "pending": 0,
       "approvedUnexecuted": 0
-    }
+    },
+    "canonicalHash": "776b7b407490fb96b4792a1aba4dd0ea23518e4fb5288324fa0ce56af6837275"
   }
 }

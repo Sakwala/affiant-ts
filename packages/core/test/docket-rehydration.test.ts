@@ -30,7 +30,7 @@ async function mixedStore(): Promise<{
   await docket.file(anEntry("rejected-1", { status: "rejected" }));
   await docket.file(anEntry("pending-2"));
   await docket.file(anEntry("approved-2", { status: "approved" }));
-  await docket.recordExecution("approved-executed", TENANT, "executed", null);
+  await docket.recordExecution("approved-executed", TENANT, "executed", null, "unexecuted");
   return { docket, sessions: new InMemorySessionStore(docket) };
 }
 

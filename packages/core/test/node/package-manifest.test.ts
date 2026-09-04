@@ -31,6 +31,7 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf
   readonly homepage: string;
   readonly bugs: string;
   readonly files: readonly string[];
+  readonly license: string;
   readonly type: string;
   readonly exports: Record<string, Record<string, string> | string>;
   readonly publishConfig: { readonly access: string; readonly tag: string };
@@ -69,8 +70,47 @@ describe("what a consumer can import", () => {
     }
   });
 
-  it("ships the built output and the telemetry-key registry, and nothing else", () => {
-    expect([...manifest.files].sort()).toEqual(["dist", "telemetry-keys.json"]);
+  it("ships the licence, the built output and the telemetry-key registry, and nothing else", () => {
+    expect([...manifest.files].sort()).toEqual(["LICENSE", "dist", "telemetry-keys.json"]);
+  });
+
+  it("carries the licence text a recipient is owed, byte for byte with the repository's", () => {
+    // Apache-2.0 section 4(a): a recipient of the work gets a copy of the licence.
+    // npm does not reach outside the package directory, so the repository root's copy
+    // never enters the tarball - the package needs its own, and it has to be the same
+    // one. `files` names it as well, so a `files` rewrite cannot drop it silently.
+    const shipped = join(packageRoot, "LICENSE");
+    const root = join(packageRoot, "..", "..", "LICENSE");
+
+    expect(existsSync(shipped)).toBe(true);
+    expect(readFileSync(shipped, "utf8")).toBe(readFileSync(root, "utf8"));
+    expect(manifest.files).toContain("LICENSE");
+    expect(manifest.license).toBe("Apache-2.0");
+  });
+
+  it("carries a README, so the npm page is not blank for a package that is a rulebook", () => {
+    // npm includes README automatically; this asserts the file is there to include.
+    const readme = readFileSync(join(packageRoot, "README.md"), "utf8");
+
+    expect(readme.length).toBeGreaterThan(1000);
+    expect(readme).toContain("@affiant/core");
+  });
+
+  it("gives the sibling published packages their own licence copy too", () => {
+    const root = readFileSync(join(packageRoot, "..", "..", "LICENSE"), "utf8");
+
+    for (const sibling of ["contract", "evidence-card"]) {
+      const directory = join(packageRoot, "..", sibling);
+      const siblingManifest = JSON.parse(readFileSync(join(directory, "package.json"), "utf8")) as {
+        readonly files: readonly string[];
+        readonly license: string;
+      };
+
+      expect(readFileSync(join(directory, "LICENSE"), "utf8"), sibling).toBe(root);
+      expect(siblingManifest.files, sibling).toContain("LICENSE");
+      expect(siblingManifest.license, sibling).toBe("Apache-2.0");
+      expect(existsSync(join(directory, "README.md")), sibling).toBe(true);
+    }
   });
 
   it("is ESM, and says where to look and where to complain", () => {

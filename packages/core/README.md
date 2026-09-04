@@ -239,6 +239,15 @@ non-conformant, not because it has not been written yet.
   cannot reconstruct it from a record that flattened them.
 - **A decision is a guarded compare-and-set.** Two decisions racing for one entry: one
   wins, the other is refused. Never applied twice.
+- **An execution outcome is recorded once, and a host that retries a write reports
+  once, when it knows the outcome.** `markExecuted` is a guarded compare-and-set too:
+  the row moves out of `unexecuted` exactly once, and a second report is refused with
+  `execution-already-recorded` rather than written over the first. Your outbox may
+  retry the write as many times as it likes — retries are yours (AZ-5) — but the
+  Docket carries the one fact about what happened, not the last thing anybody said.
+  Overwriting would let an approved-and-committed row later read `failed`: an edit in
+  place of a recorded fact (DK-4), and the loss of exactly the distinction DK-1
+  requires the row to keep.
 - **An amendment is an approval with corrections.** The corrected fields are tagged
   `UserStated` bound to the reviewer's act, and the three numbers are recomputed
   (DK-2, AF-4). The row keeps both the Affidavit **as the agent proposed it**, never
@@ -336,4 +345,4 @@ first-failure message. See [`test/README.md`](test/README.md) for the format.
 
 ## Licence
 
-Apache-2.0.
+Apache-2.0. The full text ships in the package as `LICENSE`.

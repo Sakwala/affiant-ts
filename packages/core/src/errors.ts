@@ -26,9 +26,9 @@
  * spelling to remember. Read a code as `ErrorCode["substance-refused"]`, or write
  * the literal — both type-check.
  *
- * Two codes are marked **provisional**: they are named by the v0.1 design but the
- * protocol rulebook does not yet carry an `ErrorCode` registry. When it does, these
- * two are the ones that may be renamed to match it; the other seven describe
+ * Three codes are marked **provisional**: they are named by the v0.1 design but the
+ * protocol rulebook does not yet carry an `ErrorCode` registry. When it does, those
+ * three are the ones that may be renamed to match it; the other seven describe
  * behaviour the rulebook already fixes.
  */
 export const ErrorCode = {
@@ -83,6 +83,19 @@ export const ErrorCode = {
   "wireup-invalid": "wireup-invalid",
   /** No entry with that id is visible in the given scope (DK-1). */
   "entry-not-found": "entry-not-found",
+  /**
+   * An execution outcome was reported against a row that already carries one. The
+   * first report stands and the row is untouched: a decision, once recorded, is
+   * never edited in place, and an approved-but-failed write must stay
+   * distinguishable from an approved-and-committed one (DK-4, DK-1).
+   *
+   * A host that retries a write reports **once**, when it knows the outcome (AZ-5:
+   * an outbox is a retry of an already-attested write, not a second authorization
+   * path, and not a second fact about what happened).
+   *
+   * **Provisional** until the protocol's `ErrorCode` registry lands.
+   */
+  "execution-already-recorded": "execution-already-recorded",
 } as const;
 
 /** One of the reasons in {@link ErrorCode}. */
@@ -91,6 +104,11 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 /**
  * Every {@link ErrorCode} value, in registry order. Pinned as data so a runtime
  * check and a fixture can use the same list the type does.
+ *
+ * **The order only ever grows at the end.** A code is added by appending it, never
+ * by inserting one among the codes that already shipped: the list is what a host's
+ * exhaustiveness check and a parity manifest read, and a reordering would look like
+ * a rename to both.
  */
 export const ERROR_CODES = [
   "requirement-not-implemented",
@@ -102,6 +120,7 @@ export const ERROR_CODES = [
   "decision-lost-race",
   "wireup-invalid",
   "entry-not-found",
+  "execution-already-recorded",
 ] as const satisfies readonly ErrorCode[];
 
 /** Whether `value` is one of the codes in {@link ErrorCode}. */

@@ -10,7 +10,50 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
-Nothing since `0.1.0-alpha.0`.
+### Fixed
+
+- **An execution outcome is recorded once, under a guard** (DK-1, DK-4, AZ-5).
+  `DocketStore.recordExecution` takes an `expected` current execution (`"unexecuted"`)
+  and answers `"execution-already-recorded"` for a row that already carries one;
+  `Gate.markExecuted` maps that to the new `ErrorCode` `execution-already-recorded`.
+  Before this a second report overwrote the first, so an approved-and-committed row
+  could later read `failed` — an edit in place of a recorded fact (DK-4) that lost the
+  distinction DK-1 requires the row to keep. A host that retries a write reports once,
+  when it knows the outcome; the retries are the host's business (AZ-5).
+- **The fixture runner checks the document, not only the gate.** Every level of a
+  fixture is validated against the format's own key sets, and an unknown key anywhere
+  fails the fixture naming its path; an `expect` clause stating no fact (`{}`,
+  `{ entry: {} }`, `{ telemetryAbsent: [] }`) fails as vacuous; a refusal declared on
+  the step under test is compared rather than skipped; a telemetry key outside the
+  registry is refused; and a wire-up refusal fails a fixture that states a row, a card
+  or a page nothing on that path will ever read. Before this, a misspelled expectation
+  key was silently ignored — which, in the oracle a conformance driver runs against a
+  second implementation, is a rule silently unchecked in both.
+- **The grant binding is pinned by declarative fixtures** (SR-1). `expect.canonicalHash`
+  states the hash a host's execution grant binds to, taken through the exported
+  `canonicalHashEntry`; an amended and an unamended approval carry the value. The
+  runner now reaches `canonicalHashEntry` and `swornAffidavitOf` rather than
+  re-deriving `amendedAffidavit ?? affidavit` inline, so an implementation binding a
+  grant to the unamended proposal fails fixtures rather than passing them.
+- **The gate compares the tenant itself** (AZ-2). `decide`, `markExecuted` and
+  `resubmit` compare the row's own `tenantId` with the caller's after the scoped read,
+  so a host store with a scope bug cannot fail open: the refusal is still
+  `entry-not-found`, and the host's telemetry says `tenant-mismatch` so the store bug
+  is visible to somebody.
+- **`args` is typed** on `WriteProposal` and `PipelineProposal`: `JsonValue` rather
+  than `unknown`, so a host handing the gate something with no canonical form hears it
+  from the compiler instead of from a `TypeError` at the first filing.
+- **Every published package ships its licence.** `LICENSE` is copied into
+  `@affiant/core`, `@affiant/contract` and `@affiant/evidence-card` and named in each
+  `files` list — npm does not reach outside a package directory, and Apache-2.0
+  section 4(a) says a recipient gets a copy.
+
+### Added
+
+- `ErrorCode` gains `execution-already-recorded` (provisional until the protocol's
+  registry lands). The registry only ever grows at the end.
+- `EntryExpectation.executionDetail` and `FixtureExpectation.canonicalHash` in the
+  fixture format.
 
 ## [0.1.0-alpha.0] — in the repository, **not published**
 
