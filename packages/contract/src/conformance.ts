@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at f0d4ad0b5f0010676a96719682ea3920f0b1baf3.
+// copy of Sakwala/affiant-protocol at 242964faba9e6852b8fbfcdef6c3296b5c705f59.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "f0d4ad0b5f0010676a96719682ea3920f0b1baf3" as const;
+export const PROTOCOL_PIN = "242964faba9e6852b8fbfcdef6c3296b5c705f59" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -168,7 +168,7 @@ export const conformanceManifest = {
         "mustFailOn": [
           "dotnet@1.0.0-beta.1"
         ],
-        "defect": "The default risk scorer never returns `Low` while the default threshold is `Low`, so a by-the-book Standing Order never fires (corrected in a later point release; present in beta.1)"
+        "defect": "No attestation record on the row: nothing says who or what approved a write"
       }
     },
     {
@@ -259,7 +259,7 @@ export const conformanceManifest = {
         "mustFailOn": [
           "dotnet@1.0.0-beta.1"
         ],
-        "defect": "The aggregate confidence is a mean over the non-`Empty` fields, so a mostly-empty Affidavit can report high confidence"
+        "defect": "Every Affidavit is create-shaped: `EntityId` and every `PreviousValue` are hard-coded null"
       }
     },
     {
@@ -629,7 +629,7 @@ export const conformanceManifest = {
         "mustFailOn": [
           "dotnet@1.0.0-beta.1"
         ],
-        "defect": "Conversation-scope bleed: one process-global context store is shared by every conversation"
+        "defect": "The gate carries no conversation identity; isolation is the host's scoping discipline alone (the shipped adapters resolve the context store from the application's root provider)"
       }
     },
     {
@@ -5507,37 +5507,41 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
             "name": "status",
             "kind": "enum",
             "value": "Active",
-            "allowedValues": [
-              "Draft",
-              "Active",
-              "Retired"
-            ],
-            "pattern": null,
             "isMandatory": true
           },
           {
             "name": "amount",
             "kind": "number",
             "value": 40,
-            "allowedValues": null,
-            "pattern": "^\\d+(\\.\\d{1,2})?$",
             "isMandatory": true
           },
           {
             "name": "dueOn",
             "kind": "date",
             "value": "2026-10-01",
-            "allowedValues": null,
-            "pattern": null,
             "isMandatory": false
           },
           {
             "name": "note",
             "kind": "text",
             "value": "raised in chat",
-            "allowedValues": null,
-            "pattern": null,
             "isMandatory": false
+          }
+        ],
+        "presentation": [
+          {
+            "name": "status",
+            "kind": "enum",
+            "allowedValues": [
+              "Draft",
+              "Active",
+              "Retired"
+            ]
+          },
+          {
+            "name": "amount",
+            "kind": "number",
+            "pattern": "^\\d+(\\.\\d{1,2})?$"
           }
         ]
       }
@@ -9882,7 +9886,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       }
     },
     "cardMatcher": {
-      "description": "A partial matcher over an Evidence Card. `warningsContain` is a substring assertion over the card's warnings, not a property.",
+      "description": "A partial matcher over an Evidence Card. `warningsContain` is a substring assertion over the card's warnings, not a property. `presentation` is the envelope's rendering hints, stated as the WHOLE array and in the card's own order.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -9933,11 +9937,17 @@ export const fixtureSchema: JsonSchemaDocument = {
           "items": {
             "$ref": "#/$defs/cardFieldMatcher"
           }
+        },
+        "presentation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cardPresentationMatcher"
+          }
         }
       }
     },
     "cardFieldMatcher": {
-      "description": "The reviewer-facing shape of one field on the card, in order: its kind, its closed set of values, the pattern an input is constrained by.",
+      "description": "The reviewer-facing shape of one SWORN field on the card, in order: its kind and its value. The closed value set and the input mask are not here: from v0.1 they are presentation and live on the card envelope, which cardPresentationMatcher states.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -9953,27 +9963,33 @@ export const fixtureSchema: JsonSchemaDocument = {
         "value": {
           "$ref": "#/$defs/jsonValue"
         },
-        "allowedValues": {
-          "oneOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "pattern": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "isMandatory": {
           "type": "boolean"
+        }
+      }
+    },
+    "cardPresentationMatcher": {
+      "description": "One of the card envelope's rendering hints: the field it is about, the kind a surface should render, the closed set an amendment input offers, and the pattern that input is masked with. Presentation, never substance - the gate validates no value against either, and nothing here is part of the canonical form a host's execution grant binds to (SR-1). A hint the host did not declare is ABSENT, which is how the wire spells \"render this field from its own kind\".",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "allowedValues": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        "pattern": {
+          "type": "string"
         }
       }
     }
@@ -10277,10 +10293,11 @@ export const parityManifestSchema: JsonSchemaDocument = {
             }
           },
           "disposition": {
-            "description": "What is being done about it. \"fixed\" — corrected in a named later release, which `fixedIn` must name; this row exists because the release under test still fails it. \"fenced\" — the implementation does not do this, and a specific host-side workaround makes it safe, which `fence` must describe. \"ignored\" — nothing is being done, and `detail` must say why in a sentence a reader can disagree with. There is no fourth value: a failure with no disposition is a failure nobody has looked at.",
+            "description": "What is being done about it. \"fixed\" — corrected in a release that has SHIPPED, which `fixedIn` must name; this row exists because the release under test still fails it. \"planned\" — scheduled for a named release that has not shipped, which `plannedFor` must name. \"fenced\" — the implementation does not do this, and a specific host-side workaround makes it safe, which `fence` must describe; a fence is what is true today, so a fenced row MAY also name the release the fix is scheduled for in `plannedFor`. \"ignored\" — nothing is being done and nothing is scheduled, and `detail` must say why in a sentence a reader can disagree with. There is no fifth value: a failure with no disposition is a failure nobody has looked at, and a schedule that names no release is not a plan.",
             "type": "string",
             "enum": [
               "fixed",
+              "planned",
               "fenced",
               "ignored"
             ]
@@ -10291,7 +10308,11 @@ export const parityManifestSchema: JsonSchemaDocument = {
             "minLength": 1
           },
           "fixedIn": {
-            "description": "The release that corrects it. Required when disposition is \"fixed\".",
+            "description": "The release that corrects it, which must be one that has SHIPPED — a version a reader can install. Required when disposition is \"fixed\", and legal on no other disposition: a correction still to come is `plannedFor`.",
+            "type": "string"
+          },
+          "plannedFor": {
+            "description": "The release the fix is scheduled for — a version string, not a date and not \"soon\". Required when disposition is \"planned\". Optional when it is \"fenced\", because a fence describes what is true today and the fix behind it may still be scheduled. Legal on no other disposition: a shipped correction is `fixedIn`, and an \"ignored\" row is by definition scheduled for nothing.",
             "type": "string"
           },
           "fence": {
@@ -10329,6 +10350,23 @@ export const parityManifestSchema: JsonSchemaDocument = {
             "if": {
               "properties": {
                 "disposition": {
+                  "const": "planned"
+                }
+              },
+              "required": [
+                "disposition"
+              ]
+            },
+            "then": {
+              "required": [
+                "plannedFor"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "disposition": {
                   "const": "fenced"
                 }
               },
@@ -10340,6 +10378,51 @@ export const parityManifestSchema: JsonSchemaDocument = {
               "required": [
                 "fence"
               ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "disposition": {
+                  "enum": [
+                    "fixed",
+                    "ignored"
+                  ]
+                }
+              },
+              "required": [
+                "disposition"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "plannedFor"
+                ]
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "disposition": {
+                  "enum": [
+                    "planned",
+                    "fenced",
+                    "ignored"
+                  ]
+                }
+              },
+              "required": [
+                "disposition"
+              ]
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "fixedIn"
+                ]
+              }
             }
           }
         ]

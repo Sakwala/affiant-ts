@@ -76,8 +76,8 @@ beforeAll(() => {
 });
 
 describe("the v0.1 fixture set", () => {
-  it("is the 45 positives and 23 negatives the rulebook promoted", () => {
-    expect(positives).toHaveLength(45);
+  it("is the 46 positives and 23 negatives the rulebook promoted", () => {
+    expect(positives).toHaveLength(46);
     expect(negatives).toHaveLength(23);
     expect(schemaNegatives).toHaveLength(22);
     expect(crossObject).toHaveLength(1);

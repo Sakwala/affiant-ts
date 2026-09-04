@@ -2,7 +2,7 @@
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
   "version": "0.1.0-alpha.0",
-  "protocolTag": "f0d4ad0b5f0010676a96719682ea3920f0b1baf3",
+  "protocolTag": "242964faba9e6852b8fbfcdef6c3296b5c705f59",
   "producedAt": "2026-09-04T00:00:00.000Z",
   "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.0.json",
   "failing": [],

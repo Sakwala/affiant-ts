@@ -214,6 +214,7 @@ describe("the presentation the record does not swear to", () => {
     blocked: null,
     presentation: [{ name: "Status", kind: "enum", allowedValues: ["Active", "Retired"] }],
     warnings: ["Weight was read from the conversation rather than a system of record."],
+    hostOperation: "WriteUpdate",
     requiresConfirmation: true,
   };
 
@@ -223,21 +224,27 @@ describe("the presentation the record does not swear to", () => {
     expect(carry.requiresConfirmation).toBe(true);
     expect(carry.warnings).toHaveLength(1);
     expect(carry.presentation[0]?.allowedValues).toEqual(["Active", "Retired"]);
+    // The host's word for the act, beside the shape the record swears to and never
+    // instead of it: the Affidavit still says `update`.
+    expect(carry.hostOperation).toBe("WriteUpdate");
+    expect(card.affidavit.operationType).toBe("update");
   });
 
   it("hands an empty slot back as an empty array, and writes it back out as an absent one", () => {
-    const { presentation: _hints, warnings: _sentences, ...bareCard } = card;
+    const { presentation: _hints, warnings: _sentences, hostOperation: _verb, ...bareCard } = card;
     const bare = wireCarryOf(bareCard);
 
     expect(bare.presentation).toEqual([]);
     expect(bare.warnings).toEqual([]);
+    expect(bare.hostOperation).toBeNull();
     expect(presentationToWire(bare)).toEqual({});
   });
 
-  it("round trips a card's two slots unchanged", () => {
+  it("round trips a card's three slots unchanged", () => {
     expect(presentationToWire(wireCarryOf(card))).toEqual({
       presentation: card.presentation,
       warnings: card.warnings,
+      hostOperation: card.hostOperation,
     });
   });
 });

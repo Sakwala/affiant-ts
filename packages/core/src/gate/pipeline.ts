@@ -111,8 +111,9 @@ import { evaluatePolicies } from "./policy.js";
  * to is defined over the Affidavit and its accepted amendments and nothing else
  * (SR-1), so anything that is a **rendering decision** — the sentences a reviewer
  * reads, whether a person must confirm, the closed set an input offers, the mask
- * an input applies — travels here, on the envelope, where changing it cannot
- * invalidate a grant minted over evidence that did not change. This type stays
+ * an input applies, the host's own name for the operation — travels here, on the
+ * envelope, where changing it cannot invalidate a grant minted over evidence that
+ * did not change. This type stays
  * assignable to `@affiant/contract`'s `EvidenceCardRequest`;
  * `test/gate-types.test-d.ts` asserts that it does.
  *
@@ -172,6 +173,18 @@ export interface EvidenceCardRequest {
    * warning.
    */
   readonly warnings?: readonly string[];
+  /**
+   * The host's own verb for the operation — `"WriteUpdate"`, `"Reprice"`,
+   * `"Onboard"`. **Absent** when the host named none.
+   *
+   * `affidavit.operationType` is the protocol's two-valued **shape**, so that a rule
+   * about shape stays a predicate a policy can test without knowing any host's
+   * vocabulary. The host's word for the same act travels here, beside it and never
+   * instead of it, so a reviewer surface can head the card with the term a person
+   * recognises. Presentation like the slots above it: nothing swears to it and it is
+   * no part of the canonical form (SR-1).
+   */
+  readonly hostOperation?: string;
   /**
    * Whether a person must confirm this write before it commits — the policy
    * chain's verdict, not a property of the evidence.
@@ -662,8 +675,8 @@ function evidenceCard(
 
 /**
  * The presentation the core does not own: the sentences a reviewer should see,
- * whether a person must confirm, and the reviewer surface's per-field rendering
- * hints.
+ * whether a person must confirm, the reviewer surface's per-field rendering hints,
+ * and the host's own verb for the operation.
  */
 function wireCarry(
   entry: DocketEntry,
@@ -719,6 +732,13 @@ function wireCarry(
     // carries a warning saying no decision will be accepted.
     requiresConfirmation: entry.status === "pending" && entry.blocked === null,
     presentation,
+    // The host's word for what it is doing, carried onto the card so a reviewer
+    // surface can head the card with the verb a person recognises rather than with
+    // the protocol's two-valued shape. It comes from this filing, like the hints
+    // beside it — a resubmission builds its proposal from the row, which swears to
+    // the evidence and not to how the host labels it, so a resubmitted card carries
+    // neither until the host supplies them again.
+    hostOperation: proposal.operationLabel,
   };
 }
 

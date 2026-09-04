@@ -28,13 +28,13 @@ branch and `v0.1.0` has not been cut. A commit is as immutable as a tag and, unl
 a tag, cannot be moved under a running build; the pin becomes the tag in the pull
 request that adopts it.
 
-Everything under `protocol/` is a byte-for-byte copy at that ref — 175 documents:
+Everything under `protocol/` is a byte-for-byte copy at that ref — 176 documents:
 
 | Path                                                     | What it is                                                                                     |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `protocol/schemas/`                                      | the 21 v0.1 JSON Schemas                                                                       |
 | `protocol/schemas/seed/`                                 | the 8 superseded `0.0.1-seed` schemas, kept because a shipped framework still sends that shape |
-| `protocol/fixtures/v0.1/`                                | 45 positive and 23 negative per-schema fixtures                                                |
+| `protocol/fixtures/v0.1/`                                | 46 positive and 23 negative per-schema fixtures                                                |
 | `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 56 promoted conformance fixtures                                                           |
 | `protocol/fixtures/canonical/`                           | the 7 canonical byte vectors (SR-1)                                                            |
 | `protocol/fixtures/wire/`                                | the 8 seed wire examples                                                                       |

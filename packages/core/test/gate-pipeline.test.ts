@@ -558,6 +558,30 @@ describe("the Evidence Card (SR-4)", () => {
     expect("presentation" in filed.card).toBe(false);
   });
 
+  it("carries the host's own verb for the operation, beside the shape and never instead of it", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file({ ...proposal(), operationLabel: "Reprice" }, turnContext());
+
+    // `operationType` stays the protocol's two-valued SHAPE, because a rule about
+    // shape has to be a predicate a policy can test without knowing any host's
+    // vocabulary. The host's own word for the same act travels beside it on the
+    // envelope, where a reviewer surface can head the card with the term a person
+    // recognises and no hash is taken over it (SR-1).
+    expect(filed.card.hostOperation).toBe("Reprice");
+    expect(filed.card.affidavit.operationType).toBe("update");
+    expect(filed.entry.affidavit.operationType).toBe("update");
+  });
+
+  it("omits the host's verb entirely where the host named none", async () => {
+    const filed = await harness().gate.file(proposal(), turnContext());
+
+    // Absent, never null: nothing swears to it, so a producer with nothing to say
+    // says nothing — the same rule the two hint slots beside it follow.
+    expect(filed.card.hostOperation).toBeUndefined();
+    expect("hostOperation" in filed.card).toBe(false);
+  });
+
   it("carries no blocked marker on an entry a person can decide", async () => {
     const filed = await harness().gate.file(proposal(), turnContext());
 

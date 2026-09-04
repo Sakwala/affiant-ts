@@ -497,9 +497,21 @@ export interface CardExpectation {
     readonly name: string;
     readonly kind?: string;
     readonly value?: JsonValue;
-    readonly allowedValues?: readonly string[] | null;
-    readonly pattern?: string | null;
     readonly isMandatory?: boolean;
+  }[];
+  /**
+   * The envelope's rendering hints, as the whole array and in the card's own order.
+   *
+   * Presentation, never substance: a closed value set and an input mask say how a
+   * surface should render a field, and nothing here is part of the canonical form
+   * (SR-1). A card that carries no hints omits the property, and a fixture that
+   * states an empty array asserts exactly that.
+   */
+  readonly presentation?: readonly {
+    readonly name: string;
+    readonly kind?: string;
+    readonly allowedValues?: readonly JsonValue[];
+    readonly pattern?: string;
   }[];
 }
 
@@ -640,8 +652,10 @@ const FIXTURE_KEYS = {
     "populatedConfidence",
     "emptyFieldCount",
     "fields",
+    "presentation",
   ],
-  cardField: ["name", "kind", "value", "allowedValues", "pattern", "isMandatory"],
+  cardField: ["name", "kind", "value", "isMandatory"],
+  cardPresentation: ["name", "kind", "allowedValues", "pattern"],
   store: ["count", "pending", "approvedUnexecuted"],
   expired: ["count", "more"],
   page: ["count", "more", "statuses"],
@@ -804,6 +818,17 @@ function validateFixture(fixture: Fixture): FixtureFailure[] {
           );
         }
       }
+      const presentation = card["presentation"];
+      if (Array.isArray(presentation)) {
+        for (const [index, hint] of presentation.entries()) {
+          checkKeys(
+            hint,
+            FIXTURE_KEYS.cardPresentation,
+            `expect.card.presentation[${String(index)}]`,
+            failures,
+          );
+        }
+      }
     }
 
     if (countAssertions(expectation) === 0) {
@@ -885,7 +910,9 @@ function countCard(value: unknown): number {
   if (!isRecord(value)) return 0;
   let total = countStated(
     value,
-    FIXTURE_KEYS.card.filter((key) => key !== "fields" && key !== "warningsContain"),
+    FIXTURE_KEYS.card.filter(
+      (key) => key !== "fields" && key !== "presentation" && key !== "warningsContain",
+    ),
   );
   const warnings = value["warningsContain"];
   if (Array.isArray(warnings)) total += warnings.length;
@@ -896,6 +923,18 @@ function countCard(value: unknown): number {
       total += countStated(
         field,
         FIXTURE_KEYS.cardField.filter((key) => key !== "name"),
+      );
+    }
+  }
+  const presentation = value["presentation"];
+  if (Array.isArray(presentation)) {
+    // Stating the list asserts the hinted names exactly; each further key on a hint
+    // is one more fact.
+    total += 1;
+    for (const hint of presentation) {
+      total += countStated(
+        hint,
+        FIXTURE_KEYS.cardPresentation.filter((key) => key !== "name"),
       );
     }
   }
@@ -1946,38 +1985,6 @@ function checkCardInvariants(filed: FiledEntry, failures: FixtureFailure[]): voi
   }
 }
 
-/**
- * The card's rendering hints for one field, as the fixture format names them.
- *
- * The 56 promoted fixtures were written against the card the reference
- * implementation emitted **before** it was aligned to the rulebook's v0.1 wire, and
- * that card carried `allowedValues` and `pattern` on each field of the Affidavit.
- * v0.1 moves both onto the envelope, into `presentation`, because neither is part
- * of the canonical form a host's execution grant binds to (SR-1) — see the schema
- * directory's "Presentation lives on the card envelope".
- *
- * A fixture's `expect.card.fields[].allowedValues` therefore names a key the card
- * no longer has, and this is where that is reconciled: the hint is read off
- * `presentation`, and a field the envelope carries no entry for answers `null` for
- * both, which is exactly what "the host declared no hint" meant on the old shape.
- * The fixtures are **not** edited to say `presentation` instead, because they are
- * byte-identical to the promoted set and a parity manifest cites them by id — the
- * rulebook re-promotes them from the aligned implementation when the version is
- * tagged (Sakwala/affiant-protocol, "fixtures: card partials name pre-v0.1 field
- * keys"). Until then the mapping lives here, in one function, rather than in
- * fifty-six documents.
- */
-function hintsFor(
-  card: EvidenceCardRequest,
-  name: string,
-): { allowedValues: readonly JsonValue[] | null; pattern: string | null } {
-  const hint = (card.presentation ?? []).find((candidate) => candidate.name === name);
-  return {
-    allowedValues: hint?.allowedValues ?? null,
-    pattern: hint?.pattern ?? null,
-  };
-}
-
 /** Check an Evidence Card against its partial matcher. */
 function checkCard(
   card: EvidenceCardRequest,
@@ -2022,6 +2029,30 @@ function checkCard(
     }
   }
 
+  // The rendering hints are the envelope's own array from v0.1, not a per-field key:
+  // a closed value set and an input mask are how a surface should show a field, and
+  // the canonical form a host's execution grant binds to is the Affidavit and its
+  // accepted amendments alone (SR-1). A fixture that states `presentation` states
+  // the WHOLE array, in the order the card carries it — a card with an extra hint
+  // nobody asked for is a card a reviewer surface renders differently.
+  if (expected.presentation !== undefined) {
+    const carried = card.presentation ?? [];
+    compare(
+      "card.presentation",
+      expected.presentation.map((hint) => hint.name),
+      carried.map((hint) => hint.name),
+      failures,
+    );
+    for (const [index, wanted] of expected.presentation.entries()) {
+      const hint = carried.find((candidate) => candidate.name === wanted.name);
+      if (hint === undefined) continue;
+      const path = `card.presentation[${String(index)}]`;
+      compare(`${path}.kind`, wanted.kind, hint.kind, failures);
+      compare(`${path}.allowedValues`, wanted.allowedValues, hint.allowedValues, failures);
+      compare(`${path}.pattern`, wanted.pattern, hint.pattern, failures);
+    }
+  }
+
   if (expected.fields === undefined) return;
   compare(
     "card.fields",
@@ -2033,11 +2064,8 @@ function checkCard(
     const field = card.affidavit.fields.find((candidate) => candidate.name === wanted.name);
     if (field === undefined) continue;
     const path = `card.fields[${String(index)}]`;
-    const hints = hintsFor(card, wanted.name);
     compare(`${path}.kind`, wanted.kind, field.kind, failures);
     compare(`${path}.value`, wanted.value, field.value, failures);
-    compare(`${path}.allowedValues`, wanted.allowedValues, hints.allowedValues, failures);
-    compare(`${path}.pattern`, wanted.pattern, hints.pattern, failures);
     compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
   }
 }

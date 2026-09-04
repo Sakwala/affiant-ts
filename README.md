@@ -77,7 +77,7 @@ pnpm -C packages/core test:workers                        # Cloudflare workerd
 pnpm -C packages/conformance-driver test:workers          # Cloudflare workerd
 ```
 
-The protocol ref this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it — both wire versions' schemas, the whole conformance suite, and the four machine-readable formats a driver reads — is a byte-for-byte copy at that ref. A test checksums all 175 vendored copies against `packages/contract/protocol/SHA256SUMS` on every run — offline included — and fetches the same files from the ref itself whenever the network is reachable. A second test asserts the three committed generated modules are exactly what the generator produces from those copies. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
+The protocol ref this repository pins is in [`packages/contract/protocol/PIN`](packages/contract/protocol/PIN), and everything beside it — both wire versions' schemas, the whole conformance suite, and the four machine-readable formats a driver reads — is a byte-for-byte copy at that ref. A test checksums all 176 vendored copies against `packages/contract/protocol/SHA256SUMS` on every run — offline included — and fetches the same files from the ref itself whenever the network is reachable. A second test asserts the three committed generated modules are exactly what the generator produces from those copies. See [CONTRIBUTING.md](CONTRIBUTING.md) for how the pin moves.
 
 The pin is a commit rather than a tag today: the rulebook's v0.1 text is on its default branch and `v0.1.0` has not been cut. A commit is as immutable as a tag and, unlike a tag, cannot be moved under a running build.
 

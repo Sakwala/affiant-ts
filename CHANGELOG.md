@@ -27,9 +27,9 @@ was made against.
     than dropping it, so a consumer written against either shape finds them.
   - **`operationType` is the operation's shape**, `create` or `update`, not the
     host's own verb (AF-3). "Create-only" has to be a predicate a policy can test
-    without knowing what a host calls its operations. The v0.1 envelope has no slot
-    for the host's verb at all; `Affidavit.operationType` no longer carries it, and
-    `EvidenceCardRequest` has nowhere else to put it.
+    without knowing what a host calls its operations. The host's own verb travels
+    beside it, on the card envelope as `hostOperation` — presentation, absent when a
+    host names none, and never part of the canonical form.
   - **Presentation moved onto the card envelope.** Per-field `allowedValues` and
     `pattern` become the envelope's `presentation[]`, and `warnings` and
     `requiresConfirmation` sit beside them. The canonical form a host's execution
@@ -57,15 +57,26 @@ was made against.
   boundary.
 - **`@affiant/core`'s `toWire` takes `(affidavit, protocolVersion?)`.** `WireCarry` is
   now the card envelope's presentation — `warnings`, `requiresConfirmation`,
-  `presentation` — with `wireCarryOf(card)` lifting it off an envelope and
-  `presentationToWire(carry)` writing the two optional slots back out as absent
-  properties when they are empty.
+  `presentation`, `hostOperation` — with `wireCarryOf(card)` lifting it off an
+  envelope and `presentationToWire(carry)` writing the three optional slots back out
+  as absent properties when there is nothing to say.
+- **The fixture format states the card's rendering hints where v0.1 keeps them.**
+  `expect.card.fields[]` had `allowedValues` and `pattern` on each field, which is
+  where the reference implementation carried them before it was aligned; the runner
+  reconciled the two with a mapping function. That function is gone. A fixture now
+  states `expect.card.presentation[]` — the whole array, in the card's own order —
+  and the runner compares the envelope's array directly. One promoted document changed
+  bytes for it, `sequence-a/typed-inputs-on-the-card`, re-promoted from here into the
+  rulebook in the same change; safe only because no protocol tag exists yet, since a
+  parity manifest cites a fixture by id and one produced against one set says nothing
+  about another.
+  ([`Sakwala/affiant-protocol#8`](https://github.com/Sakwala/affiant-protocol/issues/8))
 - **`@affiant/core`'s `BlockedMarker` is a discriminated union**, so a reader narrows
   on `code` rather than checking whether `level` or `category` happens to be present
   — each arm carries exactly the context its own code makes meaningful (AZ-4, CV-4).
-- **`packages/contract` vendors the whole rulebook, not four files.** 175 vendored
+- **`packages/contract` vendors the whole rulebook, not four files.** 176 vendored
   documents: both wire versions' schemas, the 56 promoted fixtures and 7 byte vectors,
-  the 45 positive and 23 negative per-schema fixtures, and the four machine-readable
+  the 46 positive and 23 negative per-schema fixtures, and the four machine-readable
   formats a driver reads (`fixture.schema.json`, `canonical-vector.schema.json`,
   `results.schema.json`, `parity/MANIFEST.schema.json`) plus the coverage-exemption
   list a driver copies. All checksummed against `SHA256SUMS` on every run.
@@ -95,6 +106,16 @@ was made against.
   coverage exemptions. A module rather than the JSON directly because the suite has
   to run inside workerd, which has no filesystem, and JSON module support differs
   across the three runtimes.
+- **`EvidenceCardRequest.hostOperation`** — the host's own verb for the operation,
+  optional on the card envelope, emitted by the gate from a tool definition's
+  `operationLabel` and shown by `<affiant-evidence-card>` as the card's heading.
+  `Affidavit.operationType` stays the protocol's two-valued **shape**, because a rule
+  about shape has to be a predicate a policy can test without knowing any host's
+  vocabulary; without a slot beside it a producer that had `"WriteUpdate"` simply
+  dropped it and a reviewer surface had nothing to show. Presentation like the three
+  slots it joins: absent when the host names none, no part of the canonical form
+  (SR-1), and never something a consumer switches on.
+  ([`Sakwala/affiant-protocol#9`](https://github.com/Sakwala/affiant-protocol/issues/9))
 - **`presentationNamesUnknownFields(card)`** on `@affiant/contract` — the one rule the
   card schema cannot state: a presentation hint must name a field the same card's
   Affidavit carries, or it renders a control over nothing. That is a relation between
