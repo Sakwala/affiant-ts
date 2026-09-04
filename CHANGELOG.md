@@ -12,6 +12,20 @@ was made against.
 
 ### Changed
 
+- **The canonical byte vectors describe the v0.1 record.** They were promoted to the
+  rulebook at [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0)
+  from this implementation *before* it was aligned to the v0.1 wire, so their inputs
+  were seed-shaped records the Affidavit schema refuses. They are regenerated from
+  inputs built through the aligned model, and a test validates every one against the
+  vendored schema; the details and the reasoning are in the
+  [`@affiant/core` changelog](packages/core/CHANGELOG.md).
+
+  The bytes and digests all moved, so the rulebook re-promotes them and cuts
+  `v0.1.1`. Until `packages/contract/protocol/PIN` moves to that tag, the conformance
+  driver still runs the seven vectors as `v0.1.0` promoted them: its committed run
+  under `packages/conformance-driver/conformance/results/` and its parity manifest
+  are regenerated at the new tag, in the pull request that moves the pin.
+
 - **The wire is the rulebook's v0.1** (`protocolVersion` `0.1.0`), and
   `packages/contract/protocol/PIN` moves from the tag `v0.0.1-seed` to the tag
   [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0). What

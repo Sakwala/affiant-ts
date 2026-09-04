@@ -184,9 +184,10 @@ export interface CanonicalizeOptions {
  * present with nothing in it. A field with no `isMandatory` property is read as
  * optional, which is what the property's absence means everywhere else.
  *
- * **AF-4**: where the document carries an `aggregateConfidence`, it is recomputed
- * over the amended fields. A canonical form that kept the pre-correction number
- * would let a grant bind to an Affidavit whose own summary contradicts its fields.
+ * **AF-4**: every confidence number the document carries — the aggregate, the
+ * populated minimum and the empty-field count — is recomputed over the amended
+ * fields. A canonical form that kept a pre-correction number would let a grant bind
+ * to an Affidavit whose own summary contradicts its fields.
  *
  * @param affidavit The Affidavit as filed.
  * @param amendments The reviewer's accepted amendments, keyed by field name.
@@ -257,35 +258,73 @@ export function applyAmendmentsForCanonical(
     }
   }
 
+  const numbers = confidenceOf(nextFields);
   const next: Record<string, unknown> = { ...record, fields: nextFields };
+  // Each of the three is rewritten only where the document already carries it, so
+  // this function never adds a property to a record that did not have one.
   if (typeof record["aggregateConfidence"] === "number") {
-    next["aggregateConfidence"] = aggregateOf(nextFields);
+    next["aggregateConfidence"] = numbers.aggregateConfidence;
+  }
+  if (Object.hasOwn(record, "populatedConfidence")) {
+    next["populatedConfidence"] = numbers.populatedConfidence;
+  }
+  if (typeof record["emptyFieldCount"] === "number") {
+    next["emptyFieldCount"] = numbers.emptyFieldCount;
   }
   return next as CanonicalInput;
 }
 
 /**
- * AF-2's aggregate over already-serialized fields: the minimum confidence, with an
- * `Empty` tag counting as `0` and no proposed field at all counting as `0`.
+ * AF-2's three numbers over already-serialized fields.
+ *
+ * - `aggregateConfidence` — the minimum confidence, with an `Empty` tag counting as
+ *   `0` and no proposed field at all counting as `0`.
+ * - `populatedConfidence` — the minimum over the non-`Empty` fields, `null` when
+ *   there are none.
+ * - `emptyFieldCount` — how many fields are tagged `Empty`.
  *
  * Written out here rather than reached for from `model/affidavit.ts` because this
  * module serializes *whatever object it is handed*, including the wire shape whose
  * fields are not core `AffidavitField`s. A field whose chain says nothing readable
  * contributes `0`: an unreadable grade is not evidence of a good one.
+ *
+ * **Why all three and not only the aggregate.** AF-4 says an accepted amendment
+ * recomputes the numbers, and the v0.1 record carries three of them. Recomputing
+ * one and carrying the other two over from the proposal would produce an accepted
+ * state that contradicts its own fields — a record whose only remaining field is
+ * sworn at `1` while `populatedConfidence` still reads the pre-correction `0.9` —
+ * and SR-1 defines the canonical form over the accepted state, so those bytes would
+ * be what a host's execution grant binds to. The seed-shaped record carried one
+ * number and is unaffected: a property that is not there is not written.
  */
-function aggregateOf(fields: readonly unknown[]): number {
+function confidenceOf(fields: readonly unknown[]): {
+  aggregateConfidence: number;
+  populatedConfidence: number | null;
+  emptyFieldCount: number;
+} {
   let lowest = 1;
+  let populated: number | null = null;
+  let emptyFieldCount = 0;
+
   for (const field of fields) {
     const chain = (field as { readonly provenance?: unknown }).provenance;
     const current = (chain as { readonly current?: unknown } | undefined)?.current as
       { readonly source?: unknown; readonly confidence?: unknown } | undefined;
-    const confidence =
-      current?.source === "Empty" || typeof current?.confidence !== "number"
-        ? 0
-        : current.confidence;
+    const isEmpty = current?.source === "Empty";
+    const confidence = isEmpty || typeof current?.confidence !== "number" ? 0 : current.confidence;
     if (confidence < lowest) lowest = confidence;
+    if (isEmpty) {
+      emptyFieldCount += 1;
+    } else {
+      populated = populated === null ? confidence : Math.min(populated, confidence);
+    }
   }
-  return fields.length === 0 ? 0 : lowest;
+
+  return {
+    aggregateConfidence: fields.length === 0 ? 0 : lowest,
+    populatedConfidence: populated,
+    emptyFieldCount,
+  };
 }
 
 /**
