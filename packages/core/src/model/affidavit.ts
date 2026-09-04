@@ -247,7 +247,7 @@ export function computeConfidence(fields: readonly AffidavitField[]): Confidence
   for (const field of fields) {
     const tag = field.provenance.current;
     const contribution = tag.source === "Empty" ? 0 : tag.confidence;
-    aggregate = aggregate === null ? contribution : Math.min(aggregate, contribution);
+    aggregate = aggregate === null ? contribution : Math.max(aggregate, contribution);
     if (tag.source === "Empty") {
       emptyFieldCount += 1;
     } else {
