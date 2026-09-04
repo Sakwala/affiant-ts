@@ -7,6 +7,7 @@ import { extractTarGz, fetchWithRetry } from "./tar-archive.js";
 describe("fetchWithRetry", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("returns the response on a first-attempt success, with no retry", async () => {
@@ -66,6 +67,75 @@ describe("fetchWithRetry", () => {
     ).rejects.toThrow(/could not fetch .* after 3 attempt\(s\): ECONNRESET/);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('surfaces a fetch TypeError\'s cause, not just its own "fetch failed" message', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new TypeError("fetch failed", { cause: new Error("ECONNRESET") }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchWithRetry("https://example.invalid/file", { attempts: 1, baseDelayMs: 1 }),
+    ).rejects.toThrow(/fetch failed: ECONNRESET/);
+  });
+
+  it("walks more than one level of cause", async () => {
+    const rootCause = new Error("ENOTFOUND example.invalid");
+    const midCause = new Error("connect failed", { cause: rootCause });
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("fetch failed", { cause: midCause }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      fetchWithRetry("https://example.invalid/file", { attempts: 1, baseDelayMs: 1 }),
+    ).rejects.toThrow(/fetch failed: connect failed: ENOTFOUND example\.invalid/);
+  });
+
+  it("honors Retry-After on a 429, capped at maxRetryAfterMs", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("slow down", { status: 429, headers: { "retry-after": "9999" } }),
+      )
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const promise = fetchWithRetry("https://example.invalid/file", {
+      baseDelayMs: 1,
+      maxRetryAfterMs: 30_000,
+    });
+
+    // A 9999s Retry-After, uncapped, would still be waiting after this advance —
+    // capping at maxRetryAfterMs is exactly what lets this resolve here.
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    const response = await promise;
+    expect(await response.text()).toBe("ok");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("drains a retryable response's body before waiting to retry", async () => {
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("retry me"));
+        controller.close();
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(body, { status: 503 }))
+      .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await fetchWithRetry("https://example.invalid/file", { baseDelayMs: 1 });
+
+    expect(await response.text()).toBe("ok");
+    expect(cancelled).toBe(true);
+  });
 });
 
 describe("extractTarGz", () => {
@@ -97,14 +167,14 @@ describe("extractTarGz", () => {
     return block;
   }
 
-  function fileEntry(name: string, content: string, prefix?: string): Buffer {
+  function fileEntry(name: string, content: string, prefix?: string, typeFlag = "0"): Buffer {
     const data = Buffer.from(content, "utf8");
     const padded = Buffer.alloc(Math.ceil(data.length / 512) * 512);
     data.copy(padded);
     const options: { name: string; size: number; typeFlag: string; prefix?: string } = {
       name,
       size: data.length,
-      typeFlag: "0",
+      typeFlag,
     };
     if (prefix !== undefined) options.prefix = prefix;
     return Buffer.concat([header(options), padded]);
@@ -140,8 +210,17 @@ describe("extractTarGz", () => {
     return Buffer.alloc(1024); // two zeroed blocks
   }
 
+  /** Raw (pre-gzip) tar bytes for the given entries, with no end-of-archive marker. */
+  function tarWithoutEnd(...entries: Buffer[]): Buffer {
+    return Buffer.concat(entries);
+  }
+
+  function gzip(tar: Buffer): Uint8Array {
+    return gzipSync(tar);
+  }
+
   function archive(...entries: Buffer[]): Uint8Array {
-    return gzipSync(Buffer.concat([...entries, endOfArchive()]));
+    return gzip(Buffer.concat([tarWithoutEnd(...entries), endOfArchive()]));
   }
 
   it("strips the top-level directory and keeps regular files by their remaining path", () => {
@@ -187,5 +266,62 @@ describe("extractTarGz", () => {
     const tar = archive(dirEntry("affiant-protocol-0.1.1/"));
 
     expect(extractTarGz(tar).size).toBe(0);
+  });
+
+  it("throws when two entries strip to the same path", () => {
+    const tar = archive(
+      fileEntry("x.json", '{"from":"a"}', "root-a/schemas"),
+      fileEntry("x.json", '{"from":"b"}', "root-b/schemas"),
+    );
+
+    expect(() => extractTarGz(tar)).toThrow(/duplicate tar entry for "schemas\/x\.json"/);
+  });
+
+  it("throws on a GNU long-name entry rather than misreading it as the next entry's name", () => {
+    const longName = "affiant-protocol-0.1.1/conformance/fixtures/deeply/nested/long-name.json";
+    const longNameEntry = fileEntry("././@LongLink", longName, undefined, "L");
+    // A real GNU-format writer would give the entry after an 'L' header a
+    // truncated placeholder name; this reader must refuse before ever looking
+    // at it, so what the placeholder says here does not matter.
+    const truncatedFollower = fileEntry("truncated-placeholder.json", "{}");
+    const tar = archive(longNameEntry, truncatedFollower);
+
+    expect(() => extractTarGz(tar)).toThrow(/unsupported tar entry type L/);
+  });
+
+  describe("a truncated archive", () => {
+    function threeFileEntries(): Buffer[] {
+      return [
+        fileEntry("one.json", "{}", "root/schemas"),
+        fileEntry("two.json", "{}", "root/schemas"),
+        fileEntry("three.json", "{}", "root/schemas"),
+      ];
+    }
+
+    it("throws when it ends exactly at an entry boundary, with no end marker at all", () => {
+      const tar = gzip(tarWithoutEnd(...threeFileEntries()));
+
+      expect(() => extractTarGz(tar)).toThrow(/malformed or truncated tar archive/);
+    });
+
+    it("throws when it is cut 100 bytes into what would be the end-of-archive marker", () => {
+      const entriesOnly = tarWithoutEnd(...threeFileEntries());
+      const withEnd = Buffer.concat([entriesOnly, endOfArchive()]);
+      const cut100BytesIn = withEnd.subarray(0, entriesOnly.length + 100);
+
+      expect(() => extractTarGz(gzip(Buffer.from(cut100BytesIn)))).toThrow(
+        /malformed or truncated tar archive/,
+      );
+    });
+
+    it("throws when the end-of-archive marker is stripped off an otherwise complete archive", () => {
+      const entriesOnly = tarWithoutEnd(...threeFileEntries());
+      const withEnd = Buffer.concat([entriesOnly, endOfArchive()]);
+      const withoutEnd = withEnd.subarray(0, withEnd.length - 1024);
+
+      expect(() => extractTarGz(gzip(Buffer.from(withoutEnd)))).toThrow(
+        /malformed or truncated tar archive/,
+      );
+    });
   });
 });
