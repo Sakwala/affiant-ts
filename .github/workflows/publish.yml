@@ -1,0 +1,157 @@
+# Publishing to npm — the separate, deliberate step README.md describes.
+#
+# Nothing here fires on a push or a tag. A maintainer dispatches it by hand, and it
+# defaults to a dry run: the whole pipeline executes and `pnpm publish --dry-run`
+# prints the tarball each package would have uploaded, without uploading anything.
+# A real upload additionally needs the word `publish` typed into the `confirm`
+# input, so a stray click on "Run workflow" cannot put a version on the registry.
+#
+# Three packages go: `@affiant/contract`, `@affiant/core` and `@affiant/evidence-card`,
+# at the `alpha` dist-tag their own `publishConfig` already names.
+# `@affiant/conformance-driver` is `private: true` and `pnpm -r publish` skips it,
+# as it skips the samples and the spike — the driver is the check on the claim, not
+# part of what is claimed.
+#
+# The gate in front of the upload is this repository's own. `@affiant/core`'s
+# `prepack` script refuses to pack at all until `AFFIANT_ALLOW_PUBLISH=1` is set,
+# because the stated conditions for publishing it were a public parity report for
+# both implementations and a green, merge-blocking conformance driver. Those
+# conditions hold at the rulebook's v0.1.0 tag, so this workflow sets the variable —
+# and re-proves the second one a few steps earlier, on all three runtimes, rather
+# than taking the required check on `main` on trust. `--ignore-scripts` is therefore
+# never passed to the publish: skipping the guard would skip the reason.
+#
+# Provenance: the job requests an OIDC token (`id-token: write`) and publishes with
+# `--provenance`, so each tarball carries a signed statement binding it to this
+# repository, this workflow and this commit. Once the first publish has established
+# the packages on the registry they move to npm trusted publishing, which mints
+# short-lived credentials from that same OIDC token — at which point the `NPM_TOKEN`
+# secret and the `NODE_AUTH_TOKEN` line below are deleted, not rotated.
+
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run everything and `pnpm publish --dry-run`; nothing is uploaded"
+        type: boolean
+        default: true
+      confirm:
+        description: "Type `publish` to upload; ignored when dry_run is true"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  # Required to mint the OIDC token npm signs the provenance statement with.
+  id-token: write
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    steps:
+      # A shallow checkout is enough: the `prepack` guard reads an environment
+      # variable, not git history, and provenance is built from the OIDC claims.
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+          scope: "@affiant"
+      # The conformance suite below runs on every runtime this implementation
+      # claims, and Bun is the one the runner does not already have.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: pnpm install --frozen-lockfile
+
+      # The same drift check `ci` makes: the three committed generated modules must
+      # be exactly what the generator produces from packages/contract/protocol/. A
+      # tarball whose schemas module describes a different protocol ref than the
+      # vendored one would be undetectable once published.
+      - run: pnpm -C packages/contract generate
+      - run: >
+          git diff --exit-code --
+          packages/contract/src/schemas.ts
+          packages/contract/src/conformance.ts
+          packages/contract/test/fixtures.generated.ts
+
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+
+      # The protocol's conformance suite against `@affiant/core`, with the failing
+      # set asserted equal to the published parity manifest in both directions — the
+      # condition `prepack` is guarding, re-established in the run that publishes.
+      # All three runtimes, because the claim is that the failing set is identical on
+      # each, and a single-runtime check would not be that claim.
+      - name: conformance (node)
+        run: pnpm -C packages/conformance-driver test
+
+      - name: conformance (bun)
+        run: bun run --bun vitest run --project conformance-driver
+
+      - name: conformance (workerd)
+        run: pnpm -C packages/conformance-driver test:workers
+
+      # Everything above this line runs identically for a dry run and for a real
+      # one. This is the only step that tells them apart, and it is deliberately
+      # after the checks: a mistyped confirmation still leaves a full green
+      # verification run behind, and a version can only reach the registry when a
+      # person typed the word.
+      - name: confirm a real publish
+        if: inputs.dry_run != true && inputs.confirm != 'publish'
+        run: |
+          echo "dry_run is false, so this run would upload to npm, but the confirm" >&2
+          echo "input was not the word 'publish'. Re-dispatch with confirm=publish" >&2
+          echo "to upload, or leave dry_run checked to rehearse it." >&2
+          exit 1
+
+      # `AFFIANT_ALLOW_PUBLISH=1` is the override `packages/core/scripts/prepack-guard.mjs`
+      # documents, for the release that runs once the scope and the token exist. The
+      # guard still executes — it prints which package it is packing — and it would
+      # still stop the publish if the variable were absent.
+      - name: publish
+        run: |
+          set -eo pipefail
+          arguments=(-r publish --access public --tag alpha --no-git-checks --provenance)
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            arguments+=(--dry-run)
+          fi
+          pnpm "${arguments[@]}" 2>&1 | tee "$RUNNER_TEMP/publish.log"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+          AFFIANT_ALLOW_PUBLISH: 1
+
+      # What went, or what would have gone. For a dry run that is the tarball file
+      # list `npm notice` printed for each package, which is the only place the
+      # `files` field of a manifest can be checked before it is permanent; for a real
+      # one it is the registry's own answer, read back rather than assumed.
+      - name: what was published
+        run: |
+          set -eo pipefail
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            {
+              echo "### Dry run — nothing was uploaded"
+              echo
+              echo "Each tarball below is what \`pnpm publish\` would have sent."
+              echo
+              echo '```'
+              sed -n 's/^npm notice //p' "$RUNNER_TEMP/publish.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Published at the \`alpha\` dist-tag"
+              echo
+              for package in contract core evidence-card; do
+                echo "- \`@affiant/$package\` — $(npm view "@affiant/$package@alpha" version)"
+              done
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
