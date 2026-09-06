@@ -18,14 +18,14 @@
  *     packages/conformance-driver/conformance/parity/typescript-v0.1.json, which
  *     records `"failing": []` against `"protocolTag": "v0.1.0"`
  *
- * What is left is not a fixture or a check — it is the maintainer's own npm token.
- * `@affiant/core` publishes the moment the `@affiant` scope and a token for it exist
- * and the maintainer runs this with the override below.
+ * `@affiant/core` went to npm on that basis, on 2026-09-06 at `0.1.0-alpha.0`, under
+ * the `alpha` dist-tag and with a provenance attestation.
  *
- * So the claim stays enforced where publishing actually happens. `prepack` runs
+ * The claim stays enforced where publishing actually happens, and a publish stays
+ * something a person dispatched rather than something a script did. `prepack` runs
  * before `npm pack` and before `npm publish`, and this exits non-zero, which stops
- * both, until `AFFIANT_ALLOW_PUBLISH=1` is set — the deliberate override, for the
- * release that follows once the scope and token exist.
+ * both, until `AFFIANT_ALLOW_PUBLISH=1` is set — the deliberate override, which
+ * nothing but the hand-dispatched publish workflow sets.
  *
  * Usage:
  *
@@ -38,7 +38,7 @@ if (process.env["AFFIANT_ALLOW_PUBLISH"] === "1") {
 }
 
 console.error(
-  "@affiant/core is not published yet: the parity report and the conformance driver are green, and only the npm scope and token remain",
+  "@affiant/core is published deliberately, never as a side effect: packing and publishing are refused unless AFFIANT_ALLOW_PUBLISH=1 is set",
 );
 console.error(
   "  The .NET parity report is public in the rulebook:\n" +
@@ -46,9 +46,9 @@ console.error(
     "  (the oracle run log sits beside it, under conformance/results/). This\n" +
     "  repository's conformance driver is green on Node, Bun and workerd and required\n" +
     "  by branch protection: packages/conformance-driver/conformance/parity/typescript-v0.1.json\n" +
-    '  records "failing": [] against "protocolTag": "v0.1.0". Publishing waits only for\n' +
-    "  the maintainer to run this with AFFIANT_ALLOW_PUBLISH=1, once the @affiant scope\n" +
-    "  and a publish token for it exist.\n" +
+    '  records "failing": [] against "protocolTag": "v0.1.0". 0.1.0-alpha.0 went to npm\n' +
+    "  on 2026-09-06 on that basis, from .github/workflows/publish.yml, which is the only\n" +
+    "  thing that sets the override.\n" +
     "  To pack or publish anyway, set AFFIANT_ALLOW_PUBLISH=1.",
 );
 process.exit(1);

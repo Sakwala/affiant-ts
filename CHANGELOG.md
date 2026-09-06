@@ -12,6 +12,21 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` are on npm at
+  `0.1.0-alpha.0`.** Published 2026-09-06 under the `alpha` dist-tag, each tarball
+  carrying an npm provenance attestation that binds it to this repository, the workflow
+  that built it and the commit it was built from. `@affiant/conformance-driver` is
+  `private` and `pnpm -r publish` skipped it, as it skipped the samples and the spike.
+
+  The upload has a workflow of its own, `.github/workflows/publish.yml`, and it fires on
+  no push and no tag: a maintainer dispatches it by hand, it defaults to a dry run that
+  prints each tarball without uploading it, and a real upload additionally needs the word
+  `publish` typed into a confirmation input. It re-runs the conformance suite on Node,
+  Bun and workerd before the publish step rather than taking the required check on `main`
+  on trust, and it never passes `--ignore-scripts`, so `@affiant/core`'s `prepack` guard
+  still runs — the workflow is the only thing that sets the `AFFIANT_ALLOW_PUBLISH=1`
+  override the guard wants.
+
 - **The protocol pin moves to [`v0.1.2`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.2).**
   The rulebook's SR-1 now states what the canonical form is taken over — the Affidavit
   as `schemas/0.1.0/affidavit.schema.json` defines it, `protocolVersion` included, and
