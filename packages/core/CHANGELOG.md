@@ -186,17 +186,19 @@ are in the [root changelog](../../CHANGELOG.md).
 - `EntryExpectation.executionDetail` and `FixtureExpectation.canonicalHash` in the
   fixture format.
 
-## [0.1.0-alpha.0] — in the repository, **not published**
+## [0.1.0-alpha.0] — 2026-09-06
 
 The gate, complete for the two v0.1 sequences: a chat capture through a wrapped tool,
 and a capture arriving over a trusted machine caller's surface.
 
-The version string exists so a conformance driver can pin it. Publishing waits on two
-things, and a `prepack` guard enforces the wait rather than documenting it: a **public
-parity report** naming, fixture by fixture, what each implementation does not yet pass,
-and a **green, merge-blocking TypeScript conformance driver** running the shared
-fixture suite against this package. `npm pack` and `npm publish` both fail with that
-reason until `AFFIANT_ALLOW_PUBLISH=1` is set.
+The version string is what a conformance driver pins. Publishing waited on two things,
+and a `prepack` guard enforced the wait rather than documenting it: a **public parity
+report** naming, fixture by fixture, what each implementation does not yet pass, and a
+**green, merge-blocking TypeScript conformance driver** running the shared fixture
+suite against this package. Both hold at the rulebook's `v0.1.0` tag, and this version
+went to npm on 2026-09-06 under the `alpha` dist-tag, with a provenance attestation.
+The guard is unchanged: `npm pack` and `npm publish` both fail until
+`AFFIANT_ALLOW_PUBLISH=1` is set.
 
 ### The skeleton — context, ports, errors, telemetry
 

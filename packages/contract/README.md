@@ -14,8 +14,10 @@ approve, amend or reject before the host commits anything.
 This package is types and data. It has no runtime dependencies and does nothing at
 import time.
 
-> **Not on npm yet.** It lives in this repository and is consumed through the
-> workspace. Publishing is a separate, deliberate step.
+> **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
+> attestation, since 2026-09-06: `npm i @affiant/contract@alpha`. Publishing is a
+> separate, deliberate step — a workflow a maintainer dispatches by hand, which
+> defaults to a dry run.
 
 ## Pinned protocol version
 

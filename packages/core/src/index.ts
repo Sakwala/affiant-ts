@@ -43,16 +43,16 @@
  * The fixtures for both v0.1 sequences and the runner that executes them are behind
  * `@affiant/core/testing`, which a host can point at its own ports.
  *
- * **Not on npm.** The version string exists so the conformance driver can pin it.
- * Publishing waits on two things — a public parity report naming what each
- * implementation does not yet pass, and a green, merge-blocking TypeScript conformance
- * driver — and a `prepack` guard enforces the wait rather than documenting it. See the
- * package README.
+ * **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
+ * attestation, since 2026-09-06. The same version string is what a conformance driver
+ * pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
+ * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
+ * all until an override is set. See the package README.
  *
  * @packageDocumentation
  */
 
-/** The version of this package. Not published to npm at this version. */
+/** The version of this package, and the version of it that is on npm. */
 export const CORE_VERSION = "0.1.0-alpha.0";
 
 /**

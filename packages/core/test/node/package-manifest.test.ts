@@ -14,10 +14,10 @@ import { describe, expect, it } from "vitest";
  * this suite reads the manifest as a document and checks it against the built output,
  * which is the check a consumer would otherwise perform for us, once, too late.
  *
- * The publish guard is here for the same reason. "Publishable; awaiting the npm
- * scope" is a sentence in three READMEs; a sentence cannot stop `npm publish`.
- * `prepack` can, and this suite is what keeps the sentence and the script saying the
- * same thing.
+ * The publish guard is here for the same reason. "Publishing is a separate,
+ * deliberate step" is a sentence in three READMEs; a sentence cannot stop `npm
+ * publish`. `prepack` can, and this suite is what keeps the sentence and the script
+ * saying the same thing.
  *
  * Node-only: it reads `package.json` and `dist/` off disk.
  */
@@ -40,7 +40,7 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf
 
 /** The message the guard must print, verbatim. The three READMEs quote it. */
 const GUARD_MESSAGE =
-  "@affiant/core is not published yet: the parity report and the conformance driver are green, and only the npm scope and token remain";
+  "@affiant/core is published deliberately, never as a side effect: packing and publishing are refused unless AFFIANT_ALLOW_PUBLISH=1 is set";
 
 describe("what a consumer can import", () => {
   it("exposes exactly three entry points, plus the manifest itself", () => {
