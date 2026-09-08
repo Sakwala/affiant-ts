@@ -25,20 +25,20 @@ import time.
 description of what one implementation happened to send. The ref it is pinned to is
 in [`protocol/PIN`](protocol/PIN).
 
-That ref is the rulebook's **`v0.1.2`** tag — [`protocol/PIN`](protocol/PIN) above is
+That ref is the rulebook's **`v0.1.3`** tag — [`protocol/PIN`](protocol/PIN) above is
 the exact, current source of truth if this line has drifted from it again. It may
 also be a full commit, which is what it holds while a version's text is on the
 rulebook's default branch and its tag has not been cut: a commit is as immutable as
 a tag and, unlike a tag, cannot be moved under a running build.
 
-Everything under `protocol/` is a byte-for-byte copy at that ref — 176 documents:
+Everything under `protocol/` is a byte-for-byte copy at that ref — 181 documents:
 
 | Path                                                     | What it is                                                                                     |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `protocol/schemas/`                                      | the 21 v0.1 JSON Schemas                                                                       |
 | `protocol/schemas/seed/`                                 | the 8 superseded `0.0.1-seed` schemas, kept because a shipped framework still sends that shape |
 | `protocol/fixtures/v0.1/`                                | 46 positive and 23 negative per-schema fixtures                                                |
-| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 56 promoted conformance fixtures                                                           |
+| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 61 promoted conformance fixtures                                                           |
 | `protocol/fixtures/canonical/`                           | the 7 canonical byte vectors (SR-1)                                                            |
 | `protocol/fixtures/wire/`                                | the 8 seed wire examples                                                                       |
 | `protocol/conformance/`                                  | the four formats a driver reads, and the coverage-exemption list it copies                     |

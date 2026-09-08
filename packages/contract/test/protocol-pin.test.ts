@@ -131,7 +131,7 @@ describe("the pinned protocol ref", () => {
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
-    expect(trackedFiles.length).toBe(176);
+    expect(trackedFiles.length).toBe(181);
   });
 
   it("vendors both wire versions: v0.1 at schemas/, the superseded seed beside it", () => {

@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.1.2.
+// copy of Sakwala/affiant-protocol at v0.1.3.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.1.2" as const;
+export const PROTOCOL_PIN = "v0.1.3" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -77,7 +77,7 @@ export interface CanonicalVectorDocument {
  */
 export const conformanceManifest = {
   "protocolVersion": "0.1.0",
-  "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
+  "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
   "promotedFrom": {
     "repository": "Sakwala/affiant-ts",
     "commit": "aa485f2946e4678a357544e0a115dc88536cca44",
@@ -85,8 +85,10 @@ export const conformanceManifest = {
     "path": "packages/core/test/fixtures",
     "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
     "date": "2026-09-04",
-    "unchanged": "Byte-identical. Ids, file names and content are the reference implementation's; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
-    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why."
+    "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 — see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
+    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why.",
+    "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value — src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text — and so passes it.",
+    "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
   },
   "sets": {
     "gate": "the pipeline: substance, provenance, the policy chain, deadlines, filing",
@@ -296,6 +298,90 @@ export const conformanceManifest = {
       "rules": [
         "CV-1",
         "GT-5"
+      ],
+      "set": "gate",
+      "oracle": null
+    },
+    {
+      "id": "gate/inference-presence-computed-from-the-utterance",
+      "file": "gate/18-inference-presence-computed-from-the-utterance.json",
+      "rules": [
+        "GT-1",
+        "PV-1",
+        "PV-3",
+        "AF-1",
+        "AF-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3"
+        ],
+        "defect": "Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding — and on the shipped packages neither of these two reaches the gate at all, because the beta.3 fixture loader reads `presence` as required where `v0.1.3` makes it optional and throws without it, so each is an `error` outcome; a probe that scripts `presence: \"inferred\"` into them, which is beta.3's own spelling of a port that claimed nothing, shows the recorded grading defect underneath"
+      }
+    },
+    {
+      "id": "gate/inference-port-literal-unconfirmed",
+      "file": "gate/19-inference-port-literal-unconfirmed.json",
+      "rules": [
+        "GT-1",
+        "PV-1",
+        "PV-3",
+        "AF-1",
+        "AF-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3"
+        ],
+        "defect": "A port's `presence: \"literal\"` is honoured unverified: a value that is not in the utterance is graded `Conversation` and bound to the span the port named"
+      }
+    },
+    {
+      "id": "gate/inference-port-span-fails-the-boundary",
+      "file": "gate/20-inference-port-span-fails-the-boundary.json",
+      "rules": [
+        "GT-1",
+        "PV-1",
+        "PV-3",
+        "AF-1",
+        "AF-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3"
+        ],
+        "defect": "A binding is minted only where the port named a span, and from the span the port named: a value the person typed carries no binding when the port reported none, and a span naming text inside a longer token is minted as given"
+      }
+    },
+    {
+      "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
+      "file": "gate/21-inference-case-folds-and-the-digest-is-the-utterances.json",
+      "rules": [
+        "GT-1",
+        "PV-1",
+        "PV-3",
+        "AF-1",
+        "AF-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3"
+        ],
+        "defect": "Presence is taken from the inference port's `presence` property alone, and no shipped port reports it: every value a person typed is graded `Inferred` and carries no binding — and on the shipped packages neither of these two reaches the gate at all, because the beta.3 fixture loader reads `presence` as required where `v0.1.3` makes it optional and throws without it, so each is an `error` outcome; a probe that scripts `presence: \"inferred\"` into them, which is beta.3's own spelling of a port that claimed nothing, shows the recorded grading defect underneath"
+      }
+    },
+    {
+      "id": "gate/inference-empty-value-is-nothing-reported",
+      "file": "gate/22-inference-empty-value-is-nothing-reported.json",
+      "rules": [
+        "GT-1",
+        "PV-3",
+        "AF-1",
+        "GT-3"
       ],
       "set": "gate",
       "oracle": null
@@ -572,7 +658,12 @@ export const conformanceManifest = {
         "GT-1"
       ],
       "set": "sequence-a",
-      "oracle": null
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3"
+        ],
+        "defect": "A binding is minted only where the port named a span, and from the span the port named: a value the person typed carries no binding when the port reported none, and a span naming text inside a longer token is minted as given"
+      }
     },
     {
       "id": "sequence-a/mandatory-field-left-empty",
@@ -845,7 +936,7 @@ export const conformanceManifest = {
 } as const;
 
 /**
- * The 56 declarative fixtures, in manifest order. Promoted
+ * The 61 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -2246,6 +2337,491 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       },
       "store": {
         "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/inference-presence-computed-from-the-utterance",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2"
+    ],
+    "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance's own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "title": {
+            "value": "oil pressure check",
+            "confidence": 0.9
+          },
+          "estimatedHours": {
+            "value": 6,
+            "confidence": 0.8
+          },
+          "crewSize": {
+            "value": 20,
+            "confidence": 0.5
+          }
+        },
+        "entities": {
+          "WorkOrder/wo-1": {
+            "title": "Unscheduled maintenance",
+            "estimatedHours": 4,
+            "crewSize": 2
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Log the oil pressure check, estimated 6 hours, due 2026-09-08",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "update",
+          "entityType": "WorkOrder",
+          "entityId": "wo-1",
+          "fields": [
+            "title",
+            "estimatedHours",
+            "crewSize"
+          ]
+        },
+        "schema": [
+          {
+            "name": "title",
+            "kind": "text",
+            "description": "What the work order is for"
+          },
+          {
+            "name": "estimatedHours",
+            "kind": "number",
+            "description": "How long the work is expected to take"
+          },
+          {
+            "name": "crewSize",
+            "kind": "number",
+            "description": "How many people the work needs"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "update",
+          "entityId": "wo-1",
+          "aggregateConfidence": 0.5,
+          "populatedConfidence": 0.5,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "title",
+              "value": "oil pressure check",
+              "previousValue": "Unscheduled maintenance",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 8,
+                "length": 18,
+                "hash": "cc3d6e69b3a763a76c701acdf1dcaa031397eecb59ef9a2ad9bdb358dc9843e3"
+              }
+            },
+            {
+              "name": "estimatedHours",
+              "value": 6,
+              "previousValue": 4,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 38,
+                "length": 1,
+                "hash": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683"
+              }
+            },
+            {
+              "name": "crewSize",
+              "value": 20,
+              "previousValue": 2,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/inference-port-literal-unconfirmed",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2"
+    ],
+    "title": "The port reports presence \"literal\" and a span for a value that is not in the utterance: the claim is not confirmed, so the grade is Inferred and there is no binding (PV-3). A port informs; the implementation decides.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "Critical",
+            "confidence": 0.7,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 0,
+              "end": 8
+            }
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Raise a work order for the left engine",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "priority"
+          ]
+        },
+        "schema": [
+          {
+            "name": "priority",
+            "kind": "text",
+            "description": "How urgent the work is"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.7,
+          "populatedConfidence": 0.7,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "priority",
+              "value": "Critical",
+              "previousValue": null,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/inference-port-span-fails-the-boundary",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2"
+    ],
+    "title": "The port reports presence \"literal\" and a span whose substring IS the value text, but the span sits inside a longer token: the 20 at the start of 2026-09-08. A span verifies only when it is itself a hit, and this one's right-hand neighbour is a digit, so the span is discarded, the finder searches the utterance and finds no other occurrence, and the grade is Inferred with no binding (PV-3). A port cannot name an occurrence the finder's own boundary rule rejects.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "crewSize": {
+            "value": 20,
+            "confidence": 0.5,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 32,
+              "end": 34
+            }
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Log the oil pressure check, due 2026-09-08",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "crewSize"
+          ]
+        },
+        "schema": [
+          {
+            "name": "crewSize",
+            "kind": "number",
+            "description": "How many people the work needs"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.5,
+          "populatedConfidence": 0.5,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "crewSize",
+              "value": 20,
+              "previousValue": null,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2"
+    ],
+    "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison folds ASCII case, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "description": {
+            "value": "Client Lunch",
+            "confidence": 0.8
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "File the expense for client lunch, 40 EUR",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "ExpenseReport",
+          "entityId": null,
+          "fields": [
+            "description"
+          ]
+        },
+        "schema": [
+          {
+            "name": "description",
+            "kind": "text",
+            "description": "What the expense was for"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.8,
+          "populatedConfidence": 0.8,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "description",
+              "value": "Client Lunch",
+              "previousValue": null,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 12,
+                "hash": "8cdd8a7d75d31e666ffe202ee1bca3fd5673d943783de1c22bfa27cb51848a9c"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/inference-empty-value-is-nothing-reported",
+    "rules": [
+      "GT-1",
+      "PV-3",
+      "AF-1",
+      "GT-3"
+    ],
+    "title": "The port reports the empty string for the only proposed field. An empty string is not a value a field can carry, so the port reported nothing: nothing is merged, no tag is minted and the field stays Empty (PV-3, AF-1) — which leaves the proposal swearing to nothing, and GT-3 refuses it. A port's confidence is not a substitute for a value.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "note": {
+            "value": "",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Write up the left engine check",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "note"
+          ]
+        },
+        "schema": [
+          {
+            "name": "note",
+            "kind": "text",
+            "description": "What the technician should know"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "substance-refused",
+        "messageContains": "no proposed field carries provenance other than Empty"
       }
     }
   },
@@ -5669,7 +6245,13 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
               "name": "status",
               "value": "Active",
               "source": "Conversation",
-              "bound": false
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 6,
+                "hash": "92340695899bd2d86223e4a007620e0d6502fc0e08809773634c7e0743764a9c"
+              }
             },
             {
               "name": "owner",
@@ -8312,45 +8894,50 @@ export const conformanceById: Readonly<
   "gate/create-null-previous-values": conformanceFixtures[14]!,
   "gate/inference-conversation-and-inferred": conformanceFixtures[15]!,
   "gate/threshold-without-scorer": conformanceFixtures[16]!,
-  "decide/approve": conformanceFixtures[17]!,
-  "decide/reject": conformanceFixtures[18]!,
-  "decide/second-decision-refused": conformanceFixtures[19]!,
-  "decide/expired-amendments-preserved": conformanceFixtures[20]!,
-  "decide/blocked-refused": conformanceFixtures[21]!,
-  "decide/amend-recompute": conformanceFixtures[22]!,
-  "decide/unresolved-identity": conformanceFixtures[23]!,
-  "decide/wrong-tenant": conformanceFixtures[24]!,
-  "decide/authorization-declined": conformanceFixtures[25]!,
-  "decide/relay-member-via-relay": conformanceFixtures[26]!,
-  "decide/relay-without-assertion-refused": conformanceFixtures[27]!,
-  "decide/execution-executed": conformanceFixtures[28]!,
-  "decide/execution-failed": conformanceFixtures[29]!,
-  "decide/execution-on-pending-refused": conformanceFixtures[30]!,
-  "decide/resubmit-prefills": conformanceFixtures[31]!,
-  "decide/executed-only-through-a-report": conformanceFixtures[32]!,
-  "decide/authorization-throws": conformanceFixtures[33]!,
-  "decide/execution-recorded-once": conformanceFixtures[34]!,
-  "decide/execution-second-report-refused": conformanceFixtures[35]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[36]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[37]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[38]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[39]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[40]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[41]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[42]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[43]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[44]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[45]!,
-  "sequence-a/sweep-pages": conformanceFixtures[46]!,
-  "sequence-a/rehydration-order": conformanceFixtures[47]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[48]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[49]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[50]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[51]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[52]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[53]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[54]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[55]!,
+  "gate/inference-presence-computed-from-the-utterance": conformanceFixtures[17]!,
+  "gate/inference-port-literal-unconfirmed": conformanceFixtures[18]!,
+  "gate/inference-port-span-fails-the-boundary": conformanceFixtures[19]!,
+  "gate/inference-case-folds-and-the-digest-is-the-utterances": conformanceFixtures[20]!,
+  "gate/inference-empty-value-is-nothing-reported": conformanceFixtures[21]!,
+  "decide/approve": conformanceFixtures[22]!,
+  "decide/reject": conformanceFixtures[23]!,
+  "decide/second-decision-refused": conformanceFixtures[24]!,
+  "decide/expired-amendments-preserved": conformanceFixtures[25]!,
+  "decide/blocked-refused": conformanceFixtures[26]!,
+  "decide/amend-recompute": conformanceFixtures[27]!,
+  "decide/unresolved-identity": conformanceFixtures[28]!,
+  "decide/wrong-tenant": conformanceFixtures[29]!,
+  "decide/authorization-declined": conformanceFixtures[30]!,
+  "decide/relay-member-via-relay": conformanceFixtures[31]!,
+  "decide/relay-without-assertion-refused": conformanceFixtures[32]!,
+  "decide/execution-executed": conformanceFixtures[33]!,
+  "decide/execution-failed": conformanceFixtures[34]!,
+  "decide/execution-on-pending-refused": conformanceFixtures[35]!,
+  "decide/resubmit-prefills": conformanceFixtures[36]!,
+  "decide/executed-only-through-a-report": conformanceFixtures[37]!,
+  "decide/authorization-throws": conformanceFixtures[38]!,
+  "decide/execution-recorded-once": conformanceFixtures[39]!,
+  "decide/execution-second-report-refused": conformanceFixtures[40]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[41]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[42]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[43]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[44]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[45]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[46]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[47]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[48]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[49]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[50]!,
+  "sequence-a/sweep-pages": conformanceFixtures[51]!,
+  "sequence-a/rehydration-order": conformanceFixtures[52]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[53]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[54]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[55]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[56]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[57]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[58]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[59]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[60]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -8872,8 +9459,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       "additionalProperties": false,
       "required": [
         "value",
-        "confidence",
-        "presence"
+        "confidence"
       ],
       "properties": {
         "value": {
@@ -8884,7 +9470,7 @@ export const fixtureSchema: JsonSchemaDocument = {
           "type": "number"
         },
         "presence": {
-          "description": "Literally present in the turn (Conversation) or reasoned to (Inferred).",
+          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from `given.ctx.utterance` itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
           "type": "string",
           "enum": [
             "literal",
@@ -9968,7 +10554,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       }
     },
     "fieldMatcher": {
-      "description": "A partial matcher over one sworn field. `source`, `bound`, `bindingKind` and `priorSources` are projections of the field's provenance chain, not properties of their own.",
+      "description": "A partial matcher over one sworn field. `source`, `bound`, `bindingKind`, `utteranceSpan` and `priorSources` are projections of the field's provenance chain, not properties of their own.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -10006,6 +10592,30 @@ export const fixtureSchema: JsonSchemaDocument = {
               "type": "null"
             }
           ]
+        },
+        "utteranceSpan": {
+          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of `given.ctx.utterance`, and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "offset",
+            "length",
+            "hash"
+          ],
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "length": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "hash": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
         },
         "confidence": {
           "$ref": "#/$defs/unitInterval"
@@ -10588,6 +11198,10 @@ export const parityManifestSchema: JsonSchemaDocument = {
           "claimed": {
             "description": "Whether the implementation CLAIMS this runtime. A runtime it does not claim is not a gap; a runtime it claims and does not run the suite on is.",
             "type": "boolean"
+          },
+          "unicodeVersion": {
+            "description": "The Unicode version the runtime's own character database carries. PV-3's neighbour test reads General_Category from it, so two runtimes at two Unicode versions can differ on code points assigned since the older one; stating the version is how a reader tells which run that is. Optional in this schema, because the manifests published against earlier tags predate the key; the rulebook's lint REQUIRES it of every runtime in a manifest whose protocolTag is v0.1.3 or later.",
+            "type": "string"
           },
           "note": {
             "type": "string"

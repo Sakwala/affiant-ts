@@ -160,7 +160,7 @@ export const parityManifest: ParityManifest = {
   implementation: IMPLEMENTATION_NAME,
   version: IMPLEMENTATION_VERSION,
   protocolTag: PROTOCOL_PIN,
-  producedAt: "2026-09-04T00:00:00.000Z",
+  producedAt: "2026-09-08T00:00:00.000Z",
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.0.json",
   failing: [],
   runtimes: [
@@ -178,7 +178,7 @@ export const parityManifest: ParityManifest = {
   ],
   exemptions: inheritedExemptions,
   notes:
-    "The protocolTag is the rulebook's v0.1.2 tag, which this repository pins in " +
+    "The protocolTag is the rulebook's v0.1.3 tag, which this repository pins in " +
     "packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The " +
     "suite is run on all three claimed runtimes and the failing set is asserted identical on " +
     "each; an empty failing set is what this implementation owes, being the one the fixtures " +

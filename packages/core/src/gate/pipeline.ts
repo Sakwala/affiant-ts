@@ -393,7 +393,19 @@ export async function runPipeline(
         // a model, not the host being wrong: the extra field is dropped, and AF-1
         // still holds because the Affidavit is built from `op.fields`.
         if (!proposed.has(name)) continue;
+        // PV-3: `null`, an object, an array, the empty string and a number the runtime
+        // parsed as infinity or NaN are not values a field can carry, so the port
+        // reported nothing for this field. Nothing is merged and no tag is minted: the
+        // field stays whatever it already was, which is `Empty` under AF-1 where
+        // nothing else set it. A whitespace-only string is a value and is filed.
+        //
+        // A non-finite number is read here rather than at `requireJsonValue`: SR-1
+        // gives it no canonical rendering, and PV-3 makes that nothing reported rather
+        // than an exception out of the inference step.
+        if (typeof structured.value === "number" && !Number.isFinite(structured.value)) continue;
         const value = requireJsonValue(structured.value, `inferred field ${name}`);
+        const valueText = utteranceTextOf(value);
+        if (valueText === null) continue;
         // PV-3: `mintConversation` and `mintInferred` are the only two mints reachable
         // from here, and neither can name `UserStated` — the parameter type forbids it
         // and the runtime guard in `mintInference` catches an untyped caller.
@@ -407,7 +419,7 @@ export async function runPipeline(
         // it is there to read.
         const hit = locateInUtterance(
           ctx.turn.utterance,
-          utteranceTextOf(value),
+          valueText,
           structured.utteranceSpan ?? null,
         );
         const tag =

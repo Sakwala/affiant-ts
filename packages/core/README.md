@@ -132,10 +132,13 @@ already settled.
    `UserStated` — only a person can say what a person said (PV-3).
 3. **One structured inference**, tool-free, against the **unmodified** turn. What the
    model returns is tagged `Conversation` when the value is literally in the utterance —
-   the gate looks for it there, as a whole token under a case-insensitive comparison, and
-   binds the span it was read from — and `Inferred` when it is not (PV-3). Your port is
-   never asked to grade its own answer: a `presence` or an `utteranceSpan` it reports is
-   a hint the gate verifies the same way. Confidence is clamped into `[0, 1]` (PV-1).
+   the gate looks for it there, as a whole token under a comparison that folds ASCII case
+   and nothing else, and binds the span it was read from — and `Inferred` when it is not
+   (PV-3). Your port is never asked to grade its own answer: a `presence` or an
+   `utteranceSpan` it reports is a hint the gate verifies the same way. A value a field
+   cannot carry — `null`, an object, an array, the empty string, a non-finite number — is
+   nothing the port reported: the field is not merged at all. Confidence is clamped into
+   `[0, 1]` (PV-1).
 4. **Merge.** Per field the higher confidence wins, a tie goes to the more
    deterministic source, and the loser stays on the record in the chain behind the
    winner (PV-1).

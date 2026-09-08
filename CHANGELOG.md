@@ -27,7 +27,22 @@ was made against.
   still runs — the workflow is the only thing that sets the `AFFIANT_ALLOW_PUBLISH=1`
   override the guard wants.
 
-- **The protocol pin moves to [`v0.1.2`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.2).**
+- **The protocol pin moves to [`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3).**
+  The rulebook's PV-3 now states **who** establishes presence and how: the implementation
+  finds the value's text in the unmodified utterance, the inference port's `presence` and
+  `utteranceSpan` are hints it verifies, the comparison folds ASCII case and nothing else,
+  and a value a field cannot carry — `null`, an object, an array, the empty string, a
+  non-finite number — is nothing the port reported. `presence` is no longer required by
+  `fixture.schema.json`, the field-matcher format gains `utteranceSpan`, and the
+  parity-manifest schema gains an optional `unicodeVersion` per runtime. Five fixtures are
+  new (`gate/18` through `gate/22`) and `sequence-a/04-picker-external-binding` is
+  re-promoted with its `status` field bound. What moves here is
+  `packages/contract/protocol/` — 181 vendored documents now — the three generated modules
+  under `packages/contract/`, this repository's own copy of the fixture set under
+  `packages/core/test/fixtures/`, and the driver's committed run and parity manifest, both
+  now naming `v0.1.3`. **68 of 68** on Node, Bun and workerd, failing set still empty.
+
+- **The protocol pin moved to [`v0.1.2`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.2).**
   The rulebook's SR-1 now states what the canonical form is taken over — the Affidavit
   as `schemas/0.1.0/affidavit.schema.json` defines it, `protocolVersion` included, and
   not the card envelope's presentation — and re-promotes the two declarative fixtures

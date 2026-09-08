@@ -119,7 +119,15 @@ export interface UtteranceSpan {
 
 /** One field an inference port filled in. */
 export interface StructuredField {
-  /** The extracted value. Any JSON value, including `null`. */
+  /**
+   * The extracted value.
+   *
+   * `null`, an object, an array, the empty string and a number the runtime parsed as
+   * infinity or NaN are **nothing reported** for the field (PV-3): none of them is a
+   * value a field can carry, so the gate merges no such field and mints no tag, and
+   * the field stays whatever it already was — `Empty` under AF-1 where nothing else
+   * set it. A whitespace-only string is a value and is filed as reported.
+   */
   readonly value: JsonValue;
   /**
    * How confident the port is, `0.0` to `1.0`. The pipeline clamps whatever
@@ -142,9 +150,11 @@ export interface StructuredField {
    * Absent or `null` when it cannot.
    *
    * Also a hint (PV-3): the span is used only when it is itself a hit — the utterance
-   * at that span is the value text under the gate's own comparison *and* the span's
-   * neighbours leave it a whole token — and is otherwise discarded, the gate then
-   * looking for the value itself rather than trusting offsets it cannot confirm.
+   * at that span is the value text under the gate's own comparison, the span's
+   * neighbours leave it a whole token, and it splits no surrogate pair — and is
+   * otherwise discarded, the gate then looking for the value itself rather than
+   * trusting offsets it cannot confirm. `start` and `end` are integer-valued, so a
+   * fractional coordinate discards the hint.
    */
   readonly utteranceSpan?: UtteranceSpan | null;
 }

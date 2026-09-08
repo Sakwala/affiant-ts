@@ -39,16 +39,27 @@ describe("the value text a value is looked for as", () => {
     expect(utteranceTextOf(false)).toBe("false");
   });
 
-  it("has none for a number with no decimal form", () => {
-    expect(utteranceTextOf(Number.NaN)).toBe("");
-    expect(utteranceTextOf(Number.POSITIVE_INFINITY)).toBe("");
+  it("is nothing at all for a number the runtime parsed as infinity or NaN", () => {
+    // SR-1 gives neither a canonical rendering, so the port reported nothing for the
+    // field — not an error out of the inference step, and not a graded field either.
+    expect(utteranceTextOf(Number.NaN)).toBeNull();
+    expect(utteranceTextOf(Number.POSITIVE_INFINITY)).toBeNull();
+    expect(utteranceTextOf(Number.NEGATIVE_INFINITY)).toBeNull();
   });
 
-  it("is empty for a value with no scalar token, which never hits", () => {
-    expect(utteranceTextOf(null)).toBe("");
-    expect(utteranceTextOf({ a: 1 })).toBe("");
-    expect(utteranceTextOf([1, 2])).toBe("");
-    expect(locateInUtterance(MERIDIAN, utteranceTextOf(null), null)).toBeNull();
+  it("is nothing at all for a value a field cannot carry", () => {
+    // `null`, an object, an array and the empty string are not values: the port
+    // reported nothing for that field, and the gate merges none of them.
+    expect(utteranceTextOf(null)).toBeNull();
+    expect(utteranceTextOf({ a: 1 })).toBeNull();
+    expect(utteranceTextOf([1, 2])).toBeNull();
+    expect(utteranceTextOf("")).toBeNull();
+  });
+
+  it("is the string itself for a whitespace-only value, which is a value", () => {
+    // Filed as the port reported it, and it never hits.
+    expect(utteranceTextOf("   ")).toBe("   ");
+    expect(locateInUtterance("Set it to    now", "   ", null)).toBeNull();
   });
 });
 
@@ -73,6 +84,7 @@ describe("a hit is an occurrence whose neighbours are not letters or digits", ()
 
     for (const value of values) {
       const text = utteranceTextOf(value);
+      if (text === null) expect.unreachable(`${String(value)} is a value`);
       const hit = locateInUtterance(MERIDIAN, text, null);
       if (hit === null) expect.unreachable(`the turn carries ${text}`);
       expect(MERIDIAN.slice(hit.offset, hit.offset + hit.length)).toBe(text);
@@ -80,8 +92,8 @@ describe("a hit is an occurrence whose neighbours are not letters or digits", ()
   });
 
   it("does not find a number that only occurs inside a longer one", () => {
-    expect(locateInUtterance(MERIDIAN, utteranceTextOf(20), null)).toBeNull();
-    expect(locateInUtterance("estimated 16 hours", utteranceTextOf(6), null)).toBeNull();
+    expect(locateInUtterance(MERIDIAN, utteranceTextOf(20) ?? "", null)).toBeNull();
+    expect(locateInUtterance("estimated 16 hours", utteranceTextOf(6) ?? "", null)).toBeNull();
   });
 
   it("does not find a word that only occurs inside a longer one", () => {
@@ -133,7 +145,7 @@ describe("a hit is an occurrence whose neighbours are not letters or digits", ()
   });
 });
 
-describe("the comparison is ordinal and case-insensitive", () => {
+describe("the comparison is ordinal and folds ASCII case, nothing else", () => {
   it("hits a value the person typed in another case", () => {
     const utterance = "Expense for the client lunch";
     expect(locateInUtterance(utterance, "Client Lunch", null)).toEqual({
@@ -142,20 +154,55 @@ describe("the comparison is ordinal and case-insensitive", () => {
     });
   });
 
-  it("folds simply: a full case mapping is not applied", () => {
-    // "ß".toUpperCase() is "SS", a full mapping PV-3 does not apply, so the fold keeps
-    // the original code point: "ß" matches "ß" and does not match "SS".
-    expect(locateInUtterance("Straße 5", "Straße", null)).toEqual({ offset: 0, length: 6 });
-    expect(locateInUtterance("STRASSE 5", "Straße", null)).toBeNull();
-    expect(locateInUtterance("Straße 5", "STRASSE", null)).toBeNull();
+  it("folds no code point outside ASCII, in either direction", () => {
+    // Every one of these is a case pair some runtime's Unicode table folds and another
+    // does not — the divergence the ASCII-only rule exists to close. None of them hits.
+    // ẞ (U+1E9E) against ß (U+00DF): different code points, whatever a full mapping says.
+    expect(locateInUtterance("Adresse STRAẞE 5", "Straße", null)).toBeNull();
+    // ᾈ (U+1F88) against ᾀ (U+1F80): a simple mapping .NET's OrdinalIgnoreCase applies
+    // and JavaScript's toUpperCase() does not.
+    expect(locateInUtterance("Set ᾈ now", "ᾀ", null)).toBeNull();
+    // ſ (U+017F) against s: a simple mapping JavaScript applies and .NET does not.
+    expect(locateInUtterance("Adreſse 5", "adresse", null)).toBeNull();
+    // ı (U+0131) against I: Node folds it, .NET's OrdinalIgnoreCase does not.
+    expect(locateInUtterance("bakım planı", "BAKIM", null)).toBeNull();
+    // A case variant outside ASCII is `Inferred`; an exact echo in any script hits.
+    expect(locateInUtterance("Приоритет Критический", "критический", null)).toBeNull();
+    expect(locateInUtterance("Приоритет Критический", "Критический", null)).toEqual({
+      offset: 10,
+      length: 11,
+    });
   });
 
   it("keeps the offsets in the utterance's own code units when the case differs", () => {
-    const utterance = "Réserve the CAFÉ for noon";
-    expect(locateInUtterance(utterance, "café", null)).toEqual({
-      offset: utterance.indexOf("CAFÉ"),
+    // The é before it is not folded and is not searched for; the ASCII letters after
+    // it are, and the offset is the utterance's own.
+    const utterance = "Réserve the CAFE for noon";
+    expect(locateInUtterance(utterance, "cafe", null)).toEqual({
+      offset: utterance.indexOf("CAFE"),
       length: 4,
     });
+    // The same word with the accent is a different code point in each case, so no hit.
+    expect(locateInUtterance("Réserve the CAFÉ for noon", "café", null)).toBeNull();
+  });
+});
+
+describe("a hit never begins or ends inside a surrogate pair", () => {
+  // U+1D400 MATHEMATICAL BOLD CAPITAL A is one letter written as the pair D835 DC00.
+  const bold = "\u{1D400}";
+
+  it("refuses an occurrence whose first code unit is the trailing half of a pair", () => {
+    expect(locateInUtterance(bold, "\uDC00", null)).toBeNull();
+  });
+
+  it("refuses an occurrence whose last code unit is the leading half of a pair", () => {
+    // Binding here would hash EF BF BD — the replacement character — over a span whose
+    // bytes the utterance does not contain, which is not what PV-2 asks a binding for.
+    expect(locateInUtterance(bold, "\uD835", null)).toBeNull();
+  });
+
+  it("finds a value that is itself a whole pair", () => {
+    expect(locateInUtterance(`Draw ${bold} here`, bold, null)).toEqual({ offset: 5, length: 2 });
   });
 });
 
@@ -207,6 +254,16 @@ describe("the port's span is a hint, verified before it is used", () => {
         end: 8,
       }),
     ).toBeNull();
+  });
+
+  it("reads an integer-valued coordinate as the integer it is", () => {
+    // `4.0` and `4` are one number by the time either implementation sees the parsed
+    // JSON, so a port that wrote `4.0` names the same span as one that wrote `4`.
+    const utterance = "six six";
+    expect(locateInUtterance(utterance, "six", { start: 4.0, end: 7.0 })).toEqual({
+      offset: 4,
+      length: 3,
+    });
   });
 
   it("ignores a span whose offsets are not whole numbers", () => {
