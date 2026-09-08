@@ -27,7 +27,7 @@
  * nothing ignorable, and no case mapping read from the runtime's Unicode data. The
  * fold stops at ASCII because no runtime's own case mapping is a single function to
  * state a rule in — .NET 10, Node 24 and `UnicodeData.txt` disagree over U+0131 and
- * over 28 Greek code points with ypogegrammeni, and two runtimes ship two Unicode
+ * over the Greek code points with ypogegrammeni, and two runtimes ship two Unicode
  * versions — so a fold read from a runtime would have the two implementations
  * implement two different functions. The cost is on the record: a case variant outside
  * ASCII does not hit (a port's `критический` does not find a typed `Критический`, and

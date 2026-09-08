@@ -38,6 +38,20 @@ the [root changelog](../../CHANGELOG.md).
   detected by `navigator.userAgent` rather than by the absence of Node's globals —
   under `@cloudflare/vitest-pool-workers` the compatibility layer supplies
   `process.versions.node`, so "no Node here" is not a test for workerd.
+- **The Unicode version each runtime carries, measured rather than declared** (PV-3).
+  PV-3 reads its boundary categories from the runtime's own character database, so from
+  protocol `v0.1.3` onward every runtime in a parity manifest states which version that
+  was. No runtime has to be taken at its word for it — `workerd` exposes no such field,
+  and Bun's `process.versions.unicode` reads `15.1` while the regular-expression engine
+  the finder consults answers for 17.0 — so `probeUnicodeVersion()` establishes it the
+  way PV-3 establishes presence, by looking: code points first assigned in Unicode 14.0,
+  15.0, 15.1, 16.0 and 17.0, tested against the same four `General_Category` classes,
+  and the highest release all of whose code points the runtime counts as assigned is the
+  version the manifest states. The suite re-takes the measurement on whichever runtime it
+  is running on, and it runs on all three, so a row that goes stale turns that runtime's
+  job red — the fix for which is to regenerate the manifest, not to edit the row. As
+  measured on 2026-09-08: Node 22.22.1 and 24.14.0 (both ICU 78.2) at 17.0, Bun 1.3.13 and
+  1.4.2 at 17.0, workerd at compatibility date 2026-03-10 at 16.0.
 - **`affiant-conformance`**, a command a host embedding `@affiant/core` can run against
   its own installation to produce and publish the same evidence. Exit `0` when the
   failing set equals the manifest, `1` otherwise, with a line per document saying which
