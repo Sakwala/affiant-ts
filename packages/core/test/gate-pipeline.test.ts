@@ -412,6 +412,75 @@ describe("presence is established from the utterance, not from the port's claim 
     expect(binding.ref.offset).toBe(21);
   });
 
+  it("merges nothing for a value a field cannot carry, so the field stays Empty", async () => {
+    // The port reported nothing for `note`: an empty string, `null`, an object and an
+    // array are not values a field can carry. `status` keeps the proposal in substance
+    // so GT-3 does not refuse it, and `note` is left with the Empty tag AF-1 writes.
+    const nothings: readonly JsonValue[] = ["", null, { a: 1 }, [1, 2]];
+    for (const nothing of nothings) {
+      const { gate, store } = harness({
+        inferred: {
+          status: structured("Active", undefined, 0.9),
+          note: structured(nothing, undefined, 0.9),
+        },
+      });
+
+      await gate
+        .wrap(writeTool({ fields: ["status", "note"] }), turnContext())
+        .execute({ status: "Active", note: null });
+      const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+      const note = entry?.affidavit.fields.find((field) => field.name === "note");
+
+      expect(note?.provenance.current.source, JSON.stringify(nothing)).toBe("Empty");
+      expect(note?.value, JSON.stringify(nothing)).toBeNull();
+    }
+  });
+
+  it("merges nothing for a number the runtime parsed as infinity or NaN", async () => {
+    // SR-1 has no canonical rendering for either, so neither is a value the step can
+    // file — and neither is an exception out of the inference step.
+    for (const nothing of [Number.POSITIVE_INFINITY, Number.NaN]) {
+      const { gate, store } = harness({
+        inferred: {
+          status: structured("Active", undefined, 0.9),
+          hours: structured(nothing, undefined, 0.9),
+        },
+      });
+
+      const result = await gate
+        .wrap(writeTool({ fields: ["status", "hours"] }), turnContext())
+        .execute({ status: "Active", hours: null });
+      const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+      const hours = entry?.affidavit.fields.find((field) => field.name === "hours");
+
+      expect(result.kind, String(nothing)).not.toBe("error");
+      expect(hours?.provenance.current.source, String(nothing)).toBe("Empty");
+    }
+  });
+
+  it("keeps a whitespace-only value, which is a value, and files it as reported", async () => {
+    const { gate, store } = harness({ inferred: { status: structured("   ", undefined, 0.4) } });
+
+    await gate.wrap(writeTool(), turnContext()).execute({ status: "   " });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Inferred");
+    expect(entry?.affidavit.fields[0]?.provenance.current.binding).toBeNull();
+  });
+
+  it("refuses the proposal under GT-3 when the only field's value is nothing reported", async () => {
+    const { gate } = harness({ inferred: { status: structured("", undefined, 0.9) } });
+
+    const result = await gate.wrap(writeTool(), turnContext()).execute({ status: null });
+
+    // A port's confidence is not a substitute for a value.
+    expect(result).toMatchObject({
+      kind: "error",
+      code: "substance-refused",
+      message: expect.stringContaining("no proposed field carries provenance other than Empty"),
+    });
+  });
+
   it("grades a value the port called `inferred` Conversation when the turn carries it", async () => {
     const { gate, store } = harness({
       inferred: { status: structured("Critical", "inferred", 0.6) },

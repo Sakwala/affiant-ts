@@ -100,10 +100,10 @@ describe("src/conformance.ts is what protocol/fixtures/ and protocol/conformance
     expect(PROTOCOL_PIN).toBe(readFileSync(join(protocolDir, "PIN"), "utf8").trim());
   });
 
-  it("carries the whole promoted suite: 56 fixtures and 7 byte vectors", () => {
-    expect(conformanceFixtures).toHaveLength(56);
+  it("carries the whole promoted suite: 61 fixtures and 7 byte vectors", () => {
+    expect(conformanceFixtures).toHaveLength(61);
     expect(canonicalVectors).toHaveLength(7);
-    expect(rows).toHaveLength(63);
+    expect(rows).toHaveLength(68);
   });
 
   it("carries the manifest section unchanged", () => {

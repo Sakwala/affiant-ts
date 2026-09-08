@@ -39,10 +39,10 @@ describe("the run covers the whole promoted suite", () => {
     );
   });
 
-  it("runs the 56 declarative fixtures and the 7 canonical byte vectors", () => {
-    expect(conformanceManifest.fixtures).toHaveLength(63);
+  it("runs the 61 declarative fixtures and the 7 canonical byte vectors", () => {
+    expect(conformanceManifest.fixtures).toHaveLength(68);
     expect(conformanceManifest.fixtures.filter((row) => row.set === "canonical")).toHaveLength(7);
-    expect(run.document.summary.total).toBe(63);
+    expect(run.document.summary.total).toBe(68);
   });
 
   it("names the runtime it ran on and the protocol ref the documents came from", () => {

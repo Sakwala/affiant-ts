@@ -1433,7 +1433,7 @@ export const fixtures: readonly Fixture[] = [
       "AF-1",
       "AF-2",
     ],
-    "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
+    "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance's own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
     "given": {
       "clock": "2026-09-08T09:00:00.000Z",
       "store": "memory",
@@ -1763,7 +1763,7 @@ export const fixtures: readonly Fixture[] = [
       "AF-1",
       "AF-2",
     ],
-    "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison is case-insensitive, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
+    "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison folds ASCII case, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
     "given": {
       "clock": "2026-09-08T09:00:00.000Z",
       "store": "memory",
@@ -1844,6 +1844,72 @@ export const fixtures: readonly Fixture[] = [
             },
           ],
         },
+      },
+    },
+  },
+  // gate/22-inference-empty-value-is-nothing-reported.json
+  {
+    "id": "gate/inference-empty-value-is-nothing-reported",
+    "rules": [
+      "GT-1",
+      "PV-3",
+      "AF-1",
+      "GT-3",
+    ],
+    "title": "The port reports the empty string for the only proposed field. An empty string is not a value a field can carry, so the port reported nothing: nothing is merged, no tag is minted and the field stays Empty (PV-3, AF-1) — which leaves the proposal swearing to nothing, and GT-3 refuses it. A port's confidence is not a substitute for a value.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "note": {
+            "value": "",
+            "confidence": 0.9,
+          },
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1",
+        },
+        "utterance": "Write up the left engine check",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "note",
+          ],
+        },
+        "schema": [
+          {
+            "name": "note",
+            "kind": "text",
+            "description": "What the technician should know",
+          },
+        ],
+      },
+    },
+    "expect": {
+      "error": {
+        "code": "substance-refused",
+        "messageContains": "no proposed field carries provenance other than Empty",
       },
     },
   },

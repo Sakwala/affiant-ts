@@ -12,7 +12,7 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Added
 
-- **The driver.** Runs every document the rulebook's conformance manifest lists — 56
+- **The driver.** Runs every document the rulebook's conformance manifest lists — 61
   declarative fixtures and 7 canonical byte vectors — against `@affiant/core` through
   its own published `@affiant/core/testing` runner and its own exported
   `canonicalize` / `canonicalHash` helpers. The vectors are **reproduced**, never

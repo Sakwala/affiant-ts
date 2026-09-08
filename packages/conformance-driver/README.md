@@ -14,7 +14,7 @@ is. It is filed under a **Docket** entry and shown to a person as an **Evidence 
 amend or reject before the host commits anything. The rules that record must obey are numbered in the protocol
 rulebook, [`Sakwala/affiant-protocol`](https://github.com/Sakwala/affiant-protocol), in its `INVARIANTS.md`.
 
-Those rules are pinned by a **conformance suite**: 56 declarative documents — each one a wiring, a sequence of
+Those rules are pinned by a **conformance suite**: 61 declarative documents — each one a wiring, a sequence of
 acts, and what must then be true — plus 7 canonical byte vectors that fix the exact bytes and digest a host's
 execution grant binds to. The documents name no class, no file and no language.
 

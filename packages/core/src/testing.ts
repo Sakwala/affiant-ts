@@ -1011,10 +1011,10 @@ export function fixedClock(start: string): FixtureClock {
  * An {@link InferencePort} that reports exactly what the fixture scripted, for every
  * turn.
  *
- * The **values** are scripted rather than computed: the gate's contract is that it
- * asks the host for values, so a fixture that also decided what the model would
- * answer would be testing a model the framework does not ship. `presence` and
- * `utteranceSpan` are the port's own report, which the gate verifies against the
+ * The **values** are scripted, never computed: the gate's contract is that it asks the
+ * host for values and tags whatever it gets, so a fixture that also decided *how* the
+ * values were found would be testing a model the framework does not ship. `presence`
+ * and `utteranceSpan` are the port's own report, which the gate verifies against the
  * turn (PV-3) — a fixture states them to exercise a port's claim, never to decide the
  * outcome.
  */

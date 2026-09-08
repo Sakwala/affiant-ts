@@ -24,26 +24,44 @@ are in the [root changelog](../../CHANGELOG.md).
   `false` — is looked for in the unmodified turn under a case-insensitive ordinal
   comparison, and an occurrence counts only where each neighbouring **code point** is
   absent or is none of a letter (`L*`), a mark (`M*`), a decimal digit (`Nd`) or
-  connector punctuation (`Pc`). The fold is *simple*: `toUpperCase()` per code point,
-  keeping the original wherever the result changes length, so `ß` matches `ß` and not
-  `SS` and an offset into the fold is an offset into the turn. The first hit wins, and it
+  connector punctuation (`Pc`). The comparison **folds ASCII case and nothing else**: two
+  code points match when they are equal, or when both are ASCII letters that differ only
+  in case. No runtime's case table is consulted, because no two of them are the same
+  function — .NET 10, Node 24 and `UnicodeData.txt` disagree over U+0131 and over 28
+  Greek code points with ypogegrammeni, and two runtimes ship two Unicode versions — so a
+  fold read from one would have the two implementations implement two different rules. A
+  case variant outside ASCII is therefore `Inferred`, and an exact echo in any script
+  hits. No hit ever begins or ends inside a surrogate pair. The first hit wins, and it
   mints `Conversation` bound to `{ offset, length, hash }` — offsets in UTF-16 code
   units, the hash over the UTF-8 bytes of the utterance's **own** substring at that span,
   which is what was there when the value was read (PV-2). No hit is `Inferred`, unbound.
 
   `presence` and `utteranceSpan` are now optional on `StructuredField`, and both are
   hints the gate verifies rather than honours: a span is used only where it is itself a
-  hit — its text is the value *and* its neighbours pass the same test — a `literal` the
-  text does not confirm is `Inferred`, and a value the port said nothing about, which is
-  the case every shipped port is in, is `Conversation` when it is there to read. Nothing
-  asks a model about its own literalness.
+  hit — its text is the value, its neighbours pass the same test, and it splits no
+  surrogate pair — a `literal` the text does not confirm is `Inferred`, and a value the
+  port said nothing about, which is the case every shipped port is in, is `Conversation`
+  when it is there to read. A span's `start` and `end` are integer-valued, so a
+  fractional coordinate discards the hint. Nothing asks a model about its own
+  literalness.
+
+  A **value a field cannot carry is nothing reported** for that field: `null`, an object,
+  an array, the empty string, and a number the runtime parsed as infinity or NaN, which
+  SR-1 gives no canonical rendering and which is nothing reported rather than a port
+  contract violation out of the gate. None of them is merged, none mints a tag, and the
+  field stays whatever it already was — `Empty` under AF-1 where nothing else set it,
+  which leaves a proposal whose only field was such a value swearing to nothing and
+  refused by GT-3. A whitespace-only string **is** a value and is filed as reported. The
+  gate previously filed each of these as `Inferred` at the port's confidence where the
+  .NET sibling skipped the field: one fixture, two answers.
 
   `@affiant/core/testing`'s runner gains the `utteranceSpan` field matcher the amended
   fixture format carries, so a fixture can pin *which* occurrence was found and that the
-  digest is the utterance's rather than the port's. Four of the amendment's fixtures are
+  digest is the utterance's rather than the port's. Five of the amendment's fixtures are
   here — `gate/inference-presence-computed-from-the-utterance`,
-  `gate/inference-port-literal-unconfirmed`, `gate/inference-port-span-fails-the-boundary`
-  and `gate/inference-case-folds-and-the-digest-is-the-utterances` — and
+  `gate/inference-port-literal-unconfirmed`, `gate/inference-port-span-fails-the-boundary`,
+  `gate/inference-case-folds-and-the-digest-is-the-utterances` and
+  `gate/inference-empty-value-is-nothing-reported` — and
   `sequence-a/picker-external-binding` now expects its `status` field **bound**, because
   the port claimed `literal` with no span and the finder locates `"Active"` in that
   fixture's own turn. In `samples/scenario-deck` the third turn's `billingDay` moves to
