@@ -110,16 +110,24 @@ interface UnicodeProbe {
  * reads, so what is measured is the database the finder actually consults and not a
  * neighbouring one.
  *
- * The four classes are covered rather than only `L*`: U+0870 (Arabic Extended-B, 14.0,
- * `Lo`); U+11F00 (Kawi, 15.0, `Mn`); U+1E030 (Cyrillic Extended-D, 15.1, `Lm`); U+105C0
- * (Todhri, 16.0, `Lo`) and U+116D0 (Myanmar Extended-C, 16.0, `Nd`); U+11DB0 (Tolong
- * Siki) and U+10940 (Sidetic), both 17.0 and `Lo`, and both the ones the .NET sibling's
- * database leaves unassigned.
+ * A probe says nothing unless the release it stands for is the release that first
+ * assigned it, so every age below is the code point's value in the Unicode Character
+ * Database's `DerivedAge.txt` (17.0.0, dated 2025-07-30), the file that records
+ * exactly that: U+0870 Arabic Extended-B, `Lo` (`0870..088E ; 14.0`); U+11F00 Kawi,
+ * `Mn` (`11F00..11F10 ; 15.0`); U+2EBF0 CJK Unified Ideographs Extension I, `Lo`
+ * (`2EBF0..2EE5D ; 15.1` — the whole of what 15.1 assigned); U+105C0 Todhri, `Lo`
+ * (`105C0..105F3 ; 16.0`) and U+116D0 Myanmar Extended-C, `Nd` (`116D0..116E3 ; 16.0`);
+ * U+11DB0 Tolong Siki, `Lo` (`11DB0..11DDB ; 17.0`) and U+10940 Sidetic, `Lo`
+ * (`10940..10959 ; 17.0`).
+ *
+ * Three of the four classes are covered rather than only `L*`. The fourth cannot be:
+ * connector punctuation is ten code points, and `DerivedAge.txt` ages the newest of
+ * them — U+2054 — at 4.0, so no release since 14.0 has one to probe with.
  */
 export const UNICODE_PROBES: readonly UnicodeProbe[] = [
   { version: "14.0", codePoints: ["\u{0870}"] },
   { version: "15.0", codePoints: ["\u{11F00}"] },
-  { version: "15.1", codePoints: ["\u{1E030}"] },
+  { version: "15.1", codePoints: ["\u{2EBF0}"] },
   { version: "16.0", codePoints: ["\u{105C0}", "\u{116D0}"] },
   { version: "17.0", codePoints: ["\u{11DB0}", "\u{10940}"] },
 ];

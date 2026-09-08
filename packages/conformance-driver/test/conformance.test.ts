@@ -136,6 +136,17 @@ describe("the failing set equals the published parity manifest", () => {
     expect(probeUnicodeVersion(knows)).toBe("16.0");
     expect(probeUnicodeVersion(() => false)).toBe("below 14.0");
   });
+
+  it("reads a 15.0 database as 15.0, because each probe is first assigned in its own release", () => {
+    // The measurement is only worth the probe table: a code point assigned before the
+    // release it is filed under makes that release answer for a runtime that does not
+    // carry it. Unicode 15.1 assigned exactly one block, CJK Unified Ideographs
+    // Extension I (U+2EBF0..U+2EE5D, `DerivedAge.txt` 17.0.0), so a database at 15.0 —
+    // which knows everything else here — must stop at 15.0.
+    const fifteenZero = (codePoint: string): boolean => codePoint !== "\u{2EBF0}";
+
+    expect(probeUnicodeVersion(fifteenZero)).toBe("15.0");
+  });
 });
 
 describe("the comparison is not vacuous", () => {
