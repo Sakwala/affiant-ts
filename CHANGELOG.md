@@ -35,8 +35,8 @@ was made against.
   non-finite number — is nothing the port reported. `presence` is no longer required by
   `fixture.schema.json`, the field-matcher format gains `utteranceSpan`, and the
   parity-manifest schema gains an optional `unicodeVersion` per runtime. Five fixtures are
-  new (`gate/18` through `gate/22`) and `sequence-a/04-picker-external-binding` is
-  re-promoted with its `status` field bound. What moves here is
+  new (`gate/18` through `gate/22`) and `sequence-a/04-picker-external-binding` was amended
+  in place at v0.1.3, not re-promoted, to expect its `status` field bound. What moves here is
   `packages/contract/protocol/` — 181 vendored documents now — the three generated modules
   under `packages/contract/`, this repository's own copy of the fixture set under
   `packages/core/test/fixtures/`, and the driver's committed run and parity manifest, both

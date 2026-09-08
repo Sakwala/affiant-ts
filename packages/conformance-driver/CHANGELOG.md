@@ -62,8 +62,7 @@ the [root changelog](../../CHANGELOG.md).
 - The package is private. It is the check that stands in front of this repository's
   `main` branch, published here so anybody can read what "conformant" is being asserted
   from.
-- The `protocolTag` is a commit rather than a tag: the rulebook's v0.1 text is on its
-  default branch and `v0.1.0` has not been cut. A commit is as immutable as a tag and,
-  unlike a tag, cannot be moved under a running build. The manifest belongs beside the
-  fixtures it is about, in the rulebook repository; it moves there, and the pin moves to
-  the tag, in the same pull request.
+- The `protocolTag` is the rulebook's `v0.1.3` tag, the one
+  `packages/contract/protocol/PIN` pins and this package vendors byte for byte. The
+  manifest belongs beside the fixtures it is about, in the rulebook repository; it moves
+  there in a pull request of its own.
