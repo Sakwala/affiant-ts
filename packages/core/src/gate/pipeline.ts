@@ -401,10 +401,10 @@ export async function runPipeline(
         // Which of the two is decided here, from the turn, not by the port: PV-3's
         // condition is that the value is literally present in the utterance, and that
         // is a property of two strings. `locateInUtterance` is that sentence. The
-        // port's `presence` and `utteranceSpan` are hints — a span is used when the
-        // utterance at that span says what the port said it says, a claimed `literal`
-        // the text does not confirm is `Inferred`, and a value the port said nothing
-        // about is `Conversation` when it is there to read.
+        // port's `presence` and `utteranceSpan` are hints — a span is used only when
+        // it is itself a hit, a claimed `literal` the text does not confirm is
+        // `Inferred`, and a value the port said nothing about is `Conversation` when
+        // it is there to read.
         const hit = locateInUtterance(
           ctx.turn.utterance,
           utteranceTextOf(value),
