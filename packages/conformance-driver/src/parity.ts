@@ -28,7 +28,7 @@
 
 import { PROTOCOL_PIN, coverageExemptions } from "@affiant/contract/conformance";
 
-import { IMPLEMENTATION_NAME, IMPLEMENTATION_VERSION } from "./run.js";
+import { IMPLEMENTATION_NAME, IMPLEMENTATION_VERSION, detectRuntime } from "./run.js";
 import type { ConformanceRun } from "./run.js";
 
 /** One document this implementation does not pass, and what is being done about it. */
@@ -56,6 +56,8 @@ export interface RuntimeClaim {
   readonly name: string;
   readonly version?: string;
   readonly claimed: boolean;
+  /** The Unicode version this runtime's own character database carries (PV-3). */
+  readonly unicodeVersion?: string;
   readonly note?: string;
 }
 
@@ -79,6 +81,108 @@ export interface ParityManifest {
   readonly runtimes: readonly RuntimeClaim[];
   readonly exemptions: readonly ExemptionRow[];
   readonly notes?: string;
+}
+
+// ---------------------------------------------------------------------------
+// The Unicode version each runtime carries, measured rather than declared
+// ---------------------------------------------------------------------------
+
+/** A runtime this implementation claims and runs the whole suite on (RT-1). */
+type ClaimedRuntime = "node" | "bun" | "workerd";
+
+/** One Unicode release, and code points first assigned in it. */
+interface UnicodeProbe {
+  /** The release, as the manifest states it. */
+  readonly version: string;
+  /** Code points that exist from this release onward and did not before it. */
+  readonly codePoints: readonly string[];
+}
+
+/**
+ * The probe set: for each Unicode release since 14.0, code points first assigned in
+ * that release.
+ *
+ * A runtime does not have to tell you which Unicode database it carries — `workerd`
+ * exposes no such field at all, and Bun's `process.versions.unicode` reads `15.1`
+ * while its regular-expression engine answers for 17.0 — so the version is
+ * established the way PV-3 establishes presence: by looking. Each code point is
+ * tested against exactly the four General_Category classes PV-3's neighbour rule
+ * reads, so what is measured is the database the finder actually consults and not a
+ * neighbouring one.
+ *
+ * The four classes are covered rather than only `L*`: U+0870 (Arabic Extended-B, 14.0,
+ * `Lo`); U+11F00 (Kawi, 15.0, `Mn`); U+1E030 (Cyrillic Extended-D, 15.1, `Lm`); U+105C0
+ * (Todhri, 16.0, `Lo`) and U+116D0 (Myanmar Extended-C, 16.0, `Nd`); U+11DB0 (Tolong
+ * Siki) and U+10940 (Sidetic), both 17.0 and `Lo`, and both the ones the .NET sibling's
+ * database leaves unassigned.
+ */
+export const UNICODE_PROBES: readonly UnicodeProbe[] = [
+  { version: "14.0", codePoints: ["\u{0870}"] },
+  { version: "15.0", codePoints: ["\u{11F00}"] },
+  { version: "15.1", codePoints: ["\u{1E030}"] },
+  { version: "16.0", codePoints: ["\u{105C0}", "\u{116D0}"] },
+  { version: "17.0", codePoints: ["\u{11DB0}", "\u{10940}"] },
+];
+
+/** PV-3's four boundary categories, as the finder in `@affiant/core` reads them. */
+const ASSIGNED = /^[\p{L}\p{M}\p{Nd}\p{Pc}]$/u;
+
+/** Whether this runtime's own database counts `codePoint` as one of PV-3's four. */
+function isAssignedHere(codePoint: string): boolean {
+  return ASSIGNED.test(codePoint);
+}
+
+/**
+ * The highest Unicode release every one of whose probe code points this runtime
+ * counts as assigned.
+ *
+ * The walk stops at the first release that does not answer, so a runtime that knows
+ * 16.0 and not 17.0 reads `16.0` rather than skipping ahead on a later release it
+ * happens to know one code point of.
+ *
+ * @param isAssigned How a code point is tested. The default is this runtime's own
+ *        database, which is the only answer a manifest may publish; the parameter is
+ *        what lets the suite prove the walk stops where it says it stops.
+ */
+export function probeUnicodeVersion(
+  isAssigned: (codePoint: string) => boolean = isAssignedHere,
+): string {
+  let highest = "below 14.0";
+  for (const probe of UNICODE_PROBES) {
+    if (!probe.codePoints.every((codePoint) => isAssigned(codePoint))) break;
+    highest = probe.version;
+  }
+  return highest;
+}
+
+/**
+ * What {@link probeUnicodeVersion} answered on each claimed runtime.
+ *
+ * Not typed from a release note: every row here was taken by running the probe on
+ * that runtime, and `test/conformance.test.ts` re-takes it on every run — the suite
+ * runs on all three, so a row that goes stale turns that runtime's job red rather
+ * than quietly publishing a wrong version.
+ */
+export const MEASURED_UNICODE_VERSIONS: Readonly<Record<ClaimedRuntime, string>> = {
+  node: "17.0",
+  bun: "17.0",
+  workerd: "16.0",
+};
+
+/** The recorded measurement for a runtime, or `undefined` for one not claimed. */
+export function recordedUnicodeVersion(runtime: string): string | undefined {
+  return (MEASURED_UNICODE_VERSIONS as Readonly<Record<string, string>>)[runtime];
+}
+
+/**
+ * The version the manifest states for one runtime.
+ *
+ * The runtime this process is on answers for itself, so a manifest generated here
+ * cannot state a version this runtime does not measure. The other two answer with
+ * the recorded measurement, which their own job re-takes.
+ */
+function unicodeVersionOf(runtime: ClaimedRuntime): string {
+  return runtime === detectRuntime() ? probeUnicodeVersion() : MEASURED_UNICODE_VERSIONS[runtime];
 }
 
 /**
@@ -164,15 +268,17 @@ export const parityManifest: ParityManifest = {
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.0.json",
   failing: [],
   runtimes: [
-    { name: "node", version: ">=22", claimed: true },
+    { name: "node", version: ">=22", claimed: true, unicodeVersion: unicodeVersionOf("node") },
     {
       name: "bun",
       claimed: true,
+      unicodeVersion: unicodeVersionOf("bun"),
       note: "the same suite, run under Bun in this repository's CI",
     },
     {
       name: "workerd",
       claimed: true,
+      unicodeVersion: unicodeVersionOf("workerd"),
       note: "run through @cloudflare/vitest-pool-workers — the runtime a Cloudflare Worker host would execute @affiant/core on",
     },
   ],
@@ -183,7 +289,18 @@ export const parityManifest: ParityManifest = {
     "suite is run on all three claimed runtimes and the failing set is asserted identical on " +
     "each; an empty failing set is what this implementation owes, being the one the fixtures " +
     "were promoted from, and the run it is read off is published beside this manifest in the " +
-    "rulebook.",
+    "rulebook. Each runtime's unicodeVersion is measured by probe, not declared: " +
+    "probeUnicodeVersion() in packages/conformance-driver/src/parity.ts tests code points first " +
+    "assigned in Unicode 14.0, 15.0, 15.1, 16.0 and 17.0 against the four General_Category " +
+    "classes PV-3's neighbour rule reads, and states the highest release all of whose code " +
+    "points that runtime counts as assigned; the suite re-takes the measurement on whichever " +
+    "runtime it is running on, so no row here can be a version this implementation has not " +
+    "measured. As measured on 2026-09-08 — Node 22.22.1 and 24.14.0 (both ICU 78.2), Bun 1.3.13 " +
+    "and 1.4.2, workerd at compatibility date 2026-03-10 — workerd's database is one release " +
+    "behind the other two, which is the divergence PV-3 admits: a code point assigned in 17.0 is " +
+    "a letter beside a candidate hit on Node and Bun and an unassigned boundary on workerd. No " +
+    "fixture utterance in this suite carries a non-ASCII code point at all, so the failing set " +
+    "is identical on all three, which is what the runs assert.",
 };
 
 /** What a run disagreed with the manifest about. Empty on both sides is the only green answer. */

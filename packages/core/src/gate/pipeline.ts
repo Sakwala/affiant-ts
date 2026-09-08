@@ -387,6 +387,14 @@ export async function runPipeline(
 
     // ---- step 3: one tool-free structured inference; step 4: merge ---------
     if (proposal.schema !== null) {
+      // PV-3: an untyped host — plain JavaScript, or one that built the turn from a
+      // wire message that carried no text — can hand the gate a turn whose `utterance`
+      // is missing or is not a string. There is no port-trusting path in this
+      // implementation to fall back to, so the finder reads an empty utterance: nothing
+      // hits, every inferred field is `Inferred`, and no field is graded on a claim the
+      // gate could not check. What a missing utterance must never be is a `TypeError`
+      // out of the finder.
+      const utterance = typeof ctx.turn.utterance === "string" ? ctx.turn.utterance : "";
       const inferred = await deps.inference.infer(ctx.turn, proposal.schema);
       for (const [name, structured] of Object.entries(inferred.fields)) {
         // A model naming a field the operation does not propose is the model being
@@ -417,11 +425,7 @@ export async function runPipeline(
         // it is itself a hit, a claimed `literal` the text does not confirm is
         // `Inferred`, and a value the port said nothing about is `Conversation` when
         // it is there to read.
-        const hit = locateInUtterance(
-          ctx.turn.utterance,
-          valueText,
-          structured.utteranceSpan ?? null,
-        );
+        const hit = locateInUtterance(utterance, valueText, structured.utteranceSpan ?? null);
         const tag =
           hit === null
             ? mintInferred({
@@ -433,7 +437,7 @@ export async function runPipeline(
                 confidence: structured.confidence,
                 at: now,
                 note: `Literally present in the turn: ${name}`,
-                binding: await utteranceSpanBinding(ctx.turn.utterance, hit),
+                binding: await utteranceSpanBinding(utterance, hit),
               });
         admit(name, tag, value);
       }

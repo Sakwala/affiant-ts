@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PROTOCOL_VERSION } from "@affiant/contract";
 
+import type { TurnContext } from "../src/context.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
 import { AffiantError } from "../src/errors.js";
 import type { JsonValue } from "../src/model/affidavit.js";
@@ -479,6 +480,33 @@ describe("presence is established from the utterance, not from the port's claim 
       code: "substance-refused",
       message: expect.stringContaining("no proposed field carries provenance other than Empty"),
     });
+  });
+
+  it("reads a turn that carries no utterance as an empty one, and does not throw", async () => {
+    // An untyped host — plain JavaScript, or one that built the turn from a wire
+    // message with no text — can hand the gate a turn without `utterance`. There is no
+    // port-trusting path to fall back to, so the finder reads "": nothing hits, the
+    // field is `Inferred` and unbound, and the gate returns a card rather than a
+    // `TypeError` out of the finder.
+    for (const missing of [undefined, null, 42]) {
+      const context = turnContext({ utterance: "Priority Critical please" });
+      const untyped = {
+        ...context,
+        turn: { ...context.turn, utterance: missing },
+      } as unknown as TurnContext;
+      const { gate, store } = harness({
+        inferred: { status: structured("Critical", "literal", 0.9, { start: 9, end: 17 }) },
+      });
+
+      const result = await gate.wrap(writeTool(), untyped).execute({ status: "Critical" });
+      const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+      expect(result.kind, String(missing)).not.toBe("error");
+      expect(entry?.affidavit.fields[0]?.provenance.current.source, String(missing)).toBe(
+        "Inferred",
+      );
+      expect(entry?.affidavit.fields[0]?.provenance.current.binding, String(missing)).toBeNull();
+    }
   });
 
   it("grades a value the port called `inferred` Conversation when the turn carries it", async () => {

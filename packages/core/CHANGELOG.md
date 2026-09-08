@@ -21,20 +21,20 @@ are in the [root changelog](../../CHANGELOG.md).
 
   `src/gate/presence.ts` is PV-3's finder as the rulebook states it. The *value text* —
   a string as itself, a number as SR-1's canonical rendering, a boolean as `true` or
-  `false` — is looked for in the unmodified turn under a case-insensitive ordinal
-  comparison, and an occurrence counts only where each neighbouring **code point** is
-  absent or is none of a letter (`L*`), a mark (`M*`), a decimal digit (`Nd`) or
-  connector punctuation (`Pc`). The comparison **folds ASCII case and nothing else**: two
-  code points match when they are equal, or when both are ASCII letters that differ only
-  in case. No runtime's case table is consulted, because no two of them are the same
-  function — .NET 10, Node 24 and `UnicodeData.txt` disagree over U+0131 and over 28
-  Greek code points with ypogegrammeni, and two runtimes ship two Unicode versions — so a
-  fold read from one would have the two implementations implement two different rules. A
-  case variant outside ASCII is therefore `Inferred`, and an exact echo in any script
-  hits. No hit ever begins or ends inside a surrogate pair. The first hit wins, and it
-  mints `Conversation` bound to `{ offset, length, hash }` — offsets in UTF-16 code
-  units, the hash over the UTF-8 bytes of the utterance's **own** substring at that span,
-  which is what was there when the value was read (PV-2). No hit is `Inferred`, unbound.
+  `false` — is looked for in the unmodified turn, and an occurrence counts only where each
+  neighbouring **code point** is absent or is none of a letter (`L*`), a mark (`M*`), a
+  decimal digit (`Nd`) or connector punctuation (`Pc`). The comparison **folds ASCII case
+  and nothing else**: two code points match when they are equal, or when both are ASCII
+  letters that differ only in case. No runtime's case table is consulted, because no two of
+  them are the same function — .NET 10, Node 24 and `UnicodeData.txt` disagree over U+0131
+  and over the Greek code points with ypogegrammeni, and two runtimes ship two Unicode
+  versions — so a fold read from one would have the two implementations implement two
+  different rules. A case variant outside ASCII is therefore `Inferred`, and an exact echo
+  in any script hits. No hit ever begins or ends inside a surrogate pair. The first hit
+  wins, and it mints `Conversation` bound to `{ offset, length, hash }` — offsets in
+  UTF-16 code units, the hash over the UTF-8 bytes of the utterance's **own** substring at
+  that span, which is what was there when the value was read (PV-2). No hit is `Inferred`,
+  unbound.
 
   `presence` and `utteranceSpan` are now optional on `StructuredField`, and both are
   hints the gate verifies rather than honours: a span is used only where it is itself a
@@ -43,7 +43,10 @@ are in the [root changelog](../../CHANGELOG.md).
   port said nothing about, which is the case every shipped port is in, is `Conversation`
   when it is there to read. A span's `start` and `end` are integer-valued, so a
   fractional coordinate discards the hint. Nothing asks a model about its own
-  literalness.
+  literalness. A turn that carries **no** utterance — an untyped host handing the gate a
+  turn whose `utterance` is missing or is not a string — is read as an empty one: nothing
+  hits, every inferred field is `Inferred` and unbound, and the finder does not throw.
+  There is no path here that grades a field on a claim the gate could not check.
 
   A **value a field cannot carry is nothing reported** for that field: `null`, an object,
   an array, the empty string, and a number the runtime parsed as infinity or NaN, which

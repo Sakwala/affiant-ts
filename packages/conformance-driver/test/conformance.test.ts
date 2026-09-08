@@ -1,7 +1,14 @@
 import { conformanceManifest } from "@affiant/contract/conformance";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { compareToManifest, describeVerdict, parityManifest } from "../src/parity.js";
+import {
+  UNICODE_PROBES,
+  compareToManifest,
+  describeVerdict,
+  parityManifest,
+  probeUnicodeVersion,
+  recordedUnicodeVersion,
+} from "../src/parity.js";
 import { detectRuntime, runConformance, validateRunDocument } from "../src/run.js";
 import type { ConformanceRun } from "../src/run.js";
 
@@ -99,6 +106,35 @@ describe("the failing set equals the published parity manifest", () => {
       "workerd",
     ]);
     expect(parityManifest.runtimes.every((runtime) => runtime.claimed)).toBe(true);
+  });
+
+  it("states a Unicode version this runtime measures, rather than one it was told (PV-3)", () => {
+    // This assertion is the reason the manifest may state a version at all. It runs on
+    // Node, under Bun and inside workerd, so each of the three recorded measurements is
+    // re-taken in its own job: a row that goes stale — a runtime upgrade moving its
+    // character database — turns that job red instead of publishing a version nobody
+    // measured. PV-3 reads its boundary categories from the runtime's own database, and
+    // a run that cannot say which database it used cannot be compared with another run.
+    const runtime = detectRuntime();
+    const row = parityManifest.runtimes.find((one) => one.name === runtime);
+
+    expect(recordedUnicodeVersion(runtime), runtime).toBe(probeUnicodeVersion());
+    expect(row?.unicodeVersion, runtime).toBe(probeUnicodeVersion());
+    for (const claim of parityManifest.runtimes) {
+      expect(claim.unicodeVersion, claim.name).toBe(recordedUnicodeVersion(claim.name));
+    }
+  });
+
+  it("stops the walk at the first release that does not answer", () => {
+    // A runtime that knows 16.0 and not 17.0 reads "16.0", even where it happens to
+    // know one code point of a later release: the version a run states is the last one
+    // the runtime answers for completely, not the highest one it answers for at all.
+    const knows = (codePoint: string): boolean =>
+      UNICODE_PROBES.slice(0, 4).some((probe) => probe.codePoints.includes(codePoint)) ||
+      codePoint === UNICODE_PROBES[4]?.codePoints[0];
+
+    expect(probeUnicodeVersion(knows)).toBe("16.0");
+    expect(probeUnicodeVersion(() => false)).toBe("below 14.0");
   });
 });
 
