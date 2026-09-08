@@ -141,9 +141,10 @@ export interface StructuredField {
    * Where in the utterance the port says the value was found, when it can say.
    * Absent or `null` when it cannot.
    *
-   * Also a hint (PV-3): the span is used when the utterance at that span equals the
-   * value text under the same comparison, and is otherwise discarded — the gate then
-   * looks for the value itself rather than inventing offsets or trusting the port's.
+   * Also a hint (PV-3): the span is used only when it is itself a hit — the utterance
+   * at that span is the value text under the gate's own comparison *and* the span's
+   * neighbours leave it a whole token — and is otherwise discarded, the gate then
+   * looking for the value itself rather than trusting offsets it cannot confirm.
    */
   readonly utteranceSpan?: UtteranceSpan | null;
 }
