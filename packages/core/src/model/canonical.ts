@@ -702,6 +702,21 @@ function assertNotFloatMoney(record: { readonly [key: string]: unknown }, path: 
 }
 
 /**
+ * SR-1's rendering of one number: the shortest round-trip decimal, written
+ * positionally, `-0` as `"0"`.
+ *
+ * Exported for PV-3's finder (`gate/presence.ts`), which looks for a number in the
+ * utterance as the text the canonical form would write, rather than as whatever the
+ * host's language prints. Not part of the package's public surface: `index.ts` does not
+ * re-export it.
+ *
+ * @throws RangeError when `value` has no decimal form (NaN, the infinities).
+ */
+export function canonicalNumber(value: number): string {
+  return writeNumber(value, "");
+}
+
+/**
  * The shortest round-trip decimal for `value`, written positionally.
  *
  * `String(n)` is the shortest decimal that parses back to `n` — the ECMAScript

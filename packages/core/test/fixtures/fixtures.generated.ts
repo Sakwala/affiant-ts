@@ -1423,6 +1423,430 @@ export const fixtures: readonly Fixture[] = [
       },
     },
   },
+  // gate/18-inference-presence-computed-from-the-utterance.json
+  {
+    "id": "gate/inference-presence-computed-from-the-utterance",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2",
+    ],
+    "title": "The port reports value and confidence and says nothing about presence: the implementation establishes it from the utterance itself (PV-3). Two values that are in the turn are Conversation, bound to the span they were read from - the spans are pinned, so the fixture also states WHICH occurrence was found and that the digest is over the utterance own bytes; the estimated hours hit the 6 the person typed and not the 6 inside 2026. A value that occurs only inside a longer number is not present and is Inferred, unbound.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "title": {
+            "value": "oil pressure check",
+            "confidence": 0.9,
+          },
+          "estimatedHours": {
+            "value": 6,
+            "confidence": 0.8,
+          },
+          "crewSize": {
+            "value": 20,
+            "confidence": 0.5,
+          },
+        },
+        "entities": {
+          "WorkOrder/wo-1": {
+            "title": "Unscheduled maintenance",
+            "estimatedHours": 4,
+            "crewSize": 2,
+          },
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1",
+        },
+        "utterance": "Log the oil pressure check, estimated 6 hours, due 2026-09-08",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "update",
+          "entityType": "WorkOrder",
+          "entityId": "wo-1",
+          "fields": [
+            "title",
+            "estimatedHours",
+            "crewSize",
+          ],
+        },
+        "schema": [
+          {
+            "name": "title",
+            "kind": "text",
+            "description": "What the work order is for",
+          },
+          {
+            "name": "estimatedHours",
+            "kind": "number",
+            "description": "How long the work is expected to take",
+          },
+          {
+            "name": "crewSize",
+            "kind": "number",
+            "description": "How many people the work needs",
+          },
+        ],
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "update",
+          "entityId": "wo-1",
+          "aggregateConfidence": 0.5,
+          "populatedConfidence": 0.5,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "title",
+              "value": "oil pressure check",
+              "previousValue": "Unscheduled maintenance",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 8,
+                "length": 18,
+                "hash": "cc3d6e69b3a763a76c701acdf1dcaa031397eecb59ef9a2ad9bdb358dc9843e3",
+              },
+            },
+            {
+              "name": "estimatedHours",
+              "value": 6,
+              "previousValue": 4,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 38,
+                "length": 1,
+                "hash": "e7f6c011776e8db7cd330b54174fd76f7d0216b612387a5ffcfb81e6f0919683",
+              },
+            },
+            {
+              "name": "crewSize",
+              "value": 20,
+              "previousValue": 2,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null,
+            },
+          ],
+        },
+      },
+    },
+  },
+  // gate/19-inference-port-literal-unconfirmed.json
+  {
+    "id": "gate/inference-port-literal-unconfirmed",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2",
+    ],
+    "title": "The port reports presence \"literal\" and a span for a value that is not in the utterance: the claim is not confirmed, so the grade is Inferred and there is no binding (PV-3). A port informs; the implementation decides.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "priority": {
+            "value": "Critical",
+            "confidence": 0.7,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 0,
+              "end": 8,
+            },
+          },
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1",
+        },
+        "utterance": "Raise a work order for the left engine",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "priority",
+          ],
+        },
+        "schema": [
+          {
+            "name": "priority",
+            "kind": "text",
+            "description": "How urgent the work is",
+          },
+        ],
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.7,
+          "populatedConfidence": 0.7,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "priority",
+              "value": "Critical",
+              "previousValue": null,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null,
+            },
+          ],
+        },
+      },
+    },
+  },
+  // gate/20-inference-port-span-fails-the-boundary.json
+  {
+    "id": "gate/inference-port-span-fails-the-boundary",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2",
+    ],
+    "title": "The port reports presence \"literal\" and a span whose substring IS the value text, but the span sits inside a longer token: the 20 at the start of 2026-09-08. A span verifies only when it is itself a hit, and this one's right-hand neighbour is a digit, so the span is discarded, the finder searches the utterance and finds no other occurrence, and the grade is Inferred with no binding (PV-3). A port cannot name an occurrence the finder's own boundary rule rejects.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "crewSize": {
+            "value": 20,
+            "confidence": 0.5,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 32,
+              "end": 34,
+            },
+          },
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1",
+        },
+        "utterance": "Log the oil pressure check, due 2026-09-08",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "WorkOrder",
+          "entityId": null,
+          "fields": [
+            "crewSize",
+          ],
+        },
+        "schema": [
+          {
+            "name": "crewSize",
+            "kind": "number",
+            "description": "How many people the work needs",
+          },
+        ],
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.5,
+          "populatedConfidence": 0.5,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "crewSize",
+              "value": 20,
+              "previousValue": null,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null,
+            },
+          ],
+        },
+      },
+    },
+  },
+  // gate/21-inference-case-folds-and-the-digest-is-the-utterances.json
+  {
+    "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
+    "rules": [
+      "GT-1",
+      "PV-1",
+      "PV-3",
+      "AF-1",
+      "AF-2",
+    ],
+    "title": "The port reports value and confidence only, and the value it reports differs from the utterance in case alone: Client Lunch against a turn that says client lunch. The comparison is case-insensitive, so it is a hit and the grade is Conversation - and the binding is over the UTTERANCE, so the span's digest is the SHA-256 of client lunch as the person typed it, not of the value the port handed back (PV-3, PV-2).",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*",
+          ],
+        },
+        "inference": {
+          "description": {
+            "value": "Client Lunch",
+            "confidence": 0.8,
+          },
+        },
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1",
+        },
+        "utterance": "File the expense for client lunch, 40 EUR",
+        "messageId": "msg-1",
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "ExpenseReport",
+          "entityId": null,
+          "fields": [
+            "description",
+          ],
+        },
+        "schema": [
+          {
+            "name": "description",
+            "kind": "text",
+            "description": "What the expense was for",
+          },
+        ],
+      },
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.8,
+          "populatedConfidence": 0.8,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "description",
+              "value": "Client Lunch",
+              "previousValue": null,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 12,
+                "hash": "8cdd8a7d75d31e666ffe202ee1bca3fd5673d943783de1c22bfa27cb51848a9c",
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
   // decide/01-approve.json
   {
     "id": "decide/approve",
@@ -4866,7 +5290,13 @@ export const fixtures: readonly Fixture[] = [
               "name": "status",
               "value": "Active",
               "source": "Conversation",
-              "bound": false,
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 6,
+                "hash": "92340695899bd2d86223e4a007620e0d6502fc0e08809773634c7e0743764a9c",
+              },
             },
             {
               "name": "owner",

@@ -127,17 +127,25 @@ export interface StructuredField {
    */
   readonly confidence: number;
   /**
-   * Whether the value is literally present in the utterance (`"literal"`, tagged
-   * `Conversation`) or was reasoned to (`"inferred"`, tagged `Inferred`). The
-   * distinction is provenance, not confidence: a reviewer reads them differently.
+   * The port's **report** on whether the value was literally in the utterance, or
+   * absent when it does not report one. Never the grade.
+   *
+   * PV-3 has the gate establish presence from the turn itself, so this is a hint it
+   * verifies the same way: a `"literal"` the utterance does not confirm is tagged
+   * `Inferred`, and a value the port called `"inferred"` — or said nothing about — is
+   * tagged `Conversation` when it is there to read. A model's claim about its own
+   * literalness is itself an inference; the text is not.
    */
-  readonly presence: "literal" | "inferred";
+  readonly presence?: "literal" | "inferred";
   /**
-   * Where in the utterance the value was found, when the port can say. `null` when
-   * it cannot — the pipeline then records the tag without an `utterance-span`
-   * binding rather than inventing offsets.
+   * Where in the utterance the port says the value was found, when it can say.
+   * Absent or `null` when it cannot.
+   *
+   * Also a hint (PV-3): the span is used when the utterance at that span equals the
+   * value text under the same comparison, and is otherwise discarded — the gate then
+   * looks for the value itself rather than inventing offsets or trusting the port's.
    */
-  readonly utteranceSpan: UtteranceSpan | null;
+  readonly utteranceSpan?: UtteranceSpan | null;
 }
 
 /** What one inference call returns: the fields it could fill, keyed by name. */

@@ -6,6 +6,7 @@ import type { ApprovalPolicy } from "../src/gate/policy.js";
 import { AffiantError } from "../src/errors.js";
 import type { JsonValue } from "../src/model/affidavit.js";
 import { computeConfidence } from "../src/model/affidavit.js";
+import { sha256Hex } from "../src/model/canonical.js";
 import type { InferenceSource } from "../src/model/provenance.js";
 import { mintInference } from "../src/model/provenance.js";
 import type { InterceptedFields } from "../src/ports.js";
@@ -228,7 +229,7 @@ describe("the inference step and the merge (PV-1, PV-2, PV-3)", () => {
     expect(binding.ref.hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("drops a span that does not fit the turn rather than binding to nothing", async () => {
+  it("discards a span that does not fit the turn and finds the value itself", async () => {
     const { gate, store } = harness({
       inferred: { status: structured("Active", "literal", 0.9, { start: 0, end: 10_000 }) },
     });
@@ -236,19 +237,22 @@ describe("the inference step and the merge (PV-1, PV-2, PV-3)", () => {
     await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
     const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
 
+    const binding = entry?.affidavit.fields[0]?.provenance.current.binding;
     expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Conversation");
-    expect(entry?.affidavit.fields[0]?.provenance.current.binding).toBeNull();
+    if (binding?.kind !== "utterance-span") expect.unreachable("an utterance-span binding");
+    expect(binding.ref.offset).toBe("Set the invoice status to ".length);
   });
 
-  it("tags a reasoned value Inferred, with no binding", async () => {
+  it("tags a value the turn does not carry Inferred, with no binding", async () => {
     const { gate, store } = harness({
-      inferred: { status: structured("Active", "inferred", 0.4) },
+      inferred: { status: structured("Retired", "inferred", 0.4) },
     });
 
-    await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
+    await gate.wrap(writeTool(), turnContext()).execute({ status: "Retired" });
     const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
 
     expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Inferred");
+    expect(entry?.affidavit.fields[0]?.provenance.current.binding).toBeNull();
     expect(entry?.affidavit.fields[0]?.provenance.current.confidence).toBe(0.4);
   });
 
@@ -300,6 +304,125 @@ describe("the inference step and the merge (PV-1, PV-2, PV-3)", () => {
     expect(() =>
       mintInference("UserStated" as unknown as InferenceSource, { confidence: 1, at: AT }),
     ).toThrow(RangeError);
+  });
+});
+
+describe("presence is established from the utterance, not from the port's claim (PV-3)", () => {
+  /** The Meridian turn the framework defect was found on (`Sakwala/affiant#123`). */
+  const MERIDIAN =
+    "Create an AOG work order for WZ-BRN. Title: Left engine oil pressure fluctuation. " +
+    "Priority Critical, estimated 6 hours, assign it to Rajesh Kumar, due 2026-09-08";
+
+  it("grades a silent port's seven values Conversation, bound to where they were read", async () => {
+    const values = {
+      workOrderType: "AOG",
+      aircraftId: "WZ-BRN",
+      title: "Left engine oil pressure fluctuation",
+      priority: "Critical",
+      estimatedHours: 6,
+      assignee: "Rajesh Kumar",
+      dueDate: "2026-09-08",
+    } as const;
+    const names = Object.keys(values);
+    const { gate, store } = harness({
+      // What every shipped inference port reports: a value and a confidence, and
+      // nothing about presence. At beta.3 these were seven "AI suggested" fields.
+      inferred: Object.fromEntries(
+        Object.entries(values).map(([name, value]) => [name, structured(value, undefined, 0.9)]),
+      ),
+    });
+
+    await gate
+      .wrap(
+        writeTool({ entityType: "WorkOrder", fields: names }),
+        turnContext({ utterance: MERIDIAN }),
+      )
+      .execute(Object.fromEntries(names.map((name) => [name, null])));
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    for (const field of entry?.affidavit.fields ?? []) {
+      const binding = field.provenance.current.binding;
+      expect(field.provenance.current.source, field.name).toBe("Conversation");
+      if (binding?.kind !== "utterance-span") expect.unreachable("an utterance-span binding");
+      expect(MERIDIAN.slice(binding.ref.offset, binding.ref.offset + binding.ref.length)).toBe(
+        String(values[field.name as keyof typeof values]),
+      );
+    }
+  });
+
+  it("does not read a number out of a longer one", async () => {
+    const { gate, store } = harness({
+      inferred: { crewSize: structured(20, undefined, 0.5) },
+    });
+
+    await gate
+      .wrap(writeTool({ fields: ["crewSize"] }), turnContext({ utterance: MERIDIAN }))
+      .execute({ crewSize: 20 });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Inferred");
+    expect(entry?.affidavit.fields[0]?.provenance.current.binding).toBeNull();
+  });
+
+  it("hashes the utterance's own bytes, not the port's text, where the case differs", async () => {
+    const utterance = "File the expense for the client lunch";
+    const { gate, store } = harness({
+      inferred: { memo: structured("Client Lunch", undefined, 0.8) },
+    });
+
+    await gate
+      .wrap(writeTool({ fields: ["memo"] }), turnContext({ utterance }))
+      .execute({ memo: "Client Lunch" });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    const binding = entry?.affidavit.fields[0]?.provenance.current.binding;
+    expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Conversation");
+    if (binding?.kind !== "utterance-span") expect.unreachable("an utterance-span binding");
+    expect(utterance.slice(binding.ref.offset, binding.ref.offset + binding.ref.length)).toBe(
+      "client lunch",
+    );
+    expect(binding.ref.hash).toBe(await sha256Hex(new TextEncoder().encode("client lunch")));
+  });
+
+  it("grades a port's unconfirmed `literal` Inferred, and drops its span", async () => {
+    const { gate, store } = harness({
+      inferred: { status: structured("Critical", "literal", 0.7, { start: 0, end: 8 }) },
+    });
+
+    await gate
+      .wrap(writeTool(), turnContext({ utterance: "Raise a work order for the left engine" }))
+      .execute({ status: "Critical" });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Inferred");
+    expect(entry?.affidavit.fields[0]?.provenance.current.binding).toBeNull();
+  });
+
+  it("binds to the port's span when the utterance at it says what the port said", async () => {
+    const utterance = "Critical, and I mean Critical";
+    const { gate, store } = harness({
+      inferred: { status: structured("Critical", "literal", 0.7, { start: 21, end: 29 }) },
+    });
+
+    await gate.wrap(writeTool(), turnContext({ utterance })).execute({ status: "Critical" });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    const binding = entry?.affidavit.fields[0]?.provenance.current.binding;
+    if (binding?.kind !== "utterance-span") expect.unreachable("an utterance-span binding");
+    expect(binding.ref.offset).toBe(21);
+  });
+
+  it("grades a value the port called `inferred` Conversation when the turn carries it", async () => {
+    const { gate, store } = harness({
+      inferred: { status: structured("Critical", "inferred", 0.6) },
+    });
+
+    await gate
+      .wrap(writeTool(), turnContext({ utterance: "Priority Critical please" }))
+      .execute({ status: "Critical" });
+    const [entry] = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+
+    expect(entry?.affidavit.fields[0]?.provenance.current.source).toBe("Conversation");
   });
 });
 

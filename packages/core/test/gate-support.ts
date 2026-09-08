@@ -120,14 +120,19 @@ export function telemetryLog(): TelemetryLog {
 /** The step names a {@link Trace} records, in the order GT-1 fixes them. */
 export type Trace = string[];
 
-/** One field as the inference port would report it. */
+/**
+ * One field as the inference port would report it.
+ *
+ * `presence` is `undefined` for a port that reports none — which is what every
+ * shipped port does, and the case PV-3's finder exists for.
+ */
 export function structured(
   value: JsonValue,
-  presence: "literal" | "inferred",
+  presence: "literal" | "inferred" | undefined,
   confidence: number,
   utteranceSpan: UtteranceSpan | null = null,
 ): StructuredField {
-  return { value, confidence, presence, utteranceSpan };
+  return { value, confidence, utteranceSpan, ...(presence === undefined ? {} : { presence }) };
 }
 
 /** An {@link InferencePort} that reports `fields` for every turn. */

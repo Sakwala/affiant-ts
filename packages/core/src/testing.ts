@@ -184,9 +184,13 @@ export interface FixtureInferredField {
   readonly value: JsonValue;
   /** How confident the port claims to be. Clamped by the pipeline (PV-1). */
   readonly confidence: number;
-  /** Literally present in the turn (`Conversation`) or reasoned to (`Inferred`). */
-  readonly presence: "literal" | "inferred";
-  /** Where in the utterance, when the port can say. */
+  /**
+   * The port's hint about whether the value was literally in the turn, or absent when
+   * it reports none. Optional, and never the grade: PV-3 has the gate establish
+   * presence from `given.ctx.utterance` itself and verify this claim the same way.
+   */
+  readonly presence?: "literal" | "inferred";
+  /** Where in the utterance the port says it was, when it can say. Also a hint (PV-3). */
   readonly utteranceSpan?: { readonly start: number; readonly end: number } | null;
 }
 
@@ -477,6 +481,19 @@ export interface FieldExpectation {
   readonly bound?: boolean;
   /** The kind of binding, when the fixture is about which one. */
   readonly bindingKind?: string | null;
+  /**
+   * The `utterance-span` binding the tag in force carries, stated exactly (PV-3):
+   * `offset` and `length` in UTF-16 code units of `given.ctx.utterance`, and `hash`
+   * the SHA-256 of the UTF-8 bytes of the utterance's **own** substring at that span.
+   * Stating it pins which occurrence the finder found and that the digest is over the
+   * utterance rather than over the value the port reported. `null` asserts the tag
+   * carries no `utterance-span` binding.
+   */
+  readonly utteranceSpan?: {
+    readonly offset: number;
+    readonly length: number;
+    readonly hash: string;
+  } | null;
   readonly confidence?: number;
   /** The grades the chain displaced, newest first. */
   readonly priorSources?: readonly ProvenanceSource[];
@@ -639,6 +656,7 @@ const FIXTURE_KEYS = {
     "source",
     "bound",
     "bindingKind",
+    "utteranceSpan",
     "confidence",
     "priorSources",
   ],
@@ -993,9 +1011,12 @@ export function fixedClock(start: string): FixtureClock {
  * An {@link InferencePort} that reports exactly what the fixture scripted, for every
  * turn.
  *
- * Scripted rather than computed: the gate's contract is that it asks the host for
- * values and tags whatever it gets, so a fixture that also decided *how* the values
- * were found would be testing a model the framework does not ship.
+ * The **values** are scripted rather than computed: the gate's contract is that it
+ * asks the host for values, so a fixture that also decided what the model would
+ * answer would be testing a model the framework does not ship. `presence` and
+ * `utteranceSpan` are the port's own report, which the gate verifies against the
+ * turn (PV-3) — a fixture states them to exercise a port's claim, never to decide the
+ * outcome.
  */
 export function scriptedInference(
   fields: { readonly [fieldName: string]: FixtureInferredField } | null,
@@ -1005,7 +1026,10 @@ export function scriptedInference(
     scripted[name] = {
       value: field.value,
       confidence: field.confidence,
-      presence: field.presence,
+      // Reported only when the fixture reports one: a port that says nothing about
+      // presence is the case every shipped port is in, and the gate must be reached
+      // by it rather than by an invented default (PV-3).
+      ...(field.presence === undefined ? {} : { presence: field.presence }),
       utteranceSpan: field.utteranceSpan ?? null,
     };
   }
@@ -1934,6 +1958,13 @@ function checkAffidavit(
       `${path}.bindingKind`,
       wanted.bindingKind,
       field.provenance.current.binding?.kind ?? null,
+      failures,
+    );
+    const binding = field.provenance.current.binding;
+    compare(
+      `${path}.utteranceSpan`,
+      wanted.utteranceSpan,
+      binding?.kind === "utterance-span" ? binding.ref : null,
       failures,
     );
     compare(
