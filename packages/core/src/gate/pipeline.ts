@@ -5,9 +5,10 @@
  * **Rules served: GT-1** (the order itself), **GT-3** (runtime substance refusal),
  * **GT-4** (TTL stamped from the policy result, after the chain; a re-file keeps the
  * existing deadline), **PV-1** (confidence clamped, merge by confidence then
- * determinism), **PV-3** (the inference step cannot mint `UserStated`), **AF-1**
- * (every proposed field present, unknown provenance recorded as `Empty`), **AF-3**
- * (create carries no previous values; update carries the key on every field),
+ * determinism), **PV-3** (the inference step cannot mint `UserStated`, and it
+ * establishes presence from the utterance itself rather than from the port's claim),
+ * **AF-1** (every proposed field present, unknown provenance recorded as `Empty`),
+ * **AF-3** (create carries no previous values; update carries the key on every field),
  * **AZ-1** (a Standing Order writes its attestation in the same operation as the
  * filing), **AZ-4** (a requirement this version does not run is filed blocked),
  * **CV-4** (a declared-uncovered tool's proposal is filed blocked), **SR-4** (the
@@ -91,13 +92,14 @@ import type {
   ProjectionPort,
   RiskScorer,
   TelemetryPort,
-  UtteranceSpan,
 } from "../ports.js";
 
 import type { CoverageRegistry } from "./coverage.js";
 import { coverageRefusedMarker } from "./coverage.js";
 import type { ApprovalPolicy, PolicyOutcome } from "./policy.js";
 import { evaluatePolicies } from "./policy.js";
+import type { UtteranceHit } from "./presence.js";
+import { locateInUtterance, utteranceTextOf } from "./presence.js";
 
 // ---------------------------------------------------------------------------
 // What comes out
@@ -395,18 +397,31 @@ export async function runPipeline(
         // PV-3: `mintConversation` and `mintInferred` are the only two mints reachable
         // from here, and neither can name `UserStated` — the parameter type forbids it
         // and the runtime guard in `mintInference` catches an untyped caller.
+        //
+        // Which of the two is decided here, from the turn, not by the port: PV-3's
+        // condition is that the value is literally present in the utterance, and that
+        // is a property of two strings. `locateInUtterance` is that sentence. The
+        // port's `presence` and `utteranceSpan` are hints — a span is used when the
+        // utterance at that span says what the port said it says, a claimed `literal`
+        // the text does not confirm is `Inferred`, and a value the port said nothing
+        // about is `Conversation` when it is there to read.
+        const hit = locateInUtterance(
+          ctx.turn.utterance,
+          utteranceTextOf(value),
+          structured.utteranceSpan ?? null,
+        );
         const tag =
-          structured.presence === "literal"
-            ? mintConversation({
-                confidence: structured.confidence,
-                at: now,
-                note: `Literally present in the turn: ${name}`,
-                binding: await utteranceSpanBinding(ctx.turn.utterance, structured.utteranceSpan),
-              })
-            : mintInferred({
+          hit === null
+            ? mintInferred({
                 confidence: structured.confidence,
                 at: now,
                 note: `Inferred from the turn: ${name}`,
+              })
+            : mintConversation({
+                confidence: structured.confidence,
+                at: now,
+                note: `Literally present in the turn: ${name}`,
+                binding: await utteranceSpanBinding(ctx.turn.utterance, hit),
               });
         admit(name, tag, value);
       }
@@ -804,28 +819,21 @@ function uuidFromDigest(digest: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * The `utterance-span` binding for a value the port reported as literally present
- * (PV-2), or `null` when there is no span or the span does not fit the turn.
+ * The `utterance-span` binding for a value the finder located in the turn (PV-2).
  *
- * The hash is a SHA-256 of the span's own text, so an auditor holding the turn can
- * re-derive it and see that the pointer still points where it did. A span that runs
- * past the end of the utterance, or reads backwards, is not evidence: the binding is
- * dropped and the tag stays `Conversation` with nothing behind it, which PV-4 then
- * treats as unbound — the honest outcome.
+ * Offset and length are in UTF-16 code units of the utterance, and the hash is a
+ * SHA-256 over the UTF-8 bytes of the utterance's **own** substring at that span — what
+ * was there when the value was read — so an auditor holding the turn can re-derive it
+ * and see that the pointer still points where it did. A hit is always inside the turn,
+ * so every hit binds: there is no `Conversation` here with nothing behind it.
  */
-async function utteranceSpanBinding(
-  utterance: string,
-  span: UtteranceSpan | null,
-): Promise<Binding | null> {
-  if (span === null) return null;
-  if (!Number.isInteger(span.start) || !Number.isInteger(span.end)) return null;
-  if (span.start < 0 || span.end < span.start || span.end > utterance.length) return null;
-  const text = utterance.slice(span.start, span.end);
+async function utteranceSpanBinding(utterance: string, hit: UtteranceHit): Promise<Binding> {
+  const text = utterance.slice(hit.offset, hit.offset + hit.length);
   return {
     kind: "utterance-span",
     ref: {
-      offset: span.start,
-      length: span.end - span.start,
+      offset: hit.offset,
+      length: hit.length,
       hash: await sha256Hex(new TextEncoder().encode(text)),
     },
   };

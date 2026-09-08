@@ -10,6 +10,46 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Presence is established from the utterance, not from the inference port's claim**
+  (PV-3, PV-2). The pipeline graded a field `Conversation` only where the port's
+  `StructuredField` said `presence: "literal"`, and no shipped inference port asks a
+  model for `presence` at all — so every value a person typed was tagged `Inferred` and
+  read on the card as "AI suggested"
+  ([`Sakwala/affiant#123`](https://github.com/Sakwala/affiant/issues/123)).
+
+  `src/gate/presence.ts` is PV-3's finder as the rulebook states it. The *value text* —
+  a string as itself, a number as SR-1's canonical rendering, a boolean as `true` or
+  `false` — is looked for in the unmodified turn under a case-insensitive ordinal
+  comparison, and an occurrence counts only where each neighbouring **code point** is
+  absent or is none of a letter (`L*`), a mark (`M*`), a decimal digit (`Nd`) or
+  connector punctuation (`Pc`). The fold is *simple*: `toUpperCase()` per code point,
+  keeping the original wherever the result changes length, so `ß` matches `ß` and not
+  `SS` and an offset into the fold is an offset into the turn. The first hit wins, and it
+  mints `Conversation` bound to `{ offset, length, hash }` — offsets in UTF-16 code
+  units, the hash over the UTF-8 bytes of the utterance's **own** substring at that span,
+  which is what was there when the value was read (PV-2). No hit is `Inferred`, unbound.
+
+  `presence` and `utteranceSpan` are now optional on `StructuredField`, and both are
+  hints the gate verifies rather than honours: a span is used only where it is itself a
+  hit — its text is the value *and* its neighbours pass the same test — a `literal` the
+  text does not confirm is `Inferred`, and a value the port said nothing about, which is
+  the case every shipped port is in, is `Conversation` when it is there to read. Nothing
+  asks a model about its own literalness.
+
+  `@affiant/core/testing`'s runner gains the `utteranceSpan` field matcher the amended
+  fixture format carries, so a fixture can pin *which* occurrence was found and that the
+  digest is the utterance's rather than the port's. Four of the amendment's fixtures are
+  here — `gate/inference-presence-computed-from-the-utterance`,
+  `gate/inference-port-literal-unconfirmed`, `gate/inference-port-span-fails-the-boundary`
+  and `gate/inference-case-folds-and-the-digest-is-the-utterances` — and
+  `sequence-a/picker-external-binding` now expects its `status` field **bound**, because
+  the port claimed `literal` with no span and the finder locates `"Active"` in that
+  fixture's own turn. In `samples/scenario-deck` the third turn's `billingDay` moves to
+  `Inferred`: the person wrote `15th`, and the `15` inside it is a fragment of a longer
+  token rather than the number, so the span that port reports is discarded.
+
 ### Changed
 
 - **The seven canonical byte vectors are regenerated from v0.1-shaped inputs, and a

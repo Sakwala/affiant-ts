@@ -269,7 +269,7 @@ Act 4. A third change is proposed, nobody answers, and it comes back later  [DK-
   billingDay  [optional]                                attestation (none - nobody has decided)
     was   1                                             expires     2026-09-04T10:25:00.000Z
     now   15                                            supersedes  da6584f4-22e1-88b1-a343-2533a2837f8e
-    from  Conversation 0.99, bound: utterance-span
+    from  Inferred 0.99, bound: nothing
                                                         A resubmission is never a reopening. The old row
   aggregate 0.99  populated 0.99  empty fields 0        keeps its terminal state and gains a successor
                                                         link; the new one names what it supersedes. The

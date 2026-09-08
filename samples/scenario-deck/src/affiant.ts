@@ -252,10 +252,14 @@ function spanOf(
  * — which is all the gate needs to file an Affidavit with substance in it, and what
  * lets this run without an API key.
  *
- * `presence: "literal"` is what the pipeline turns into a `Conversation` tag with an
- * `utterance-span` binding an auditor can re-check; `"inferred"` becomes an
- * `Inferred` tag with nothing behind it, which is the honest grade for a value the
- * model reasoned to. No entry for `phone` anywhere: nobody said one.
+ * `presence` and `utteranceSpan` are the port's report, not the grade: PV-3 has the
+ * gate look for the value in the unmodified turn itself. Either address is there to
+ * read, so each becomes a `Conversation` tag with an `utterance-span` binding an
+ * auditor can re-check. `plan` and `billingDay` on the first turn are values the model
+ * reasoned to and are in no turn, so both are `Inferred` with nothing behind them —
+ * and so is the `15` on the third turn, whose port names a span the gate discards: the
+ * person wrote `15th`, and `15` inside it is a fragment of a longer token, not the
+ * number. No entry for `phone` anywhere: nobody said one.
  */
 const SCRIPT: { readonly [messageId: string]: { readonly [field: string]: StructuredField } } = {
   [TURNS.first.messageId]: {
