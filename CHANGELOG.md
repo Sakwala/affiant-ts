@@ -12,9 +12,11 @@ was made against.
 
 ### Changed
 
-- **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` are on npm at
-  `0.1.0-alpha.1`.** Published 2026-09-09 under the `alpha` dist-tag by the same
-  hand-dispatched workflow, with provenance. The version carries one behaviour change and
+- **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` are versioned
+  `0.1.0-alpha.1` on `main`.** The publish to npm is pending: the hand-dispatched
+  workflow's upload step failed with `ENEEDAUTH` on the trusted-publishing exchange
+  (run [`34304628559`](https://github.com/Sakwala/affiant-ts/actions/runs/34304628559)),
+  and npm still serves `0.1.0-alpha.0`. The version carries one behaviour change and
   one pin move, both below: the gate establishes presence from the utterance itself rather
   than from the inference port's claim about it (PV-3, PV-2), so a value a person typed in
   chat is graded `Conversation` and bound to the span it was read at instead of being filed
