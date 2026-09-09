@@ -41,7 +41,7 @@
 # that cannot be rehearsed anywhere but a real release, and pnpm needed two later
 # fixes (11.0.7 and 11.1.3) before that indirection was reliable. So the real path
 # packs with pnpm — which is what rewrites the `workspace:^` range on
-# `@affiant/contract` into `^0.1.0-alpha.0`, and what runs the `prepack` guard — and
+# `@affiant/contract` into `^0.1.0-alpha.1`, and what runs the `prepack` guard — and
 # then hands each finished tarball to `npm publish`, in dependency order.
 #
 # The dry run still goes through `pnpm -r publish --dry-run`, unchanged: it needs no

@@ -10,6 +10,20 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] — 2026-09-09
+
+The grade a person's own words earn. At `0.1.0-alpha.0` the pipeline graded an inferred
+field `Conversation` only where the inference port's `StructuredField` said
+`presence: "literal"`, and no shipped port asks a model that question — so every value a
+person typed in chat was filed `Inferred` and read on the card as "AI suggested", which is
+the one distinction an Evidence Card exists to draw. Presence is a property of two strings,
+and the gate now establishes it itself, from the turn, by PV-3's finder as the rulebook
+states it; a hit binds an `utterance-span` to the substring it found. The protocol pin moves
+with it, from [`v0.1.2`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.2) to
+[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3). No exported
+type was removed and no signature changed: `presence` and `utteranceSpan` became optional on
+`StructuredField`, which widens what a host may hand in.
+
 ### Fixed
 
 - **Presence is established from the utterance, not from the inference port's claim**
