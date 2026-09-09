@@ -18,7 +18,7 @@
  * supplies (see `ports.ts`), which is what lets one gate sit in front of any model,
  * any database and any approval surface.
  *
- * **What is here at `0.1.0-alpha.0`:** the turn context (GT-2), the port
+ * **What is here at `0.1.0-alpha.1`:** the turn context (GT-2), the port
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
@@ -43,7 +43,7 @@
  * The fixtures for both v0.1 sequences and the runner that executes them are behind
  * `@affiant/core/testing`, which a host can point at its own ports.
  *
- * **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
+ * **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
  * attestation, since 2026-09-06. The same version string is what a conformance driver
  * pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
  * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
@@ -53,7 +53,7 @@
  */
 
 /** The version of this package, and the version of it that is on npm. */
-export const CORE_VERSION = "0.1.0-alpha.0";
+export const CORE_VERSION = "0.1.0-alpha.1";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from

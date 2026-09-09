@@ -12,7 +12,7 @@ or no confidence impossible to skim past.
 
 **Try it:** <https://sakwala.github.io/affiant-ts/>
 
-> **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
+> **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
 > attestation, since 2026-09-06: `npm i @affiant/evidence-card@alpha`. Publishing is
 > a separate, deliberate step — a workflow a maintainer dispatches by hand, which
 > defaults to a dry run.

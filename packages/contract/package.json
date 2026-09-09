@@ -1,6 +1,6 @@
 {
   "name": "@affiant/contract",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Wire types and vendored JSON Schemas for the Affiant protocol, pinned to a protocol tag.",
   "keywords": [
     "affiant",

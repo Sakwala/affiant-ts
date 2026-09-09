@@ -1,6 +1,6 @@
 {
   "name": "@affiant/evidence-card",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "<affiant-evidence-card>, a dependency-free custom element that renders an Affiant Affidavit for a person to approve, amend or reject.",
   "keywords": [
     "affiant",
