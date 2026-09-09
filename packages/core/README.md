@@ -14,8 +14,10 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-06: `npm i @affiant/core@alpha`. The condition for
+> **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
+> attestation, since 2026-09-06: `npm i @affiant/core@alpha`. `main` is at
+> `0.1.0-alpha.1`; that publish is pending — the dispatched workflow's upload step
+> failed with `ENEEDAUTH` on the trusted-publishing exchange. The condition for
 > publishing was exact: a **public parity report** — the per-implementation list of
 > conformance fixtures each implementation does not yet pass — and a **green,
 > merge-blocking TypeScript conformance driver** running the shared fixture suite
