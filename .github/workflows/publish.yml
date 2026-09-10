@@ -51,6 +51,36 @@
 # The dry run still goes through `pnpm -r publish --dry-run`, unchanged: it needs no
 # credential, and it is the path that reports which versions the registry already
 # has.
+#
+# Why the exchange is proved before the upload, and why the upload still hands npm
+# a tarball. Two dispatches of this workflow, on 2026-09-09 and 2026-09-10, failed
+# at `npm publish` with ENEEDAUTH having printed nothing about OIDC or trusted
+# publishing, which reads as though the exchange had never been attempted. It does
+# not mean that. In npm 12.0.2 — the version the assert step above installs —
+# `lib/commands/publish.js:152` calls the OIDC helper unconditionally, before the
+# credential check that raises ENEEDAUTH at line 171, and the argument's spec type
+# is consulted only for lifecycle scripts (lines 103 and 222) and for reading the
+# manifest (line 296). A tarball path and a package directory take the same
+# authentication path. The helper itself, `lib/utils/oidc.js`, is documented never
+# to throw (lines 14-15) and reports every one of its exits — no id-token
+# permission in the environment (line 67), a refused exchange request (line 126),
+# an exchange answer carrying no token (line 131) — at the `verbose` or `silly`
+# level, which npm's default `notice` loglevel does not print. The missing line was
+# evidence of nothing; `--loglevel verbose` below makes it evidence of something.
+#
+# The preflight step in front of the upload performs the same exchange npm
+# performs — the same audience, the same endpoint, the `npm-command` header
+# `npm-registry-fetch` sends (`lib/index.js:232`) — and prints the registry's own
+# answer for each of the three packages. A refused exchange names its own cause, on
+# the dry run as much as on the real one, instead of arriving as ENEEDAUTH after
+# the tarballs are built. The exchanged token is masked and never printed.
+#
+# Publishing each package from its own directory instead would not have changed the
+# authentication, and would have broken two of the three: `@affiant/core` and
+# `@affiant/evidence-card` depend on `@affiant/contract` at `workspace:^`, and npm
+# has no rewriting of that protocol anywhere in its publish path — the range would
+# reach the registry verbatim. pnpm's pack is what turns it into `^0.1.0-alpha.1`,
+# which is why the tarballs stay.
 
 name: Publish to npm
 
@@ -155,6 +185,65 @@ jobs:
           echo "to upload, or leave dry_run checked to rehearse it." >&2
           exit 1
 
+      # The credential, proved before anything is built. This asks GitHub for the
+      # same id token npm asks for — the audience is `npm:` and the registry's
+      # hostname, as `lib/utils/oidc.js:74` composes it — and offers it to the same
+      # exchange endpoint (`lib/utils/oidc.js:120`) for each package that is about
+      # to go. A 200 means the registry recognises this repository, this workflow
+      # filename and this package; anything else is printed with the registry's own
+      # message, which is the sentence npm's helper swallows at `verbose`
+      # (`lib/utils/oidc.js:126`). Nothing is published here and no token is
+      # printed: the exchanged credential is short lived and package scoped, and
+      # the id token is masked the moment it exists.
+      - name: trusted publishing preflight
+        run: |
+          set -eo pipefail
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "no OIDC request URL or token in the environment: this job does not" >&2
+            echo "have \`id-token: write\`, and npm's helper would skip the exchange" >&2
+            echo "silently (lib/utils/oidc.js:67)." >&2
+            exit 1
+          fi
+          id_token=$(
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              --header "Accept: application/json" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=npm%3Aregistry.npmjs.org" \
+            | node -e '
+              let body = ""
+              process.stdin.on("data", chunk => { body += chunk })
+              process.stdin.on("end", () => {
+                const value = JSON.parse(body).value
+                if (!value) {
+                  console.error("the id-token response carried no value")
+                  process.exit(1)
+                }
+                process.stdout.write(value)
+              })
+            '
+          )
+          echo "::add-mask::$id_token"
+          refused=0
+          for package in contract core evidence-card; do
+            body="$RUNNER_TEMP/exchange-$package.json"
+            status=$(
+              curl --silent --show-error --output "$body" --write-out '%{http_code}' \
+                --request POST \
+                --header "Authorization: Bearer $id_token" \
+                --header "npm-command: publish" \
+                "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@affiant%2f$package"
+            )
+            if [ "$status" = "200" ]; then
+              echo "@affiant/$package: the registry exchanged the id token (HTTP 200; the token is not printed)"
+            else
+              refused=1
+              echo "@affiant/$package: the registry refused the exchange (HTTP $status)" >&2
+              cat "$body" >&2
+              echo >&2
+            fi
+          done
+          exit "$refused"
+
       # `AFFIANT_ALLOW_PUBLISH=1` is the override `packages/core/scripts/prepack-guard.mjs`
       # documents, for the release that runs once the scope exists. The guard still
       # executes on both paths — `pnpm publish` and `pnpm pack` each run `prepack`,
@@ -162,7 +251,9 @@ jobs:
       # publish if the variable were absent.
       #
       # On the real path the three tarballs are published in dependency order:
-      # `@affiant/contract` first, because the other two depend on it.
+      # `@affiant/contract` first, because the other two depend on it. Each upload
+      # runs at `--loglevel verbose` because that is the only level at which npm's
+      # OIDC helper says anything at all about what it did.
       - name: publish
         run: |
           set -eo pipefail
@@ -187,6 +278,7 @@ jobs:
                 exit 1
               fi
               npm publish "${matches[0]}" --access public --tag alpha --provenance \
+                --loglevel verbose \
                 2>&1 | tee -a "$RUNNER_TEMP/publish.log"
             done
           fi
