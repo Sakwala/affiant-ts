@@ -52,8 +52,9 @@
 # then hands each finished tarball to `npm publish`, in dependency order.
 #
 # The dry run still goes through `pnpm -r publish --dry-run`, unchanged: it needs no
-# credential, and it is the path that reports which versions the registry already
-# has.
+# credential. Reporting which versions the registry already has is no longer
+# dry-run-only — the real path asks the registry the same question, per package,
+# immediately before each publish.
 #
 # Why the exchange is proved before the upload, and why the upload still hands npm
 # a tarball. Two dispatches of this workflow, on 2026-09-09 and 2026-09-10, failed
@@ -192,12 +193,15 @@ jobs:
       # same id token npm asks for — the audience is `npm:` and the registry's
       # hostname, as `lib/utils/oidc.js:74` composes it — and offers it to the same
       # exchange endpoint (`lib/utils/oidc.js:120`) for each package that is about
-      # to go. A 200 means the registry recognises this repository, this workflow
-      # filename and this package; anything else is printed with the registry's own
-      # message, which is the sentence npm's helper swallows at `verbose`
-      # (`lib/utils/oidc.js:126`). Nothing is published here and no token is
-      # printed: the exchanged credential is short lived and package scoped, and
-      # the id token is masked the moment it exists.
+      # to go. A 2xx answer means the registry recognises this repository, this
+      # workflow filename and this package; anything else is printed with the
+      # registry's own message, which is the sentence npm's helper swallows at
+      # `verbose` (`lib/utils/oidc.js:126`). Nothing is published here and no token
+      # is printed on success: the exchanged credential is short lived and package
+      # scoped, and the id token itself is masked the moment it exists — before the
+      # first line that could contain it. Before any exchange, the id token's own
+      # claims are decoded and printed (not the token), so the identity the
+      # registry is about to see is legible in the log rather than trusted blind.
       #
       # It reports and does not fail. npm's own exchange in the step below is the
       # authority on whether this job can publish, and a diagnostic that guessed
@@ -242,6 +246,18 @@ jobs:
             '
           )
           echo "::add-mask::$id_token"
+          ID_TOKEN="$id_token" node -e '
+            const claims = [
+              "repository", "repository_owner", "job_workflow_ref", "workflow_ref",
+              "environment", "ref", "sub", "aud",
+            ]
+            const payload = JSON.parse(
+              Buffer.from(process.env.ID_TOKEN.split(".")[1], "base64url").toString("utf8")
+            )
+            for (const claim of claims) {
+              console.log(`${claim}: ${claim in payload ? payload[claim] : "(absent)"}`)
+            }
+          '
           for package in contract core evidence-card; do
             for command in publish stage; do
               body="$RUNNER_TEMP/exchange-$package-$command.json"
@@ -252,11 +268,14 @@ jobs:
                   --header "npm-command: $command" \
                   "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@affiant%2f$package"
               )
-              if [ "$status" = "200" ]; then
-                echo "@affiant/$package: the registry exchanged the id token for \`npm $command\` (HTTP 200; the token is not printed)"
-              else
-                echo "::warning::@affiant/$package: the registry refused the exchange for \`npm $command\` (HTTP $status): $(tr -d '\n' < "$body")"
-              fi
+              case "$status" in
+                2*)
+                  echo "@affiant/$package: the registry exchanged the id token for \`npm $command\` (HTTP $status; the token is not printed)"
+                  ;;
+                *)
+                  echo "::warning::@affiant/$package: the registry refused the exchange for \`npm $command\` (HTTP $status): $(tr -d '\n' < "$body")"
+                  ;;
+              esac
             done
           done
 
@@ -266,10 +285,12 @@ jobs:
       # and it prints which package it is packing — and it would still stop the
       # publish if the variable were absent.
       #
-      # On the real path the three tarballs are published in dependency order:
-      # `@affiant/contract` first, because the other two depend on it. Each upload
-      # runs at `--loglevel verbose` because that is the only level at which npm's
-      # OIDC helper says anything at all about what it did.
+      # On the real path up to three tarballs are published, in dependency order:
+      # `@affiant/contract` first, because the other two depend on it. A version the
+      # registry already serves is skipped with a `::notice::` rather than
+      # re-uploaded. Each upload that does happen runs at `--loglevel verbose`
+      # because that is the only level at which npm's OIDC helper says anything at
+      # all about what it did.
       - name: publish
         run: |
           set -eo pipefail
@@ -336,7 +357,7 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             {
-              echo "### Published at the \`alpha\` dist-tag"
+              echo "### At the \`alpha\` dist-tag after this run"
               echo
               for package in contract core evidence-card; do
                 echo "- \`@affiant/$package\` — $(npm view "@affiant/$package@alpha" version)"
