@@ -14,10 +14,9 @@ approve, amend or reject before the host commits anything.
 This package is types and data. It has no runtime dependencies and does nothing at
 import time.
 
-> **On npm at `0.1.0-alpha.0`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-06: `npm i @affiant/contract@alpha`. `main` is at
-> `0.1.0-alpha.1`; that publish is pending — the dispatched workflow's upload step
-> failed with `ENEEDAUTH` on the trusted-publishing exchange. Publishing is a
+> **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
+> attestation, since 2026-09-10: `npm i @affiant/contract@alpha`. The `latest` dist-tag
+> still names `0.1.0-alpha.0`, so an untagged install is that one. Publishing is a
 > separate, deliberate step — a workflow a maintainer dispatches by hand, which
 > defaults to a dry run.
 
