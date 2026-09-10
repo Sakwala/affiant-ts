@@ -195,6 +195,22 @@ jobs:
       # (`lib/utils/oidc.js:126`). Nothing is published here and no token is
       # printed: the exchanged credential is short lived and package scoped, and
       # the id token is masked the moment it exists.
+      #
+      # It reports and does not fail. npm's own exchange in the step below is the
+      # authority on whether this job can publish, and a diagnostic that guessed
+      # wrong should never stop a release npm itself could authenticate. A refusal
+      # is a warning annotation; the upload then stops on its own, because a
+      # credential that was never issued raises ENEEDAUTH.
+      #
+      # Each package is asked twice, because a trusted publisher is registered for
+      # particular actions. npm sends the command's own name in the `npm-command`
+      # header (`lib/npm.js:419`, and `lib/index.js:232` of npm-registry-fetch):
+      # `npm publish` sends `publish`, and `npm stage publish` sends `stage`, the
+      # name its command class carries (`lib/commands/stage/index.js`). npm's
+      # documentation records that a trusted publisher registered after 2026-09-03
+      # allows `npm stage publish` and permits direct `npm publish` only when that
+      # action was chosen, so `stage` answering where `publish` does not is a fact
+      # worth reading in the log rather than inferring.
       - name: trusted publishing preflight
         run: |
           set -eo pipefail
@@ -223,26 +239,23 @@ jobs:
             '
           )
           echo "::add-mask::$id_token"
-          refused=0
           for package in contract core evidence-card; do
-            body="$RUNNER_TEMP/exchange-$package.json"
-            status=$(
-              curl --silent --show-error --output "$body" --write-out '%{http_code}' \
-                --request POST \
-                --header "Authorization: Bearer $id_token" \
-                --header "npm-command: publish" \
-                "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@affiant%2f$package"
-            )
-            if [ "$status" = "200" ]; then
-              echo "@affiant/$package: the registry exchanged the id token (HTTP 200; the token is not printed)"
-            else
-              refused=1
-              echo "@affiant/$package: the registry refused the exchange (HTTP $status)" >&2
-              cat "$body" >&2
-              echo >&2
-            fi
+            for command in publish stage; do
+              body="$RUNNER_TEMP/exchange-$package-$command.json"
+              status=$(
+                curl --silent --show-error --output "$body" --write-out '%{http_code}' \
+                  --request POST \
+                  --header "Authorization: Bearer $id_token" \
+                  --header "npm-command: $command" \
+                  "https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@affiant%2f$package"
+              )
+              if [ "$status" = "200" ]; then
+                echo "@affiant/$package: the registry exchanged the id token for \`npm $command\` (HTTP 200; the token is not printed)"
+              else
+                echo "::warning::@affiant/$package: the registry refused the exchange for \`npm $command\` (HTTP $status): $(tr -d '\n' < "$body")"
+              fi
+            done
           done
-          exit "$refused"
 
       # `AFFIANT_ALLOW_PUBLISH=1` is the override `packages/core/scripts/prepack-guard.mjs`
       # documents, for the release that runs once the scope exists. The guard still
