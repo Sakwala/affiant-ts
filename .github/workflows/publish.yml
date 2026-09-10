@@ -25,10 +25,13 @@
 # than taking the required check on `main` on trust. `--ignore-scripts` is therefore
 # never passed to the pack: skipping the guard would skip the reason.
 #
-# Authentication: npm trusted publishing, not a token. The registry is configured to
-# trust this repository's `publish.yml` workflow for all three packages, so the job's
-# OIDC token (`id-token: write`) is exchanged for a short-lived, package-scoped
-# credential at publish time. There is no `NPM_TOKEN` in this file and no
+# Authentication: npm trusted publishing, not a token. For the exchange below to
+# succeed, the registry must carry a trusted-publisher entry naming this repository
+# and this workflow filename for each of the three packages; until it does, every
+# OIDC exchange answers 404 and the publish step fails with ENEEDAUTH. Once that
+# entry exists, the job's OIDC token (`id-token: write`) is exchanged for a
+# short-lived, package-scoped credential at publish time. There is no `NPM_TOKEN` in
+# this file and no
 # `NODE_AUTH_TOKEN` in the environment; the secret is deleted once the first OIDC
 # publish has proved the exchange works. npm's requirements for that exchange are
 # npm CLI >= 11.5.1, Node >= 22.14.0, `id-token: write`, and a workflow filename that
@@ -290,7 +293,22 @@ jobs:
                 echo "found: ${matches[*]}" >&2
                 exit 1
               fi
-              npm publish "${matches[0]}" --access public --tag alpha --provenance \
+              tarball="${matches[0]}"
+              name_version=$(
+                tar -xOf "$tarball" package/package.json \
+                  | node -p 'const p = JSON.parse(require("fs").readFileSync(0, "utf8")); p.name + "@" + p.version'
+              )
+              # A re-dispatch after a partial failure would otherwise fail here: the
+              # registry refuses a version that is already published, and the
+              # packages after the one that already landed would never get retried.
+              # `npm view` on a version that is not there exits non-zero (E404); the
+              # `if` guards that from tripping `set -e`, and only an exact-version
+              # hit — the spec above already pins the version — counts as "exists".
+              if npm view "$name_version" version --json >/dev/null 2>&1; then
+                echo "::notice::$name_version is already on the registry; skipped"
+                continue
+              fi
+              npm publish "$tarball" --access public --tag alpha --provenance \
                 --loglevel verbose \
                 2>&1 | tee -a "$RUNNER_TEMP/publish.log"
             done
