@@ -28,13 +28,12 @@
 # Authentication: npm trusted publishing, not a token. The exchange below succeeds
 # only where the registry carries a trusted-publisher entry naming this repository
 # and this workflow filename for each of the three packages; the entries on
-# npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and no
-# environment, and permit a direct `npm publish`. An earlier entry spelled the owner
-# `sakwala`, and every exchange answered 404 until it was re-created — a 404 there
-# is what reaches the publish step as ENEEDAUTH. The job's OIDC token
-# (`id-token: write`) is exchanged for a short-lived, package-scoped credential at
-# publish time, which is how `0.1.0-alpha.1` went up on 2026-09-10. There is no
-# `NPM_TOKEN` in this file and no
+# npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and
+# no environment, and permit a direct `npm publish`. An earlier entry spelled
+# the owner `sakwala`, and every exchange answered 404 until it was re-created.
+# The job's OIDC token (`id-token: write`) is exchanged for a short-lived,
+# package-scoped credential at publish time, which is how `0.1.0-alpha.1` went up
+# on 2026-09-10 in run 34542413066. There is no `NPM_TOKEN` in this file and no
 # `NODE_AUTH_TOKEN` in the environment. npm's requirements for that exchange are
 # npm CLI >= 11.5.1, Node >= 22.14.0, `id-token: write`, and a workflow filename that
 # matches the one registered on npmjs.com exactly — so this file's name is load

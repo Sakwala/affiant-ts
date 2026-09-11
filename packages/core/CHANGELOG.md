@@ -139,8 +139,7 @@ type was removed and no signature changed: `presence` and `utteranceSpan` became
   tag, and this package's own conformance parity manifest,
   [`typescript-v0.1.json`](../conformance-driver/conformance/parity/typescript-v0.1.json),
   green on Node, Bun and workerd and required by branch protection. `@affiant/core`
-  is publishable; only the maintainer's `@affiant` npm scope and token are
-  outstanding. The refusal behaviour is unchanged — `npm pack` and `npm publish`
+  is publishable. The refusal behaviour is unchanged — `npm pack` and `npm publish`
   still fail until `AFFIANT_ALLOW_PUBLISH=1` is set.
 - **The gate emits the rulebook's v0.1 wire.** `toWire` stamps `protocolVersion`
   (SR-4), writes the operation's **shape** rather than the host's verb (AF-3), carries
