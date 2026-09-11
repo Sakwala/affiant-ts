@@ -91,13 +91,29 @@ The schemas, for validating a payload yourself:
 ```ts
 import { allSchemas, schemasByPath, schemasById } from "@affiant/contract/schemas";
 import { Ajv2020 } from "ajv/dist/2020.js";
+import type { AnySchemaObject } from "ajv/dist/2020.js";
+import ajvFormats from "ajv-formats";
 
-const ajv = new Ajv2020({ strict: true });
-ajv.addSchema(allSchemas); // registers each by its own $id, so the $refs resolve
+// ajv-formats is CommonJS and sets both `module.exports` and `exports.default` to
+// the same function, and which one an ES module import lands on depends on the
+// runtime's CommonJS interop — so unwrap whichever shape arrived.
+type AddFormats = (ajv: Ajv2020) => Ajv2020;
+const imported = ajvFormats as unknown as AddFormats | { default: AddFormats };
+const addFormats: AddFormats = typeof imported === "function" ? imported : imported.default;
+
+const ajv = new Ajv2020({ allErrors: true, strict: true });
+addFormats(ajv);
+// registers each by its own $id, so the $refs resolve
+ajv.addSchema(allSchemas as unknown as AnySchemaObject[]);
 const validate = ajv.getSchema(
   "https://affiant.dev/schemas/0.1.0/evidence-card-request.schema.json",
 );
 ```
+
+Registering the formats is not optional: the schemas use `format`, and under
+`strict: true` Ajv refuses to compile a schema carrying one it does not know.
+`ajv` and `ajv-formats` are yours to install — this package depends on neither,
+and the versions it is tested against are `ajv@^8.20.0` and `ajv-formats@^3.0.1`.
 
 Nothing is served from `affiant.dev/schemas/` yet: an `$id` here is an identifier
 that makes the `$ref`s between these files resolve inside a validator that has
