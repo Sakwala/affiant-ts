@@ -13,22 +13,21 @@ was made against.
 ### Changed
 
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
-  `0.1.0-alpha.1`.** Published 2026-09-10 under the `alpha` dist-tag by the
-  hand-dispatched workflow
-  (run [`34542413066`](https://github.com/Sakwala/affiant-ts/actions/runs/34542413066)),
+  `0.1.0-alpha.1`.** Published 2026-09-10 under the `alpha` dist-tag by the hand-dispatched
+  workflow (run [`34542413066`](https://github.com/Sakwala/affiant-ts/actions/runs/34542413066)),
   each tarball carrying an npm provenance attestation, and authenticated by npm
   trusted publishing rather than a token: the registry exchanged the workflow's OIDC
   id token for a publishing credential for each of the three packages. The `latest`
-  dist-tag still names `0.1.0-alpha.0`. The version carries one behaviour change and
-  one pin move, both below: the gate establishes presence from the utterance itself rather
-  than from the inference port's claim about it (PV-3, PV-2), so a value a person typed in
-  chat is graded `Conversation` and bound to the span it was read at instead of being filed
-  `Inferred`; and the protocol pin is the rulebook's `v0.1.3`. `@affiant/conformance-driver`
-  is `private` and did not go, as it did not at `0.1.0-alpha.0`. No exported type was removed
-  and no signature changed — `presence` and `utteranceSpan` became optional on
-  `StructuredField` — so the upgrade from `0.1.0-alpha.0` is a version bump, and what changes
-  under a host that already ran it is the grade and the binding on fields whose values are in
-  the turn.
+  dist-tag still names `0.1.0-alpha.0`. The version carries one behaviour change
+  and one pin move, both below: the gate establishes presence from the utterance
+  itself rather than from the inference port's claim about it (PV-3, PV-2), so a
+  value a person typed in chat is graded `Conversation` and bound to the span it was
+  read at instead of being filed `Inferred`; and the protocol pin is the rulebook's
+  `v0.1.3`. `@affiant/conformance-driver` is `private` and did not go, as it did not at
+  `0.1.0-alpha.0`. No exported type was removed and no signature changed — `presence`
+  and `utteranceSpan` became optional on `StructuredField` — so the upgrade from
+  `0.1.0-alpha.0` is a version bump, and what changes under a host that already ran it is
+  the grade and the binding on fields whose values are in the turn.
 
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.0`.** Published 2026-09-06 under the `alpha` dist-tag, each tarball
