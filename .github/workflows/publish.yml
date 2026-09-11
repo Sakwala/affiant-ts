@@ -28,19 +28,19 @@
 # Authentication: npm trusted publishing, not a token. The exchange below succeeds
 # only where the registry carries a trusted-publisher entry naming this repository
 # and this workflow filename for each of the three packages; the entries on
-# npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and
-# no environment, and permit a direct `npm publish`. An earlier entry spelled
-# the owner `sakwala`, and every exchange answered 404 until it was re-created.
-# The job's OIDC token (`id-token: write`) is exchanged for a short-lived,
-# package-scoped credential at publish time, which is how `0.1.0-alpha.1` went up
-# on 2026-09-10 in run 34542413066. There is no `NPM_TOKEN` in this file and no
-# `NODE_AUTH_TOKEN` in the environment. npm's requirements for that exchange are
-# npm CLI >= 11.5.1, Node >= 22.14.0, `id-token: write`, and a workflow filename that
-# matches the one registered on npmjs.com exactly — so this file's name is load
-# bearing, and the npm CLI is upgraded below rather than taken as whatever the runner
-# image happened to ship. Provenance comes with it: a trusted publish attaches a
-# signed statement binding each tarball to this repository, this workflow and this
-# commit, without being asked.
+# npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and no
+# environment, and permit a direct `npm publish`. Every exchange answered 404 —
+# `OIDC token exchange error - package not found` — until those entries were
+# re-created. The job's OIDC token (`id-token: write`) is exchanged for a
+# short-lived, package-scoped credential at publish time, which is how
+# `0.1.0-alpha.1` went up on 2026-09-10 in run 34542413066. There is no `NPM_TOKEN`
+# in this file and no `NODE_AUTH_TOKEN` in the environment. npm's requirements for
+# that exchange are npm CLI >= 11.5.1, Node >= 22.14.0, `id-token: write`, and a
+# workflow filename that matches the one registered on npmjs.com exactly — so this
+# file's name is load bearing, and the npm CLI is upgraded below rather than taken
+# as whatever the runner image happened to ship. Provenance comes with it: a trusted
+# publish attaches a signed statement binding each tarball to this repository, this
+# workflow and this commit, without being asked.
 #
 # Why the real upload runs the npm CLI directly. pnpm 10 has no OIDC implementation
 # of its own — `pnpm publish` packs the package and shells out to whatever `npm` is
