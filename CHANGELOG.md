@@ -17,8 +17,8 @@ was made against.
   workflow (run [`34542413066`](https://github.com/Sakwala/affiant-ts/actions/runs/34542413066)),
   each tarball carrying an npm provenance attestation, and authenticated by npm
   trusted publishing rather than a token: the registry exchanged the workflow's OIDC
-  id token for a publishing credential for each of the three packages. The `latest`
-  dist-tag still names `0.1.0-alpha.0`. The version carries one behaviour change
+  id token for a publishing credential for each of the three packages. `latest` and
+  `alpha` both point at `0.1.0-alpha.1`. The version carries one behaviour change
   and one pin move, both below: the gate establishes presence from the utterance
   itself rather than from the inference port's claim about it (PV-3, PV-2), so a
   value a person typed in chat is graded `Conversation` and bound to the span it was
