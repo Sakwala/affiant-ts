@@ -13,10 +13,9 @@ or no confidence impossible to skim past.
 **Try it:** <https://sakwala.github.io/affiant-ts/>
 
 > **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-10: `npm i @affiant/evidence-card@alpha`. The `latest`
-> dist-tag still names `0.1.0-alpha.0`, so an untagged install is that one.
-> Publishing is a separate, deliberate step — a workflow a maintainer dispatches
-> by hand, which defaults to a dry run.
+> attestation, since 2026-09-10: `npm i @affiant/evidence-card@alpha`. `latest` and
+> `alpha` both point at `0.1.0-alpha.1`. Publishing is a separate, deliberate step — a
+> workflow a maintainer dispatches by hand, which defaults to a dry run.
 
 ## No framework
 
