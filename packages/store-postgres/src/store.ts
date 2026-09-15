@@ -479,38 +479,58 @@ class Store implements DocketStore, SessionStore {
     instantMs(now, "now");
 
     return this.#run(scope.tenantId, async (tx) => {
-      const due = await tx<{ entry_id: string; expires_at_iso: string }[]>`
-        select v.entry_id, v.filed_row ->> 'expiresAt' as expires_at_iso
-        from ${tx(this.#table("docket_current"))} v
-        where v.tenant_id = ${scope.tenantId}::text
-          and (${conversationOf(scope)}::text is null
-               or v.conversation_id = ${conversationOf(scope)}::text)
-          and v.status = 'pending'
-          and v.expires_at <= ${now}::timestamptz
-        order by v.filing_seq
-        limit ${limit + 1}`;
+      // Choosing the rows and recording the sweep are **one statement**. As two, a
+      // decision committing between them left the row carrying a decision *and* an
+      // expiry, and the sweep reported an approved entry as expired. Here the insert
+      // repeats the deadline test and the "nothing terminal yet" test itself, the
+      // partial unique index refuses the second terminal fact whichever arrives
+      // second, and `expired` is what the insert says it wrote — never what the read
+      // hoped it would (DK-1, DK-3, DK-4).
+      const rows = await tx<{ entry_id: string; inserted: boolean; due_count: string }[]>`
+        with due as (
+          select v.entry_id, v.filing_seq, v.filed_row ->> 'expiresAt' as expires_at_iso
+          from ${tx(this.#table("docket_current"))} v
+          where v.tenant_id = ${scope.tenantId}::text
+            and (${conversationOf(scope)}::text is null
+                 or v.conversation_id = ${conversationOf(scope)}::text)
+            and v.status = 'pending'
+            and v.expires_at <= ${now}::timestamptz
+          order by v.filing_seq
+          limit ${limit + 1}
+        ),
+        capped as (select * from due order by filing_seq limit ${limit}),
+        swept as (
+          insert into ${tx(this.#table("docket_events"))} (tenant_id, entry_id, kind, payload, at)
+          select ${scope.tenantId}::text, c.entry_id, 'expiry',
+                 jsonb_build_object(
+                   'status', 'expired', 'execution', null, 'decidedAt', c.expires_at_iso
+                 ),
+                 c.expires_at_iso::timestamptz
+          from capped c
+          join ${tx(this.#table("docket_entries"))} e
+            on e.tenant_id = ${scope.tenantId}::text and e.entry_id = c.entry_id
+          where e.expires_at <= ${now}::timestamptz
+            and not exists (
+              select 1 from ${tx(this.#table("docket_events"))} x
+              where x.tenant_id = ${scope.tenantId}::text
+                and x.entry_id = c.entry_id
+                and x.kind in ('decision', 'expiry')
+            )
+          on conflict do nothing
+          returning entry_id
+        )
+        select c.entry_id,
+               (s.entry_id is not null) as inserted,
+               (select count(*) from due)::text as due_count
+        from capped c
+        left join swept s on s.entry_id = c.entry_id
+        order by c.filing_seq`;
 
-      const more = due.length > limit;
-      const take = due.slice(0, limit);
-      if (take.length > 0) {
-        const rows = take.map((row) => ({
-          tenant_id: scope.tenantId,
-          entry_id: row.entry_id,
-          kind: "expiry",
-          payload: json(tx, {
-            status: "expired",
-            execution: null,
-            decidedAt: row.expires_at_iso,
-          }),
-          at: row.expires_at_iso,
-        }));
-        await tx`
-          insert into ${tx(this.#table("docket_events"))}
-          ${tx(rows, "tenant_id", "entry_id", "kind", "payload", "at")}
-          on conflict (tenant_id, entry_id, kind) do nothing`;
-      }
-
-      return { expired: take.map((row) => row.entry_id), more };
+      const dueCount = Number(rows[0]?.due_count ?? "0");
+      return {
+        expired: rows.filter((row) => row.inserted).map((row) => row.entry_id),
+        more: dueCount > limit,
+      };
     });
   }
 
@@ -589,6 +609,14 @@ class Store implements DocketStore, SessionStore {
    * one held open across the consumer's awaits: a transaction that spanned the
    * consumer would pin a pooled connection for as long as the consumer took, which is
    * the one thing a pooler in transaction mode cannot allow.
+   *
+   * **This is a walk in filing order, not a snapshot.** Each batch is its own
+   * transaction, and the walk resumes after the filing position it reached, so an
+   * entry whose position was allocated before the walk began and committed after the
+   * walk had passed that position is not yielded. A caller that needs a consistent set
+   * — a tenant's export of their own record, say — walks through
+   * {@link PostgresDocketStore.within} inside its own `repeatable read` transaction,
+   * where every batch reads the one snapshot that transaction took.
    */
   async *export(scope: Scope): AsyncIterable<DocketEntry> {
     let after = "0";
@@ -643,10 +671,13 @@ class Store implements DocketStore, SessionStore {
   /**
    * Append one later fact, if the entry is still in a state that admits it.
    *
-   * `true` when the row was written, `false` when the unique index was already taken —
+   * `true` when the row was written, `false` when a unique index was already taken —
    * which is the compare-and-set losing, and the only outcome a caller has to tell
-   * apart. A decision additionally repeats its guard in SQL: the row must have no
-   * decision and no sweep recorded and must still be inside its deadline at `liveAt`.
+   * apart. `on conflict do nothing` names no index on purpose: a decision conflicts
+   * with an earlier decision on `(tenant_id, entry_id, kind)` and with a sweep on the
+   * partial index over the two terminal kinds, and both mean the same thing here.
+   * A decision additionally repeats its guard in SQL: the row must have no decision and
+   * no sweep recorded and must still be inside its deadline at `liveAt`.
    */
   async #appendGuarded(
     tx: TransactionSql,
@@ -674,7 +705,7 @@ class Store implements DocketStore, SessionStore {
           and (x.kind = ${kind}::text
                or (${liveAt}::timestamptz is not null and x.kind = 'expiry'))
       )
-      on conflict (tenant_id, entry_id, kind) do nothing
+      on conflict do nothing
       returning id`;
     return written.length === 1;
   }

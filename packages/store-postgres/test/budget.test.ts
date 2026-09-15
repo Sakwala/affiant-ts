@@ -4,15 +4,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPostgresDocketStore } from "../src/store.js";
 import type { PostgresDocketStore } from "../src/store.js";
 import type { TestDatabase } from "./setup.js";
-import { adminReachable, createTestDatabase } from "./setup.js";
+import { adminReachable, createTestDatabase, environment } from "./setup.js";
 
 /**
  * The budget tripwire.
  *
  * RT-2 pins file-plus-decide on a ten-field Affidavit at under 100 ms on a per-request
  * path. This store is one hop inside that envelope, so its own tripwire is set at
- * **25 ms per operation**, which leaves the network between a host and its database
- * the rest. It is a tripwire and not a benchmark: it is here to fail loudly the day a
+ * **25 ms per operation** by default, which leaves the network between a host and its
+ * database the rest. It is a tripwire and not a benchmark: it is here to fail loudly the day a
  * statement turns into a sequential scan, not to report a number anybody tunes.
  *
  * It measures the local development server, so it is skipped — with a printed reason —
@@ -27,8 +27,15 @@ import { adminReachable, createTestDatabase } from "./setup.js";
  * attempt did.
  */
 const ITERATIONS = 200;
-/** Milliseconds per operation, above which something has gone structurally wrong. */
-const BUDGET_MS = 25;
+/**
+ * Milliseconds per operation, above which something has gone structurally wrong.
+ *
+ * 25 on Node, which is where the bound is stated and where it is enforced.
+ * `AFFIANT_BUDGET_MS` moves it, so a slower runtime or a slower machine can be
+ * *measured* without the number in this file being edited to suit it — the mean is
+ * printed either way, so a run that moved the bound still says what it found.
+ */
+const BUDGET_MS = Number(environment("AFFIANT_BUDGET_MS") ?? "25");
 /** How many attempts a stalled round gets before the tripwire stands. */
 const ATTEMPTS = 3;
 

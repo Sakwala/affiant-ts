@@ -75,6 +75,19 @@ create table if not exists {{schema}}.docket_events (
     references {{schema}}.docket_entries (tenant_id, entry_id) on delete cascade
 );
 
+-- An entry leaves `pending` exactly once, and the database is what says so.
+--
+-- The unique constraint on `(tenant_id, entry_id, kind)` above makes each *kind* of
+-- fact happen once, which is not the same thing: a decision and a sweep are different
+-- kinds, so without this a decision committing while a sweep is choosing its rows would
+-- leave a row carrying both, and the sweep would report an approved entry as expired.
+-- The two terminal facts share one index instead, so of the two exactly one is written
+-- and the other conflicts — which is why every insert of a later fact in this package
+-- says `on conflict do nothing` without naming an index (DK-1).
+create unique index if not exists docket_events_terminal_once
+  on {{schema}}.docket_events (tenant_id, entry_id)
+  where kind in ('decision', 'expiry');
+
 -- The fold: the filing joined with one row per event kind.
 --
 -- `security_invoker` is what makes the view honour the querying role's row-level

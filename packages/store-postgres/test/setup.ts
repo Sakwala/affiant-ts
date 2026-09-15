@@ -19,11 +19,21 @@ import { applyMigrations } from "../src/migrations.js";
 /** Where a database may be created. Overridable, because CI's server is not a laptop's. */
 export const DEFAULT_ADMIN_URL = "postgres://orrery:orrery@localhost:5433/postgres";
 
+/**
+ * One environment variable, where there is an environment to read it from.
+ *
+ * Guarded rather than read directly because these suites also run inside workerd,
+ * where `process.env` is whatever the compatibility layer decided to provide.
+ */
+export function environment(name: string): string | undefined {
+  return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.[
+    name
+  ];
+}
+
 /** The admin URL, from the environment where there is one to read. */
 export function adminUrl(): string {
-  const environment = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-    .process?.env;
-  return environment?.["AFFIANT_PG_ADMIN_URL"] ?? DEFAULT_ADMIN_URL;
+  return environment("AFFIANT_PG_ADMIN_URL") ?? DEFAULT_ADMIN_URL;
 }
 
 /** The same server, pointed at `database`. */

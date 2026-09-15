@@ -45,6 +45,11 @@ beforeAll(async () => {
 }, 120_000);
 
 afterAll(async () => {
+  // The role is a cluster object, not a database one: dropping the database leaves it
+  // behind, and a suite that ran often enough left a role per run on a shared server.
+  // `drop owned by` first, because the grants above are dependencies of it.
+  await database.sql.unsafe(`drop owned by "${role}"`);
+  await database.sql.unsafe(`drop role if exists "${role}"`);
   await database.close();
 });
 

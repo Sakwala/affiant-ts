@@ -28,16 +28,18 @@ was made against.
   tables and a fold across them, on a postgres.js connection the host owns — the package
   opens none, pools none and closes none. There is no `update` statement in it: every
   guard the Docket needs is a unique index, so a second decision is refused, an execution
-  outcome is recorded once and a sweep cannot expire the same row twice (DK-1), and a
-  recorded fact is appended rather than edited (DK-4). The tenant is scoped twice (AZ-2):
+  outcome is recorded once, a sweep cannot expire the same row twice, and a decision and a
+  sweep exclude each other across connections (DK-1) — and a recorded fact is appended
+  rather than edited (DK-4). The tenant is scoped twice (AZ-2):
   every statement filters by it, and the tables force row-level security over a
   transaction-scoped setting of the package's own name. `within(tx)` binds the store to a
   transaction the host already has open, for the executor that must record an outcome
   atomically with its own write (AZ-5). The SQL ships both as a file a host can vendor and
   as `MIGRATIONS` with a SHA-256 per migration, with `applyMigrations` for a host with no
-  migration tool of its own. Acceptance is a measurement: the store contract's 69 cases on
-  Node and inside workerd, and the 61 declarative conformance documents through this store
-  with nothing failing.
+  migration tool of its own. Acceptance is a measurement: the store contract's 86 cases on
+  Node and inside workerd, the 61 declarative conformance documents through this store with
+  nothing failing, and three suites that open real second connections — a decision racing
+  the sweep, two hosts migrating at once, and an export that has to be a snapshot.
 
 - **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
   run against a caller's own ports instead of the reference wiring, and a store factory given

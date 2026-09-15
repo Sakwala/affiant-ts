@@ -23,7 +23,10 @@ the [root changelog](../../CHANGELOG.md).
   row, at most one of each kind per entry, so a recorded fact is appended and never
   edited (DK-4) and every guard the Docket needs is a unique index rather than a lock:
   a second decision is refused, an execution outcome is recorded once, and a sweep
-  cannot expire the same row twice (DK-1).
+  cannot expire the same row twice (DK-1). A second index over the two *terminal* kinds
+  is what makes a decision and a sweep exclude each other across connections, so a row
+  never carries both and `expireDue` reports the rows it wrote rather than the rows it
+  read.
 
 - **The tenant scoped twice** (AZ-2). Every statement filters by the tenant from the
   `Scope`, and the tables enable and force row-level security over
@@ -49,14 +52,24 @@ the [root changelog](../../CHANGELOG.md).
   host whose own migration tool vendors it and asserts the digest in CI.
   `applyMigrations(sql, { schema })` is for a host without one: it applies what has not
   been applied, records each name with the digest of the text it ran, is a no-op the
-  second time, and refuses when a recorded name's text has since changed.
+  second time, and refuses when a recorded name's text has since changed. It runs under
+  a transaction-scoped advisory lock keyed on the schema, so two hosts starting at once
+  give one caller the work and the other nothing, rather than a duplicate-key error.
 
 - **Measured, not asserted.** The store contract from `@affiant/core/testing` — the
-  same 69 cases the shipped in-memory reference store is measured by — passes on Node
+  same 86 cases the shipped in-memory reference store is measured by — passes on Node
   and inside workerd, and the protocol's 61 declarative conformance documents pass
-  through this store on Node with nothing failing and nothing skipped. A tripwire keeps
+  through this store on Node with nothing failing and nothing skipped. Three more suites
+  open real second connections: a decision and a sweep reaching one row, two hosts
+  migrating at once, and an export that has to be a snapshot. A tripwire keeps
   file-plus-decide on a ten-field Affidavit under 25 ms per operation, which is the
-  store's share of RT-2's 100 ms envelope.
+  store's share of RT-2's 100 ms envelope; `AFFIANT_BUDGET_MS` moves the bound for a
+  slower machine, and the measured mean is printed either way.
+
+- **`export` says what it is.** A walk in filing order, in bounded batches, each its own
+  transaction — so an entry committed during the walk, behind the position the walk has
+  already passed, is not yielded. A caller that needs a consistent set walks through
+  `within(tx)` inside its own `repeatable read` transaction (DK-4).
 
 - **Packing and publishing are refused unless `AFFIANT_ALLOW_PUBLISH=1` is set.** `prepack`
   runs before `npm pack` and before `npm publish` and exits non-zero, which stops both, so
@@ -64,6 +77,6 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Not in this version
 
-- A connection through Hyperdrive, and Bun, are unmeasured; Bun has a best-effort CI
-  line and Hyperdrive has none.
+- A connection through Hyperdrive is unmeasured. Bun runs the whole suite and has a
+  best-effort CI line.
 - No outbox, no timer, no transcript table, no Drizzle description of the tables.

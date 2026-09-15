@@ -56,8 +56,15 @@ export function renderMigration(migration: Migration, schema: string = DEFAULT_S
  * guessing which one the tables match is exactly the guess a migration table exists
  * to make unnecessary.
  *
- * The connection is the host's. This opens one transaction per migration and closes
- * it before returning; it never calls `end()`.
+ * **Two hosts starting at once is a no-op for the second, not a crash.** The whole
+ * call runs in one transaction that first takes a transaction-scoped advisory lock
+ * keyed on this package and this schema, so the second caller waits for the first to
+ * finish and then finds everything applied. Without the lock they raced: the
+ * migration's `create or replace function` has no `if not exists` to fall back on, and
+ * the loser came back with a duplicate-key error on `pg_proc`.
+ *
+ * The connection is the host's. This opens one transaction and closes it before
+ * returning; it never calls `end()`.
  *
  * @throws RangeError when the schema name is not a plain identifier, or when an
  *         applied migration's recorded digest differs from the shipped one.
@@ -67,44 +74,55 @@ export async function applyMigrations(
   options: ApplyMigrationsOptions = {},
 ): Promise<ApplyMigrationsResult> {
   const schema = requireSchema(options.schema ?? DEFAULT_SCHEMA);
-  const applied: string[] = [];
 
-  // The bookkeeping table has to exist before it can say what has been applied, so
-  // it is created outside the sequence it records. Both statements are
-  // `if not exists`, which is what makes a second call — or two hosts starting at
-  // once — a no-op rather than a race.
-  await sql.unsafe(bootstrap(schema));
+  const held = await sql.begin(async (tx) => {
+    // Two integers rather than one: the first names this package, so the lock cannot
+    // collide with an advisory lock the host takes for reasons of its own. It is
+    // released when this transaction ends, whichever way it ends.
+    await tx`select pg_advisory_xact_lock(${LOCK_NAMESPACE}::int, hashtext(${schema})::int)`;
 
-  const recorded = new Map<string, string>();
-  const rows = await sql.unsafe<{ name: string; sha256: string }[]>(
-    `select name, sha256 from ${qualified(schema, "schema_migrations")}`,
-  );
-  for (const row of rows) recorded.set(row.name, row.sha256);
+    // The bookkeeping table has to exist before it can say what has been applied, so
+    // it is created outside the sequence it records.
+    await tx.unsafe(bootstrap(schema));
 
-  for (const migration of MIGRATIONS) {
-    const previous = recorded.get(migration.name);
-    if (previous !== undefined) {
-      if (previous !== migration.sha256) {
-        throw new RangeError(
-          `migration ${migration.name} was applied as ${previous} but this package ships ${migration.sha256}`,
-        );
+    const recorded = new Map<string, string>();
+    const rows = await tx.unsafe<{ name: string; sha256: string }[]>(
+      `select name, sha256 from ${qualified(schema, "schema_migrations")}`,
+    );
+    for (const row of rows) recorded.set(row.name, row.sha256);
+
+    const applied: string[] = [];
+    for (const migration of MIGRATIONS) {
+      const previous = recorded.get(migration.name);
+      if (previous !== undefined) {
+        if (previous !== migration.sha256) {
+          throw new RangeError(
+            `migration ${migration.name} was applied as ${previous} but this package ships ${migration.sha256}`,
+          );
+        }
+        continue;
       }
-      continue;
-    }
 
-    await sql.begin(async (tx) => {
       await tx.unsafe(renderMigration(migration, schema));
       await tx.unsafe(
         `insert into ${qualified(schema, "schema_migrations")} (name, sha256) values ($1, $2)` +
           " on conflict (name) do nothing",
         [migration.name, migration.sha256],
       );
-    });
-    applied.push(migration.name);
-  }
+      applied.push(migration.name);
+    }
 
-  return { applied };
+    return { value: applied };
+  });
+
+  return { applied: (held as { value: string[] }).value };
 }
+
+/**
+ * The first half of the advisory lock's key: this package, so the second half is free
+ * to be the schema. An arbitrary constant, fixed for the package's life.
+ */
+const LOCK_NAMESPACE = 0x0aff_1a17;
 
 /** The schema and the migration table, both of which the recorded sequence presumes. */
 function bootstrap(schema: string): string {

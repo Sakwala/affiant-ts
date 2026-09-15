@@ -68,15 +68,22 @@ enable **and force** row-level security, with policies over
 `current_setting('affiant.tenant_id', true)`, which each transaction sets from the
 scope it was given before it does anything else.
 
-The setting name is this package's own. If your application already scopes its rows
-with a setting of its own, the two stay independent even when they carry the same
-value. The setting is transaction-scoped, never session-scoped, so it does not travel
-with a pooled connection to whoever gets it next.
+The setting name is this package's own, and it belongs to this package: **do not set
+`affiant.tenant_id` yourself, and do not read it back.** If your application scopes its
+own rows with a setting, give that one a name of its own and the two stay independent
+even when they carry the same value. Inside `within(tx)` the store writes
+`affiant.tenant_id` from the scope at the start of **every** call and does not put back
+what was there, so a value you had set would be gone for the rest of your transaction.
+
+The setting is transaction-scoped, never session-scoped, so it does not travel with a
+pooled connection to whoever gets it next.
 
 Row-level security is the second fence, not the first. It catches a statement that
 forgot its filter, and SQL you write beside the store. It does nothing for a superuser,
 which bypasses it — run your application as an ordinary role, and grant it `usage` on
-the schema and `select, insert, delete` on the two tables and the view.
+the schema, `select, insert, delete` on the two tables, and `select` on the view. Those
+are the grants the package's own row-level-security suite issues and measures; the view
+is not updatable, so it needs no more.
 
 ## Migrations
 
@@ -100,6 +107,24 @@ you chose.
 The schema is created with `create schema if not exists`, so a schema you pre-create is
 left as it is.
 
+## Export is a walk, not a snapshot
+
+`export(scope)` yields every entry in filing order, in bounded batches, each batch its
+own transaction — because a transaction held across your consumption of the stream
+would pin a pooled connection for as long as you took over it. The consequence is worth
+stating plainly: an entry whose filing position was allocated before the walk began and
+committed after the walk had passed that position is **not** yielded.
+
+If you need a consistent set — a tenant asking for their own record, say — walk through
+`within(tx)` inside your own `repeatable read` transaction, where every batch reads the
+one snapshot that transaction took:
+
+```ts
+await sql.begin("isolation level repeatable read", async (tx) => {
+  for await (const entry of store.within(tx).export(scope)) write(entry);
+});
+```
+
 ## Runtimes
 
 Node 22 and **workerd** — the runtime a Cloudflare Worker runs on — both run the store
@@ -110,17 +135,33 @@ the same CI run additionally puts the protocol's 61 declarative conformance docu
 through this store with nothing failing, so the gate's behaviour is measured with this
 Docket underneath it and not only the store's own.
 
-Two things about Workers worth knowing before you deploy. The store never holds a
-transaction across an `await` you control, which is what a connection pooler in
-transaction mode requires of it. And the connection options are yours to choose — this
-package imposes none of them; Cloudflare's Hyperdrive documentation is the authority on
-what they should be behind Hyperdrive, and postgres.js's own README is the authority on
-what they mean. The suites here run with `prepare: false`, which is the shape a pooler
-in transaction mode leaves you with.
+Three things about Workers worth knowing before you deploy.
 
-**Not yet measured here:** a connection through Hyperdrive itself, and Bun. Bun has a
-best-effort CI line; Hyperdrive has none, and this README will say so until a
-deployment proves it.
+The store never holds a transaction across an `await` you control, which is what a
+connection pooler in transaction mode requires of it.
+
+The connection options are yours to choose — this package imposes none of them;
+Cloudflare's Hyperdrive documentation is the authority on what they should be behind
+Hyperdrive, and postgres.js's own README is the authority on what they mean. The suites
+here run with `prepare: false`, which is the shape a pooler in transaction mode leaves
+you with.
+
+**Do not call `sql.end()` on a connection you are about to discard.** An isolate takes
+its sockets with it when it ends, so there is nothing to close; and with postgres.js
+3.4.9 under workerd, `end()` resolves and the driver's pending socket read then rejects
+with `Error: Stream was cancelled.` from `cf/polyfills.js` — a rejection raised outside
+any call of yours, which nothing you write can catch.
+
+**Speed.** `file` plus `transition` on a ten-field Affidavit averages 5-7 ms per
+operation on Node against a Postgres in a container on the same machine, and 9-16 ms
+under Bun. A tripwire in the suite fails the build above 25 ms on Node, which is this
+store's share of the 100 ms envelope RT-2 pins for a per-request path. Your own numbers
+depend on where your database is, so the bound is overridable with `AFFIANT_BUDGET_MS`
+and the measured mean is printed either way.
+
+**Not measured here: a connection through Hyperdrive.** Bun runs the whole suite in
+this repository and has a best-effort CI line; Hyperdrive has neither of those, and this
+README will say so until a deployment proves it.
 
 ## What is not in this package
 

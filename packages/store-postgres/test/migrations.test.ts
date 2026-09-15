@@ -1,9 +1,10 @@
+import postgres from "postgres";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MIGRATIONS, applyMigrations, renderMigration } from "../src/migrations.js";
 import { DEFAULT_SCHEMA } from "../src/schema.js";
 import type { TestDatabase } from "./setup.js";
-import { createTestDatabase } from "./setup.js";
+import { createTestDatabase, databaseUrl } from "./setup.js";
 
 /**
  * The migrations: applied once, re-runnable, and provably the text this version ships.
@@ -48,6 +49,24 @@ describe("applyMigrations", () => {
 
     expect(rows.map((row) => row.name)).toEqual(MIGRATIONS.map((migration) => migration.name));
     expect(rows.map((row) => row.sha256)).toEqual(MIGRATIONS.map((migration) => migration.sha256));
+  }, 120_000);
+
+  it("lets two hosts start at once, applying everything once", async () => {
+    // Two connections, both calling it, with nothing applied yet. Without the advisory
+    // lock this raced: the migration's `create or replace function` has no
+    // `if not exists` to fall back on, and the loser came back with a duplicate-key
+    // error on `pg_proc`. With it, the second caller waits and then finds its work
+    // done.
+    const { sql, name } = await bare();
+    const second = postgres(databaseUrl(name), { max: 1, prepare: false, onnotice: () => {} });
+    try {
+      const [first, other] = await Promise.all([applyMigrations(sql), applyMigrations(second)]);
+      const names = MIGRATIONS.map((migration) => migration.name);
+      expect([first.applied.length, other.applied.length].sort()).toEqual([0, names.length]);
+      expect([...first.applied, ...other.applied]).toEqual(names);
+    } finally {
+      await second.end();
+    }
   }, 120_000);
 
   it("refuses to continue when an applied migration's text has changed", async () => {
