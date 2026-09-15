@@ -6,8 +6,10 @@
 # A real upload additionally needs the word `publish` typed into the `confirm`
 # input, so a stray click on "Run workflow" cannot put a version on the registry.
 #
-# Three packages go: `@affiant/contract`, `@affiant/core` and `@affiant/evidence-card`,
-# at the `alpha` dist-tag their own `publishConfig` already names.
+# Five packages go: `@affiant/contract`, `@affiant/core`, `@affiant/evidence-card`,
+# `@affiant/store-postgres` and `@affiant/adapter-ai-sdk`, at the `alpha` dist-tag
+# their own `publishConfig` already names. The last two have never been on the
+# registry; the first three are there at `0.1.0-alpha.1`.
 # `@affiant/conformance-driver` is `private: true` and is not among them, as the
 # samples and the spike are not — the driver is the check on the claim, not part of
 # what is claimed.
@@ -24,10 +26,12 @@
 # and re-proves the second one a few steps earlier, on all three runtimes, rather
 # than taking the required check on `main` on trust. `--ignore-scripts` is therefore
 # never passed to the pack: skipping the guard would skip the reason.
+# `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` carry the same guard, so
+# that no ordinary `npm pack` or `npm publish` of either is possible either.
 #
 # Authentication: npm trusted publishing, not a token. The exchange below succeeds
 # only where the registry carries a trusted-publisher entry naming this repository
-# and this workflow filename for each of the three packages; the entries on
+# and this workflow filename for the package being published; the three entries on
 # npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and
 # no environment, and permit a direct `npm publish`. The job's OIDC token
 # (`id-token: write`) is exchanged for a short-lived, package-scoped credential at
@@ -40,6 +44,16 @@
 # happened to ship. Provenance comes with it: a trusted publish attaches a signed
 # statement binding each tarball to this repository, this workflow and this
 # commit, without being asked.
+#
+# A package that has never been on the registry cannot have such an entry yet. npm's
+# API documents the same Requirements block on all three trusted-publisher operations,
+# opening with "Package MUST exist" (api-docs.npmjs.com, `configureTrustedPublisher`),
+# and the CLI page for `npm trust` says it in words: "Package must exist: The package
+# you're configuring must already exist on the npm registry."
+# (https://docs.npmjs.com/cli/v11/commands/npm-trust/). So `@affiant/store-postgres`
+# and `@affiant/adapter-ai-sdk` need one publish under a credential a person holds
+# before this workflow can publish them, and until that has happened their two
+# preflight lines below will report a refused exchange rather than a 2xx.
 #
 # Why the real upload runs the npm CLI directly. pnpm 10 has no OIDC implementation
 # of its own — `pnpm publish` packs the package and shells out to whatever `npm` is
@@ -75,16 +89,17 @@
 # The preflight step in front of the upload performs the same exchange npm
 # performs — the same audience, the same endpoint, the `npm-command` header
 # `npm-registry-fetch` sends (`lib/index.js:232`) — and prints the registry's own
-# answer for each of the three packages. A refused exchange names its own cause, on
+# answer for each of the five packages. A refused exchange names its own cause, on
 # the dry run as much as on the real one, instead of arriving as ENEEDAUTH after
 # the tarballs are built. The exchanged token is masked and never printed.
 #
 # Publishing each package from its own directory instead would not have changed the
-# authentication, and would have broken two of the three: `@affiant/core` and
+# authentication, and would have broken two of the five: `@affiant/core` and
 # `@affiant/evidence-card` depend on `@affiant/contract` at `workspace:^`, and npm
 # has no rewriting of that protocol anywhere in its publish path — the range would
 # reach the registry verbatim. pnpm's pack is what turns it into `^0.1.0-alpha.1`,
-# which is why the tarballs stay.
+# which is why the tarballs stay. The two newest packages carry no workspace range
+# at all: `@affiant/core` is a peer dependency of each, at a published range.
 
 name: Publish to npm
 
@@ -110,6 +125,25 @@ jobs:
   publish:
     name: publish
     runs-on: ubuntu-latest
+    # `pnpm test` below runs every package's suite, and `@affiant/store-postgres`
+    # measures its statements against a real Postgres rather than a fake — so the
+    # release run needs the same service the `ci` workflow gives its jobs, on the
+    # same port 5433, or the verification this workflow does before it uploads
+    # would stop at a store suite that could not open a database.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       # A shallow checkout is enough: the `prepack` guard reads an environment
       # variable, not git history, and provenance is built from the OIDC claims.
@@ -258,7 +292,7 @@ jobs:
               console.log(`${claim}: ${claim in payload ? payload[claim] : "(absent)"}`)
             }
           '
-          for package in contract core evidence-card; do
+          for package in contract core evidence-card store-postgres adapter-ai-sdk; do
             for command in publish stage; do
               body="$RUNNER_TEMP/exchange-$package-$command.json"
               status=$(
@@ -285,8 +319,10 @@ jobs:
       # and it prints which package it is packing — and it would still stop the
       # publish if the variable were absent.
       #
-      # On the real path up to three tarballs are published, in dependency order:
-      # `@affiant/contract` first, because the other two depend on it. A version the
+      # On the real path up to five tarballs are published, in dependency order:
+      # `@affiant/contract` first, because `@affiant/core` and `@affiant/evidence-card`
+      # depend on it, and those two before `@affiant/store-postgres` and
+      # `@affiant/adapter-ai-sdk`, which name `@affiant/core` as a peer. A version the
       # registry already serves is skipped with a `::notice::` rather than
       # re-uploaded. Each upload that does happen runs at `--loglevel verbose`
       # because that is the only level at which npm's OIDC helper says anything at
@@ -305,9 +341,11 @@ jobs:
               --filter '@affiant/contract' \
               --filter '@affiant/core' \
               --filter '@affiant/evidence-card' \
+              --filter '@affiant/store-postgres' \
+              --filter '@affiant/adapter-ai-sdk' \
               pack --pack-destination "$tarballs" \
               2>&1 | tee "$RUNNER_TEMP/publish.log"
-            for package in contract core evidence-card; do
+            for package in contract core evidence-card store-postgres adapter-ai-sdk; do
               matches=("$tarballs/affiant-$package-"*.tgz)
               if [ "${#matches[@]}" -ne 1 ] || [ ! -f "${matches[0]}" ]; then
                 echo "expected exactly one tarball for @affiant/$package," >&2
@@ -359,7 +397,7 @@ jobs:
             {
               echo "### At the \`alpha\` dist-tag after this run"
               echo
-              for package in contract core evidence-card; do
+              for package in contract core evidence-card store-postgres adapter-ai-sdk; do
                 echo "- \`@affiant/$package\` — $(npm view "@affiant/$package@alpha" version)"
               done
             } >> "$GITHUB_STEP_SUMMARY"

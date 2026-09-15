@@ -16,7 +16,8 @@ reaches the person — those are ports you supply.
 
 > **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
 > attestation, since 2026-09-10: `npm i @affiant/core@alpha`. `latest` and `alpha` both
-> point at `0.1.0-alpha.1`. The condition for publishing was exact: a **public parity
+> point at `0.1.0-alpha.1`; the repository carries `0.1.0-alpha.2`, which goes with the
+> next dispatch. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0)
