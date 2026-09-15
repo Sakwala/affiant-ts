@@ -15,10 +15,13 @@ import { createTestDatabase } from "./setup.js";
  * past the store and wrote SQL of its own — still sees nothing outside the tenant the
  * transaction declared.
  *
- * The cases run under a role of their own rather than under the owner, because a
- * superuser bypasses row-level security entirely and would prove nothing. `force` is
- * what covers the ordinary owner; the role here is what a host's application user
- * looks like.
+ * The cases run under roles of their own rather than as the superuser who created the
+ * tables, because a superuser bypasses row-level security entirely and would prove
+ * nothing. Two roles, because there are two things to prove: an ordinary application
+ * role, which policies apply to because `enable` says so, and a **non-superuser owner**
+ * of the tables, which policies apply to only because `force` says so. Without the
+ * second, dropping `force row level security` from the migration changes nothing any
+ * test can see.
  */
 let database: TestDatabase;
 /** A non-superuser role, which is what row-level security is about. */
@@ -120,5 +123,77 @@ describe("row-level security over the tenant setting (AZ-2)", () => {
     // A tenant with nothing in it is a miss, and it is a miss twice over: the
     // statement filters by tenant and the policy would have hidden the row anyway.
     expect(read.value.missed).toBeNull();
+  });
+});
+
+describe("row-level security applies to the tables' own owner (AZ-2)", () => {
+  // A second database, because this one hands the tables to somebody else and that is
+  // not a state the cases above should have to reason about.
+  let owned: TestDatabase;
+  const owner = `affiant_owner_${Math.random().toString(36).slice(2, 8)}`;
+
+  beforeAll(async () => {
+    owned = await createTestDatabase({ max: 4 });
+    const sql = owned.sql;
+
+    const store = createPostgresDocketStore({ sql });
+    await store.file(entryFor("tenant-a", "entry-1"));
+    await store.file(entryFor("tenant-b", "entry-1"));
+
+    // A host that runs its application as the role that owns the schema is an ordinary
+    // arrangement, and `enable row level security` alone would exempt it.
+    await sql.unsafe(`create role "${owner}" nosuperuser`);
+    await sql.unsafe(`grant usage on schema affiant to "${owner}"`);
+    await sql.unsafe(`alter table affiant.docket_entries owner to "${owner}"`);
+    await sql.unsafe(`alter table affiant.docket_events owner to "${owner}"`);
+    await sql.unsafe(`alter view affiant.docket_current owner to "${owner}"`);
+  }, 120_000);
+
+  afterAll(async () => {
+    await owned.sql.unsafe(`drop owned by "${owner}"`);
+    await owned.sql.unsafe(`drop role if exists "${owner}"`);
+    await owned.close();
+  });
+
+  it("shows the owner nothing when the transaction declares no tenant", async () => {
+    const seen = await owned.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${owner}"`);
+      const entries = await tx`select entry_id from affiant.docket_entries`;
+      const events = await tx`select id from affiant.docket_events`;
+      const view = await tx`select entry_id from affiant.docket_current`;
+      return { value: [entries.length, events.length, view.length] };
+    });
+
+    expect(seen.value).toEqual([0, 0, 0]);
+  });
+
+  it("refuses the owner an insert while the transaction declares no tenant", async () => {
+    const attempt = owned.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${owner}"`);
+      await tx`
+        insert into affiant.docket_entries (
+          tenant_id, entry_id, conversation_id, channel, tool_name, affidavit, requirement,
+          filed_at, expires_at, protocol_version, filed_row
+        ) values (
+          ${"tenant-a"}, ${"owner-wrote-this"}, ${"conv-1"}, ${"chat"}, ${"update_invoice"},
+          ${tx.json({})}, ${"ReviewerConfirmation"}, ${"2026-09-04T09:00:00.000Z"}::timestamptz,
+          ${"2026-09-04T09:30:00.000Z"}::timestamptz, ${"0.1.0"}, ${tx.json({})}
+        )`;
+      return { value: null };
+    });
+
+    await expect(attempt).rejects.toThrow(/row-level security/i);
+  });
+
+  it("shows the owner one tenant's rows once the transaction declares it", async () => {
+    const seen = await owned.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${owner}"`);
+      await tx`select set_config('affiant.tenant_id', ${"tenant-a"}, true)`;
+      const rows = await tx<{ tenant_id: string }[]>`
+        select tenant_id from affiant.docket_current`;
+      return { value: rows.map((row) => row.tenant_id) };
+    });
+
+    expect(seen.value).toEqual(["tenant-a"]);
   });
 });

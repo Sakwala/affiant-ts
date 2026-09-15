@@ -99,7 +99,12 @@ export function foldEntry(row: FoldRow): DocketEntry {
   if (decision !== null) {
     entry = withDecision(entry, decision);
   } else if (row.expiry_payload !== null) {
-    entry = expired(entry);
+    // The sweep's own record, not a second derivation of it. A fold that recomputed
+    // `decidedAt` from `expires_at` would read the same for a correct sweep and for one
+    // that had stamped the instant it ran, which is the mistake DK-1 is about — and the
+    // row, not the code, is what an auditor is reading (DK-4).
+    const sweep = row.expiry_payload;
+    entry = { ...entry, status: "expired", execution: null, decidedAt: sweep.decidedAt };
   }
 
   const execution = row.execution_payload;
@@ -159,12 +164,14 @@ export function withDecision(entry: DocketEntry, decision: DecisionPayload): Doc
 }
 
 /**
- * The row as an expired one: it left `pending` at its own deadline.
+ * The row as an expired one **when no sweep has recorded it**: it left `pending` at its
+ * own deadline, which is the only instant available when nothing was written down.
  *
- * A swept row and an unswept one past the same deadline have to be the same value, or
- * a host learns to tell whether the sweep has caught up and comes to depend on it. So
- * this is the shape the sweep records *and* the shape a read applies when no sweep has
- * run (DK-1).
+ * A swept row and an unswept one past the same deadline have to be the same value, or a
+ * host learns to tell whether the sweep has caught up and comes to depend on it. The
+ * swept row gets its instant from the event the sweep wrote; this is the unswept half,
+ * and the two agree because the sweep records the deadline and not the moment it ran
+ * (DK-1).
  */
 export function expired(entry: DocketEntry): DocketEntry {
   return { ...entry, status: "expired", execution: null, decidedAt: entry.expiresAt };

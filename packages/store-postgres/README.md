@@ -127,13 +127,14 @@ await sql.begin("isolation level repeatable read", async (tx) => {
 
 ## Runtimes
 
-Node 22 and **workerd** — the runtime a Cloudflare Worker runs on — both run the store
-contract from `@affiant/core/testing` in this repository's CI: 69 cases, the same ones
-the in-memory reference store is measured by. On workerd the connection is a direct TCP
-one, dialled by the `workerd` build postgres.js ships in its own `exports` map. On Node
-the same CI run additionally puts the protocol's 61 declarative conformance documents
-through this store with nothing failing, so the gate's behaviour is measured with this
-Docket underneath it and not only the store's own.
+Node 22, **workerd** — the runtime a Cloudflare Worker runs on — and Bun all run this
+package in CI, and a red run on any of them blocks a merge. Node and workerd run the
+store contract from `@affiant/core/testing`: 89 cases, the same ones the in-memory
+reference store is measured by. On workerd the connection is a direct TCP one, dialled
+by the `workerd` build postgres.js ships in its own `exports` map. On Node and under Bun
+the run additionally puts the protocol's 61 declarative conformance documents through
+this store with nothing failing, so the gate's behaviour is measured with this Docket
+underneath it and not only the store's own.
 
 Three things about Workers worth knowing before you deploy.
 
@@ -152,17 +153,16 @@ its sockets with it when it ends, so there is nothing to close; and with postgre
 with `Error: Stream was cancelled.` from `cf/polyfills.js` — a rejection raised outside
 any call of yours, which nothing you write can catch.
 
-**Speed.** `file` plus `transition` on a ten-field Affidavit averages 3.5 ms per
-operation on this repository's CI runner — the same on Node and under Bun, against a
-Postgres service container — and 5 to 16 ms on a development laptop against a Postgres
-in a container beside it. A tripwire in the suite fails the build above 25 ms on Node,
-which is this store's share of the 100 ms envelope RT-2 pins for a per-request path.
-Your own numbers depend on where your database is, so the bound is overridable with
-`AFFIANT_BUDGET_MS` and the measured mean is printed either way.
+**Speed.** `file` plus `transition` on a ten-field Affidavit averages 5 to 16 ms per
+operation on a development laptop, against a Postgres in a container beside it. A
+tripwire in the suite fails the build above 25 ms on Node, which is this store's share
+of the 100 ms envelope RT-2 pins for a per-request path. Your own numbers depend on
+where your database is and are the only ones worth planning against, so the bound is
+overridable with `AFFIANT_BUDGET_MS` and the measured mean is printed on every run.
 
-**Not measured here: a connection through Hyperdrive.** Bun runs the whole suite, in
-this repository's CI and on a laptop; Hyperdrive does neither, and this README will say
-so until a deployment proves it.
+**Not measured here: a connection through Hyperdrive.** Every runtime this package
+claims is exercised in CI; Hyperdrive is not, and this README will say so until a
+deployment proves it.
 
 ## What is not in this package
 

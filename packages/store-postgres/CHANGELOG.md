@@ -57,14 +57,17 @@ the [root changelog](../../CHANGELOG.md).
   give one caller the work and the other nothing, rather than a duplicate-key error.
 
 - **Measured, not asserted.** The store contract from `@affiant/core/testing` — the
-  same 86 cases the shipped in-memory reference store is measured by — passes on Node
+  same 89 cases the shipped in-memory reference store is measured by — passes on Node
   and inside workerd, and the protocol's 61 declarative conformance documents pass
-  through this store on Node with nothing failing and nothing skipped. Three more suites
-  open real second connections: a decision and a sweep reaching one row, two hosts
-  migrating at once, and an export that has to be a snapshot. A tripwire keeps
+  through this store on Node and under Bun with nothing failing and nothing skipped.
+  Four cases across two suites open real second connections: a decision and a sweep
+  reaching one row, twenty of those races at once, two hosts migrating at once, and an
+  export that has to be a snapshot. Two more read the tables directly, because a value
+  the fold recomputes on the way out reads correctly however wrong the row is, and an
+  auditor reads the row. A tripwire keeps
   file-plus-decide on a ten-field Affidavit under 25 ms per operation, which is the
   store's share of RT-2's 100 ms envelope; `AFFIANT_BUDGET_MS` moves the bound for a
-  slower machine, and the measured mean is printed either way.
+  slower machine, and the measured mean is printed on every run.
 
 - **`export` says what it is.** A walk in filing order, in bounded batches, each its own
   transaction — so an entry committed during the walk, behind the position the walk has
@@ -77,6 +80,6 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Not in this version
 
-- A connection through Hyperdrive is unmeasured. Bun runs the whole suite and has a
-  best-effort CI line.
+- A connection through Hyperdrive is unmeasured. Node, workerd and Bun each run this
+  package in CI, and a red run on any of them blocks a merge.
 - No outbox, no timer, no transcript table, no Drizzle description of the tables.

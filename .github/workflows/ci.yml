@@ -96,10 +96,10 @@ jobs:
       - run: bun run --bun vitest run --project contract
       # RT-1: the core is runtime-neutral, so its whole suite runs under Bun.
       - run: bun run --bun vitest run --project core
-      # The Docket store under Bun, best-effort until it has been proven there: the
-      # driver resolves a build of its own on Bun, and nothing has measured it yet.
+      # The Docket store under Bun, which is where the driver resolves a build of its
+      # own — the one thing about this package that is not the same code on all three
+      # runtimes, and therefore the one worth a job that can go red.
       - run: bun run --bun vitest run --project store-postgres
-        continue-on-error: true
 
   workerd:
     name: workerd

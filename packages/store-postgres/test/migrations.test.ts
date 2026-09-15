@@ -1,7 +1,13 @@
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+import { sampleEntry } from "@affiant/core/testing";
 import postgres from "postgres";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { MIGRATIONS, applyMigrations, renderMigration } from "../src/migrations.js";
+import { createPostgresDocketStore } from "../src/store.js";
 import { DEFAULT_SCHEMA } from "../src/schema.js";
 import type { TestDatabase } from "./setup.js";
 import { createTestDatabase, databaseUrl } from "./setup.js";
@@ -119,4 +125,56 @@ describe("the shipped SQL", () => {
     expect(names).toEqual([...names].sort());
     expect(new Set(names).size).toBe(names.length);
   });
+});
+
+describe("the files the package ships", () => {
+  // The digest cases above compare the generated module with itself, which is a real
+  // check of the module and no check at all of the SQL: a `.sql` file edited without
+  // regenerating would pass every one of them. These read the files.
+  const directory = new URL("../migrations/", import.meta.url);
+
+  /** Every shipped `.sql` file, in the order the generator takes them. */
+  function shipped(): { name: string; sql: string }[] {
+    return readdirSync(fileURLToPath(directory))
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .map((name) => ({
+        name: name.replace(/\.sql$/, ""),
+        sql: readFileSync(new URL(name, directory), "utf8"),
+      }));
+  }
+
+  /** The placeholder substituted the way a host vendoring the file would substitute it. */
+  function renderFile(text: string, schema: string): string {
+    return text.split("{{schema}}").join(`"${schema}"`);
+  }
+
+  it("carries one constant per file, digesting to what the file digests to", () => {
+    const files = shipped();
+
+    expect(files.map((file) => file.name)).toEqual(MIGRATIONS.map((one) => one.name));
+    for (const [index, file] of files.entries()) {
+      const digest = createHash("sha256").update(file.sql, "utf8").digest("hex");
+      expect(MIGRATIONS[index]?.sha256).toBe(digest);
+      expect(MIGRATIONS[index]?.sql).toBe(file.sql);
+    }
+  });
+
+  it("builds a working Docket from the text on disk, not from the constant", async () => {
+    // What a host vendoring the SQL into its own migration sequence actually runs is
+    // the file. If the file and the module ever part company, this is the half that
+    // says which of them is the one that works.
+    const { sql } = await bare();
+    const schema = "affiant_from_disk";
+    for (const file of shipped()) {
+      await sql.unsafe(renderFile(file.sql, schema));
+    }
+
+    const store = createPostgresDocketStore({ sql, schema });
+    const scope = { tenantId: "tenant-disk" };
+    const filed = await store.file(sampleEntry("from-disk", { tenantId: scope.tenantId }));
+
+    expect(filed.created).toBe(true);
+    expect((await store.get("from-disk", scope))?.entryId).toBe("from-disk");
+  }, 120_000);
 });
