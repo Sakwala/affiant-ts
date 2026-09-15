@@ -10,6 +10,23 @@ was made against.
 
 ## [Unreleased]
 
+### Added
+
+- **A parametrised store contract behind `@affiant/core/testing`.** `runDocketStoreContract`
+  and `runSessionStoreContract` register every assertion a `DocketStore` and a `SessionStore`
+  must pass — idempotent filing that keeps the deadline it already had (DK-1, GT-4), the
+  guarded compare-and-set, expiry applied on read whether or not a sweep has run, amendment
+  `null` as a cleared field and an absent key as an untouched one (DK-2), the bounded paged
+  sweep and its opaque cursors (DK-3), retention, purge and export (DK-4), rehydration order
+  (DK-5), and a wrong-tenant lookup that is a miss rather than a distinguishable refusal
+  (AZ-2) — so a store a host builds on a database is measured by the same assertions as the
+  shipped in-memory one. The test runner comes in as a parameter (`{ describe, it, expect,
+  beforeAll, afterAll }`), so the package gains no dependency of any kind from carrying it.
+
+- **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
+  run against a caller's own ports instead of the reference wiring, and a store factory given
+  there is used for every one of them.
+
 ### Changed
 
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at

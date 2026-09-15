@@ -14,7 +14,9 @@
  * 2. **Supply the four ports from `given`.** `@affiant/core/testing`'s runner does
  *    this: a scripted inference port, a projection port reading the fixture's own
  *    entity table, an allowlist authorization port and a fixed clock. No wall clock
- *    is read anywhere in a run.
+ *    is read anywhere in a run. A caller may replace any of them through
+ *    {@link RunOptions.ports} — which is how a Docket store other than the
+ *    in-memory reference is put through the same documents.
  * 3. **Bind each step kind.** Also the runner's, and the runner is the published
  *    one — what a driver for a second implementation will run against that
  *    implementation is exactly what runs here.
@@ -47,7 +49,7 @@ import type { AmendmentMap } from "@affiant/contract";
 import { canonicalHash, canonicalString } from "@affiant/core";
 import type { CanonicalInput, CanonicalizeOptions, ReviewerAct } from "@affiant/core";
 import { runFixture } from "@affiant/core/testing";
-import type { Fixture } from "@affiant/core/testing";
+import type { Fixture, FixturePorts } from "@affiant/core/testing";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import type { AnySchemaObject } from "ajv/dist/2020.js";
 import ajvFormats from "ajv-formats";
@@ -128,6 +130,18 @@ export interface RunOptions {
   readonly commit?: string;
   /** The instant to stamp on the document. Defaults to now — the one clock read a run makes, and it is metadata. */
   readonly producedAt?: string;
+  /**
+   * The ports every fixture is wired from, when the caller is not running the
+   * reference wiring.
+   *
+   * The one a store implementation passes is `store`: the same 61 declarative
+   * documents, run against its Docket instead of the in-memory reference. Every
+   * port has a default, so a caller replaces only what it is proving — and a
+   * factory given here is used for **every** fixture in the run, because a run that
+   * quietly ran part of the suite against something else would report a pass the
+   * implementation did not earn.
+   */
+  readonly ports?: FixturePorts;
 }
 
 /** The run, and the set the parity manifest is compared against. */
@@ -221,7 +235,7 @@ export async function runConformance(options: RunOptions = {}): Promise<Conforma
     const outcome =
       row.set === "canonical"
         ? await runVector(ajv, document as CanonicalVectorDocument)
-        : await runOne(ajv, document as ConformanceFixtureDocument);
+        : await runOne(ajv, document as ConformanceFixtureDocument, options.ports ?? {});
     results.push({ ...outcome, durationMs: Date.now() - at });
   }
 
@@ -258,8 +272,12 @@ export async function runConformance(options: RunOptions = {}): Promise<Conforma
   return { document, failingIds, skippedIds };
 }
 
-/** One declarative fixture: validated, then run through the reference runner. */
-async function runOne(ajv: Ajv2020, document: ConformanceFixtureDocument): Promise<FixtureOutcome> {
+/** One declarative fixture: validated, then run through the reference runner on `ports`. */
+async function runOne(
+  ajv: Ajv2020,
+  document: ConformanceFixtureDocument,
+  ports: FixturePorts,
+): Promise<FixtureOutcome> {
   const id = typeof fixtureSchema["$id"] === "string" ? fixtureSchema["$id"] : "";
   const validate = ajv.getSchema(id);
   if (validate === undefined) {
@@ -276,7 +294,7 @@ async function runOne(ajv: Ajv2020, document: ConformanceFixtureDocument): Promi
   try {
     // The published runner, not a private one: what a driver for a second
     // implementation will run against that implementation is what runs here.
-    const result = await runFixture(document as unknown as Fixture);
+    const result = await runFixture(document as unknown as Fixture, ports);
     if (result.pass) return { id: document.id, outcome: "pass" };
     return {
       id: document.id,
