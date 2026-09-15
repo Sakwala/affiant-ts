@@ -52,21 +52,39 @@ const result = await agent.generate({ prompt: turn.utterance });
 `ctx` is the `TurnContext` for this turn: conversation, tenant, channel, principal and
 the unmodified turn. The SDK validates it against each tool's `contextSchema` and hands
 it to the tool's `execute`; the adapter wraps the gate around that call for that context
-and drops it afterwards. A call whose context is missing or the wrong shape **throws** —
-there is no shared default to fall back to, because two conversations must never observe
-each other's context (GT-2, CV-2).
+and drops it afterwards. A call whose context is missing, incomplete or carrying a blank
+conversation, tenant, channel, message id or instant **throws** an
+`AffiantError("wireup-invalid")` before the gate is touched — there is no shared default
+to fall back to, because two conversations must never observe each other's context
+(GT-2, CV-2). `principal` must be present; `null` is a valid value and means the host
+resolved no identity.
 
-A single `ToolLoopAgent` reused across turns sets the context per step instead, since
-`toolsContext` is a constructor setting rather than a `generate()` argument:
+Through `generateText` or `streamText` that refusal reaches the host **wrapped**: the
+SDK validates the context itself and raises its own `TypeValidationError`, carrying the
+`AffiantError` as `cause`. Catch it as `error.cause` — or call the tool's `execute`
+directly, where the `AffiantError` is what is thrown.
+
+`toolsContext` is a constructor setting on `ToolLoopAgent` rather than a `generate()`
+argument, so the constructor form above is for an agent built for **exactly one turn**
+and thrown away. An agent kept alive across turns supplies the turn through
+`prepareStep` and **never** sets a constructor-level `toolsContext`:
 
 ```ts
 new ToolLoopAgent({
   model,
   tools,
   stopWhen: stopWhenFiled(),
-  prepareStep: () => ({ toolsContext: affiantToolsContext(ctx, tools) }),
+  // The only source of the turn. No `toolsContext` here.
+  prepareStep: () => ({ toolsContext: affiantToolsContext(currentTurn(), tools) }),
 });
 ```
+
+This is a boundary the adapter cannot check for you. When both are set and
+`prepareStep` returns no `toolsContext` for a later turn, the SDK falls back to the
+constructor's — and the adapter cannot tell that fallback from a context the host meant
+to supply, so the later turn runs under the earlier turn's context. With `prepareStep`
+as the only source, a turn it does not answer for is refused, which is what GT-2 asks
+for.
 
 **3. Stop the loop at the filing.**
 
@@ -85,10 +103,12 @@ const inference = createInferencePort({ model });
 
 One **tool-free** `generateText` call per inference, with the field schema as the
 structured output: the model is asked for values, never for an action (GT-1 step 3). A
-field it could not fill comes back **absent**, not `null` — absent is "not proposed" and
-is left out of the Affidavit, while `null` is a value (AF-1). The `presence` the model
-reports is a hint; the gate establishes presence from the turn itself and never mints a
-stronger grade from the model's claim about its own literalness (PV-3).
+field the model could not fill comes back **absent**, which is "not proposed" and is
+left out of the Affidavit. A field it reported as `null` is passed through as reported,
+and the gate reads that as **nothing reported for that field** — not as a value — so the
+field stays whatever it already was (PV-3, AF-1). The `presence` the model reports is a
+hint; the gate establishes presence from the turn itself and never mints a stronger
+grade from the model's claim about its own literalness (PV-3).
 
 ## What the model sees after a filing
 
@@ -150,10 +170,19 @@ so nothing is lost by not setting it.
 
 ## The honest boundary
 
-The gate never calls a write-capable tool's own `execute`, and the function the SDK calls
-holds no reference to it (GT-6). What no wire-up check can see is a tool that opens its
-own connection and writes inside its body. That is a limit, stated as one rather than
-pretended away: a tool that writes in its body is outside the guarantee.
+The gate never calls a write-capable tool's own `execute` (GT-6). What no wire-up check
+can see is a tool that opens its own connection and writes inside its body. That is a
+limit, stated as one rather than pretended away: a tool that writes in its body is
+outside the guarantee.
+
+So is a tool the host puts into the `ToolSet` itself, after `affiantTools` has returned.
+`affiantToolsContext` leaves such a tool alone — it has no way to know what the tool is —
+and nothing in this package saw it to refuse it. If it writes, it writes ungated.
+
+An aborted generation is a third edge worth naming. A tool call that has not begun when
+the signal fires does not begin, and nothing is filed; a filing already under way runs to
+completion, because the gate takes no abort signal, and its row stays `pending` on the
+Docket for a person to expire or reject.
 
 ## Runtimes
 

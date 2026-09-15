@@ -17,7 +17,10 @@ the [root changelog](../../CHANGELOG.md).
   the SDK supplied for that call; `affiantToolsContext(ctx, tools)` builds the
   `toolsContext` map a host passes per turn; `stopWhenFiled()` ends an agent loop once an
   Affidavit is filed; and `@affiant/adapter-ai-sdk/inference` exposes
-  `createInferencePort({ model })`, one tool-free structured call per inference.
+  `createInferencePort({ model })`, one tool-free structured call per inference. A tool
+  set carries the gate it was built for under a registered symbol, so
+  `affiantToolsContext` recognises the tools it should name even across a structural copy
+  or a second copy of this package, and refuses a set holding two gates' tools (CV-1).
 
 - **Coverage is settled when the `ToolSet` is built, not on the first call** (CV-4,
   CV-1). A write-capable definition the adapter cannot intercept — provider-executed,
@@ -28,17 +31,26 @@ the [root changelog](../../CHANGELOG.md).
 - **A call with no usable turn context is refused, never defaulted** (GT-2, CV-2). The
   context arrives through the SDK's own per-tool channel, is validated against the
   `contextSchema` the adapter declares, and is used once; there is no registry keyed by
-  conversation and no shared default.
+  conversation and no shared default. The seam checks the whole shape before the gate is
+  touched: a blank conversation, tenant, channel, message id or instant is refused, and
+  `principal` must be present, `null` included. Through `generateText` or `streamText`
+  the refusal reaches a host as the SDK's own `TypeValidationError` carrying the
+  `AffiantError` as `cause`.
 
 - **The gate's write path is what the SDK calls, and a write tool's own `execute` is
   not** (GT-6). The suites carry a tripwire `execute` on every write fixture, so a call
-  that ever reached one would fail the run.
+  that ever reached one would fail the run. Each definition is snapshotted as
+  `affiantTools` reads it, so a host that mutates one after wire-up changes nothing about
+  the tool that was built.
 
-- **The SDK's approval mechanism is not used** (AZ-5). Neither `needsApproval` nor
-  `toolApproval` is set: the SDK reconstructs approval from client-supplied message
-  history, and approval authority lives on the Docket row and nowhere else. `WorkflowAgent`
-  is unsupported in this version because its package is beta and its peer is not on the
-  `latest` dist-tag (CV-5).
+- **The SDK's approval mechanism is not used, and cannot be added back** (AZ-5, CV-1).
+  Neither `needsApproval` nor `toolApproval` is set: the SDK reconstructs approval from
+  client-supplied message history, and approval authority lives on the Docket row and
+  nowhere else. Every built tool is frozen and the returned set's entry type does not
+  admit `needsApproval`, so neither a later assignment nor a type-checked build can put
+  it back. `WorkflowAgent` is unsupported in this version because the `latest` release of
+  `@ai-sdk/workflow` requires a peer range only that package's `beta` dist-tag satisfies
+  (CV-5).
 
 - **Node, workerd and Bun.** The behavioural suites run on Node 22 and inside workerd,
   both merge-blocking, and under Bun best-effort; `src/` compiles with no `@types/node`
