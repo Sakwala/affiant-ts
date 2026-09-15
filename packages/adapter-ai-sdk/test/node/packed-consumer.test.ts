@@ -13,8 +13,10 @@
  * `tsc` fails the test.
  *
  * Node-only: it packs, installs and spawns. Excluded from the workerd run by
- * `vitest.workers.config.ts`. It needs the registry for `ai`; when that is unreachable
- * the suite prints why and skips rather than reporting a failure it cannot attribute.
+ * `vitest.workers.config.ts`. It needs the registry for `ai`, and it asks the registry
+ * whether it is there before it packs anything: a silent registry skips the suite, and
+ * an install that fails against a registry that answered is a failure, because that is a
+ * manifest a consumer cannot resolve.
  */
 
 import { execFileSync } from "node:child_process";
@@ -64,14 +66,41 @@ function tarballIn(directory: string): string | null {
   return found.length === 1 && found[0] !== undefined ? join(directory, found[0]) : null;
 }
 
+/**
+ * Whether the npm registry answers at all.
+ *
+ * The install below needs the registry, and a machine without one should not report a
+ * failure it cannot attribute. But "the install failed" and "the registry is
+ * unreachable" are different facts, and conflating them is how a published manifest
+ * that cannot be resolved — a dependency at a version nobody has, a name nobody
+ * publishes — passes as a skip. So the registry is asked one question of its own
+ * first: only a silent registry skips this suite, and an install that fails against a
+ * registry that answered is a failure.
+ */
+function registryReachable(): boolean {
+  try {
+    execFileSync("npm", ["ping", "--loglevel", "error"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 60_000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const scratch = mkdtempSync(join(tmpdir(), "affiant-packed-"));
 afterAll(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
 
 const built = existsSync(join(packageRoot, "dist", "index.d.ts"));
+// Asked once, before anything is packed: a machine with no registry skips, and
+// everything past this point treats a failed install as a defect in what was packed.
+const online = registryReachable();
 
-describe.skipIf(!built)("a consumer of the packed tarball", () => {
+describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
   it("compiles against the published types with tsc --strict", { timeout: 300_000 }, () => {
     const packs = join(scratch, "packs");
     const project = join(scratch, "project");
@@ -182,11 +211,15 @@ describe.skipIf(!built)("a consumer of the packed tarball", () => {
       project,
     );
     if (installed === null) {
-      console.warn(
-        `packed-consumer: skipped — could not install the tarballs and ai@${pinnedAi} ` +
-          `into a scratch project (the npm registry is likely unreachable from here).`,
+      // The registry answered `npm ping` a moment ago, so this is not a network that is
+      // down — it is a manifest that cannot be resolved, which is exactly what a
+      // consumer would hit.
+      expect.soft(registryReachable(), "the npm registry stopped answering mid-test").toBe(true);
+      throw new Error(
+        `installing the packed tarballs and ai@${pinnedAi} into a scratch project ` +
+          `failed against a registry that answered \`npm ping\`: the published manifest ` +
+          `cannot be resolved by a consumer.`,
       );
-      return;
     }
 
     const tsc = join(workspaceRoot, "node_modules", ".bin", "tsc");

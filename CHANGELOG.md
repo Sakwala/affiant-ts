@@ -102,6 +102,10 @@ these versions.
   `0.1.0-alpha.0` is a version bump, and what changes under a host that already ran it is
   the grade and the binding on fields whose values are in the turn.
 
+## [0.1.0-alpha.0] — 2026-09-06
+
+### Changed
+
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.0`.** Published 2026-09-06 under the `alpha` dist-tag, each tarball
   carrying an npm provenance attestation that binds it to this repository, the workflow
@@ -520,3 +524,6 @@ these versions.
   <https://sakwala.github.io/affiant-ts/>.
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
+[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...main
+[0.1.0-alpha.1]: https://github.com/Sakwala/affiant-ts/compare/v0.1.0-alpha.0...e837598608b35d3ab90dfd35645d2308538250dc
+[0.1.0-alpha.0]: https://github.com/Sakwala/affiant-ts/releases/tag/v0.1.0-alpha.0
