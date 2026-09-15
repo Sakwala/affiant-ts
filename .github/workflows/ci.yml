@@ -16,6 +16,24 @@ jobs:
   node:
     name: node 22
     runs-on: ubuntu-latest
+    # `@affiant/store-postgres` is measured against a real Postgres, because the
+    # rules it has to hold — the guarded compare-and-set, the tenant policies, the
+    # deadline applied on read — are properties of the statements and not of a fake.
+    # Port 5433 so the package's default admin URL needs no override anywhere.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -44,6 +62,21 @@ jobs:
   bun:
     name: bun
     runs-on: ubuntu-latest
+    # The Docket store files real entries under Bun too, and its line here blocks.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -68,10 +101,29 @@ jobs:
       # rather than a gate.
       - run: bun run --bun vitest run --project adapter-ai-sdk
         continue-on-error: true
+      # The Docket store under Bun, which is where the driver resolves a build of its
+      # own — the one thing about this package that is not the same code on all three
+      # runtimes, and therefore the one worth a job that can go red.
+      - run: bun run --bun vitest run --project store-postgres
 
   workerd:
     name: workerd
     runs-on: ubuntu-latest
+    # The store's contract suite runs inside workerd against this, over TCP.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -91,6 +143,10 @@ jobs:
       # The AI SDK adapter has no I/O of its own, so every behavioural suite it has
       # runs inside workerd too — the runtime its first host executes on.
       - run: pnpm -C packages/adapter-ai-sdk test:workers
+      # The Docket store's contract suite, inside workerd, over a direct TCP
+      # connection to the service container — the runtime a Worker host would run it
+      # on, and the one it was written for.
+      - run: pnpm -C packages/store-postgres test:workers
 
   # The protocol's conformance suite, run against @affiant/core on every runtime
   # this implementation claims, with the failing set asserted equal to the

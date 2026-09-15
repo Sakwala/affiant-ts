@@ -39,6 +39,26 @@ was made against.
   yet. See the [package changelog](packages/adapter-ai-sdk/CHANGELOG.md) and
   [README](packages/adapter-ai-sdk/README.md).
 
+- **`@affiant/store-postgres`, the Docket on Postgres.** `createPostgresDocketStore({ sql })`
+  implements `DocketStore` and `SessionStore` from `@affiant/core` over two append-only
+  tables and a fold across them, on a postgres.js connection the host owns — the package
+  opens none, pools none and closes none. There is no `update` statement in it: every
+  guard the Docket needs is a unique index, so a second decision is refused, an execution
+  outcome is recorded once, a sweep cannot expire the same row twice, and a decision and a
+  sweep exclude each other across connections (DK-1) — and a recorded fact is appended
+  rather than edited (DK-4). The tenant is scoped twice (AZ-2):
+  every statement filters by it, and the tables force row-level security over a
+  transaction-scoped setting of the package's own name. `within(tx)` binds the store to a
+  transaction the host already has open, for the executor that must record an outcome
+  atomically with its own write (AZ-5). The SQL ships both as a file a host can vendor and
+  as `MIGRATIONS` with a SHA-256 per migration, with `applyMigrations` for a host with no
+  migration tool of its own. Acceptance is a measurement: the store contract's 89 cases on
+  Node and inside workerd, the 61 declarative conformance documents through this store with
+  nothing failing, four cases across two suites that open real second connections — a
+  decision racing the sweep, twenty of those at once, two hosts migrating at once, and an
+  export that has to be a snapshot — and two that read the tables directly, because a value
+  the fold recomputes on the way out reads correctly however wrong the row is.
+
 ### Changed
 
 - **The in-memory Docket store keeps the first of a repeated later fact, rather than the last.**

@@ -32,7 +32,10 @@
       "@affiant/contract/conformance": ["./packages/contract/src/conformance.ts"],
       "@affiant/core": ["./packages/core/src/index.ts"],
       "@affiant/core/store-memory": ["./packages/core/src/store-memory.ts"],
-      "@affiant/core/testing": ["./packages/core/src/testing.ts"]
+      "@affiant/core/testing": ["./packages/core/src/testing.ts"],
+      "@affiant/conformance-driver": ["./packages/conformance-driver/src/index.ts"],
+      "@affiant/store-postgres": ["./packages/store-postgres/src/index.ts"],
+      "@affiant/store-postgres/migrations": ["./packages/store-postgres/src/migrations.ts"]
     }
   }
 }
