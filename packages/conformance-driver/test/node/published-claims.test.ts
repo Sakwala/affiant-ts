@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { parityManifestSchema, resultsSchema } from "@affiant/contract/conformance";
 
+import { ADAPTER_PACKAGE_VERSION, AI_SDK_VERSION } from "../../src/adapters/version.js";
 import { parityManifest } from "../../src/parity.js";
 import { IMPLEMENTATION_VERSION } from "../../src/run.js";
 
@@ -45,9 +46,9 @@ function validatorFor(schema: unknown): (document: unknown) => string[] {
   };
 }
 
-const manifestFile = join(packageRoot, "conformance", "parity", "typescript-v0.1.json");
+const manifestFile = join(packageRoot, "conformance", "parity", "typescript-v0.2.json");
 
-describe("conformance/parity/typescript-v0.1.json", () => {
+describe("conformance/parity/typescript-v0.2.json", () => {
   it("is exactly what src/parity.ts produces", () => {
     // The module is the source and the file is the artifact. Without this the file
     // could be regenerated and not committed, or edited and not regenerated, and
@@ -70,6 +71,38 @@ describe("conformance/parity/typescript-v0.1.json", () => {
     // cannot be read is a claim a reader has to take on trust.
     expect(validatorFor(resultsSchema)(log)).toEqual([]);
     expect((log as { protocolTag: string }).protocolTag).toBe(parityManifest.protocolTag);
+  });
+});
+
+describe("the versions this driver states about the adapter it ships", () => {
+  it("are the adapter package's own and the `ai` version its suites resolved (CV-5)", () => {
+    // Both are literals in src/adapters/version.ts, because the module that reads the
+    // manifest runs inside workerd and has no filesystem. This is the check that stops
+    // either drifting from what the suites actually ran against: a parity manifest
+    // naming a version nobody used is a claim nobody can reproduce.
+    const adapter = JSON.parse(
+      readFileSync(join(packageRoot, "..", "adapter-ai-sdk", "package.json"), "utf8"),
+    ) as { version: string; devDependencies: Record<string, string> };
+
+    expect(ADAPTER_PACKAGE_VERSION).toBe(adapter.version);
+    expect(AI_SDK_VERSION).toBe(adapter.devDependencies["ai"]);
+
+    const declared = parityManifest.adapters?.[0];
+    expect(declared?.package).toBe("@affiant/adapter-ai-sdk");
+    expect(declared?.version).toBe(adapter.version);
+    expect(declared?.runtimeVersion).toBe(adapter.devDependencies["ai"]);
+  });
+
+  it("name the adapter block the package declares for the rulebook's claims lint", () => {
+    // The lint reads this block; a manifest row naming a runtime the package does not
+    // declare would be a claim about a package nobody linted.
+    const adapter = JSON.parse(
+      readFileSync(join(packageRoot, "..", "adapter-ai-sdk", "package.json"), "utf8"),
+    ) as { affiant: { adapter: { runtime: string; surfaces: string[]; durabilityClaims: [] } } };
+
+    expect(adapter.affiant.adapter.runtime).toBe(parityManifest.adapters?.[0]?.runtime);
+    expect(adapter.affiant.adapter.surfaces.length).toBeGreaterThan(0);
+    expect(adapter.affiant.adapter.durabilityClaims).toEqual([]);
   });
 });
 

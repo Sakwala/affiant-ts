@@ -20,6 +20,35 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Added
 
+- **The adapter section** (`src/adapter.ts`, `src/adapters/ai-sdk.ts`). Runs every document the
+  rulebook's `adapter` manifest section lists against one Affiant adapter, and reports the same
+  `results.schema.json` entries the conformance section does. Everything in the runner is the
+  rulebook's — the gate built from `given.gate` exactly as a conformance fixture's is, the tool
+  definitions, the Docket, the expectations; the three things only a framework can answer are an
+  `AdapterBinding`, so a second adapter is a second binding and no change to the runner (CV-2, CV-3).
+  A write definition's own host function is a tripwire that fails the fixture if it is ever reached
+  (GT-6), and a read definition's records that it ran and returns the value the fixture stated, so a
+  fixture can state that a refused call never got that far (CV-2) and can pin what a read returned.
+  A call that raised hands the framework nothing, which `"modelOutput": null` states; a step kind the
+  runner has not bound is an `error` for the whole document, in the step under test and in any
+  `prior` step alike; and an `expect` clause it does not answer is a `fail` naming the clause. None
+  of the three is ever a pass.
+- **`mergeRuns`**, because the rulebook asserts the failing set over the **union** of the sections a
+  run covered: one run document, one comparison, and a failing adapter fixture is a failing fixture
+  like any other.
+- **`affiant-conformance adapter --package <name>`**, the adapter section alone — what a host
+  working on an adapter reaches for rather than waiting for the other sixty-eight documents.
+- **`adapters[]` on the parity manifest**, naming `@affiant/adapter-ai-sdk`, the `ai` version the run
+  resolved, how many documents the section covered, and what the rulebook's adapter claims lint said
+  about the package (CV-5). The manifest moves to
+  [`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json).
+
+### Changed
+
+- `exemptions[]` no longer carries CV-2, CV-3 or CV-5. The rows are built from the vendored
+  exemption file rather than retyped, so they disappeared in the same change that moved the pin —
+  which is what "an implementation may not invent an exemption" is for.
+
 - **The driver.** Runs every document the rulebook's conformance manifest lists — 61
   declarative fixtures and 7 canonical byte vectors — against `@affiant/core` through
   its own published `@affiant/core/testing` runner and its own exported
@@ -35,7 +64,9 @@ the [root changelog](../../CHANGELOG.md).
   could not be checked for completeness. A document the manifest lists and the driver
   cannot load is an `error`, never an absence and never a silent skip.
 - **The parity manifest and the assertion**
-  ([`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json)):
+  ([`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json), named
+  `typescript-v0.1.json` until the pin moved to the rulebook commit carrying the v0.2 text, ahead of that
+  rulebook's `v0.2.0` tag):
   the failing set is compared with the published claim in **both** directions, so a
   regression and a quietly-closed gap are equally loud. `skipped` is checked too — a
   skip is legitimate only where the manifest declares one. The manifest's

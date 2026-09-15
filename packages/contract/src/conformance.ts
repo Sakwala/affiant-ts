@@ -1,7 +1,7 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.1.3.
-// Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/
+// copy of Sakwala/affiant-protocol at d6827c59ce50f97c31e5a60158fc16c812ecfc4d.
+// Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
 import type { JsonSchemaDocument } from "./schemas.js";
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.1.3" as const;
+export const PROTOCOL_PIN = "d6827c59ce50f97c31e5a60158fc16c812ecfc4d" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -8947,27 +8947,1268 @@ export const conformanceById: Readonly<
   "canonical/money-and-escapes": canonicalVectors[6]!,
 };
 
+/**
+ * The `"adapter"` section of `conformance/fixtures/MANIFEST.json` (protocol v0.2.0): the
+ * documents that check the three rules about an adapter's seam. Scoped differently
+ * from the conformance section — a driver runs this one **once for every adapter its
+ * implementation ships and declares**, and an implementation that ships none runs none
+ * of it and publishes `adapters: []`. The format is the rulebook's
+ * `conformance/ADAPTER-RUNNER.md`.
+ */
+export const adapterManifest = {
+  "protocolVersion": "0.2.0",
+  "$note": "The adapter section, authored here at v0.2.0 with the first adapter. A fixture here has the shape of a conformance fixture and two step kinds of its own — `adapter-build` and `adapter-call` — described in conformance/ADAPTER-RUNNER.md, and five matchers of its own. The two shapes are separate variants of conformance/fixture.schema.json: a conformance fixture stating an adapter step or an adapter clause is refused, and an adapter fixture stating `card` or `canonicalHash` is refused too, because an Evidence Card and a canonical hash are the gate's own artefacts and this section's runner has no way to produce one. A clause a section's own runner does not read is a clause nobody checks. This section is run only by an implementation that ships and declares an adapter — conformance/DRIVER.md says a driver runs it once for every adapter its implementation ships, and an implementation that ships none runs none and declares `adapters: []` in its parity manifest. Every fixture here is model-free and network-free — the call is made the way the framework makes it, with a scripted context and the arguments a model would have produced — so a driver needs no provider credential and no network to run the set. `oracle` is null on every row: these fixtures were authored with the first adapter, so there is no earlier release of one whose defect they refute, and they are accepted on review the way the canonical vectors are. CV-5 has no fixture here at all: it is a statement about documentation and packaging that no fixture can observe, and it is checked by conformance/lint/adapter-claims.mjs (conformance/ADAPTER-CLAIMS.md).",
+  "authoredHere": "All twelve were authored in this repository at v0.2.0, against @affiant/adapter-ai-sdk (Sakwala/affiant-ts, packages/adapter-ai-sdk) — the first adapter, and the reason the three coverage exemptions CV-2, CV-3 and CV-5 that carried `until: 0.2.0` are lifted at this version. None is promoted: the adapter's own suites drive a built tool set's execute with a scripted context, which is the mapping a driver implements, but the documents here were written to the rules rather than copied from a test file. Five of the twelve were added after refutation rounds found seams the earlier set passed: a second call with no context (a per-gate context cache), a read against an unreachable gate, a malformed context, a malformed context that is a COMPLETE turn context in the wrong shape (a seam that repaired it by wrapping it would file), and a read with a context that answers (without which `outcome.result` was a matcher no document used).",
+  "sets": {
+    "adapter": "the first adapter's seam: the fail-closed call site (CV-2) and the delegation clause (CV-3)"
+  },
+  "fixtures": [
+    {
+      "id": "adapter/cv2-write-with-context-files",
+      "file": "adapter/01-cv2-write-with-context-files.json",
+      "rules": [
+        "CV-2",
+        "GT-2",
+        "AZ-5"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-write-without-context-refuses",
+      "file": "adapter/02-cv2-write-without-context-refuses.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-gate-absent-throws",
+      "file": "adapter/03-cv2-gate-absent-throws.json",
+      "rules": [
+        "CV-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-read-without-context-never-runs",
+      "file": "adapter/04-cv2-read-without-context-never-runs.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv3-model-output-carries-no-values",
+      "file": "adapter/05-cv3-model-output-carries-no-values.json",
+      "rules": [
+        "CV-3",
+        "AZ-5"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv3-docket-row-survives-history",
+      "file": "adapter/06-cv3-docket-row-survives-history.json",
+      "rules": [
+        "CV-3",
+        "AZ-5",
+        "DK-1"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv3-replayed-approval-changes-nothing",
+      "file": "adapter/07-cv3-replayed-approval-changes-nothing.json",
+      "rules": [
+        "CV-3",
+        "AZ-5",
+        "DK-1"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-second-call-without-context-refuses",
+      "file": "adapter/08-cv2-second-call-without-context-refuses.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-read-gate-absent-throws",
+      "file": "adapter/09-cv2-read-gate-absent-throws.json",
+      "rules": [
+        "CV-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-malformed-context-refuses",
+      "file": "adapter/10-cv2-malformed-context-refuses.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-read-with-context-answers",
+      "file": "adapter/11-cv2-read-with-context-answers.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-malformed-context-is-not-repaired",
+      "file": "adapter/12-cv2-malformed-context-is-not-repaired.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    }
+  ]
+} as const;
+
+/**
+ * The 12 adapter fixtures, in manifest order. Every one is
+ * model-free and network-free: the call is made the way the framework makes it, with a
+ * scripted context and the arguments a model would have produced.
+ */
+export const adapterFixtures: readonly ConformanceFixtureDocument[] = [
+  {
+    "id": "adapter/cv2-write-with-context-files",
+    "rules": [
+      "CV-2",
+      "GT-2",
+      "AZ-5"
+    ],
+    "title": "A write tool the adapter built is called with an explicit turn context: the seam calls the gate itself, the proposal is filed pending on the Docket, and the tool's own execute is never reached.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": "turn",
+        "refusal": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "filed"
+      },
+      "entry": {
+        "status": "pending",
+        "execution": null,
+        "requirement": "ReviewerConfirmation",
+        "blocked": null,
+        "toolName": "update_ticket",
+        "channel": "chat",
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "attestation": null,
+        "decision": null
+      },
+      "entries": 1,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-write-without-context-refuses",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "The same write tool called with no turn context is refused with wireup-invalid, nothing is filed, and the framework is handed nothing at all: a seam that cannot obtain a context refuses rather than falling back to a shared default, and never returns the raw proposal as the tool's result.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-gate-absent-throws",
+    "rules": [
+      "CV-2"
+    ],
+    "title": "The same write tool, built against a gate that cannot be reached, throws when it is called and hands the framework nothing: a seam whose gate is unreachable never returns the raw proposal as the tool's result.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": "turn",
+        "gate": "absent"
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "thrown"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-read-without-context-never-runs",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A read tool that answers when it is called with a context is refused when it is called without one, and the host's own read function is never reached: the refusal happens at the seam, before anything the host wrote runs.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "find_ticket",
+              "description": "Find a ticket.",
+              "entityType": "Ticket",
+              "writeCapable": false,
+              "readResult": {
+                "ticketId": "ticket-1",
+                "summary": "Left engine oil pressure"
+              },
+              "fields": [
+                {
+                  "name": "query",
+                  "kind": "text",
+                  "description": "What to search for",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "adapter-call",
+          "tool": "find_ticket",
+          "args": {
+            "query": "left engine"
+          },
+          "context": "turn",
+          "refusal": null
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "find_ticket",
+        "args": {
+          "query": "left engine"
+        },
+        "context": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv3-model-output-carries-no-values",
+    "rules": [
+      "CV-3",
+      "AZ-5"
+    ],
+    "title": "What the framework carries away from a filing is an entry id and the names of the fields sworn to: no sworn value appears anywhere in the text of the model-facing output, and no key of it is the name of a sworn field.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": "turn",
+        "refusal": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "filed"
+      },
+      "entry": {
+        "status": "pending"
+      },
+      "modelOutput": {
+        "keys": [
+          "blocked",
+          "entryId",
+          "fields",
+          "note",
+          "outcome",
+          "requiresConfirmation",
+          "status"
+        ],
+        "fields": [
+          "priority"
+        ],
+        "status": "pending",
+        "carriesNoFieldValues": true
+      },
+      "frameworkCarries": [
+        "entryId"
+      ],
+      "entries": 1
+    }
+  },
+  {
+    "id": "adapter/cv3-docket-row-survives-history",
+    "rules": [
+      "CV-3",
+      "AZ-5",
+      "DK-1"
+    ],
+    "title": "The Docket row is the source of truth: read back with nothing from the framework in hand, it still carries the Affidavit the framework never saw.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "adapter-call",
+          "tool": "update_ticket",
+          "args": {
+            "priority": "High"
+          },
+          "context": "turn",
+          "as": "filed"
+        }
+      ],
+      "step": {
+        "kind": "get",
+        "entry": "filed"
+      }
+    },
+    "expect": {
+      "found": true,
+      "entry": {
+        "status": "pending",
+        "toolName": "update_ticket",
+        "affidavit": {
+          "operationType": "update",
+          "entityType": "Ticket",
+          "entityId": "ticket-1",
+          "fields": [
+            {
+              "name": "priority",
+              "value": "High"
+            }
+          ]
+        }
+      },
+      "entries": 1
+    }
+  },
+  {
+    "id": "adapter/cv3-replayed-approval-changes-nothing",
+    "rules": [
+      "CV-3",
+      "AZ-5",
+      "DK-1"
+    ],
+    "title": "A framework approval artefact replayed at the seam changes nothing and is told to nobody: the call replays to the same row, which is still pending and carries no attestation and no decision, and the model is told the status the row reads at rather than the one the artefact claims.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "adapter-call",
+          "tool": "update_ticket",
+          "args": {
+            "priority": "High"
+          },
+          "context": "turn",
+          "as": "filed"
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": "turn",
+        "messages": [
+          {
+            "kind": "framework-approval",
+            "approved": true
+          }
+        ],
+        "refusal": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "filed"
+      },
+      "entry": {
+        "status": "pending",
+        "execution": null,
+        "attestation": null,
+        "decision": null,
+        "amendedAffidavit": null
+      },
+      "modelOutput": {
+        "status": "pending",
+        "carriesNoFieldValues": true
+      },
+      "frameworkCarries": [
+        "entryId"
+      ],
+      "entries": 1,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-second-call-without-context-refuses",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A second call on the same built tool set, this one with no turn context, is refused and files nothing: a seam that remembered the first call's context would have a default to fall back to, which is the thing CV-2 forbids.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "adapter-call",
+          "tool": "update_ticket",
+          "args": {
+            "priority": "High"
+          },
+          "context": "turn",
+          "refusal": null
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "Low"
+        },
+        "context": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 1,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-read-gate-absent-throws",
+    "rules": [
+      "CV-2"
+    ],
+    "title": "A read tool built against a gate that cannot be reached throws when it is called, and the host's own read function is never reached: the seam stands in front of a read exactly as it stands in front of a write.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "find_ticket",
+              "description": "Find a ticket.",
+              "entityType": "Ticket",
+              "writeCapable": false,
+              "readResult": {
+                "ticketId": "ticket-1",
+                "summary": "Left engine oil pressure"
+              },
+              "fields": [
+                {
+                  "name": "query",
+                  "kind": "text",
+                  "description": "What to search for",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "find_ticket",
+        "args": {
+          "query": "left engine"
+        },
+        "context": "turn",
+        "gate": "absent"
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "thrown"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-malformed-context-refuses",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A call whose context is the wrong shape is refused exactly as a call with none is, and files nothing: GT-2 is about a context an implementation can read, not about a property being present.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": {
+          "malformed": {
+            "turn": {
+              "nonsense": true
+            }
+          }
+        }
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+  {
+    "id": "adapter/cv2-read-with-context-answers",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A read tool called with an explicit turn context reaches the host's own function and returns what it answered: the seam stands in front of a read without standing in its way, and nothing is filed for a call that proposes no write.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "find_ticket",
+              "description": "Find a ticket.",
+              "entityType": "Ticket",
+              "writeCapable": false,
+              "readResult": {
+                "ticketId": "ticket-1",
+                "summary": "Left engine oil pressure"
+              },
+              "fields": [
+                {
+                  "name": "query",
+                  "kind": "text",
+                  "description": "What to search for",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "find_ticket",
+        "args": {
+          "query": "left engine"
+        },
+        "context": "turn",
+        "refusal": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "read",
+        "result": {
+          "ticketId": "ticket-1",
+          "summary": "Left engine oil pressure"
+        }
+      },
+      "entries": 0,
+      "hostExecuteRan": true
+    }
+  },
+  {
+    "id": "adapter/cv2-malformed-context-is-not-repaired",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A context that is a complete turn context but is not in the shape the seam's own channel carries is refused, and nothing is filed: a seam that repaired it by wrapping it would file, so this is what pins that the value is passed through exactly as the host wrote it.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": {
+          "malformed": {
+            "tenantId": "tenant-a",
+            "conversationId": "conv-1",
+            "channel": "chat",
+            "principal": {
+              "kind": "member",
+              "id": "member-1"
+            },
+            "turn": {
+              "utterance": "Set the ticket priority to High",
+              "messageId": "msg-1",
+              "at": "2026-09-15T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
+];
+
+/** Every adapter fixture, keyed by its manifest id. */
+export const adapterById: Readonly<Record<string, ConformanceFixtureDocument>> = {
+  "adapter/cv2-write-with-context-files": adapterFixtures[0]!,
+  "adapter/cv2-write-without-context-refuses": adapterFixtures[1]!,
+  "adapter/cv2-gate-absent-throws": adapterFixtures[2]!,
+  "adapter/cv2-read-without-context-never-runs": adapterFixtures[3]!,
+  "adapter/cv3-model-output-carries-no-values": adapterFixtures[4]!,
+  "adapter/cv3-docket-row-survives-history": adapterFixtures[5]!,
+  "adapter/cv3-replayed-approval-changes-nothing": adapterFixtures[6]!,
+  "adapter/cv2-second-call-without-context-refuses": adapterFixtures[7]!,
+  "adapter/cv2-read-gate-absent-throws": adapterFixtures[8]!,
+  "adapter/cv2-malformed-context-refuses": adapterFixtures[9]!,
+  "adapter/cv2-read-with-context-answers": adapterFixtures[10]!,
+  "adapter/cv2-malformed-context-is-not-repaired": adapterFixtures[11]!,
+};
+
 /** `conformance/fixture.schema.json` — what a declarative fixture may say. */
 export const fixtureSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://affiant.dev/conformance/0.1.0/fixture.schema.json",
   "title": "ConformanceFixture",
   "description": "One declarative conformance fixture: a wiring, a sequence of acts, and what must then be true. Written out from the reference runner's own key tables (Sakwala/affiant-ts, packages/core/src/testing.ts — FIXTURE_KEYS and STEP_KEYS), so that a document this schema accepts is a document that runner will run rather than reject. The allowed key sets are the same in both places and every object here is additionalProperties:false, deliberately: a misspelled expectation key is a key the checker never reads, so the fixture asserts nothing about that fact and every implementation passes it, including a broken one. Adding a clause to the format means adding it in both places in the same change. This schema describes the FIXTURE FORMAT and refers to nothing outside itself; the wire shapes a fixture's matchers are about live in schemas/0.1.0/. The seven canonical/*.json byte vectors are a different document shape and are not described here — see conformance/RUNNER.md, 'The canonical vectors'.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "id",
-    "rules",
-    "title",
-    "given",
-    "expect"
-  ],
-  "properties": {
-    "id": {
-      "description": "A stable id, unique across the set, prefixed by the set it lives in. Never renamed: a parity manifest cites it by name, so a rename silently changes what a published document refers to.",
-      "type": "string",
-      "pattern": "^(gate|decide|sequence-a|sequence-c)/[a-z0-9]+(-[a-z0-9]+)*$"
+  "oneOf": [
+    {
+      "$ref": "#/$defs/conformanceFixture"
     },
+    {
+      "$ref": "#/$defs/adapterFixture"
+    }
+  ],
+  "$defs": {
     "rules": {
       "description": "The rulebook ids this fixture checks. At least one, and each must be a rule INVARIANTS.md defines — the coverage lint checks both directions.",
       "type": "array",
@@ -8982,14 +10223,68 @@ export const fixtureSchema: JsonSchemaDocument = {
       "type": "string",
       "minLength": 1
     },
-    "given": {
-      "$ref": "#/$defs/given"
+    "conformanceFixture": {
+      "description": "A document of the `conformance` section: the eight step kinds of RUNNER.md and its matchers, and nothing an adapter driver adds. The two variants are separate so that a conformance fixture stating an adapter step or an adapter clause is REFUSED rather than quietly accepted — a clause the reference runner does not read is a clause nobody checks, which is the whole reason this schema closes its key sets.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rules",
+        "title",
+        "given",
+        "expect"
+      ],
+      "properties": {
+        "id": {
+          "description": "A stable id, unique across the set, prefixed by the set it lives in. Never renamed: a parity manifest cites it by name, so a rename silently changes what a published document refers to.",
+          "type": "string",
+          "pattern": "^(gate|decide|sequence-a|sequence-c)/[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "rules": {
+          "$ref": "#/$defs/rules"
+        },
+        "title": {
+          "$ref": "#/$defs/title"
+        },
+        "given": {
+          "$ref": "#/$defs/conformanceGiven"
+        },
+        "expect": {
+          "$ref": "#/$defs/conformanceExpect"
+        }
+      }
     },
-    "expect": {
-      "$ref": "#/$defs/expect"
-    }
-  },
-  "$defs": {
+    "adapterFixture": {
+      "description": "A document of the `adapter` section (conformance/ADAPTER-RUNNER.md), run only by an implementation that ships and declares an adapter. Everything a conformance fixture may say, plus two step kinds — `adapter-build` and `adapter-call` — and five matchers over what the call did and what the host framework was handed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rules",
+        "title",
+        "given",
+        "expect"
+      ],
+      "properties": {
+        "id": {
+          "description": "A stable id, unique across the set, prefixed by `adapter/`. Never renamed, for the reason every other id is never renamed.",
+          "type": "string",
+          "pattern": "^adapter/[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "rules": {
+          "$ref": "#/$defs/rules"
+        },
+        "title": {
+          "$ref": "#/$defs/title"
+        },
+        "given": {
+          "$ref": "#/$defs/adapterGiven"
+        },
+        "expect": {
+          "$ref": "#/$defs/adapterExpect"
+        }
+      }
+    },
     "jsonValue": {
       "description": "Any JSON value. Field values are the host's domain data; the protocol does not constrain them.",
       "$comment": "No type constraint on purpose."
@@ -9184,15 +10479,13 @@ export const fixtureSchema: JsonSchemaDocument = {
         }
       ]
     },
-    "given": {
-      "description": "The wiring, the acts, and the turn they happen in.",
+    "commonGiven": {
+      "description": "The wiring and the turn, which both variants state the same way. What differs is which step kinds `prior` and `step` admit — and `required` is stated on each variant rather than here, because `step` is defined there.",
       "type": "object",
-      "additionalProperties": false,
       "required": [
         "gate",
         "clock",
-        "ctx",
-        "step"
+        "ctx"
       ],
       "properties": {
         "gate": {
@@ -9211,7 +10504,22 @@ export const fixtureSchema: JsonSchemaDocument = {
         },
         "ctx": {
           "$ref": "#/$defs/ctx"
-        },
+        }
+      }
+    },
+    "conformanceGiven": {
+      "description": "The wiring, the acts and the turn, where every act is one of RUNNER.md's eight step kinds.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/commonGiven"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "required": [
+        "step"
+      ],
+      "properties": {
         "prior": {
           "description": "The acts that set the scene. Each may declare the refusal it is expected to produce, so a reader sees the refusal beside the act that caused it.",
           "type": "array",
@@ -9222,6 +10530,32 @@ export const fixtureSchema: JsonSchemaDocument = {
         "step": {
           "description": "The act under test. expect.error is about this one.",
           "$ref": "#/$defs/step"
+        }
+      }
+    },
+    "adapterGiven": {
+      "description": "The same wiring, where an act may also be one of the two step kinds reserved for adapters.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/commonGiven"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "required": [
+        "step"
+      ],
+      "properties": {
+        "prior": {
+          "description": "The acts that set the scene, each of the same shape as `step`.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/adapterStep"
+          }
+        },
+        "step": {
+          "description": "The act under test.",
+          "$ref": "#/$defs/adapterStep"
         }
       }
     },
@@ -9772,6 +11106,164 @@ export const fixtureSchema: JsonSchemaDocument = {
         }
       }
     },
+    "adapterDefinition": {
+      "description": "A tool definition an `adapter-build` step hands the adapter, plus the one fact the SDK knows and a ToolDefinition has no place for. The same shape as a wrap-execute step's `tool`, because it is the same thing seen from the other side of the seam: the driver supplies an `execute` that fails the fixture if a write-capable definition's own function is ever reached (GT-6), and a read definition's function records that it ran so a fixture can state that it did not (CV-2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "entityType",
+        "fields"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "entityType": {
+          "type": "string"
+        },
+        "entityId": {
+          "description": "null for a create-shaped tool.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "writeCapable": {
+          "type": "boolean"
+        },
+        "executedBy": {
+          "type": "string",
+          "enum": [
+            "host",
+            "provider"
+          ]
+        },
+        "hostedMcp": {
+          "type": "boolean"
+        },
+        "omitExecute": {
+          "description": "Whether the definition carries no execute at all - the no-execute category (CV-4).",
+          "type": "boolean"
+        },
+        "sdkKind": {
+          "description": "Which kind of the host framework's tool the definition is exposed as, where the framework has kinds. A fact about the framework rather than about the tool, which is why it is stated here and not on a conformance fixture's `tool`.",
+          "type": "string",
+          "enum": [
+            "function",
+            "dynamic",
+            "provider"
+          ]
+        },
+        "readResult": {
+          "description": "What the host function of a READ definition returns, stated by the fixture. Without it `expect.outcome.result` could not be compared: the driver would be choosing the value and then checking its own choice. Stating it makes a read's result a fact the document pins. Meaningless on a write-capable definition, whose own function is a tripwire that must never run (GT-6).",
+          "$ref": "#/$defs/jsonValue"
+        },
+        "operationLabel": {
+          "type": "string"
+        },
+        "fields": {
+          "$ref": "#/$defs/toolFields"
+        }
+      }
+    },
+    "adapterCallContext": {
+      "description": "The context an `adapter-call` step passes through the framework's own per-call channel (GT-2). Four forms: `\"turn\"` for the fixture's own `given.ctx` with this step's overrides applied; a context stated in full; `null` — the call that arrives with none, which CV-2 says a seam refuses rather than defaults; and `{ \"malformed\": … }`, whose value is passed as the context exactly as written. The fourth exists because GT-2 is about a context of the WRONG SHAPE as much as a missing one, and a schema that could only say `null` could not state that case at all.",
+      "oneOf": [
+        {
+          "type": "string",
+          "const": "turn"
+        },
+        {
+          "$ref": "#/$defs/ctx"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "malformed"
+          ],
+          "properties": {
+            "malformed": {
+              "description": "Whatever the host passed instead of a turn context. Any JSON value, including one that looks nearly right.",
+              "$ref": "#/$defs/jsonValue"
+            }
+          }
+        }
+      ]
+    },
+    "outcomeMatcher": {
+      "description": "What the call under test did, as the caller saw it (conformance/ADAPTER-RUNNER.md). `filed` - it returned a write result and a row is on the Docket; `read` - it returned a read result; `refused` - it produced an Affiant refusal carrying one of the rulebook's codes, whether the seam threw it or returned it; `thrown` - it raised something that is not a refusal, which is what CV-2 requires of a seam whose gate is unreachable. The row a `filed` call produced is stated through `expect.entry`, the same matcher every other fixture uses.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "filed",
+            "read",
+            "refused",
+            "thrown"
+          ]
+        },
+        "code": {
+          "description": "The refusal code, on `refused` only. Compared as a string, exactly.",
+          "type": "string"
+        },
+        "messageContains": {
+          "description": "A substring of the refusal or the error message.",
+          "type": "string"
+        },
+        "result": {
+          "description": "What a `read` call returned, compared for structural equality.",
+          "$ref": "#/$defs/jsonValue"
+        }
+      }
+    },
+    "modelOutputMatcher": {
+      "description": "What the host framework was handed to put in its own history — the model-facing output of the call, not the result the host received (CV-3, AZ-5).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "description": "The WHOLE key set of that output, sorted by Unicode code point. Stating it states all of them: an output carrying a key nobody asked for is what this clause is for.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fields": {
+          "description": "The field names the output lists, in order.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "description": "The status the output tells the model the row reads at. It must be the row's own: a seam that read an approval out of the framework's history and told the model `approved` over a `pending` row is what AZ-5 closes, and nothing else in this matcher would see it.",
+          "type": "string",
+          "enum": [
+            "pending",
+            "approved",
+            "rejected",
+            "expired"
+          ]
+        },
+        "carriesNoFieldValues": {
+          "description": "The derived check the rule is about, and it is a check over TEXT rather than over structure: no key anywhere in the output is the name of a sworn field, and no serialisation of any sworn field's value appears as a substring of the output's own JSON serialisation. A STRING value's serialisation is its JSON-escaped body without the surrounding quotes, so a value sitting inside a longer sentence is found; every other value's is its whole JSON form. Structural equality is not enough — a summary whose note reads `filed for review: priority=High` has put a sworn value in the framework's history just as surely as one carrying it as a value. A serialisation shorter than three characters is compared as a whole JSON token instead, because a one-character value would otherwise match almost any output.",
+          "type": "boolean"
+        }
+      }
+    },
     "stepCommon": {
       "description": "What every step may say about when it happens and who performs it. These keys are legal on every kind; the kind adds its own.",
       "type": "object",
@@ -10102,11 +11594,143 @@ export const fixtureSchema: JsonSchemaDocument = {
         }
       ]
     },
-    "expect": {
-      "description": "What must be true after the step under test. Every clause is optional and every matcher is PARTIAL: a fixture states the facts its rule is about and says nothing about the rest, so an unrelated addition to a Docket row does not break thirty documents. What a fixture may NOT do is state nothing at all — minProperties here is the schema's half of the runner's vacuity check, which counts leaf facts and rejects `{}`, `{ \"entry\": {} }` and `{ \"telemetryAbsent\": [] }` alike.",
+    "adapterStep": {
+      "description": "One act in the adapter section: any of RUNNER.md's eight kinds, or one of the two reserved for adapters.",
+      "type": "object",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/step"
+        },
+        {
+          "$ref": "#/$defs/adapterBuildStep"
+        },
+        {
+          "$ref": "#/$defs/adapterCallStep"
+        }
+      ]
+    },
+    "adapterBuildStep": {
+      "title": "adapter-build",
+      "description": "An adapter is handed the host's tool definitions and builds the framework's own tool set from them. Reserved for the adapter section (conformance/ADAPTER-RUNNER.md): a fixture in any other section that used it would be describing a seam its own driver has not got, which is why it is not in the shared `step` union.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/stepCommon"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "required": [
+        "kind",
+        "definitions"
+      ],
+      "properties": {
+        "kind": {
+          "const": "adapter-build"
+        },
+        "definitions": {
+          "description": "The definitions handed to the adapter, in order. The tool set built from them is what a later adapter-call names a tool in.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/adapterDefinition"
+          }
+        },
+        "declared": {
+          "description": "Tools the host declared it cannot intercept, applied through the gate's own declaration entry point BEFORE the set is built (CV-4). The same shape as given.gate.uncovered, stated here because a declaration made at wire-up is part of how a host wires an adapter, and the order matters: a declaration made after the build would not have been there when the adapter classified the tool.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tool",
+              "category"
+            ],
+            "properties": {
+              "tool": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string",
+                "enum": [
+                  "no-execute",
+                  "provider-executed",
+                  "hosted-mcp"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "adapterCallStep": {
+      "title": "adapter-call",
+      "description": "The framework calls one tool of the built set, with the context it carries for this call (GT-2, CV-2). Reserved for the adapter section.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/stepCommon"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "required": [
+        "kind",
+        "tool",
+        "args",
+        "context"
+      ],
+      "properties": {
+        "kind": {
+          "const": "adapter-call"
+        },
+        "tool": {
+          "description": "The name of the tool in the built set.",
+          "type": "string"
+        },
+        "args": {
+          "description": "The input the model produced for the call.",
+          "type": "object"
+        },
+        "context": {
+          "$ref": "#/$defs/adapterCallContext"
+        },
+        "gate": {
+          "description": "Whether the tool set this call runs against was built against a reachable gate. `\"absent\"` builds it against a gate that cannot be reached, which is the case CV-2 is about; the default is `\"present\"`.",
+          "type": "string",
+          "enum": [
+            "present",
+            "absent"
+          ]
+        },
+        "messages": {
+          "description": "The framework's own message history for this call, where the fixture is about what a host framework carries (CV-3). A fixture states the artefact ABSTRACTLY and a driver maps it to its own framework's shape — see conformance/ADAPTER-RUNNER.md section 4.3, which also says what a framework with no such channel does instead.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frameworkMessage"
+          }
+        }
+      }
+    },
+    "frameworkMessage": {
+      "description": "One artefact of the host framework's own history, stated abstractly so the fixture names no framework. `framework-approval` is an approval the framework reconstructed from a client's reply — the path AZ-5 closes. A driver maps it to its framework's own shape (for the AI SDK, a `tool-approval-response` part); an adapter reads no approval, no Affidavit and no entry state out of it.",
       "type": "object",
       "additionalProperties": false,
-      "minProperties": 1,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "framework-approval"
+          ]
+        },
+        "approved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expect": {
+      "description": "The clauses both sections share. Every clause is optional and every matcher is PARTIAL: a fixture states the facts its rule is about and says nothing about the rest, so an unrelated addition to a Docket row does not break thirty documents. What a fixture may NOT do is state nothing at all — the `minProperties` on each variant is the schema's half of the runner's vacuity check, which counts leaf facts and rejects `{}`, `{ \"entry\": {} }` and `{ \"telemetryAbsent\": [] }` alike. The key set is closed on the variants rather than here, so that the five adapter clauses can be added to one of them and refused on the other.",
+      "type": "object",
       "properties": {
         "error": {
           "description": "The refusal the step under test must produce, or null/absent for none.",
@@ -10272,6 +11896,91 @@ export const fixtureSchema: JsonSchemaDocument = {
           "description": "The row's canonical hash (SR-1): the Affidavit and its accepted amendments, taken through the implementation's own exported helper — the value a host's execution grant binds to, as 64 lowercase hex characters.",
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "conformanceExpect": {
+      "description": "What must be true after the step under test, in the conformance section. An adapter clause here is REFUSED: the reference runner does not read one, so a conformance fixture stating it would assert nothing about that fact and every implementation would pass it.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/expect"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "minProperties": 1
+    },
+    "adapterExpect": {
+      "description": "What must be true after the step under test, in the adapter section: the six clauses an adapter driver can answer about the Docket and the refusal, plus the five of its own. `card` and `canonicalHash` are NOT among them and are refused here — an Evidence Card and a canonical hash are the gate's own artefacts, reached through the gate's own entry points, and a fixture that stated one would be stating a fact the adapter section's runner has no way to produce. The conformance section is where a document about either belongs.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/sharedExpect"
+        },
+        {
+          "$ref": "#/$defs/adapterExpectClauses"
+        }
+      ],
+      "unevaluatedProperties": false,
+      "minProperties": 1
+    },
+    "sharedExpect": {
+      "description": "The clauses BOTH sections answer, by reference to the conformance format's own definitions of them so there is one statement of each and not two.",
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/expect/properties/error"
+        },
+        "entry": {
+          "$ref": "#/$defs/expect/properties/entry"
+        },
+        "found": {
+          "$ref": "#/$defs/expect/properties/found"
+        },
+        "store": {
+          "$ref": "#/$defs/expect/properties/store"
+        },
+        "telemetry": {
+          "$ref": "#/$defs/expect/properties/telemetry"
+        },
+        "telemetryAbsent": {
+          "$ref": "#/$defs/expect/properties/telemetryAbsent"
+        }
+      }
+    },
+    "adapterExpectClauses": {
+      "description": "The five clauses only an adapter driver can answer (conformance/ADAPTER-RUNNER.md section 5).",
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/outcomeMatcher"
+        },
+        "entries": {
+          "description": "How many rows the Docket holds in the step's own tenant afterwards — the tenant's whole list, never narrowed by conversation. `0` is the statement a refused call makes: nothing was filed.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelOutput": {
+          "description": "What the host framework was handed to put in its own history, or `null` — the statement that it was handed NOTHING, which is what a call that raised leaves behind (CV-2: a seam that returned the raw proposal instead of raising would be refused here).",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/modelOutputMatcher"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frameworkCarries": {
+          "description": "Every path in the model-facing output whose value is the filed entry's id, stated as the whole list, sorted, and dotted for a nested match — `entryId`, `result.entryId`, `items[0].entryId` (CV-3: a framework checkpoint may carry an entryId and nothing else).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hostExecuteRan": {
+          "description": "Whether any host function the definitions carry ran during the step under test. A write definition's own function is a tripwire that fails the fixture if it is reached at all (GT-6); a read definition's records that it ran, so a fixture can state that a refused call never reached it (CV-2).",
+          "type": "boolean"
         }
       }
     },
@@ -11209,6 +12918,57 @@ export const parityManifestSchema: JsonSchemaDocument = {
         }
       }
     },
+    "adapters": {
+      "description": "Every Affiant adapter this implementation ships and declares, and what the adapter fixture section said about it (conformance/ADAPTER-RUNNER.md). An implementation that ships none states `[]`, which is the positive statement that it runs none of that section — not silence. Optional in this schema because the manifests published against earlier tags predate the key; the rulebook's lint REQUIRES it of every manifest whose protocolTag is v0.2.0 or later, where the adapter section exists at all. The fixtures an adapter run covered are counted here and their failures, if any, are in `failing[]` with every other section's: the assertion CI makes is over the union of the sections the run covered.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "package",
+          "version",
+          "runtime",
+          "runtimeVersion",
+          "fixtures",
+          "claimsLint"
+        ],
+        "properties": {
+          "package": {
+            "description": "The adapter package, by the name a reader installs it under.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of that package the run exercised — a version a reader can install and reproduce this against.",
+            "type": "string"
+          },
+          "runtime": {
+            "description": "The host framework the adapter is for, by the name its own registry knows it by — the `affiant.adapter.runtime` of the adapter's package.json (conformance/ADAPTER-CLAIMS.md).",
+            "type": "string"
+          },
+          "runtimeVersion": {
+            "description": "The version of that framework the run resolved and ran against. Required: CV-5 is about a claim resting on a version pinned at build time, so a row that named no version would be a claim about an adapter nobody can reproduce — the range a package declares is not the version a run used.",
+            "type": "string"
+          },
+          "fixtures": {
+            "description": "How many documents of the adapter section this adapter's run covered. A number lower than the section's length is a run that did not cover it, which the failing set has to account for.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "claimsLint": {
+            "description": "What conformance/lint/adapter-claims.mjs said about this package, run in the adapter's own CI where the registry is reachable (CV-5). Required: an adapter row that answered nothing about CV-5 would leave a reader to assume it passed. \"skipped\" is the honest answer for a run made with --offline, which verifies the declaration and the README but checks no claim against a published dist-tag.",
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "skipped"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "exemptions": {
       "description": "The rulebook exemptions this implementation inherits — the rules conformance/lint/coverage-exemptions.json excuses from carrying a fixture, restated here so a reader of this document alone knows which rules no fixture in the run covers. Copied, never invented: an implementation cannot exempt itself from a rule.",
       "type": "array",
@@ -11253,28 +13013,13 @@ export const parityManifestSchema: JsonSchemaDocument = {
  * not invent one, because exempting yourself from a rule is not a parity report.
  */
 export const coverageExemptions = {
-  "$note": "Rules exempt from the coverage lint's fixture requirement (INVARIANTS.md, 'Coverage lint'). Each entry names the rule, the version the exemption holds for, and the reason. The lint that reads this file arrives with the v0.1 conformance suite.",
-  "protocolVersion": "0.1.0",
+  "$note": "Rules exempt from the coverage lint's fixture requirement (INVARIANTS.md, 'Coverage lint'). Each entry names the rule, the version the exemption holds for, and the reason. An implementation copies these entries into its own parity manifest and adds what it checks instead; it may not invent one. At v0.2.0 the three rows that read `until: 0.2.0` — CV-2, CV-3 and CV-5 — were removed, because the first adapter arrived with them: CV-2 and CV-3 are checked by the adapter fixtures, and CV-5 by conformance/lint/adapter-claims.mjs, which the coverage lint accepts as coverage because the script is in this repository.",
+  "protocolVersion": "0.2.0",
   "exemptions": [
     {
       "rule": "SR-5",
       "until": "always",
       "reason": "exempt by construction: the transport is not the protocol; the negative case is the set of host-shaped seed examples no rule cites as a check"
-    },
-    {
-      "rule": "CV-2",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; the call-site fixtures arrive with the first adapter"
-    },
-    {
-      "rule": "CV-3",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; the delegation fixtures arrive with the first adapter"
-    },
-    {
-      "rule": "CV-5",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; an adapter documentation lint arrives with the first adapter"
     },
     {
       "rule": "AF-5",

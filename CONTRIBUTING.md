@@ -67,7 +67,7 @@ So:
 - **The conformance suite comes with the ref**, and moving the pin moves it. The
   `conformance` CI job runs it against `@affiant/core` on Node, Bun and workerd and
   asserts the failing set equals
-  `packages/conformance-driver/conformance/parity/typescript-v0.1.json` exactly, in
+  `packages/conformance-driver/conformance/parity/typescript-v0.2.json` exactly, in
   both directions — a document that starts failing and a document that starts
   passing both fail the build. That job is **required**: a red run cannot merge. If
   a pin bump changes what this implementation passes, publish the change by editing

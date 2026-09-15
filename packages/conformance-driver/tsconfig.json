@@ -14,5 +14,12 @@
     "lib": ["ES2023", "DOM"],
     "types": []
   },
-  "include": ["src/index.ts", "src/parity.ts", "src/run.ts"]
+  "include": [
+    "src/adapter.ts",
+    "src/adapters/ai-sdk.ts",
+    "src/adapters/version.ts",
+    "src/index.ts",
+    "src/parity.ts",
+    "src/run.ts"
+  ]
 }

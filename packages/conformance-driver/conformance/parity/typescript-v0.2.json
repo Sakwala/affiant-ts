@@ -2,10 +2,21 @@
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
   "version": "0.1.0-alpha.2",
-  "protocolTag": "v0.1.3",
+  "protocolTag": "d6827c59ce50f97c31e5a60158fc16c812ecfc4d",
   "producedAt": "2026-09-15T00:00:00.000Z",
   "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.2.json",
   "failing": [],
+  "adapters": [
+    {
+      "package": "@affiant/adapter-ai-sdk",
+      "version": "0.1.0-alpha.0",
+      "runtime": "ai",
+      "runtimeVersion": "7.0.101",
+      "fixtures": 12,
+      "claimsLint": "pass",
+      "note": "the rulebook's conformance/lint/adapter-claims.mjs, run against this package in the adapter-claims CI job of this repository, where the npm registry is reachable (CV-5)"
+    }
+  ],
   "runtimes": [
     {
       "name": "node",
@@ -32,21 +43,6 @@
       "until": "always",
       "reason": "exempt by construction: the transport is not the protocol; the negative case is the set of host-shaped seed examples no rule cites as a check",
       "checkedInstead": "the superseded 0.0.1-seed wire fixtures are validated against their own schemas in @affiant/contract's schema suite, and no code path in @affiant/core reads a transport"
-    },
-    {
-      "rule": "CV-2",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; the call-site fixtures arrive with the first adapter"
-    },
-    {
-      "rule": "CV-3",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; the delegation fixtures arrive with the first adapter"
-    },
-    {
-      "rule": "CV-5",
-      "until": "0.2.0",
-      "reason": "text complete at v0.1; an adapter documentation lint arrives with the first adapter"
     },
     {
       "rule": "AF-5",
@@ -91,5 +87,5 @@
       "checkedInstead": "packages/core/telemetry-keys.json carries each key's attribute names, and the registry suite checks the generated module against it; the names themselves are reviewed against the conventions the rulebook names"
     }
   ],
-  "notes": "The protocolTag is the rulebook's v0.1.3 tag, which this repository pins in packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The suite is run on all three claimed runtimes and the failing set is asserted identical on each; an empty failing set is what this implementation owes, being the one the fixtures were promoted from, and the run it is read off is published beside this manifest in the rulebook. Each runtime's unicodeVersion is measured by probe, not declared: probeUnicodeVersion() in packages/conformance-driver/src/parity.ts tests code points first assigned in Unicode 14.0, 15.0, 15.1, 16.0 and 17.0 against the four General_Category classes PV-3's neighbour rule reads, and states the highest release all of whose code points that runtime counts as assigned; the suite re-takes the measurement on whichever runtime it is running on, so no row here can be a version this implementation has not measured. As measured on 2026-09-08 — Node 22.22.1 and 24.14.0 (both ICU 78.2), Bun 1.3.13 and 1.4.2, workerd at compatibility date 2026-03-10 — workerd's database is one release behind the other two, which is the divergence PV-3 admits: a code point assigned in 17.0 is a letter beside a candidate hit on Node and Bun and an unassigned boundary on workerd. No fixture utterance in this suite carries a non-ASCII code point at all, so the failing set is identical on all three, which is what the runs assert."
+  "notes": "The protocolTag is the rulebook ref this repository pins in packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The failing set is the union over the two fixture sections the run covers: the conformance section against @affiant/core, and the adapter section against @affiant/adapter-ai-sdk, which is the one adapter this implementation ships and declares. The suite is run on all three claimed runtimes and the failing set is asserted identical on each; an empty failing set is what this implementation owes, being the one the fixtures were promoted from, and the run it is read off is published beside this manifest in the rulebook. The adapter row's claimsLint is what the rulebook's conformance/lint/adapter-claims.mjs said about the package in this repository's adapter-claims CI job; that lint reads the npm registry, which is why it runs there and not in the rulebook's own CI. Each runtime's unicodeVersion is measured by probe, not declared: probeUnicodeVersion() in packages/conformance-driver/src/parity.ts tests code points first assigned in Unicode 14.0, 15.0, 15.1, 16.0 and 17.0 against the four General_Category classes PV-3's neighbour rule reads, and states the highest release all of whose code points that runtime counts as assigned; the suite re-takes the measurement on whichever runtime it is running on, so no row here can be a version this implementation has not measured. As measured on 2026-09-08 — Node 22.22.1 and 24.14.0 (both ICU 78.2), Bun 1.3.13 and 1.4.2, workerd at compatibility date 2026-03-10 — workerd's database is one release behind the other two, which is the divergence PV-3 admits: a code point assigned in 17.0 is a letter beside a candidate hit on Node and Bun and an unassigned boundary on workerd. No fixture utterance in this suite carries a non-ASCII code point at all, so the failing set is identical on all three, which is what the runs assert."
 }

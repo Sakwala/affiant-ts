@@ -131,7 +131,34 @@ describe("the pinned protocol ref", () => {
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
-    expect(trackedFiles.length).toBe(181);
+    // 181 at protocol v0.1.3, plus the twelve documents of the adapter fixture section,
+    // the adapter claims lint and the file it reads its allowed feature names out of
+    // (conformance/ADAPTER-RUNNER.md, conformance/ADAPTER-CLAIMS.md).
+    expect(trackedFiles.length).toBe(195);
+  });
+
+  it("vendors the adapter fixture section beside the conformance one", () => {
+    const posix = trackedFiles.map((path) => path.split(sep).join("/"));
+
+    // A driver runs this section once for every adapter its implementation ships and
+    // declares, so the documents have to be here for the same reason every other
+    // fixture is: a section vendored short is a section a run silently covers less of.
+    expect(posix.filter((path) => path.startsWith("fixtures/adapter/"))).toHaveLength(12);
+  });
+
+  it("vendors the adapter claims lint, which is CV-5's check and runs in this repository", () => {
+    // The one script vendored rather than read. It reads the npm registry and the
+    // package it is about is in this repository, so it runs here — and vendoring it
+    // means the script a run was judged by is the script the pinned ref carries,
+    // checksummed like every fixture, with no cross-repository credential anywhere.
+    //
+    // ADAPTER-CLAIMS.md comes with it because the script reads it: the closed list of
+    // feature names a durability claim may use is stated there once, as prose and as
+    // data. A script vendored without the list it reads cannot run.
+    const posix = new Set(trackedFiles.map((path) => path.split(sep).join("/")));
+
+    expect(posix.has("conformance/lint/adapter-claims.mjs")).toBe(true);
+    expect(posix.has("conformance/ADAPTER-CLAIMS.md")).toBe(true);
   });
 
   it("vendors both wire versions: v0.1 at schemas/, the superseded seed beside it", () => {

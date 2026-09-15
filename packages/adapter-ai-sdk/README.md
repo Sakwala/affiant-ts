@@ -78,7 +78,7 @@ the `AffiantError` unwrapped.
 
 `toolsContext` is a constructor setting on `ToolLoopAgent` rather than a `generate()`
 argument, so the constructor form above is for an agent built for **exactly one turn**
-and thrown away. An agent kept alive across turns supplies the turn through
+and thrown away. An agent that serves several turns supplies the turn through
 `prepareStep` and **never** sets a constructor-level `toolsContext`:
 
 ```ts
@@ -229,6 +229,23 @@ keeps Durable Object storage unreachable from it (RT-1, RT-3).
 The `ai` version the suites ran against is read from the installed package and asserted
 against the declared peer range and the pinned development dependency, so "pinned at
 build time" is a measured fact rather than a sentence (CV-5).
+
+## What the rulebook says about this package
+
+The protocol's own fixtures are run against this adapter, not only against the core it
+wraps. `@affiant/conformance-driver` runs the rulebook's adapter fixture section —
+seven model-free documents for CV-2's fail-closed call site and CV-3's delegation
+clause — against the tool sets `affiantTools` builds, on Node, under Bun and inside
+workerd, and publishes the result in the same parity manifest and the same failing set
+as the rest of the suite.
+
+CV-5's check is a lint rather than a fixture, because no fixture can observe a
+statement about documentation and packaging. This package declares what it is in its
+own `package.json`, under `affiant.adapter`: the runtime it is for, the surfaces it
+supports, and `durabilityClaims: []` — it claims no durability beyond the Docket row,
+which is what AZ-5 says is true anyway. The lint reads that block, the declared peer
+range and this file, and it runs in this repository's continuous integration, where the
+npm registry is reachable.
 
 ## Licence
 

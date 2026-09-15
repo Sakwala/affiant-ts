@@ -5,36 +5,36 @@
     "version": "0.1.0-alpha.2",
     "runtime": "node"
   },
-  "protocolTag": "v0.1.3",
-  "producedAt": "2026-09-15T18:21:30.104Z",
+  "protocolTag": "d6827c59ce50f97c31e5a60158fc16c812ecfc4d",
+  "producedAt": "2026-09-15T20:02:31.407Z",
   "summary": {
-    "total": 68,
-    "passed": 68,
+    "total": 80,
+    "passed": 80,
     "failed": 0,
     "errored": 0,
     "skipped": 0,
-    "durationMs": 142
+    "durationMs": 160
   },
   "results": [
     {
       "id": "gate/substance-hollow-refused",
       "outcome": "pass",
-      "durationMs": 79
+      "durationMs": 93
     },
     {
       "id": "gate/substance-zero-field-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/ttl-from-verdict",
       "outcome": "pass",
-      "durationMs": 7
+      "durationMs": 10
     },
     {
       "id": "gate/ttl-from-policy-default",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/ttl-from-gate-default",
@@ -44,7 +44,7 @@
     {
       "id": "gate/standing-order-by-the-book",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/standing-order-threshold-under",
@@ -54,7 +54,7 @@
     {
       "id": "gate/standing-order-threshold-over",
       "outcome": "pass",
-      "durationMs": 3
+      "durationMs": 2
     },
     {
       "id": "gate/standing-order-unbound-input",
@@ -129,12 +129,12 @@
     {
       "id": "decide/approve",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "decide/reject",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/second-decision-refused",
@@ -144,17 +144,17 @@
     {
       "id": "decide/expired-amendments-preserved",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/blocked-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/amend-recompute",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "decide/unresolved-identity",
@@ -184,17 +184,17 @@
     {
       "id": "decide/execution-executed",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/execution-failed",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/execution-on-pending-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/resubmit-prefills",
@@ -219,17 +219,17 @@
     {
       "id": "decide/execution-second-report-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/approve-round-trip",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/reject-round-trip",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/typed-inputs-on-the-card",
@@ -254,7 +254,7 @@
     {
       "id": "sequence-a/expiry-then-resubmit",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/late-amendments-preserved",
@@ -269,12 +269,12 @@
     {
       "id": "sequence-a/replay-keeps-the-deadline",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/sweep-pages",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 3
     },
     {
       "id": "sequence-a/rehydration-order",
@@ -284,12 +284,12 @@
     {
       "id": "sequence-a/coverage-refused-at-wire-up",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/optional-field-empty-standing-order-fires",
@@ -304,22 +304,22 @@
     {
       "id": "sequence-c/relayed-decision-member-via-relay",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-c/unbound-external-asks-a-person",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/relay-may-not-attest-member",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-c/relay-decision-other-tenant-not-found",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/create-shaped",
@@ -329,32 +329,92 @@
     {
       "id": "canonical/update-shaped",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/wire-evidence-card-request",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/wire-evidence-card-request-amended",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/key-order-stress",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/number-forms",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/money-and-escapes",
       "outcome": "pass",
+      "durationMs": 0
+    },
+    {
+      "id": "adapter/cv2-write-with-context-files",
+      "outcome": "pass",
+      "durationMs": 90
+    },
+    {
+      "id": "adapter/cv2-write-without-context-refuses",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv2-gate-absent-throws",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv2-read-without-context-never-runs",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv3-model-output-carries-no-values",
+      "outcome": "pass",
       "durationMs": 2
+    },
+    {
+      "id": "adapter/cv3-docket-row-survives-history",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv3-replayed-approval-changes-nothing",
+      "outcome": "pass",
+      "durationMs": 2
+    },
+    {
+      "id": "adapter/cv2-second-call-without-context-refuses",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv2-read-gate-absent-throws",
+      "outcome": "pass",
+      "durationMs": 0
+    },
+    {
+      "id": "adapter/cv2-malformed-context-refuses",
+      "outcome": "pass",
+      "durationMs": 1
+    },
+    {
+      "id": "adapter/cv2-read-with-context-answers",
+      "outcome": "pass",
+      "durationMs": 0
+    },
+    {
+      "id": "adapter/cv2-malformed-context-is-not-repaired",
+      "outcome": "pass",
+      "durationMs": 0
     }
   ]
 }

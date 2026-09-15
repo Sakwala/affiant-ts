@@ -24,6 +24,33 @@ these versions.
 
 ### Added
 
+- **The rulebook's adapter fixture section, run against `@affiant/adapter-ai-sdk`.** The protocol
+  pin moves to the `v0.2.0` text, which adds a second fixture section for the three rules that are
+  about an adapter's seam: CV-2's fail-closed call site, CV-3's delegation clause and CV-5's
+  durability claims. A driver runs that section once for every adapter its implementation ships and
+  declares; this one ships one, so it runs once, on Node, under Bun and inside workerd, and its
+  twelve documents are in the same run document and the same failing set as the other sixty-eight —
+  **80 in all**.
+  The parity manifest becomes
+  [`conformance/parity/typescript-v0.2.json`](packages/conformance-driver/conformance/parity/typescript-v0.2.json),
+  with `adapters[]` naming the package, the `ai` version the run resolved, and the verdict of the
+  rulebook's adapter claims lint; its `exemptions[]` loses CV-2, CV-3 and CV-5, which the rulebook
+  stopped excusing when the fixtures arrived.
+
+- **CV-5 in CI.** A new `adapter claims` job runs the rulebook's `adapter-claims.mjs` against
+  `packages/adapter-ai-sdk`, from the vendored and checksummed copy under
+  `packages/contract/protocol/`, so the script a run is judged by is the script the pinned ref
+  carries and no cross-repository credential is needed to fetch it. The lint reads the npm registry;
+  on a runner that cannot reach it the job re-runs with `--offline`, and only on the lint's exit
+  code 2, which means exactly that.
+
+- **`adapterManifest`, `adapterFixtures` and `adapterById`** from `@affiant/contract/conformance`,
+  generated from the vendored copies exactly as the conformance section is. A pin that predates the
+  section yields an empty manifest and an empty list rather than absent exports — a driver that had
+  to branch on whether a symbol exists is a driver that will one day run no adapter fixtures and
+  report a pass. `scripts/sync-protocol.mjs` also vendors the rulebook's `adapter-claims.mjs`, the
+  one script it copies rather than leaving to be fetched.
+
 - **A parametrised store contract behind `@affiant/core/testing`.** `runDocketStoreContract`
   and `runSessionStoreContract` register every assertion a `DocketStore` and a `SessionStore`
   must pass — idempotent filing that keeps the deadline it already had (DK-1, GT-4), the

@@ -19,7 +19,9 @@ import type { ConformanceRun } from "../src/run.js";
  * This suite is the merge-blocking one. It runs every document the rulebook's
  * conformance manifest lists through `@affiant/core` and asserts that the set of
  * documents this implementation does **not** pass equals
- * `conformance/parity/typescript-v0.1.json` exactly — in both directions.
+ * `conformance/parity/typescript-v0.2.json` exactly — in both directions, over the
+ * union of the two sections a run covers (`test/adapter.test.ts` runs the adapter
+ * one and makes the comparison over both).
  *
  * Why both directions. A document that starts failing and is not listed is a
  * regression, or a rule the implementation never met and nobody wrote down. A
@@ -204,9 +206,6 @@ describe("the exemptions are the rulebook's, copied and not invented", () => {
     // list, so a rule the rulebook stops excusing stops appearing here.
     expect(parityManifest.exemptions.map((row) => row.rule).sort()).toEqual([
       "AF-5",
-      "CV-2",
-      "CV-3",
-      "CV-5",
       "RT-1",
       "RT-2",
       "RT-3",
@@ -217,20 +216,18 @@ describe("the exemptions are the rulebook's, copied and not invented", () => {
     ]);
   });
 
-  it("names what stands in for every exemption that holds for good", () => {
-    // The three that name nothing are the ones whose fixtures arrive with the first
-    // adapter at protocol v0.2 — there is nothing standing in for them yet, and
-    // saying so is more useful than something reassuring.
+  it("names what stands in for every exemption, and carries no lifted one", () => {
+    // CV-2, CV-3 and CV-5 were the three rows that named nothing, because their
+    // fixtures were owed by the first adapter. The adapter arrived at protocol
+    // v0.2.0 and the rows went with it: CV-2 and CV-3 are checked by the adapter
+    // fixture section, CV-5 by the rulebook's adapter claims lint. Every row that
+    // remains holds for good and names what stands in for it.
     for (const row of parityManifest.exemptions) {
-      if (row.until === "always") {
-        expect(row.checkedInstead, row.rule).toBeDefined();
-      }
+      expect(row.until, row.rule).toBe("always");
+      expect(row.checkedInstead, row.rule).toBeDefined();
     }
-    expect(
-      parityManifest.exemptions
-        .filter((row) => row.checkedInstead === undefined)
-        .map((row) => row.rule),
-    ).toEqual(["CV-2", "CV-3", "CV-5"]);
+    expect(parityManifest.exemptions.filter((row) => row.checkedInstead === undefined)).toEqual([]);
+    expect(parityManifest.exemptions.map((row) => row.rule)).not.toContain("CV-2");
   });
 });
 

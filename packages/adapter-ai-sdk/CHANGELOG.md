@@ -18,6 +18,18 @@ a separate, hand-dispatched step and it has not been dispatched for this version
 
 ### Added
 
+- **The `affiant.adapter` block in `package.json`** — `runtime: "ai"`, the three surfaces this
+  adapter supports, and `durabilityClaims: []`. It is what the rulebook's adapter claims lint reads
+  (CV-5): an empty claim list says this package claims no durability beyond the Docket row, which is
+  what AZ-5 says is true anyway, and the README's CV-5 paragraph is the other half of the answer.
+- **The rulebook's adapter fixture section runs against this package** in
+  `@affiant/conformance-driver`, on Node, under Bun and inside workerd — twelve documents for CV-2's
+  fail-closed call site and CV-3's delegation clause, in the same failing set as the conformance
+  suite's sixty-eight. Among them: a second call with no context on a set whose first call
+  succeeded, which is what would catch a seam caching a context per gate; a malformed context; and
+  assertions on what the framework was handed back, which is what would catch a seam reading an
+  approval out of the message history.
+
 - **The package, at `0.1.0-alpha.0`.** `affiantTools(gate, definitions, options?)`
   returns an AI SDK `ToolSet` whose every `execute` calls the gate with the turn context
   the SDK supplied for that call; `affiantToolsContext(ctx, tools)` builds the
