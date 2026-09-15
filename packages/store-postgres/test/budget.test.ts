@@ -58,6 +58,7 @@ afterAll(async () => {
 describe("file and decide stay inside the store's share of the envelope (RT-2)", () => {
   it(
     `averages under ${BUDGET_MS} ms per operation over ${ITERATIONS} iterations`,
+    { timeout: 120_000, retry: ATTEMPTS - 1 },
     async () => {
       if (store === null) {
         expect(database).toBeNull();
@@ -96,7 +97,6 @@ describe("file and decide stay inside the store's share of the envelope (RT-2)",
       );
       expect(perOperation).toBeLessThan(BUDGET_MS);
     },
-    { timeout: 120_000, retry: ATTEMPTS - 1 },
   );
 });
 
