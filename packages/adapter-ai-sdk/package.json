@@ -1,0 +1,69 @@
+{
+  "name": "@affiant/adapter-ai-sdk",
+  "version": "0.1.0-alpha.0",
+  "description": "Wires Affiant tool definitions into the AI SDK: every write an agent proposes runs through the gate and is filed as an Affidavit instead of executing.",
+  "keywords": [
+    "affiant",
+    "ai-sdk",
+    "vercel-ai-sdk",
+    "affidavit",
+    "human-in-the-loop",
+    "guardrails",
+    "ai-agents",
+    "agent-tools",
+    "approval-workflow",
+    "tool-calling"
+  ],
+  "private": false,
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "packages/adapter-ai-sdk"
+  },
+  "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/adapter-ai-sdk#readme",
+  "bugs": "https://github.com/Sakwala/affiant-ts/issues",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./inference": {
+      "types": "./dist/inference.d.ts",
+      "default": "./dist/inference.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "node scripts/prepack-guard.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "lint": "node scripts/lint-no-durable-object.mjs"
+  },
+  "peerDependencies": {
+    "@affiant/core": ">=0.1.0-alpha.1",
+    "ai": "^7.0.0"
+  },
+  "devDependencies": {
+    "@affiant/core": "workspace:^",
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "ai": "7.0.101",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

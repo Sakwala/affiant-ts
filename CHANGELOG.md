@@ -23,6 +23,22 @@ was made against.
   shipped in-memory one. The test runner comes in as a parameter (`{ describe, it, expect,
   beforeAll, afterAll }`), so the package gains no dependency of any kind from carrying it.
 
+- **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
+  run against a caller's own ports instead of the reference wiring, and a store factory given
+  there is used for every one of them. `FixturePorts.store` may now return a promise, which the
+  runner awaits, so a store that has to reach a database before it can answer is buildable one
+  document at a time.
+
+- **`@affiant/adapter-ai-sdk`, a new package at `0.1.0-alpha.0`.** It turns Affiant tool
+  definitions into an [AI SDK](https://ai-sdk.dev) `ToolSet` whose every `execute` runs
+  through the gate with the turn context the SDK supplied for that call, refuses a
+  write-capable tool it cannot intercept when the set is built (CV-4, CV-1), ends an
+  agent loop at the filing, and offers the gate's structured-inference port on the
+  `@affiant/adapter-ai-sdk/inference` subpath. `ai` `^7.0.0` and `@affiant/core`
+  `>=0.1.0-alpha.1` are peers; no provider package is a dependency. It is not published
+  yet. See the [package changelog](packages/adapter-ai-sdk/CHANGELOG.md) and
+  [README](packages/adapter-ai-sdk/README.md).
+
 - **`@affiant/store-postgres`, the Docket on Postgres.** `createPostgresDocketStore({ sql })`
   implements `DocketStore` and `SessionStore` from `@affiant/core` over two append-only
   tables and a fold across them, on a postgres.js connection the host owns — the package
@@ -42,12 +58,6 @@ was made against.
   decision racing the sweep, twenty of those at once, two hosts migrating at once, and an
   export that has to be a snapshot — and two that read the tables directly, because a value
   the fold recomputes on the way out reads correctly however wrong the row is.
-
-- **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
-  run against a caller's own ports instead of the reference wiring, and a store factory given
-  there is used for every one of them. `FixturePorts.store` may now return a promise, which the
-  runner awaits, so a store that has to reach a database before it can answer is buildable one
-  document at a time.
 
 ### Changed
 

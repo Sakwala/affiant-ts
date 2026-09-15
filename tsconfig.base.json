@@ -25,6 +25,8 @@
     "forceConsistentCasingInFileNames": true,
 
     "paths": {
+      "@affiant/adapter-ai-sdk": ["./packages/adapter-ai-sdk/src/index.ts"],
+      "@affiant/adapter-ai-sdk/inference": ["./packages/adapter-ai-sdk/src/inference.ts"],
       "@affiant/contract": ["./packages/contract/src/index.ts"],
       "@affiant/contract/schemas": ["./packages/contract/src/schemas.ts"],
       "@affiant/contract/conformance": ["./packages/contract/src/conformance.ts"],
