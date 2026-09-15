@@ -1,4 +1,5 @@
 import { conformanceManifest } from "@affiant/contract/conformance";
+import { InMemoryDocketStore } from "@affiant/core/store-memory";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -231,4 +232,39 @@ describe("the exemptions are the rulebook's, copied and not invented", () => {
         .map((row) => row.rule),
     ).toEqual(["CV-2", "CV-3", "CV-5"]);
   });
+});
+
+describe("a caller may put the suite through its own Docket", () => {
+  it("uses the store the caller supplied for every declarative document", async () => {
+    // What a second store implementation runs to earn the name: the same documents,
+    // its own Docket underneath. The count is the assertion — a driver that used the
+    // factory for some fixtures and the in-memory default for the rest would report a
+    // pass the store never earned, and the number is the only thing that catches it.
+    let built = 0;
+    const custom = await runConformance({
+      ports: {
+        store: (clock) => {
+          built += 1;
+          return new InMemoryDocketStore({ clock });
+        },
+      },
+    });
+
+    const declarative = conformanceManifest.fixtures.filter((row) => row.set !== "canonical");
+    expect(declarative).toHaveLength(61);
+    expect(built).toBe(declarative.length);
+    // A store is built per document, never shared: a fixture's `given.prior` is the
+    // whole Docket it expects to find.
+    expect(custom.failingIds).toEqual([]);
+    expect(custom.document.summary.passed).toBe(custom.document.summary.total);
+  }, 120_000);
+
+  it("runs the reference store when the caller names no ports", async () => {
+    // The default has to stay the reference wiring, or the published run document
+    // would describe a run nobody asked for.
+    const plain = await runConformance();
+
+    expect(plain.failingIds).toEqual([]);
+    expect(plain.document.summary.total).toBe(conformanceManifest.fixtures.length);
+  }, 120_000);
 });
