@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { InMemoryDocketStore } from "../src/docket/memory.js";
+import type { DocketEntry } from "../src/docket/entry.js";
 import type { Fixture, FixtureResult } from "../src/testing.js";
 import { runFixture } from "../src/testing.js";
 
@@ -62,6 +64,44 @@ describe("the runner passes a fixture that is actually a fixture", () => {
 
     expect(result.failures).toEqual([]);
     expect(result.pass).toBe(true);
+  });
+});
+
+describe("the runner builds the Docket from the port it was handed", () => {
+  it("awaits a store factory that has to reach a database before it can answer", async () => {
+    // A store on a database builds asynchronously - a schema per document, a
+    // migration to apply - so the port may return a promise and the runner has to
+    // await it. This is asserted here rather than only through the conformance
+    // driver because the driver resolves `@affiant/core/testing` through the built
+    // output: a missing `await` in `src/` leaves that suite green until the next
+    // build, which is exactly long enough to merge it.
+    const document = copyOf(APPROVE);
+    const handed: { store: InMemoryDocketStore | null } = { store: null };
+    let built = 0;
+
+    const result = await runFixture(document, {
+      store: async (clock) => {
+        built += 1;
+        await Promise.resolve();
+        handed.store = new InMemoryDocketStore({ clock });
+        return handed.store;
+      },
+    });
+
+    expect(built).toBe(1);
+    expect(result.failures).toEqual([]);
+    expect(result.pass).toBe(true);
+
+    // The filing landed in the store the factory returned, not in a default one the
+    // runner built for itself - which is what makes the assertion above about the
+    // port and not merely about the fixture.
+    const store = handed.store;
+    if (store === null) throw new Error("the factory was never called");
+    const rows: DocketEntry[] = [];
+    for await (const row of store.export({ tenantId: document.given.ctx.tenantId })) {
+      rows.push(row);
+    }
+    expect(rows).toHaveLength(1);
   });
 });
 

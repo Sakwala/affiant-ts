@@ -331,6 +331,20 @@ function applied(expect: ContractExpect, result: TransitionResult): DocketEntry 
   return result as DocketEntry;
 }
 
+/**
+ * `cursor` with its first character changed.
+ *
+ * The first character is the one that must matter: whatever a store encodes, the
+ * front of the string is where it says which list the position belongs to, so a
+ * cursor altered there names a position the store did not mint. A store that read it
+ * anyway would page a caller to a row by arithmetic on a string.
+ */
+function tampered(cursor: string | null): string {
+  if (cursor === null) throw new Error("the list handed back no cursor to tamper with");
+  const first = cursor.slice(0, 1);
+  return (first === "A" ? "B" : "A") + cursor.slice(1);
+}
+
 /** Everything `export` yields for `scope`, collected. */
 async function exported(store: DocketStore, scope: Scope): Promise<DocketEntry[]> {
   const out: DocketEntry[] = [];
@@ -635,6 +649,42 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "deadline/preserves-the-first-record-not-the-second",
+        title: "keeps the first preserved amendments when a second late decision arrives (DK-4)",
+        async run({ store, clock, expect, scope, entry }) {
+          // A recorded fact is appended, never edited. Two reviewers deciding a row
+          // that has already expired both have their decision refused; the first one
+          // whose amendments were preserved is the one a resubmission prefills from,
+          // and the second cannot overwrite it.
+          await store.file(entry("entry-1"));
+          clock.set(AFTER_DEADLINE);
+
+          const act = { at: AFTER_DEADLINE, by: "person-7" };
+          await store.preserveAmendments("entry-1", scope, { status: "paid" }, act);
+          const second = await store.preserveAmendments(
+            "entry-1",
+            scope,
+            { status: "void" },
+            {
+              at: "2026-09-04T10:00:00.000Z",
+              by: "person-9",
+            },
+          );
+
+          expect(typeof second).not.toBe("string");
+          expect((second as DocketEntry).preservedAmendments).toEqual({
+            amendments: { status: "paid" },
+            at: AFTER_DEADLINE,
+            by: "person-7",
+          });
+          expect((await store.get("entry-1", scope))?.preservedAmendments).toEqual({
+            amendments: { status: "paid" },
+            at: AFTER_DEADLINE,
+            by: "person-7",
+          });
+        },
+      },
+      {
         id: "deadline/refuses-to-preserve-on-a-live-row",
         title: "refuses to preserve amendments on a row that has not expired",
         async run({ store, expect, scope, entry }) {
@@ -672,7 +722,10 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           // its own deadline, and every surface that reports a status would disagree
           // with the transition guard for exactly that long. The clock sits on the
           // deadline for the whole case, so a store that compared strictly would read
-          // every one of these as `pending`.
+          // every one of these as `pending`. `listApprovedUnexecuted` has no boundary
+          // case anywhere in this contract, and cannot: expiry applies only to a row
+          // that still reads `pending`, so an approved row keeps its status past its
+          // deadline and its list never sees the boundary at all.
           await store.file(entry("at-the-deadline"));
           clock.set(DEADLINE);
 
@@ -690,6 +743,32 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
               approval("at-the-deadline"),
             ),
           ).toBe("expired");
+        },
+      },
+      {
+        id: "deadline/preserves-amendments-at-the-boundary-instant",
+        title: "preserves a late decision's amendments on a row at exactly its deadline (DK-1)",
+        async run({ store, clock, expect, scope, entry }) {
+          // `preserveAmendments` answers `not-expired` for a row that does not read
+          // `expired`, so it is a surface the deadline comparison decides. A store
+          // that compared strictly would refuse the one decision this method exists
+          // to catch: the one that arrived on the deadline.
+          await store.file(entry("at-the-deadline"));
+          clock.set(DEADLINE);
+
+          const preserved = await store.preserveAmendments(
+            "at-the-deadline",
+            scope,
+            { status: "paid" },
+            { at: DEADLINE, by: "person-7" },
+          );
+
+          expect(typeof preserved).not.toBe("string");
+          expect((preserved as DocketEntry).preservedAmendments).toEqual({
+            amendments: { status: "paid" },
+            at: DEADLINE,
+            by: "person-7",
+          });
         },
       },
       {
@@ -921,6 +1000,24 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "lineage/supersedes-at-the-boundary-instant",
+        title: "supersedes a row at exactly its deadline, which is no longer open (DK-1)",
+        async run({ store, clock, expect, scope, entry }) {
+          // `recordSupersession` answers `not-terminal` for a row that still reads
+          // `pending`, so it too is decided by the deadline comparison: on the
+          // deadline the row is terminal and a resubmission may name itself its
+          // successor.
+          await store.file(entry("at-the-deadline"));
+          clock.set(DEADLINE);
+
+          const superseded = await store.recordSupersession("at-the-deadline", scope, "entry-2");
+
+          expect(typeof superseded).not.toBe("string");
+          expect((superseded as DocketEntry).status).toBe("expired");
+          expect((superseded as DocketEntry).lineage.supersededBy).toBe("entry-2");
+        },
+      },
+      {
         id: "lineage/refuses-to-supersede-an-open-row",
         title: "refuses to supersede a row that is still open for a decision",
         async run({ store, expect, scope, entry }) {
@@ -928,6 +1025,25 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
 
           expect(await store.recordSupersession("entry-1", scope, "entry-2")).toBe("not-terminal");
           expect(await store.recordSupersession("missing", scope, "entry-2")).toBe("not-found");
+        },
+      },
+      {
+        id: "lineage/keeps-the-first-successor-not-the-second",
+        title: "keeps the first successor when a second supersession arrives (DK-4)",
+        async run({ store, clock, expect, scope, entry }) {
+          // The successor link is a later fact like any other: a row reads forward,
+          // so the second report is not written over the first. Two resubmissions of
+          // the same rejected row would otherwise leave the history pointing at
+          // whichever one was recorded last.
+          await store.file(entry("entry-1"));
+          clock.set(AFTER_DEADLINE);
+
+          await store.recordSupersession("entry-1", scope, "entry-2");
+          const second = await store.recordSupersession("entry-1", scope, "entry-3");
+
+          expect(typeof second).not.toBe("string");
+          expect((second as DocketEntry).lineage.supersededBy).toBe("entry-2");
+          expect((await store.get("entry-1", scope))?.lineage.supersededBy).toBe("entry-2");
         },
       },
       {
@@ -1040,6 +1156,35 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "sweep/the-boundary-instant-is-due",
+        title: "sweeps a row whose deadline is exactly the instant it is given (DK-1, DK-3)",
+        async run({ store, clock, expect, scope, entry }) {
+          await store.file(entry("at-the-deadline"));
+          clock.set(DEADLINE);
+
+          const swept = await store.expireDue(DEADLINE, scope, 10);
+
+          expect(swept.expired).toEqual(["at-the-deadline"]);
+          expect((await store.get("at-the-deadline", scope))?.status).toBe("expired");
+        },
+      },
+      {
+        id: "sweep/a-full-sweep-with-nothing-left-says-so",
+        title: "says nothing remains when the last call expired exactly its limit (DK-3)",
+        async run({ store, clock, expect, scope, entry }) {
+          // A host drains the sweep by calling until `more` is false, so a `more`
+          // that reported "a full page, therefore probably more" would never settle:
+          // the host would keep calling and the queue would never read as drained.
+          clock.set(AFTER_DEADLINE);
+          await fileDueEntries(store, entry, 2);
+
+          const swept = await store.expireDue(AFTER_DEADLINE, scope, 2);
+
+          expect(swept.expired).toEqual(["entry-1", "entry-2"]);
+          expect(swept.more).toBe(false);
+        },
+      },
+      {
         id: "sweep/refuses-an-unbounded-sweep",
         title: "refuses an unbounded sweep",
         async run({ store, clock, expect, scope, entry }) {
@@ -1076,8 +1221,8 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
-        id: "paging/the-cursor-is-opaque",
-        title: "hands back a cursor a caller cannot read or guess",
+        id: "paging/hands-back-a-cursor-when-more-remain",
+        title: "hands back a cursor when a page does not drain the list",
         async run({ store, expect, scope, entry }) {
           await store.file(entry("entry-1"));
           await store.file(entry("entry-2"));
@@ -1085,7 +1230,34 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           const page = await store.listPending(scope, { limit: 1 });
 
           expect(page.cursor).not.toBeNull();
-          expect(page.cursor).not.toContain("entry-1");
+          expect(page.more).toBe(true);
+        },
+      },
+      {
+        id: "paging/refuses-a-tampered-cursor",
+        title: "refuses a cursor a caller altered by one character (DK-3)",
+        async run({ store, expect, scope, entry }) {
+          // This is the half of opacity a suite can measure. That a cursor is
+          // unreadable is not: every encoding a store could choose is decodable by
+          // somebody who knows it, and an assertion that the string does not contain
+          // a particular entry id is passed by a plaintext cursor that contains
+          // everything else. What can be measured is that the store refuses a
+          // position it did not mint, so a caller cannot page to a row by editing
+          // one - which is the property the rule is protecting.
+          await store.file(entry("entry-1"));
+          await store.file(entry("entry-2"));
+          await store.file(entry("approved-1", { status: "approved" }));
+          await store.file(entry("approved-2", { status: "approved" }));
+
+          const pending = await store.listPending(scope, { limit: 1 });
+          const approved = await store.listApprovedUnexecuted(scope, { limit: 1 });
+
+          await expect(
+            store.listPending(scope, { cursor: tampered(pending.cursor), limit: 1 }),
+          ).rejects.toThrow(RangeError);
+          await expect(
+            store.listApprovedUnexecuted(scope, { cursor: tampered(approved.cursor), limit: 1 }),
+          ).rejects.toThrow(RangeError);
         },
       },
       {
@@ -1129,6 +1301,30 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           expect((await store.listPending(scope, { limit: 10 })).items).toHaveLength(1);
           clock.set(AFTER_DEADLINE);
           expect((await store.listPending(scope, { limit: 10 })).items).toHaveLength(0);
+        },
+      },
+      {
+        id: "paging/a-full-page-with-nothing-left-says-so",
+        title:
+          "says nothing remains when a page holds exactly the limit and drains the list (DK-3)",
+        async run({ store, expect, scope, entry }) {
+          // A client pages until `more` is false. A list that answered "a full page,
+          // therefore probably more" would hand back a cursor to an empty page every
+          // time the row count divided evenly by the page size.
+          await store.file(entry("pending-1"));
+          await store.file(entry("pending-2"));
+          await store.file(entry("approved-1", { status: "approved" }));
+          await store.file(entry("approved-2", { status: "approved" }));
+
+          const pending = await store.listPending(scope, { limit: 2 });
+          const approved = await store.listApprovedUnexecuted(scope, { limit: 2 });
+
+          expect(entryIds(pending.items)).toEqual(["pending-1", "pending-2"]);
+          expect(pending.more).toBe(false);
+          expect(pending.cursor).toBeNull();
+          expect(entryIds(approved.items)).toEqual(["approved-1", "approved-2"]);
+          expect(approved.more).toBe(false);
+          expect(approved.cursor).toBeNull();
         },
       },
       {
@@ -1239,7 +1435,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
       },
       {
         id: "retention/narrows-to-one-conversation",
-        title: "removes only the named conversation's rows when the scope names one (DK-4, AZ-2)",
+        title: "removes only the named conversation's rows when the scope names one (DK-4, GT-2)",
         async run({ store, clock, expect, scope, entry, conversation }) {
           // Retention is scoped like every other operation, not by tenant alone: a
           // host ageing out one conversation's record would otherwise take the
@@ -1269,6 +1465,46 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
 
           expect(result).toEqual({ removed: 2, more: false });
           expect(entryIds(await exported(store, scope))).toEqual(["b-1"]);
+        },
+      },
+      {
+        id: "retention/keeps-a-row-whose-terminal-instant-is-the-cut",
+        title: "keeps a row terminal at exactly the cut, and removes one strictly older (DK-4)",
+        async run({ store, clock, expect, scope, entry }) {
+          // The policy says *older than* the instant, which excludes the instant
+          // itself. A cut that took the boundary row with it would age out a record
+          // the host asked to keep, and there is no way to get it back.
+          await decide(store, clock, scope, entry, "at-the-cut", "reject", NOON);
+          await decide(
+            store,
+            clock,
+            scope,
+            entry,
+            "before-the-cut",
+            "reject",
+            "2026-09-04T08:59:59.999Z",
+          );
+          clock.set(LATE);
+
+          const result = await store.retention({ olderThan: NOON }, scope, 10);
+
+          expect(result).toEqual({ removed: 1, more: false });
+          expect(entryIds(await exported(store, scope))).toEqual(["at-the-cut"]);
+        },
+      },
+      {
+        id: "retention/a-full-pass-with-nothing-left-says-so",
+        title:
+          "says nothing remains when a pass removed exactly its limit and drained the set (DK-4)",
+        async run({ store, clock, expect, scope, entry }) {
+          await decide(store, clock, scope, entry, "old-1", "reject", NOON);
+          await decide(store, clock, scope, entry, "old-2", "reject", NOON);
+          clock.set(LATE);
+
+          const result = await store.retention({ olderThan: LATE }, scope, 2);
+
+          expect(result).toEqual({ removed: 2, more: false });
+          expect(await exported(store, scope)).toHaveLength(0);
         },
       },
       {
@@ -1361,6 +1597,20 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "export/the-boundary-instant-reads-expired",
+        title: "yields a row at exactly its deadline as expired (DK-1, DK-4)",
+        async run({ store, clock, expect, scope, entry }) {
+          await store.file(entry("at-the-deadline"));
+          clock.set(DEADLINE);
+
+          const rows = await exported(store, scope);
+
+          expect(rows).toHaveLength(1);
+          expect(rows[0]?.status).toBe("expired");
+          expect(rows[0]?.decidedAt).toBe(DEADLINE);
+        },
+      },
+      {
         id: "export/yields-the-scope-and-nothing-outside-it",
         title: "yields every row the scope covers and no row outside it",
         async run({ store, expect, scope, otherScope, entry, conversation }) {
@@ -1438,6 +1688,79 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             "not-found",
           );
           expect((await store.get("entry-1", scope))?.status).toBe("pending");
+        },
+      },
+      {
+        id: "tenancy/transition-under-another-conversation-is-not-found",
+        title: "refuses a transition whose scope names another conversation (GT-2)",
+        async run({ store, expect, scope, entry, conversation }) {
+          // A scope that names a conversation narrows every operation, writes
+          // included. A store that matched on the tenant alone would let a session
+          // scoped to one conversation decide another one's row.
+          await store.file(entry("entry-1", { conversationId: "conv-1" }));
+
+          expect(
+            await store.transition("entry-1", conversation("conv-9"), "pending", {
+              status: "rejected",
+            }),
+          ).toBe("not-found");
+          expect((await store.get("entry-1", scope))?.status).toBe("pending");
+        },
+      },
+      {
+        id: "tenancy/preserve-amendments-under-another-conversation-is-not-found",
+        title: "refuses preserved amendments whose scope names another conversation (GT-2)",
+        async run({ store, clock, expect, scope, entry, conversation }) {
+          await store.file(entry("entry-1", { conversationId: "conv-1" }));
+          clock.set(AFTER_DEADLINE);
+
+          expect(
+            await store.preserveAmendments(
+              "entry-1",
+              conversation("conv-9"),
+              { status: "paid" },
+              {
+                at: AFTER_DEADLINE,
+                by: "person-7",
+              },
+            ),
+          ).toBe("not-found");
+          expect((await store.get("entry-1", scope))?.preservedAmendments).toBeNull();
+        },
+      },
+      {
+        id: "tenancy/record-execution-under-another-conversation-is-not-found",
+        title: "refuses an execution report whose scope names another conversation (GT-2)",
+        async run({ store, expect, scope, entry, conversation }) {
+          await store.file(entry("entry-1", { conversationId: "conv-1" }));
+          await store.transition("entry-1", scope, "pending", approval("entry-1"));
+
+          expect(
+            await store.recordExecution(
+              "entry-1",
+              conversation("conv-9"),
+              "executed",
+              null,
+              "unexecuted",
+            ),
+          ).toBe("not-found");
+          expect((await store.get("entry-1", scope))?.execution).toBe("unexecuted");
+        },
+      },
+      {
+        id: "tenancy/record-supersession-under-another-conversation-is-not-found",
+        title: "refuses a supersession whose scope names another conversation (GT-2)",
+        async run({ store, expect, scope, entry, conversation }) {
+          await store.file(entry("entry-1", { conversationId: "conv-1" }));
+          await store.transition("entry-1", scope, "pending", {
+            status: "rejected",
+            decision: { kind: "reject", reason: null, at: NOON },
+          });
+
+          expect(await store.recordSupersession("entry-1", conversation("conv-9"), "entry-2")).toBe(
+            "not-found",
+          );
+          expect((await store.get("entry-1", scope))?.lineage.supersededBy).toBeNull();
         },
       },
       {
@@ -1677,6 +2000,35 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
               "elsewhere",
               "here-approved",
             ]);
+          },
+        },
+        {
+          id: "rehydration/a-full-page-with-nothing-left-says-so",
+          title: "says nothing remains when a page holds exactly the limit and drains the sequence",
+          async run({ store, expect, scope, entry }) {
+            // A reconnecting client pages until `more` is false; a sequence whose
+            // length divides evenly by the page size must still say it is drained.
+            await store.file(entry("pending-1"));
+            await store.file(entry("approved-1", { status: "approved" }));
+
+            const page = await store.rehydrate(scope, { limit: 2 });
+
+            expect(entryIds(page.items)).toEqual(["pending-1", "approved-1"]);
+            expect(page.more).toBe(false);
+            expect(page.cursor).toBeNull();
+          },
+        },
+        {
+          id: "rehydration/refuses-a-tampered-cursor",
+          title: "refuses a cursor a caller altered by one character (DK-3)",
+          async run({ store, expect, scope, entry }) {
+            await fileMixedDocket(store, scope, entry);
+
+            const page = await store.rehydrate(scope, { limit: 1 });
+
+            await expect(
+              store.rehydrate(scope, { cursor: tampered(page.cursor), limit: 1 }),
+            ).rejects.toThrow(RangeError);
           },
         },
         {

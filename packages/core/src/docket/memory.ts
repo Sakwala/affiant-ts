@@ -234,6 +234,10 @@ export class InMemoryDocketStore implements DocketStore {
     const stored = this.#find(entryId, scope);
     if (stored === null) return "not-found";
     if (readStatus(stored.entry, this.#clock.now()) !== "expired") return "not-expired";
+    // A recorded fact is appended, never edited (DK-4). Two late decisions on the
+    // same row are both refused; the first one whose amendments were preserved is
+    // the one a resubmission prefills from, and the second does not replace it.
+    if (stored.entry.preservedAmendments !== null) return this.#read(stored.entry);
 
     // The refused decision's own instant and principal, so a resubmission's
     // prefilled values bind to the act that actually happened (PV-2).
@@ -277,6 +281,9 @@ export class InMemoryDocketStore implements DocketStore {
     const stored = this.#find(entryId, scope);
     if (stored === null) return "not-found";
     if (readStatus(stored.entry, this.#clock.now()) === "pending") return "not-terminal";
+    // The successor link is a later fact like any other: once recorded it stands,
+    // and a second report does not write over it (DK-4).
+    if (stored.entry.lineage.supersededBy !== null) return this.#read(stored.entry);
 
     stored.entry = {
       ...stored.entry,

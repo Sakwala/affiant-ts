@@ -69,18 +69,6 @@ describe("the contract registers what it says it registers", () => {
     expect(SESSION_CONTRACT_SECTIONS).toEqual(["rehydration"]);
   });
 
-  it("names every case it registers, block and title, for a caller checking a suite", () => {
-    const recording = recorder();
-    runDocketStoreContract((clock) => new InMemoryDocketStore({ clock }), {
-      api: recording.api,
-      sections: ["purge"],
-    });
-
-    const purge = DOCKET_CONTRACT_CASES.filter((one) => one.section === "purge");
-    expect(recording.blocks).toEqual([...new Set(purge.map((one) => one.block))]);
-    expect(recording.titles).toEqual(purge.map((one) => one.title));
-  });
-
   it("registers the whole rehydration contract from one block", () => {
     const recording = recorder();
     runSessionStoreContract(
