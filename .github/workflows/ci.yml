@@ -63,6 +63,11 @@ jobs:
       - run: bun run --bun vitest run --project contract
       # RT-1: the core is runtime-neutral, so its whole suite runs under Bun.
       - run: bun run --bun vitest run --project core
+      # The AI SDK adapter under Bun is best-effort: Node and workerd are the two
+      # runtimes its suites block a merge on, and a Bun failure here is a report
+      # rather than a gate.
+      - run: bun run --bun vitest run --project adapter-ai-sdk
+        continue-on-error: true
 
   workerd:
     name: workerd
@@ -83,6 +88,9 @@ jobs:
       - run: pnpm -C packages/contract test:workers
       # RT-1 again: the core's runtime-neutral suites, inside workerd.
       - run: pnpm -C packages/core test:workers
+      # The AI SDK adapter has no I/O of its own, so every behavioural suite it has
+      # runs inside workerd too — the runtime its first host executes on.
+      - run: pnpm -C packages/adapter-ai-sdk test:workers
 
   # The protocol's conformance suite, run against @affiant/core on every runtime
   # this implementation claims, with the failing set asserted equal to the
