@@ -29,6 +29,16 @@ was made against.
   runner awaits, so a store that has to reach a database before it can answer is buildable one
   document at a time.
 
+- **`@affiant/adapter-ai-sdk`, a new package at `0.1.0-alpha.0`.** It turns Affiant tool
+  definitions into an [AI SDK](https://ai-sdk.dev) `ToolSet` whose every `execute` runs
+  through the gate with the turn context the SDK supplied for that call, refuses a
+  write-capable tool it cannot intercept when the set is built (CV-4, CV-1), ends an
+  agent loop at the filing, and offers the gate's structured-inference port on the
+  `@affiant/adapter-ai-sdk/inference` subpath. `ai` `^7.0.0` and `@affiant/core`
+  `>=0.1.0-alpha.1` are peers; no provider package is a dependency. It is not published
+  yet. See the [package changelog](packages/adapter-ai-sdk/CHANGELOG.md) and
+  [README](packages/adapter-ai-sdk/README.md).
+
 ### Changed
 
 - **The in-memory Docket store keeps the first of a repeated later fact, rather than the last.**
