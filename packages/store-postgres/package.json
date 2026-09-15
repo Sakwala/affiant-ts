@@ -62,6 +62,7 @@
   },
   "devDependencies": {
     "@affiant/conformance-driver": "workspace:^",
+    "@affiant/contract": "workspace:^",
     "@affiant/core": "workspace:^",
     "@cloudflare/vitest-pool-workers": "^0.12.21",
     "postgres": "3.4.9",

@@ -110,6 +110,9 @@ importers:
       '@affiant/conformance-driver':
         specifier: workspace:^
         version: link:../conformance-driver
+      '@affiant/contract':
+        specifier: workspace:^
+        version: link:../contract
       '@affiant/core':
         specifier: workspace:^
         version: link:../core
