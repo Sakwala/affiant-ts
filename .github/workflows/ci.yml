@@ -16,6 +16,24 @@ jobs:
   node:
     name: node 22
     runs-on: ubuntu-latest
+    # `@affiant/store-postgres` is measured against a real Postgres, because the
+    # rules it has to hold — the guarded compare-and-set, the tenant policies, the
+    # deadline applied on read — are properties of the statements and not of a fake.
+    # Port 5433 so the package's default admin URL needs no override anywhere.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -44,6 +62,21 @@ jobs:
   bun:
     name: bun
     runs-on: ubuntu-latest
+    # The store's best-effort line needs somewhere to file entries.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -63,10 +96,29 @@ jobs:
       - run: bun run --bun vitest run --project contract
       # RT-1: the core is runtime-neutral, so its whole suite runs under Bun.
       - run: bun run --bun vitest run --project core
+      # The Docket store under Bun, best-effort until it has been proven there: the
+      # driver resolves a build of its own on Bun, and nothing has measured it yet.
+      - run: bun run --bun vitest run --project store-postgres
+        continue-on-error: true
 
   workerd:
     name: workerd
     runs-on: ubuntu-latest
+    # The store's contract suite runs inside workerd against this, over TCP.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: orrery
+          POSTGRES_PASSWORD: orrery
+          POSTGRES_DB: orrery
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U orrery"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -83,6 +135,10 @@ jobs:
       - run: pnpm -C packages/contract test:workers
       # RT-1 again: the core's runtime-neutral suites, inside workerd.
       - run: pnpm -C packages/core test:workers
+      # The Docket store's contract suite, inside workerd, over a direct TCP
+      # connection to the service container — the runtime a Worker host would run it
+      # on, and the one it was written for.
+      - run: pnpm -C packages/store-postgres test:workers
 
   # The protocol's conformance suite, run against @affiant/core on every runtime
   # this implementation claims, with the failing set asserted equal to the
