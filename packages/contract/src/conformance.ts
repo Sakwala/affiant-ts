@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 435e1bc5459247262b812307fa0c58ee5498b094.
+// copy of Sakwala/affiant-protocol at d6827c59ce50f97c31e5a60158fc16c812ecfc4d.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "435e1bc5459247262b812307fa0c58ee5498b094" as const;
+export const PROTOCOL_PIN = "d6827c59ce50f97c31e5a60158fc16c812ecfc4d" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -8957,8 +8957,8 @@ export const conformanceById: Readonly<
  */
 export const adapterManifest = {
   "protocolVersion": "0.2.0",
-  "$note": "The adapter section, authored here at v0.2.0 with the first adapter. A fixture here has the shape of a conformance fixture and two step kinds of its own — `adapter-build` and `adapter-call` — described in conformance/ADAPTER-RUNNER.md, and five matchers of its own. The two shapes are separate variants of conformance/fixture.schema.json, so a conformance fixture stating an adapter step or an adapter clause is refused and so is the reverse: a clause the section's own runner does not read is a clause nobody checks. This section is run only by an implementation that ships and declares an adapter — conformance/DRIVER.md says a driver runs it once for every adapter its implementation ships, and an implementation that ships none runs none and declares `adapters: []` in its parity manifest. Every fixture here is model-free and network-free — the call is made the way the framework makes it, with a scripted context and the arguments a model would have produced — so a driver needs no provider credential and no network to run the set. `oracle` is null on every row: these fixtures were authored with the first adapter, so there is no earlier release of one whose defect they refute, and they are accepted on review the way the canonical vectors are. CV-5 has no fixture here at all: it is a statement about documentation and packaging that no fixture can observe, and it is checked by conformance/lint/adapter-claims.mjs (conformance/ADAPTER-CLAIMS.md).",
-  "authoredHere": "All ten were authored in this repository at v0.2.0, against @affiant/adapter-ai-sdk (Sakwala/affiant-ts, packages/adapter-ai-sdk) — the first adapter, and the reason the three coverage exemptions CV-2, CV-3 and CV-5 that carried `until: 0.2.0` are lifted at this version. None is promoted: the adapter's own suites drive a built tool set's execute with a scripted context, which is the mapping a driver implements, but the documents here were written to the rules rather than copied from a test file. Four of the ten — the second call with no context, the read against an unreachable gate, the malformed context, and the `modelOutput` assertions on the refusals and on the replayed approval — were added after a two-lens refutation found that a per-gate context cache, a seam that returned the raw proposal on a refusal, and a seam that read approval out of the framework's history each passed the first seven.",
+  "$note": "The adapter section, authored here at v0.2.0 with the first adapter. A fixture here has the shape of a conformance fixture and two step kinds of its own — `adapter-build` and `adapter-call` — described in conformance/ADAPTER-RUNNER.md, and five matchers of its own. The two shapes are separate variants of conformance/fixture.schema.json: a conformance fixture stating an adapter step or an adapter clause is refused, and an adapter fixture stating `card` or `canonicalHash` is refused too, because an Evidence Card and a canonical hash are the gate's own artefacts and this section's runner has no way to produce one. A clause a section's own runner does not read is a clause nobody checks. This section is run only by an implementation that ships and declares an adapter — conformance/DRIVER.md says a driver runs it once for every adapter its implementation ships, and an implementation that ships none runs none and declares `adapters: []` in its parity manifest. Every fixture here is model-free and network-free — the call is made the way the framework makes it, with a scripted context and the arguments a model would have produced — so a driver needs no provider credential and no network to run the set. `oracle` is null on every row: these fixtures were authored with the first adapter, so there is no earlier release of one whose defect they refute, and they are accepted on review the way the canonical vectors are. CV-5 has no fixture here at all: it is a statement about documentation and packaging that no fixture can observe, and it is checked by conformance/lint/adapter-claims.mjs (conformance/ADAPTER-CLAIMS.md).",
+  "authoredHere": "All twelve were authored in this repository at v0.2.0, against @affiant/adapter-ai-sdk (Sakwala/affiant-ts, packages/adapter-ai-sdk) — the first adapter, and the reason the three coverage exemptions CV-2, CV-3 and CV-5 that carried `until: 0.2.0` are lifted at this version. None is promoted: the adapter's own suites drive a built tool set's execute with a scripted context, which is the mapping a driver implements, but the documents here were written to the rules rather than copied from a test file. Five of the twelve were added after refutation rounds found seams the earlier set passed: a second call with no context (a per-gate context cache), a read against an unreachable gate, a malformed context, a malformed context that is a COMPLETE turn context in the wrong shape (a seam that repaired it by wrapping it would file), and a read with a context that answers (without which `outcome.result` was a matcher no document used).",
   "sets": {
     "adapter": "the first adapter's seam: the fail-closed call site (CV-2) and the delegation clause (CV-3)"
   },
@@ -9073,12 +9073,34 @@ export const adapterManifest = {
       "set": "adapter",
       "oracle": null,
       "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-read-with-context-answers",
+      "file": "adapter/11-cv2-read-with-context-answers.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
+    },
+    {
+      "id": "adapter/cv2-malformed-context-is-not-repaired",
+      "file": "adapter/12-cv2-malformed-context-is-not-repaired.json",
+      "rules": [
+        "CV-2",
+        "GT-2"
+      ],
+      "set": "adapter",
+      "oracle": null,
+      "acceptedOnReview": true
     }
   ]
 } as const;
 
 /**
- * The 10 adapter fixtures, in manifest order. Every one is
+ * The 12 adapter fixtures, in manifest order. Every one is
  * model-free and network-free: the call is made the way the framework makes it, with a
  * scripted context and the arguments a model would have produced.
  */
@@ -9976,6 +9998,184 @@ export const adapterFixtures: readonly ConformanceFixtureDocument[] = [
       "hostExecuteRan": false
     }
   },
+  {
+    "id": "adapter/cv2-read-with-context-answers",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A read tool called with an explicit turn context reaches the host's own function and returns what it answered: the seam stands in front of a read without standing in its way, and nothing is filed for a call that proposes no write.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "find_ticket",
+              "description": "Find a ticket.",
+              "entityType": "Ticket",
+              "writeCapable": false,
+              "readResult": {
+                "ticketId": "ticket-1",
+                "summary": "Left engine oil pressure"
+              },
+              "fields": [
+                {
+                  "name": "query",
+                  "kind": "text",
+                  "description": "What to search for",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "find_ticket",
+        "args": {
+          "query": "left engine"
+        },
+        "context": "turn",
+        "refusal": null
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "read",
+        "result": {
+          "ticketId": "ticket-1",
+          "summary": "Left engine oil pressure"
+        }
+      },
+      "entries": 0,
+      "hostExecuteRan": true
+    }
+  },
+  {
+    "id": "adapter/cv2-malformed-context-is-not-repaired",
+    "rules": [
+      "CV-2",
+      "GT-2"
+    ],
+    "title": "A context that is a complete turn context but is not in the shape the seam's own channel carries is refused, and nothing is filed: a seam that repaired it by wrapping it would file, so this is what pins that the value is passed through exactly as the host wrote it.",
+    "given": {
+      "clock": "2026-09-15T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 3600000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "priority": {
+            "value": "High",
+            "confidence": 0.9
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Set the ticket priority to High",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "adapter-build",
+          "definitions": [
+            {
+              "name": "update_ticket",
+              "description": "Update a ticket.",
+              "entityType": "Ticket",
+              "entityId": "ticket-1",
+              "writeCapable": true,
+              "operationLabel": "WriteUpdate",
+              "fields": [
+                {
+                  "name": "priority",
+                  "kind": "text",
+                  "description": "How urgent the ticket is",
+                  "required": false,
+                  "allowedValues": null,
+                  "pattern": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": {
+          "malformed": {
+            "tenantId": "tenant-a",
+            "conversationId": "conv-1",
+            "channel": "chat",
+            "principal": {
+              "kind": "member",
+              "id": "member-1"
+            },
+            "turn": {
+              "utterance": "Set the ticket priority to High",
+              "messageId": "msg-1",
+              "at": "2026-09-15T09:00:00.000Z"
+            }
+          }
+        }
+      }
+    },
+    "expect": {
+      "outcome": {
+        "kind": "refused",
+        "code": "wireup-invalid"
+      },
+      "entries": 0,
+      "modelOutput": null,
+      "hostExecuteRan": false
+    }
+  },
 ];
 
 /** Every adapter fixture, keyed by its manifest id. */
@@ -9990,6 +10190,8 @@ export const adapterById: Readonly<Record<string, ConformanceFixtureDocument>> =
   "adapter/cv2-second-call-without-context-refuses": adapterFixtures[7]!,
   "adapter/cv2-read-gate-absent-throws": adapterFixtures[8]!,
   "adapter/cv2-malformed-context-refuses": adapterFixtures[9]!,
+  "adapter/cv2-read-with-context-answers": adapterFixtures[10]!,
+  "adapter/cv2-malformed-context-is-not-repaired": adapterFixtures[11]!,
 };
 
 /** `conformance/fixture.schema.json` — what a declarative fixture may say. */
@@ -11709,11 +11911,11 @@ export const fixtureSchema: JsonSchemaDocument = {
       "minProperties": 1
     },
     "adapterExpect": {
-      "description": "What must be true after the step under test, in the adapter section: every clause of the conformance format, plus the five an adapter driver answers.",
+      "description": "What must be true after the step under test, in the adapter section: the six clauses an adapter driver can answer about the Docket and the refusal, plus the five of its own. `card` and `canonicalHash` are NOT among them and are refused here — an Evidence Card and a canonical hash are the gate's own artefacts, reached through the gate's own entry points, and a fixture that stated one would be stating a fact the adapter section's runner has no way to produce. The conformance section is where a document about either belongs.",
       "type": "object",
       "allOf": [
         {
-          "$ref": "#/$defs/expect"
+          "$ref": "#/$defs/sharedExpect"
         },
         {
           "$ref": "#/$defs/adapterExpectClauses"
@@ -11721,6 +11923,30 @@ export const fixtureSchema: JsonSchemaDocument = {
       ],
       "unevaluatedProperties": false,
       "minProperties": 1
+    },
+    "sharedExpect": {
+      "description": "The clauses BOTH sections answer, by reference to the conformance format's own definitions of them so there is one statement of each and not two.",
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/expect/properties/error"
+        },
+        "entry": {
+          "$ref": "#/$defs/expect/properties/entry"
+        },
+        "found": {
+          "$ref": "#/$defs/expect/properties/found"
+        },
+        "store": {
+          "$ref": "#/$defs/expect/properties/store"
+        },
+        "telemetry": {
+          "$ref": "#/$defs/expect/properties/telemetry"
+        },
+        "telemetryAbsent": {
+          "$ref": "#/$defs/expect/properties/telemetryAbsent"
+        }
+      }
     },
     "adapterExpectClauses": {
       "description": "The five clauses only an adapter driver can answer (conformance/ADAPTER-RUNNER.md section 5).",

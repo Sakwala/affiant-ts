@@ -131,10 +131,10 @@ describe("the pinned protocol ref", () => {
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
-    // 181 at protocol v0.1.3, plus the ten documents of the adapter fixture section,
+    // 181 at protocol v0.1.3, plus the twelve documents of the adapter fixture section,
     // the adapter claims lint and the file it reads its allowed feature names out of
     // (conformance/ADAPTER-RUNNER.md, conformance/ADAPTER-CLAIMS.md).
-    expect(trackedFiles.length).toBe(193);
+    expect(trackedFiles.length).toBe(195);
   });
 
   it("vendors the adapter fixture section beside the conformance one", () => {
@@ -143,7 +143,7 @@ describe("the pinned protocol ref", () => {
     // A driver runs this section once for every adapter its implementation ships and
     // declares, so the documents have to be here for the same reason every other
     // fixture is: a section vendored short is a section a run silently covers less of.
-    expect(posix.filter((path) => path.startsWith("fixtures/adapter/"))).toHaveLength(10);
+    expect(posix.filter((path) => path.startsWith("fixtures/adapter/"))).toHaveLength(12);
   });
 
   it("vendors the adapter claims lint, which is CV-5's check and runs in this repository", () => {

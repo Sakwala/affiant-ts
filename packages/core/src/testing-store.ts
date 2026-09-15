@@ -1079,10 +1079,12 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         id: "lineage/keeps-the-first-successor-not-the-second",
         title: "keeps the first successor when a second supersession arrives (DK-1, DK-4)",
         async run({ store, clock, expect, scope, entry }) {
-          // The successor link is a later fact like any other: a row reads forward,
-          // so the second report is not written over the first. Two resubmissions of
-          // the same rejected row would otherwise leave the history pointing at
-          // whichever one was recorded last.
+          // The successor link is a later fact like any other: a row reads forward, so
+          // the second report is not written over the first (DK-1). The gate cannot
+          // produce this — a resubmission derives its id from the superseded one, so a
+          // repeated resubmit replays to the same successor — which is exactly why the
+          // store owes the guarantee: two direct records of a successor on an expired
+          // row, which only a store call can make, must leave the first one standing.
           await store.file(entry("entry-1"));
           clock.set(AFTER_DEADLINE);
 

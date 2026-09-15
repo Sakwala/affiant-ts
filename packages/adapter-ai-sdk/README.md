@@ -78,7 +78,7 @@ the `AffiantError` unwrapped.
 
 `toolsContext` is a constructor setting on `ToolLoopAgent` rather than a `generate()`
 argument, so the constructor form above is for an agent built for **exactly one turn**
-and thrown away. An agent kept alive across turns supplies the turn through
+and thrown away. An agent that serves several turns supplies the turn through
 `prepareStep` and **never** sets a constructor-level `toolsContext`:
 
 ```ts

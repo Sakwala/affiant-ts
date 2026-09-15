@@ -77,7 +77,7 @@ const repoRoot = resolve(here, '..', '..');
  * blunter question and leans on `feature` to keep it honest.
  */
 const DURABILITY_WORDS =
-  /\b(?:persist(?:s|ed|ent|ence|ing)?|durabl[ey]|durability|surviv(?:e|es|ed|ing)|checkpoint(?:s|ed|ing)?|resum(?:e|es|ed|ing|ption)|restor(?:e|es|ed|ing)|outliv(?:e|es|ed|ing)|preserved|restarts?|reboots?|crash(?:es|ed)?|failover|cold\s+starts?|redeploys?|deploys?)\b/i;
+  /\b(?:persist(?:s|ed|ent|ence|ing)?|durabl[ey]|durability|surviv(?:e|es|ed|ing)|checkpoint(?:s|ed|ing)?|resum(?:e|es|ed|ing|ption)|restor(?:e|es|ed|ing)|outliv(?:e|es|ed|ing)|preserved|lost|kept|restarts?|reboots?|crash(?:es|ed)?|failover|cold\s+starts?|redeploys?|deploys?)\b|\b(?:torn\s+down|brought\s+back|still\s+there|waiting\s+for\s+you)\b/i;
 
 /**
  * The words that make it about something Affiant is responsible for. Without one of
@@ -116,15 +116,26 @@ const NEGATIONS =
  * Without a closed list, `feature` is a free string: an author writes one claim,
  * names it anything, and every durability sentence in the README is backed by it.
  */
+export function featureNamesIn(text) {
+  const heading = text.search(/^#{2,6} .*The feature names a claim may use/m);
+  if (heading < 0) return null;
+  // From the line AFTER the heading to the next heading of ANY level, not to the next
+  // `## `. A subsection added under this one would otherwise have its bullets read as
+  // feature names, which is the list widening silently — and a closed list that widens
+  // silently is not a closed list.
+  const rest = text.slice(heading);
+  const firstBreak = rest.indexOf('\n');
+  const body = firstBreak < 0 ? '' : rest.slice(firstBreak + 1);
+  const next = body.search(/^#{1,6} /m);
+  const section = next < 0 ? body : body.slice(0, next);
+  return [...section.matchAll(/^- `([a-z0-9][a-z0-9-]*)`/gm)].map(([, name]) => name);
+}
+
+/** The allowed feature names, from ADAPTER-CLAIMS.md, or null when it does not carry the list. */
 function allowedFeatureNames() {
   const path = join(repoRoot, 'conformance', 'ADAPTER-CLAIMS.md');
   if (!existsSync(path)) return null;
-  const text = readFileSync(path, 'utf8');
-  const heading = text.search(/^#{2,4} .*The feature names a claim may use/m);
-  if (heading < 0) return null;
-  const next = text.indexOf('\n## ', heading);
-  const section = text.slice(heading, next < 0 ? undefined : next);
-  return [...section.matchAll(/^- `([a-z0-9][a-z0-9-]*)`/gm)].map(([, name]) => name);
+  return featureNamesIn(readFileSync(path, 'utf8'));
 }
 
 // ---------------------------------------------------------------------------
@@ -436,6 +447,7 @@ export function inspect(manifest, readme, latest, log = () => {}) {
 
   let found = 0;
   let discounted = 0;
+  let unbacked = 0;
   for (const sentence of sentencesOf(readme)) {
     const verdict = readSentence(sentence.text, featureNames);
     const line = lineOf(readme, sentence.at);
@@ -451,6 +463,7 @@ export function inspect(manifest, readme, latest, log = () => {}) {
     if (verdict.claim !== true) continue;
     found += 1;
     if (verdict.backedBy.length === 0) {
+      unbacked += 1;
       fail(
         `README.md:${String(line)} reads as a durability claim — it carries ` +
           `${JSON.stringify(verdict.word)} about something Affiant is responsible for — and names ` +
@@ -460,10 +473,16 @@ export function inspect(manifest, readme, latest, log = () => {}) {
       );
     }
   }
+  // The summary never claims a check that just failed: "each naming a declared feature"
+  // is printed only where every claim did.
   log(
-    `OK    README.md: ${String(found)} durability claim(s) found` +
+    `${unbacked === 0 ? 'OK   ' : '     '} README.md: ${String(found)} durability claim(s) found` +
       (discounted === 0 ? '' : `, ${String(discounted)} sentence(s) discounted as denials`) +
-      (found === 0 ? '' : ', each naming a declared feature'),
+      (found === 0
+        ? ''
+        : unbacked === 0
+          ? ', each naming a declared feature'
+          : `, ${String(unbacked)} naming none`),
   );
 
   return failures;
@@ -519,6 +538,39 @@ function selfTest() {
       continue;
     }
     console.log(`OK    ${name}: ${outcome} — ${String(expected.why)}`);
+  }
+
+  // The feature list's boundary, which no corpus package can exercise: it is about this
+  // repository's own ADAPTER-CLAIMS.md rather than about a package. A subsection added
+  // under the list must not widen it — a closed list that grows by somebody writing a
+  // heading is not closed.
+  const listed = [
+    '## 1. What an adapter package declares',
+    '',
+    '### 1.1 The feature names a claim may use',
+    '',
+    '- `durable-execution` — a description.',
+    '- `approval-checkpoint` — another.',
+    '',
+    '### 1.2 Something else entirely',
+    '',
+    '- `not-a-feature` — a bullet that is not a feature name.',
+    '',
+    '## 2. What the lint checks',
+    '',
+    '- `nor-is-this` — nor is this.',
+  ].join('\n');
+  const names = featureNamesIn(listed);
+  if (JSON.stringify(names) !== JSON.stringify(['durable-execution', 'approval-checkpoint'])) {
+    fail(
+      `self-test: the feature list must stop at the next heading of any level, not at the next ` +
+        `\`## \` — read ${JSON.stringify(names)}`,
+    );
+  } else {
+    console.log('OK    feature list: stops at the next heading of any level');
+  }
+  if (featureNamesIn('# A file with no such section\n\n- `nope`\n') !== null) {
+    fail('self-test: a file with no feature-list section reads as null, not as an empty list');
   }
 
   // The registry classifier, which no corpus package can exercise: a 404 is an answer

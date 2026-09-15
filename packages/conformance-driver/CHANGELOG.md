@@ -65,7 +65,8 @@ the [root changelog](../../CHANGELOG.md).
   cannot load is an `error`, never an absence and never a silent skip.
 - **The parity manifest and the assertion**
   ([`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json), named
-  `typescript-v0.1.json` until the protocol pin moved to v0.2.0):
+  `typescript-v0.1.json` until the pin moved to the rulebook commit carrying the v0.2 text, ahead of that
+  rulebook's `v0.2.0` tag):
   the failing set is compared with the published claim in **both** directions, so a
   regression and a quietly-closed gap are equally loud. `skipped` is checked too — a
   skip is legitimate only where the manifest declares one. The manifest's

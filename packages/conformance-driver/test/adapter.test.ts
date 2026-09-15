@@ -51,9 +51,9 @@ describe("the run covers the whole adapter section", () => {
     );
   });
 
-  it("runs the ten documents the section lists", () => {
-    expect(adapterManifest.fixtures).toHaveLength(10);
-    expect(run.declaration.fixtures).toBe(10);
+  it("runs the twelve documents the section lists", () => {
+    expect(adapterManifest.fixtures).toHaveLength(12);
+    expect(run.declaration.fixtures).toBe(12);
   });
 
   it("passes every one", () => {
@@ -122,6 +122,72 @@ describe("a seam that decides from the framework's history is caught (CV-3, AZ-5
     );
     expect(result?.diff?.map((entry) => entry.at)).toContain("modelOutput.status");
   }, 120_000);
+});
+
+describe("the framework artefact reaches the seam the framework would reach (CV-3, AZ-5)", () => {
+  it("hands the tool a tool-approval-response part on the options the SDK uses", async () => {
+    // The binding-level half of the replayed-approval document, and it needs its own
+    // test: emptying `sdkMessage` leaves all twelve fixtures green, because a seam that
+    // is never handed an approval cannot read one, and the document then passes for the
+    // wrong reason. A fixture states the artefact abstractly; this is where that
+    // becomes the shape the SDK's own seam reads its history in, and it is asserted on
+    // the options the tool is actually called with.
+    const seen: unknown[] = [];
+    const set = {
+      update_ticket: {
+        execute(_input: unknown, options: unknown) {
+          seen.push(options);
+          return { kind: "read", result: null };
+        },
+      },
+    } as unknown as Parameters<typeof aiSdkAdapter.call>[0];
+
+    await aiSdkAdapter.call(set, {
+      tool: "update_ticket",
+      args: { priority: "High" },
+      contextKind: "turn",
+      context: {
+        conversationId: "conv-1",
+        tenantId: "tenant-a",
+        channel: "chat",
+        principal: { kind: "member", id: "member-1" },
+        turn: { utterance: "Set it to High", messageId: "msg-1", at: "2026-09-15T09:00:00.000Z" },
+      },
+      messages: [{ kind: "framework-approval", approved: true }],
+    });
+
+    expect(seen).toHaveLength(1);
+    const options = seen[0] as { messages: readonly { content: readonly { type: string }[] }[] };
+    expect(options.messages).toHaveLength(1);
+    expect(options.messages[0]?.content[0]?.type).toBe("tool-approval-response");
+  });
+
+  it("passes no context at all where the call arrived with none, and the value unwrapped where it is malformed", async () => {
+    // The other two context kinds, on the same seam. `"none"` must leave `context` off
+    // the options entirely — the SDK's own behaviour when a generation call carried no
+    // `toolsContext` — and `"malformed"` must hand the value over exactly as written,
+    // because wrapping it as `{ turn: … }` would repair the thing GT-2 is about.
+    const seen: Record<string, unknown>[] = [];
+    const set = {
+      update_ticket: {
+        execute(_input: unknown, options: Record<string, unknown>) {
+          seen.push(options);
+          return { kind: "read", result: null };
+        },
+      },
+    } as unknown as Parameters<typeof aiSdkAdapter.call>[0];
+    const base = { tool: "update_ticket", args: {}, messages: [] } as const;
+
+    await aiSdkAdapter.call(set, { ...base, contextKind: "none", context: null });
+    await aiSdkAdapter.call(set, {
+      ...base,
+      contextKind: "malformed",
+      context: { nonsense: true },
+    });
+
+    expect(Object.hasOwn(seen[0] ?? {}, "context")).toBe(false);
+    expect(seen[1]?.["context"]).toEqual({ nonsense: true });
+  });
 });
 
 describe("a refusal that carries the wrong code is caught (CV-2)", () => {
@@ -252,27 +318,35 @@ describe("the section is not vacuous", () => {
     expect(broken.failingIds).toContain("adapter/cv3-model-output-carries-no-values");
   }, 120_000);
 
-  it("fails, naming itself, when a document states a clause it does not bind", async () => {
-    // An expectation key a driver does not answer is a fact nobody checks, so it is a
-    // failure naming the clause — never a pass.
-    const outcome = await runAdapterFixture(
-      {
-        id: "adapter/cv2-write-with-context-files",
-        rules: ["CV-2"],
-        title: "a document carrying a clause this driver does not bind",
-        given: {
-          clock: "2026-09-15T09:00:00.000Z",
-          gate: { defaultTtlMs: 3_600_000, authorization: { allow: ["*"] } },
-          ctx: { tenantId: "tenant-a", conversationId: "conv-1", channel: "chat" },
-          step: { kind: "get" },
-        },
-        expect: { canonicalHash: "0".repeat(64) },
-      } as unknown as ConformanceFixtureDocument,
-      aiSdkAdapter,
-    );
+  it("errors on a document stating a clause the adapter section does not have", async () => {
+    // `card` and `canonicalHash` are the gate's own artefacts, produced through the
+    // gate's own entry points, and the adapter variant of fixture.schema.json refuses
+    // them: a document stating one is not run at all, which is an `error` and never a
+    // pass. The driver's own clause guard sits behind that as a backstop, for a clause
+    // the format gains before this driver binds it.
+    for (const clause of [
+      { canonicalHash: "0".repeat(64) },
+      { card: { requiresConfirmation: true } },
+    ]) {
+      const outcome = await runAdapterFixture(
+        {
+          id: "adapter/cv2-write-with-context-files",
+          rules: ["CV-2"],
+          title: "a document carrying a clause the adapter section does not have",
+          given: {
+            clock: "2026-09-15T09:00:00.000Z",
+            gate: { defaultTtlMs: 3_600_000, authorization: { allow: ["*"] } },
+            ctx: { tenantId: "tenant-a", conversationId: "conv-1", channel: "chat" },
+            step: { kind: "get" },
+          },
+          expect: clause,
+        } as unknown as ConformanceFixtureDocument,
+        aiSdkAdapter,
+      );
 
-    expect(outcome.outcome).toBe("fail");
-    expect(outcome.diff?.map((entry) => entry.at)).toContain("canonicalHash");
+      expect(outcome.outcome, JSON.stringify(clause)).toBe("error");
+      expect(outcome.reason, JSON.stringify(clause)).toContain("does not validate");
+    }
   });
 
   it("fails a summary that carries a sworn value inside a sentence (CV-3)", async () => {

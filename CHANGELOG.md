@@ -29,8 +29,8 @@ these versions.
   about an adapter's seam: CV-2's fail-closed call site, CV-3's delegation clause and CV-5's
   durability claims. A driver runs that section once for every adapter its implementation ships and
   declares; this one ships one, so it runs once, on Node, under Bun and inside workerd, and its
-  ten documents are in the same run document and the same failing set as the other sixty-eight —
-  **78 in all**.
+  twelve documents are in the same run document and the same failing set as the other sixty-eight —
+  **80 in all**.
   The parity manifest becomes
   [`conformance/parity/typescript-v0.2.json`](packages/conformance-driver/conformance/parity/typescript-v0.2.json),
   with `adapters[]` naming the package, the `ai` version the run resolved, and the verdict of the

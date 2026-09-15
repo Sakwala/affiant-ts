@@ -21,7 +21,7 @@
 # conditions hold at the rulebook's v0.1.3 tag — the .NET parity report at
 # https://github.com/Sakwala/affiant-protocol/blob/v0.1.3/conformance/parity/dotnet-v0.1.json
 # and this package's own
-# packages/conformance-driver/conformance/parity/typescript-v0.1.json — so this
+# packages/conformance-driver/conformance/parity/typescript-v0.2.json — so this
 # workflow sets the variable —
 # and re-proves the second one a few steps earlier, on all three runtimes, rather
 # than taking the required check on `main` on trust. `--ignore-scripts` is therefore

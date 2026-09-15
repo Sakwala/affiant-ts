@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 435e1bc5459247262b812307fa0c58ee5498b094.
+// copy of Sakwala/affiant-protocol at d6827c59ce50f97c31e5a60158fc16c812ecfc4d.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -4347,8 +4347,8 @@ export const manifest = {
   },
   "adapter": {
     "protocolVersion": "0.2.0",
-    "$note": "The adapter section, authored here at v0.2.0 with the first adapter. A fixture here has the shape of a conformance fixture and two step kinds of its own — `adapter-build` and `adapter-call` — described in conformance/ADAPTER-RUNNER.md, and five matchers of its own. The two shapes are separate variants of conformance/fixture.schema.json, so a conformance fixture stating an adapter step or an adapter clause is refused and so is the reverse: a clause the section's own runner does not read is a clause nobody checks. This section is run only by an implementation that ships and declares an adapter — conformance/DRIVER.md says a driver runs it once for every adapter its implementation ships, and an implementation that ships none runs none and declares `adapters: []` in its parity manifest. Every fixture here is model-free and network-free — the call is made the way the framework makes it, with a scripted context and the arguments a model would have produced — so a driver needs no provider credential and no network to run the set. `oracle` is null on every row: these fixtures were authored with the first adapter, so there is no earlier release of one whose defect they refute, and they are accepted on review the way the canonical vectors are. CV-5 has no fixture here at all: it is a statement about documentation and packaging that no fixture can observe, and it is checked by conformance/lint/adapter-claims.mjs (conformance/ADAPTER-CLAIMS.md).",
-    "authoredHere": "All ten were authored in this repository at v0.2.0, against @affiant/adapter-ai-sdk (Sakwala/affiant-ts, packages/adapter-ai-sdk) — the first adapter, and the reason the three coverage exemptions CV-2, CV-3 and CV-5 that carried `until: 0.2.0` are lifted at this version. None is promoted: the adapter's own suites drive a built tool set's execute with a scripted context, which is the mapping a driver implements, but the documents here were written to the rules rather than copied from a test file. Four of the ten — the second call with no context, the read against an unreachable gate, the malformed context, and the `modelOutput` assertions on the refusals and on the replayed approval — were added after a two-lens refutation found that a per-gate context cache, a seam that returned the raw proposal on a refusal, and a seam that read approval out of the framework's history each passed the first seven.",
+    "$note": "The adapter section, authored here at v0.2.0 with the first adapter. A fixture here has the shape of a conformance fixture and two step kinds of its own — `adapter-build` and `adapter-call` — described in conformance/ADAPTER-RUNNER.md, and five matchers of its own. The two shapes are separate variants of conformance/fixture.schema.json: a conformance fixture stating an adapter step or an adapter clause is refused, and an adapter fixture stating `card` or `canonicalHash` is refused too, because an Evidence Card and a canonical hash are the gate's own artefacts and this section's runner has no way to produce one. A clause a section's own runner does not read is a clause nobody checks. This section is run only by an implementation that ships and declares an adapter — conformance/DRIVER.md says a driver runs it once for every adapter its implementation ships, and an implementation that ships none runs none and declares `adapters: []` in its parity manifest. Every fixture here is model-free and network-free — the call is made the way the framework makes it, with a scripted context and the arguments a model would have produced — so a driver needs no provider credential and no network to run the set. `oracle` is null on every row: these fixtures were authored with the first adapter, so there is no earlier release of one whose defect they refute, and they are accepted on review the way the canonical vectors are. CV-5 has no fixture here at all: it is a statement about documentation and packaging that no fixture can observe, and it is checked by conformance/lint/adapter-claims.mjs (conformance/ADAPTER-CLAIMS.md).",
+    "authoredHere": "All twelve were authored in this repository at v0.2.0, against @affiant/adapter-ai-sdk (Sakwala/affiant-ts, packages/adapter-ai-sdk) — the first adapter, and the reason the three coverage exemptions CV-2, CV-3 and CV-5 that carried `until: 0.2.0` are lifted at this version. None is promoted: the adapter's own suites drive a built tool set's execute with a scripted context, which is the mapping a driver implements, but the documents here were written to the rules rather than copied from a test file. Five of the twelve were added after refutation rounds found seams the earlier set passed: a second call with no context (a per-gate context cache), a read against an unreachable gate, a malformed context, a malformed context that is a COMPLETE turn context in the wrong shape (a seam that repaired it by wrapping it would file), and a read with a context that answers (without which `outcome.result` was a matcher no document used).",
     "sets": {
       "adapter": "the first adapter's seam: the fail-closed call site (CV-2) and the delegation clause (CV-3)"
     },
@@ -4456,6 +4456,28 @@ export const manifest = {
       {
         "id": "adapter/cv2-malformed-context-refuses",
         "file": "adapter/10-cv2-malformed-context-refuses.json",
+        "rules": [
+          "CV-2",
+          "GT-2"
+        ],
+        "set": "adapter",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "adapter/cv2-read-with-context-answers",
+        "file": "adapter/11-cv2-read-with-context-answers.json",
+        "rules": [
+          "CV-2",
+          "GT-2"
+        ],
+        "set": "adapter",
+        "oracle": null,
+        "acceptedOnReview": true
+      },
+      {
+        "id": "adapter/cv2-malformed-context-is-not-repaired",
+        "file": "adapter/12-cv2-malformed-context-is-not-repaired.json",
         "rules": [
           "CV-2",
           "GT-2"

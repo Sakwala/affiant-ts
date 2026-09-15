@@ -134,16 +134,31 @@ rule wants said.
 **Why it is this blunt.** The first version of this lint matched affirmative phrases — "survives a restart", "is
 durable" — and five of six ordinary sentences a real README would carry walked straight past it: *the pause is
 persisted across deploys*, *a pending entry is checkpointed by the runtime*, *an approval outlives the process*,
-*pending rows are preserved across redeploys*, *work resumes after a crash*. A phrase list that has to guess the shape
-of a sentence will always lose that race. This one asks a much blunter question and leans on `feature` to keep it
-honest: **false positives are expected and acceptable**, because the cost of one is a sentence an author rewords or a
-feature an author declares, and the cost of a miss is an adopter told their approval queue is durable on the strength
-of a dist-tag nobody will install.
+*pending rows are preserved across redeploys*, *work resumes after a crash*. A second round found three more in plainer
+English still: *work already approved is kept when the container is torn down*, *the pending entry is brought back when
+the worker comes up again*, *your approval is still there waiting for you after a deploy*. A phrase list that has to
+guess the shape of a sentence will always lose that race. This one asks a much blunter question and leans on `feature`
+to keep it honest: **false positives are expected and acceptable**, because the cost of one is a sentence an author
+rewords or a feature an author declares, and the cost of a miss is an adopter told their approval queue is durable on
+the strength of a dist-tag nobody will install.
 
-The cost of the bluntness is stated too: a sentence *could* be written to slip through — "there is no question that a
-pause survives a process restart" — and the answer is that such a sentence would be a false claim somebody put there on
-purpose, which is not what a lint is for. What a lint is for is the sentence written in good faith on a Friday that
-nobody notices is a promise.
+### What this lint is not
+
+**It is a heuristic over prose, and it will miss things.** English has no closed vocabulary for durability, and a
+sentence can always be written that means "this survives a restart" in words no list anticipated — *there is no
+question that a pause outlasts the worker*, or a denial that is really a promise: *nothing a reviewer approved is lost
+when the process is torn down*, which this lint discounts because `nothing` precedes the durability word. That case is
+in the corpus, as a passing one, so the limit is written down rather than discovered.
+
+The authority is therefore not the detector. It is **`durabilityClaims`** — what the package declares, checked against
+the registry and the peer range, which is machine-readable and exact — and **CV-5's own text**, which binds whether or
+not a lint noticed. A reviewer reads the README. What this lint does is catch the sentence written in good faith on a
+Friday that nobody notices is a promise, and make the honest path the easy one: declare the feature, name it in the
+sentence, and the lint agrees with you.
+
+A sentence *could* also be written to slip through on purpose — "there is no question that a pause survives a process
+restart" — and the answer to that is that it would be a false claim somebody put there deliberately, which is not what
+a lint is for.
 
 ## 4. Where the result is recorded
 

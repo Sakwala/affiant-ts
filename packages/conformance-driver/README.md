@@ -59,15 +59,15 @@ From protocol `v0.2.0` the rulebook carries a second fixture section, `adapter`,
 about an adapter's seam and could not be checked before an adapter existed: CV-2's fail-closed call site, CV-3's
 delegation clause, and CV-5 — which is a lint over the adapter package rather than a fixture, because no fixture
 can observe a statement about documentation and packaging. The format is the rulebook's
-[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/435e1bc/conformance/ADAPTER-RUNNER.md):
+[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/d6827c5/conformance/ADAPTER-RUNNER.md):
 a conformance fixture with two step kinds of its own, `adapter-build` and `adapter-call`, and five matchers of its own.
 The link is to the **pinned ref**, not to a branch: `packages/contract/protocol/PIN` is what this repository vendors and
 runs against, and a link to `main` would describe a document the run did not read. It moves when the pin moves.
 
 A driver runs that section **once for every adapter its implementation ships and declares**, and an
 implementation that ships none runs none of it and publishes `adapters: []`. This implementation ships one,
-`@affiant/adapter-ai-sdk`, so the section runs once, against it, on every runtime — and its **ten** documents are
-in the same run document and the same failing set as the other sixty-eight, for **78** in all.
+`@affiant/adapter-ai-sdk`, so the section runs once, against it, on every runtime — and its **twelve** documents are
+in the same run document and the same failing set as the other sixty-eight, for **80** in all.
 
 `src/adapter.ts` is the section runner and everything in it is the rulebook's: the gate built from `given.gate`
 the same way a conformance fixture's is, the definitions, the Docket, the expectations. The three things only a
@@ -79,8 +79,13 @@ Two limits worth stating, and neither is silent. The runner binds `adapter-build
 `markExecuted`, `resubmit`, `expireDue` and `rehydrate`; `wrap-execute` and `file` are the gate's own seams rather than
 an adapter's, and a document about either belongs in the conformance section. A step kind the runner has **not** bound
 is an `error` for the whole document — in the step under test and in any `prior` step alike, because a scene that was
-never set makes every expectation after it meaningless. And an `expect` clause this driver does not answer is a
-**`fail` naming the clause**: the document ran, and the fact it stated is one nobody checked. Neither is ever a pass.
+never set makes every expectation after it meaningless.
+
+The clauses line up by construction. The adapter variant of `fixture.schema.json` admits six of the conformance
+format's clauses — `error`, `entry`, `found`, `store`, `telemetry`, `telemetryAbsent` — plus the five of its own, and
+this driver binds all eleven; `card` and `canonicalHash` are the gate's own artefacts and the schema refuses them here,
+so a document stating one is not run at all. Behind that the driver keeps its own guard: a clause it does not answer is
+a **`fail` naming the clause**, never a pass, for a clause the format gains before this driver binds it.
 
 CV-5's lint needs the npm registry and the package it is about is here, so it runs in this repository's
 `adapter claims` job rather than in the rulebook's CI, against the **vendored** copy at
@@ -116,8 +121,15 @@ Two rulebook areas cannot be checked by a declarative fixture, and the manifest 
 position on them rather than leaving a reader to guess. The `exemptions[]` rows are **copied** from the
 rulebook's own `conformance/lint/coverage-exemptions.json` — an implementation may not invent one, because
 exempting yourself from a rule is not a parity report — and each adds `checkedInstead`, naming the suite or
-lint that stands in its place. Three rules name nothing: their fixtures arrive with the first adapter at
-protocol v0.2, and saying so is more useful than something reassuring.
+lint that stands in its place.
+
+There are **eight rows, and every one of them names what stands in for it**. The three that used to name
+nothing were CV-2, CV-3 and CV-5, whose fixtures the rulebook owed to the first adapter; the adapter arrived,
+the rows went with it, and those rules are covered now — CV-2 and CV-3 by the adapter fixture section this
+driver runs, CV-5 by the rulebook's adapter claims lint, which the `adapter claims` job runs against the
+package. A manifest read at a `v0.2` ref must carry an `exemptions[]` equal to the exemption file as of its
+own ref, and the rulebook's lint checks it; building the list from the vendored file rather than retyping it
+is what makes that true by construction.
 
 ## Runtimes
 

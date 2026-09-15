@@ -894,11 +894,24 @@
     },
 
     "adapterExpect": {
-      "description": "What must be true after the step under test, in the adapter section: every clause of the conformance format, plus the five an adapter driver answers.",
+      "description": "What must be true after the step under test, in the adapter section: the six clauses an adapter driver can answer about the Docket and the refusal, plus the five of its own. `card` and `canonicalHash` are NOT among them and are refused here — an Evidence Card and a canonical hash are the gate's own artefacts, reached through the gate's own entry points, and a fixture that stated one would be stating a fact the adapter section's runner has no way to produce. The conformance section is where a document about either belongs.",
       "type": "object",
-      "allOf": [{ "$ref": "#/$defs/expect" }, { "$ref": "#/$defs/adapterExpectClauses" }],
+      "allOf": [{ "$ref": "#/$defs/sharedExpect" }, { "$ref": "#/$defs/adapterExpectClauses" }],
       "unevaluatedProperties": false,
       "minProperties": 1
+    },
+
+    "sharedExpect": {
+      "description": "The clauses BOTH sections answer, by reference to the conformance format's own definitions of them so there is one statement of each and not two.",
+      "type": "object",
+      "properties": {
+        "error": { "$ref": "#/$defs/expect/properties/error" },
+        "entry": { "$ref": "#/$defs/expect/properties/entry" },
+        "found": { "$ref": "#/$defs/expect/properties/found" },
+        "store": { "$ref": "#/$defs/expect/properties/store" },
+        "telemetry": { "$ref": "#/$defs/expect/properties/telemetry" },
+        "telemetryAbsent": { "$ref": "#/$defs/expect/properties/telemetryAbsent" }
+      }
     },
 
     "adapterExpectClauses": {
