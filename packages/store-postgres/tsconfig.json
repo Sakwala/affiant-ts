@@ -1,0 +1,18 @@
+{
+  // `src/` is checked as a program of its own, like every package here — but with
+  // `types: ["node"]` rather than `types: []`, which is this package's one stated
+  // deviation from that shape. postgres.js declares its connection types in terms
+  // of `node:stream`, so a program that cannot see Node's declarations cannot
+  // resolve the driver's own. The substance of RT-1 is that the package's *code* is
+  // runtime-neutral, and that is enforced at the level it actually holds at:
+  // `scripts/lint-no-node-imports.mjs` fails the build on any `node:` or bare Node
+  // built-in import under `src/`, and the suites run inside workerd.
+  // `tsconfig.test.json` checks the tests and the config files.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,11 @@
+{
+  // The tests and the vitest configs. These open databases, read environment
+  // variables and spawn nothing else; Node types are in scope here by intent.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["test/**/*.ts", "*.config.ts"]
+}

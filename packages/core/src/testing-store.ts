@@ -859,6 +859,53 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "execution/refuses-an-outcome-on-a-rejected-row",
+        title: "refuses an execution outcome on a row that was rejected",
+        async run({ store, expect, scope, entry }) {
+          // `not-approved` and `execution-already-recorded` are different answers, and
+          // this is the first of them: nobody authorised this write, so there is
+          // nothing for an executor to have done and no outcome to record (AZ-5). A
+          // guard written as "is it still pending?" rather than "is it approved?"
+          // accepts every non-pending row here and answers with the other refusal.
+          await store.file(entry("entry-1"));
+          await store.transition("entry-1", scope, "pending", {
+            status: "rejected",
+            decision: { kind: "reject", reason: "wrong amount", at: NOON },
+          });
+
+          expect(
+            await store.recordExecution("entry-1", scope, "executed", null, "unexecuted"),
+          ).toBe("not-approved");
+          expect((await store.get("entry-1", scope))?.execution).toBeNull();
+        },
+      },
+      {
+        id: "execution/refuses-an-outcome-on-an-expired-row",
+        title: "refuses an execution outcome on an expired row, swept or not",
+        async run({ store, clock, expect, scope, entry }) {
+          // The same distinction for the row nobody decided at all. It reads `expired`
+          // whether or not a sweep has run (DK-1), so the answer is `not-approved`
+          // here too — and both halves are asserted, because a store whose guard asks
+          // "has this row a recorded outcome?" rather than "is this row approved?"
+          // answers correctly for the unswept row by accident and wrongly for the
+          // swept one.
+          await store.file(entry("unswept"));
+          await store.file(entry("swept"));
+          clock.set(AFTER_DEADLINE);
+          expect(await store.expireDue(AFTER_DEADLINE, scope, 10)).toEqual({
+            expired: ["unswept", "swept"],
+            more: false,
+          });
+
+          for (const entryId of ["unswept", "swept"]) {
+            expect(
+              await store.recordExecution(entryId, scope, "executed", null, "unexecuted"),
+            ).toBe("not-approved");
+            expect((await store.get(entryId, scope))?.execution).toBeNull();
+          }
+        },
+      },
+      {
         id: "execution/records-once-refusing-a-flip",
         title: "records an outcome once, refusing a report that would flip a committed row",
         async run({ store, expect, scope, entry }) {
@@ -1538,6 +1585,30 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           expect(purged).toEqual({ removed: 2 });
           expect(await exported(store, scope)).toHaveLength(0);
           expect(entryIds(await exported(store, otherScope))).toEqual(["b-1"]);
+        },
+      },
+      {
+        id: "purge/spans-every-conversation-in-the-tenant",
+        title: "removes the tenant's rows from every conversation, not just one",
+        async run({ store, expect, scope, otherScope, entry }) {
+          // A purge takes a tenant id and not a {@link Scope} because there is no such
+          // thing as purging half a tenant (DK-4). A store that narrowed it to one
+          // conversation would answer a deletion request with a partial deletion and
+          // report it as done.
+          await store.file(entry("here-1", { conversationId: "conv-1" }));
+          await store.file(entry("here-2", { conversationId: "conv-2" }));
+          await store.file(entry("here-3", { conversationId: "conv-3" }));
+          await store.file(entry("elsewhere", { tenantId: otherScope.tenantId }));
+
+          expect(await store.purge(scope.tenantId)).toEqual({ removed: 3 });
+
+          expect(await exported(store, scope)).toHaveLength(0);
+          for (const conversationId of ["conv-1", "conv-2", "conv-3"]) {
+            expect(
+              await exported(store, { tenantId: scope.tenantId, conversationId }),
+            ).toHaveLength(0);
+          }
+          expect(entryIds(await exported(store, otherScope))).toEqual(["elsewhere"]);
         },
       },
       {

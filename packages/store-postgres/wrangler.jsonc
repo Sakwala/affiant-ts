@@ -1,0 +1,10 @@
+{
+  // Test-only Worker configuration. @cloudflare/vitest-pool-workers needs a wrangler
+  // config to know which compatibility date and flags to boot workerd with; nothing
+  // here is deployed. `nodejs_compat` is what postgres.js's workerd build asks for.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "affiant-store-postgres-tests",
+  "main": "test/worker-entry.ts",
+  "compatibility_date": "2026-03-10",
+  "compatibility_flags": ["nodejs_compat"],
+}
