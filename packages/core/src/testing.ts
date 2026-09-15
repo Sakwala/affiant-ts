@@ -2100,3 +2100,45 @@ function checkCard(
     compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
   }
 }
+
+// ---------------------------------------------------------------------------
+// The store contract
+// ---------------------------------------------------------------------------
+
+/**
+ * The parametrised store contract, re-exported so that everything a test reaches
+ * for arrives from one subpath.
+ *
+ * `runDocketStoreContract` and `runSessionStoreContract` register the assertions any
+ * `DocketStore` and `SessionStore` implementation must pass; the reference in-memory
+ * stores are the first caller and a store on a database is the next. The sample
+ * builders are exported with them because a store's own suite needs a real Affidavit
+ * to file.
+ */
+export {
+  DOCKET_CONTRACT_CASES,
+  DOCKET_CONTRACT_SECTIONS,
+  SESSION_CONTRACT_CASES,
+  SESSION_CONTRACT_SECTIONS,
+  entryIds,
+  runDocketStoreContract,
+  runSessionStoreContract,
+  sampleAffidavit,
+  sampleEntry,
+  sampleField,
+  stubClock,
+  withSessionStore,
+} from "./testing-store.js";
+export type {
+  ContractAssertion,
+  ContractCaseContext,
+  ContractExpect,
+  ContractMatchers,
+  ContractRunnerApi,
+  DocketContractSection,
+  DocketStoreFactory,
+  SessionContractSection,
+  SessionStoreFactory,
+  StoreContractOptions,
+  StubClock,
+} from "./testing-store.js";
