@@ -4,7 +4,6 @@ import { InMemoryDocketStore, InMemorySessionStore } from "../src/docket/memory.
 import type { ContractRunnerApi } from "../src/testing-store.js";
 import {
   DOCKET_CONTRACT_CASES,
-  DOCKET_CONTRACT_SECTIONS,
   SESSION_CONTRACT_CASES,
   SESSION_CONTRACT_SECTIONS,
   runDocketStoreContract,
@@ -12,17 +11,18 @@ import {
   withSessionStore,
 } from "../src/testing-store.js";
 
-import { DOCKET_CONTRACT_SPLIT } from "./docket-support.js";
-
 /**
  * The store contract is only worth what it registers.
  *
- * The four Docket suites are thin callers of one parametrised contract, and each
- * asks for a named block of it. That arrangement has one failure mode: a block or a
- * case that stops being registered reports nothing at all — a green run that
- * measured less than the run before it. These assertions close that hole from both
- * ends: the split across the suites covers every block exactly once, and a `skip` or
- * a `sections` entry that matches nothing is refused rather than ignored.
+ * These are the assertions about the contract's own registration that can be made
+ * without running it: an id registers one case, a `skip` drops the case it names,
+ * and a `skip` or `sections` entry that matches nothing is refused rather than
+ * ignored — a skip nobody notices is a case a store stopped running.
+ *
+ * Whether the four suites between them ask for the whole contract is a different
+ * question, and it cannot be answered from a constant they read: the narrowing would
+ * happen at their call sites. `test/node/docket-contract-coverage.test.ts` answers it
+ * by collecting the suites and reading back what they registered.
  */
 
 /** A runner that records what a contract registers instead of running it. */
@@ -57,21 +57,28 @@ function registeredDocket(options: { skip?: readonly string[] } = {}): string[] 
   return recording.titles;
 }
 
-describe("every block of the contract is run by some suite", () => {
-  it("splits the Docket contract across the suites with nothing left over", () => {
-    const named = Object.values(DOCKET_CONTRACT_SPLIT).flat();
-
-    expect([...named].sort()).toEqual([...DOCKET_CONTRACT_SECTIONS].sort());
-    // Exactly once, not merely at least once: a block named twice would run its
-    // assertions twice and hide the block that went missing.
-    expect(new Set(named).size).toBe(named.length);
-  });
-
+describe("the contract registers what it says it registers", () => {
   it("registers one case per id, and the ids are unique", () => {
     expect(registeredDocket()).toHaveLength(DOCKET_CONTRACT_CASES.length);
-    expect(new Set(DOCKET_CONTRACT_CASES).size).toBe(DOCKET_CONTRACT_CASES.length);
-    expect(new Set(SESSION_CONTRACT_CASES).size).toBe(SESSION_CONTRACT_CASES.length);
+    expect(new Set(DOCKET_CONTRACT_CASES.map((one) => one.id)).size).toBe(
+      DOCKET_CONTRACT_CASES.length,
+    );
+    expect(new Set(SESSION_CONTRACT_CASES.map((one) => one.id)).size).toBe(
+      SESSION_CONTRACT_CASES.length,
+    );
     expect(SESSION_CONTRACT_SECTIONS).toEqual(["rehydration"]);
+  });
+
+  it("names every case it registers, block and title, for a caller checking a suite", () => {
+    const recording = recorder();
+    runDocketStoreContract((clock) => new InMemoryDocketStore({ clock }), {
+      api: recording.api,
+      sections: ["purge"],
+    });
+
+    const purge = DOCKET_CONTRACT_CASES.filter((one) => one.section === "purge");
+    expect(recording.blocks).toEqual([...new Set(purge.map((one) => one.block))]);
+    expect(recording.titles).toEqual(purge.map((one) => one.title));
   });
 
   it("registers the whole rehydration contract from one block", () => {
@@ -94,7 +101,10 @@ describe("a skip is deliberate, never a typo", () => {
     const skipped = DOCKET_CONTRACT_CASES[0];
     if (skipped === undefined) throw new Error("the contract registers no case");
 
-    expect(registeredDocket({ skip: [skipped] })).toHaveLength(DOCKET_CONTRACT_CASES.length - 1);
+    const registered = registeredDocket({ skip: [skipped.id] });
+
+    expect(registered).toHaveLength(DOCKET_CONTRACT_CASES.length - 1);
+    expect(registered).not.toContain(skipped.title);
   });
 
   it("refuses a case id the contract does not define", () => {

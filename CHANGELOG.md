@@ -25,7 +25,9 @@ was made against.
 
 - **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
   run against a caller's own ports instead of the reference wiring, and a store factory given
-  there is used for every one of them.
+  there is used for every one of them. `FixturePorts.store` may now return a promise, which the
+  runner awaits, so a store that has to reach a database before it can answer is buildable one
+  document at a time.
 
 ### Changed
 

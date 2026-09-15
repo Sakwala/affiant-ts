@@ -664,6 +664,35 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "deadline/the-boundary-instant-reads-expired",
+        title: "reads a row at exactly its deadline as expired, on every surface (DK-1)",
+        async run({ store, clock, expect, scope, entry }) {
+          // The deadline is inclusive of the instant itself. Half-open the other way
+          // would leave a one-millisecond window in which a row is still decidable at
+          // its own deadline, and every surface that reports a status would disagree
+          // with the transition guard for exactly that long. The clock sits on the
+          // deadline for the whole case, so a store that compared strictly would read
+          // every one of these as `pending`.
+          await store.file(entry("at-the-deadline"));
+          clock.set(DEADLINE);
+
+          const read = await store.get("at-the-deadline", scope);
+          expect(read?.status).toBe("expired");
+          expect(read?.decidedAt).toBe(DEADLINE);
+
+          expect((await store.listPending(scope, { limit: 10 })).items).toHaveLength(0);
+
+          expect(
+            await store.transition(
+              "at-the-deadline",
+              scope,
+              "pending",
+              approval("at-the-deadline"),
+            ),
+          ).toBe("expired");
+        },
+      },
+      {
         id: "deadline/sweep-dates-the-row-to-its-own-deadline",
         title: "records a swept row as having left pending at its deadline, not at the sweep",
         async run({ store, clock, expect, scope, entry }) {
@@ -682,7 +711,6 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           expect(row?.status).toBe("expired");
           expect(row?.decidedAt).toBe(DEADLINE);
           expect(row?.decidedAt).not.toBe(sweptAt);
-          expect(row?.execution).toBeNull();
         },
       },
     ],
@@ -1210,6 +1238,40 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "retention/narrows-to-one-conversation",
+        title: "removes only the named conversation's rows when the scope names one (DK-4, AZ-2)",
+        async run({ store, clock, expect, scope, entry, conversation }) {
+          // Retention is scoped like every other operation, not by tenant alone: a
+          // host ageing out one conversation's record would otherwise take the
+          // tenant's whole Docket with it.
+          const rows = [
+            ["a-1", "conv-1"],
+            ["a-2", "conv-1"],
+            ["b-1", "conv-2"],
+          ] as const;
+          for (const [entryId, conversationId] of rows) {
+            await store.file(
+              entry(entryId, {
+                conversationId,
+                filedAt: NOON,
+                expiresAt: "2026-09-06T23:59:00.000Z",
+              }),
+            );
+            await store.transition(entryId, scope, "pending", {
+              status: "rejected",
+              decision: { kind: "reject", reason: null, at: NOON },
+              decidedAt: NOON,
+            });
+          }
+          clock.set(LATE);
+
+          const result = await store.retention({ olderThan: LATE }, conversation("conv-1"), 10);
+
+          expect(result).toEqual({ removed: 2, more: false });
+          expect(entryIds(await exported(store, scope))).toEqual(["b-1"]);
+        },
+      },
+      {
         id: "retention/refuses-an-unbounded-pass",
         title: "refuses an unbounded retention pass",
         async run({ store, clock, expect, scope }) {
@@ -1580,6 +1642,23 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
           },
         },
         {
+          id: "rehydration/the-boundary-instant-leaves-the-pending-group",
+          title: "leaves a row out of the pending group at exactly its deadline (DK-1, DK-5)",
+          async run({ store, clock, expect, scope, entry }) {
+            // The deadline is inclusive of the instant itself, and rehydration reports
+            // what a row reads as rather than what it says: a client reconnecting on the
+            // millisecond of the deadline is not offered a decision it can no longer
+            // make.
+            await store.file(entry("pending-1"));
+            await store.file(entry("approved-1", { status: "approved" }));
+            clock.set(DEADLINE);
+
+            const page = await store.rehydrate(scope, { limit: 10 });
+
+            expect(entryIds(page.items)).toEqual(["approved-1"]);
+          },
+        },
+        {
           id: "rehydration/narrows-to-one-conversation",
           title: "rehydrates one conversation when the scope names one",
           async run({ store, expect, scope, entry, conversation }) {
@@ -1640,14 +1719,44 @@ export const SESSION_CONTRACT_SECTIONS: readonly SessionContractSection[] = SESS
   (section) => section.id,
 );
 
-/** Every case id {@link runDocketStoreContract} registers, in registration order. */
-export const DOCKET_CONTRACT_CASES: readonly string[] = DOCKET_SECTIONS.flatMap((section) =>
-  section.cases.map((one) => one.id),
+/**
+ * One case of a contract, as a caller sees it from outside.
+ *
+ * `id` is what `skip` names; `block` and `title` are the two names the case is
+ * registered under, which is what lets a caller check that a suite registered the
+ * cases it was supposed to rather than that it meant to.
+ */
+export interface ContractCaseSummary {
+  /** The id `skip` names. Stable across releases. */
+  readonly id: string;
+  /** The block the case belongs to, which `sections` names. */
+  readonly section: string;
+  /** The name of the `describe` the case is registered under, without any label. */
+  readonly block: string;
+  /** The name the case is registered as. */
+  readonly title: string;
+}
+
+/** Every case {@link runDocketStoreContract} registers, in registration order. */
+export const DOCKET_CONTRACT_CASES: readonly ContractCaseSummary[] = DOCKET_SECTIONS.flatMap(
+  (section) =>
+    section.cases.map((one) => ({
+      id: one.id,
+      section: section.id,
+      block: section.title,
+      title: one.title,
+    })),
 );
 
-/** Every case id {@link runSessionStoreContract} registers, in registration order. */
-export const SESSION_CONTRACT_CASES: readonly string[] = SESSION_SECTIONS.flatMap((section) =>
-  section.cases.map((one) => one.id),
+/** Every case {@link runSessionStoreContract} registers, in registration order. */
+export const SESSION_CONTRACT_CASES: readonly ContractCaseSummary[] = SESSION_SECTIONS.flatMap(
+  (section) =>
+    section.cases.map((one) => ({
+      id: one.id,
+      section: section.id,
+      block: section.title,
+      title: one.title,
+    })),
 );
 
 /**

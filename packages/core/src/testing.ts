@@ -1089,8 +1089,14 @@ export function fixedRiskScorer(score: number): RiskScorer {
 
 /** The ports a fixture is wired from. Every one has a default; a driver may replace any. */
 export interface FixturePorts {
-  /** The Docket. Defaults to the in-memory reference store. */
-  readonly store?: (clock: Clock) => DocketStore;
+  /**
+   * The Docket. Defaults to the in-memory reference store.
+   *
+   * Called once per fixture and awaited, so a store that has to reach a database
+   * before it can answer — one schema per document, say — is buildable here. The
+   * same allowance the store contract's factory makes, for the same reason.
+   */
+  readonly store?: (clock: Clock) => DocketStore | Promise<DocketStore>;
   readonly inference?: (fixture: Fixture) => InferencePort;
   readonly projection?: (fixture: Fixture) => ProjectionPort;
   readonly authorization?: (fixture: Fixture) => AuthorizationPort;
@@ -1142,7 +1148,7 @@ export async function runFixture(
   const given = fixture.given;
 
   const clock = (ports.clock ?? ((f: Fixture) => fixedClock(f.given.clock)))(fixture);
-  const store = (ports.store ?? ((c: Clock) => new InMemoryDocketStore({ clock: c })))(clock);
+  const store = await (ports.store ?? ((c: Clock) => new InMemoryDocketStore({ clock: c })))(clock);
   const events: TelemetryEvent[] = [];
   const telemetry: TelemetryPort = {
     emit(event) {
@@ -2132,6 +2138,7 @@ export {
 export type {
   ContractAssertion,
   ContractCaseContext,
+  ContractCaseSummary,
   ContractExpect,
   ContractMatchers,
   ContractRunnerApi,

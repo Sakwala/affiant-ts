@@ -259,6 +259,28 @@ describe("a caller may put the suite through its own Docket", () => {
     expect(custom.document.summary.passed).toBe(custom.document.summary.total);
   }, 120_000);
 
+  it("awaits a factory that has to reach a database before it can answer", async () => {
+    // A store on a database builds per document — its own schema, its own
+    // migrations — so the factory is asynchronous, and a driver that used the
+    // promise as if it were the store would fail every document with a type error
+    // rather than report what the store does.
+    let built = 0;
+    const custom = await runConformance({
+      ports: {
+        store: async (clock) => {
+          built += 1;
+          await Promise.resolve();
+          return new InMemoryDocketStore({ clock });
+        },
+      },
+    });
+
+    const declarative = conformanceManifest.fixtures.filter((row) => row.set !== "canonical");
+    expect(built).toBe(declarative.length);
+    expect(custom.failingIds).toEqual([]);
+    expect(custom.document.summary.passed).toBe(custom.document.summary.total);
+  }, 120_000);
+
   it("runs the reference store when the caller names no ports", async () => {
     // The default has to stay the reference wiring, or the published run document
     // would describe a run nobody asked for.
