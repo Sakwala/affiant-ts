@@ -152,16 +152,17 @@ its sockets with it when it ends, so there is nothing to close; and with postgre
 with `Error: Stream was cancelled.` from `cf/polyfills.js` — a rejection raised outside
 any call of yours, which nothing you write can catch.
 
-**Speed.** `file` plus `transition` on a ten-field Affidavit averages 5-7 ms per
-operation on Node against a Postgres in a container on the same machine, and 9-16 ms
-under Bun. A tripwire in the suite fails the build above 25 ms on Node, which is this
-store's share of the 100 ms envelope RT-2 pins for a per-request path. Your own numbers
-depend on where your database is, so the bound is overridable with `AFFIANT_BUDGET_MS`
-and the measured mean is printed either way.
+**Speed.** `file` plus `transition` on a ten-field Affidavit averages 3.5 ms per
+operation on this repository's CI runner — the same on Node and under Bun, against a
+Postgres service container — and 5 to 16 ms on a development laptop against a Postgres
+in a container beside it. A tripwire in the suite fails the build above 25 ms on Node,
+which is this store's share of the 100 ms envelope RT-2 pins for a per-request path.
+Your own numbers depend on where your database is, so the bound is overridable with
+`AFFIANT_BUDGET_MS` and the measured mean is printed either way.
 
-**Not measured here: a connection through Hyperdrive.** Bun runs the whole suite in
-this repository and has a best-effort CI line; Hyperdrive has neither of those, and this
-README will say so until a deployment proves it.
+**Not measured here: a connection through Hyperdrive.** Bun runs the whole suite, in
+this repository's CI and on a laptop; Hyperdrive does neither, and this README will say
+so until a deployment proves it.
 
 ## What is not in this package
 
