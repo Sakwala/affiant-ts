@@ -98,10 +98,30 @@ export interface AdapterCall {
   readonly tool: string;
   /** The input a model produced for the call. */
   readonly args: Readonly<Record<string, JsonValue>>;
-  /** The context the framework carries for this call, or `null` for a call that has none. */
-  readonly context: TurnContext | null;
-  /** The framework's own message history for the call. Empty unless the fixture states one. */
-  readonly messages: readonly JsonValue[];
+  /**
+   * Which of the three the context is, because a binding passes each one differently:
+   * a turn context the framework validates, nothing at all, or a value that is not a
+   * turn context and is handed over exactly as the fixture wrote it.
+   *
+   * GT-2 is about a context an implementation can **read**, not about a property being
+   * present, so `"malformed"` is a case a driver has to be able to make.
+   */
+  readonly contextKind: "turn" | "none" | "malformed";
+  /** The context itself: a {@link TurnContext} for `"turn"`, `null` for `"none"`, any JSON for `"malformed"`. */
+  readonly context: unknown;
+  /**
+   * The framework's own message history for the call, stated abstractly
+   * (`{ kind: "framework-approval", approved }`). A binding maps each artefact to its
+   * own framework's shape; an adapter reads no approval, no Affidavit and no entry
+   * state out of it (CV-3).
+   */
+  readonly messages: readonly FrameworkMessage[];
+}
+
+/** One artefact of a host framework's own history, as a fixture states it. */
+export interface FrameworkMessage {
+  readonly kind: "framework-approval";
+  readonly approved?: boolean;
 }
 
 /** What a call returned, once the binding has said which of the three shapes it is. */
@@ -319,6 +339,30 @@ interface RunState<TSet> {
   readonly labelled: Map<string, string>;
   /** What the step under test did. */
   outcome: StepOutcome;
+  /** The call the step under test attempted, whether or not it returned. */
+  attempted: AdapterCall | null;
+}
+
+/**
+ * Marks a step kind this driver has not bound.
+ *
+ * It is thrown rather than folded into the step's outcome, and it escapes `runDocument`
+ * to become an `error` for the whole document — in the step under test and in any
+ * `prior` step alike. Without that it was swallowed: a schema-valid `file` step in an
+ * adapter document raised, the raise was recorded as that step's outcome, and a document
+ * stating no `expect.outcome` reported `pass` for a scene that was never set. An unbound
+ * kind counts against the implementation exactly like a failure (`DRIVER.md` section 3,
+ * `RUNNER.md` section 8); it is never a pass and never a silent skip.
+ */
+const UNBOUND_STEP = Symbol.for("affiant.conformance.unbound-step");
+
+/** Whether `cause` is a step kind this driver has not bound. */
+function isUnboundStep(cause: unknown): boolean {
+  return (
+    typeof cause === "object" &&
+    cause !== null &&
+    (cause as Record<symbol, unknown>)[UNBOUND_STEP] === true
+  );
 }
 
 /** What one step did, kept so the expectations can look at it. */
@@ -426,9 +470,9 @@ interface AdapterStep {
   // adapter-call
   readonly tool?: string;
   readonly args?: Readonly<Record<string, JsonValue>>;
-  readonly context?: "turn" | FixtureContextDocument | null;
+  readonly context?: "turn" | FixtureContextDocument | { readonly malformed: unknown } | null;
   readonly gate?: "present" | "absent";
-  readonly messages?: readonly JsonValue[];
+  readonly messages?: readonly FrameworkMessage[];
   // decide / markExecuted / expireDue / rehydrate
   readonly decision?: {
     readonly kind: "approve" | "reject";
@@ -453,6 +497,8 @@ interface AdapterDefinitionDocument {
   readonly hostedMcp?: boolean;
   readonly omitExecute?: boolean;
   readonly sdkKind?: "function" | "dynamic" | "provider";
+  /** What a READ definition's host function returns, stated by the fixture. */
+  readonly readResult?: JsonValue;
   readonly operationLabel?: string;
   readonly fields: readonly {
     readonly name: string;
@@ -502,6 +548,7 @@ async function runDocument<TSet>(
     lastEntryId: null,
     labelled: new Map(),
     outcome: NOTHING,
+    attempted: null,
   };
 
   for (const [index, step] of (fixture.given.prior ?? []).entries()) {
@@ -510,8 +557,10 @@ async function runDocument<TSet>(
   }
 
   // `hostExecuteRan` is about the step under test: a prior step that legitimately
-  // reached a host read must not answer for it.
+  // reached a host read must not answer for it. So is `attempted`, which is what the
+  // framework-facing clauses read.
   state.hostExecuteRan = false;
+  state.attempted = null;
   const final = await perform(fixture, fixture.given.step, state);
   state.outcome = final;
   compareDeclaredRefusal(fixture.given.step, final, "step", failures, false);
@@ -662,9 +711,13 @@ function definitionOf<TSet>(
         state.hostExecuteRan = true;
         throw new Error(`GT-6: the own execute of write tool ${document.name} was called`);
       }
-    : (args: never): string => {
+    : (args: never): JsonValue => {
         state.hostExecuteRan = true;
-        return `${document.name} ran with ${JSON.stringify(args)}`;
+        // The fixture's own value, so `expect.outcome.result` is a fact the document
+        // pins rather than a value this driver chose and then checked against itself.
+        return document.readResult === undefined
+          ? (`${document.name} ran with ${JSON.stringify(args)}` as JsonValue)
+          : document.readResult;
       };
   const operation = (args: never): Operation =>
     document.entityId === undefined || document.entityId === null
@@ -737,6 +790,9 @@ async function perform<TSet>(
   try {
     return await dispatch(fixture, step, state);
   } catch (cause) {
+    // A step kind nobody bound is a fact about this driver, not about the
+    // implementation's behaviour, and it is an `error` for the whole document.
+    if (isUnboundStep(cause)) throw cause;
     if (isAffiantError(cause)) {
       return { ...NOTHING, code: cause.code, message: cause.message, threw: cause };
     }
@@ -769,18 +825,40 @@ async function dispatch<TSet>(
     case "adapter-call": {
       const tool = step.tool ?? "";
       const stated = step.context;
-      const context =
+      const malformed =
+        stated !== null && typeof stated === "object" && "malformed" in stated
+          ? (stated as { readonly malformed: unknown })
+          : null;
+      const call: AdapterCall =
         stated === null || stated === undefined
-          ? null
-          : stated === "turn"
-            ? ctx
-            : turnContextOf(step, stated, state.clock);
-      const call: AdapterCall = {
-        tool,
-        args: step.args ?? {},
-        context,
-        messages: step.messages ?? [],
-      };
+          ? {
+              tool,
+              args: step.args ?? {},
+              contextKind: "none",
+              context: null,
+              messages: step.messages ?? [],
+            }
+          : malformed !== null
+            ? {
+                tool,
+                args: step.args ?? {},
+                contextKind: "malformed",
+                context: malformed.malformed,
+                messages: step.messages ?? [],
+              }
+            : {
+                tool,
+                args: step.args ?? {},
+                contextKind: "turn",
+                context:
+                  stated === "turn"
+                    ? ctx
+                    : turnContextOf(step, stated as FixtureContextDocument, state.clock),
+                messages: step.messages ?? [],
+              };
+      // Recorded before the call, so a call that RAISES is still a call the
+      // framework-facing clauses can answer about: what it was handed is nothing.
+      state.attempted = call;
       const set =
         step.gate === "absent"
           ? state.binding.build(unreachableGate(), state.definitions)
@@ -799,7 +877,7 @@ async function dispatch<TSet>(
       return {
         ...NOTHING,
         shape,
-        call: { ...call, tool },
+        call,
         output,
         entryId: shape.kind === "filed" ? shape.entryId : null,
         ...(shape.kind === "refused" ? { code: shape.code, message: shape.message } : {}),
@@ -875,9 +953,12 @@ async function dispatch<TSet>(
       // document about either belongs in the conformance section, where the
       // reference runner binds them. An unbound step kind is an `error`, never a
       // pass (DRIVER.md §3).
-      throw new Error(
-        `the adapter driver binds adapter-build, adapter-call, get, decide, markExecuted, ` +
-          `resubmit, expireDue and rehydrate; it does not bind ${JSON.stringify(step.kind)}`,
+      throw Object.assign(
+        new Error(
+          `the adapter driver binds adapter-build, adapter-call, get, decide, markExecuted, ` +
+            `resubmit, expireDue and rehydrate; it does not bind ${JSON.stringify(step.kind)}`,
+        ),
+        { [UNBOUND_STEP]: true },
       );
   }
 }
@@ -990,6 +1071,8 @@ async function checkExpectations<TSet>(
 ): Promise<void> {
   for (const key of Object.keys(fixture.expect)) {
     if (!CLAUSES.has(key)) {
+      // A `fail` naming itself, not an `error`: this is a document the driver could
+      // run, and the fact it stated is one the driver did not check. Never a pass.
       failures.push({
         at: key,
         expected: "a clause this driver answers",
@@ -1136,12 +1219,12 @@ async function checkFrameworkFacts<TSet>(
   state: RunState<TSet>,
   failures: Failure[],
 ): Promise<void> {
-  const wantsModel = fixture.expect["modelOutput"] !== undefined;
+  const wantsModel = "modelOutput" in fixture.expect;
   const wantsCarries = fixture.expect["frameworkCarries"] !== undefined;
   if (!wantsModel && !wantsCarries) return;
 
   const outcome = state.outcome;
-  if (outcome.call === null || state.set === null) {
+  if (state.attempted === null || state.set === null) {
     failures.push({
       at: wantsModel ? "modelOutput" : "frameworkCarries",
       expected: "a call the framework was handed a result for",
@@ -1150,46 +1233,35 @@ async function checkFrameworkFacts<TSet>(
     return;
   }
 
-  const output = await state.binding.modelOutput(state.set, outcome.call, outcome.output);
+  // A call that RAISED handed the framework nothing at all — there is no tool result
+  // to put in a history. That is the fact `"modelOutput": null` states, and it is the
+  // one that catches a seam which refuses and returns the raw proposal anyway (CV-2).
+  const raised = outcome.shape === null;
+  const output = raised
+    ? null
+    : await state.binding.modelOutput(state.set, state.attempted, outcome.output);
   const id = outcome.entryId;
   const row =
     id === null ? null : await state.store.get(id, { tenantId: fixture.given.ctx.tenantId });
 
   if (wantsModel) {
-    const stated = fixture.expect["modelOutput"] as Record<string, unknown>;
-    const asObject =
-      output !== null && typeof output === "object" && !Array.isArray(output)
-        ? (output as Record<string, JsonValue>)
-        : null;
-    if (stated["keys"] !== undefined) {
-      compare(
-        "modelOutput.keys",
-        stated["keys"],
-        asObject === null ? null : Object.keys(asObject).sort(),
-        failures,
-      );
-    }
-    if (stated["fields"] !== undefined) {
-      compare("modelOutput.fields", stated["fields"], asObject?.["fields"] ?? null, failures);
-    }
-    if (stated["carriesNoFieldValues"] === true) {
-      const sworn = (row?.amendedAffidavit ?? row?.affidavit)?.fields ?? [];
-      for (const field of sworn) {
-        if (hasKey(output, field.name)) {
-          failures.push({
-            at: "modelOutput.carriesNoFieldValues",
-            expected: `no key named ${field.name}`,
-            actual: output,
-          });
-        }
-        if (field.value !== null && containsValue(output, field.value)) {
-          failures.push({
-            at: "modelOutput.carriesNoFieldValues",
-            expected: `nothing equal to the sworn value of ${field.name}`,
-            actual: output,
-          });
-        }
+    const stated = fixture.expect["modelOutput"];
+    if (stated === null) {
+      if (!raised) {
+        failures.push({
+          at: "modelOutput",
+          expected: null,
+          actual: output,
+        });
       }
+    } else if (raised) {
+      failures.push({
+        at: "modelOutput",
+        expected: "what the framework was handed",
+        actual: "the call raised, so the framework was handed nothing",
+      });
+    } else {
+      checkModelOutput(stated as Record<string, unknown>, output, row, failures);
     }
   }
 
@@ -1197,10 +1269,106 @@ async function checkFrameworkFacts<TSet>(
     compare(
       "frameworkCarries",
       fixture.expect["frameworkCarries"],
-      id === null ? [] : keysCarrying(output, id).sort(),
+      id === null || raised ? [] : keysCarrying(output, id).sort(),
       failures,
     );
   }
+}
+
+/** The `modelOutput` matcher, against what the framework was actually handed. */
+function checkModelOutput(
+  stated: Record<string, unknown>,
+  output: JsonValue,
+  row: DocketEntry | null,
+  failures: Failure[],
+): void {
+  const asObject =
+    output !== null && typeof output === "object" && !Array.isArray(output)
+      ? (output as Record<string, JsonValue>)
+      : null;
+
+  if (stated["keys"] !== undefined) {
+    compare(
+      "modelOutput.keys",
+      stated["keys"],
+      asObject === null ? null : Object.keys(asObject).sort(),
+      failures,
+    );
+  }
+  if (stated["fields"] !== undefined) {
+    compare("modelOutput.fields", stated["fields"], asObject?.["fields"] ?? null, failures);
+  }
+  if (stated["status"] !== undefined) {
+    // The status the model is told, which must be the row's own. A seam that read an
+    // approval out of the framework's history and told the model `approved` over a
+    // `pending` row is what AZ-5 closes, and nothing else here would see it.
+    compare("modelOutput.status", stated["status"], asObject?.["status"] ?? null, failures);
+    if (row !== null && asObject?.["status"] !== undefined) {
+      compare("modelOutput.status (the row's own)", row.status, asObject["status"], failures);
+    }
+  }
+  if (stated["carriesNoFieldValues"] !== true) return;
+
+  // A check over TEXT, not over structure. A summary whose `note` reads
+  // "priority=High" has put a sworn value in the framework's history exactly as surely
+  // as one carrying it as a value, and a structural comparison passes it.
+  const serialised = JSON.stringify(output) ?? "null";
+  const sworn = (row?.amendedAffidavit ?? row?.affidavit)?.fields ?? [];
+  for (const field of sworn) {
+    if (hasKey(output, field.name)) {
+      failures.push({
+        at: "modelOutput.carriesNoFieldValues",
+        expected: `no key named ${field.name} anywhere in the output`,
+        actual: output,
+      });
+    }
+    if (field.value === null) continue;
+    // A string's serialisation is its JSON-escaped body WITHOUT the quotes, because a
+    // value put in the framework's history inside a sentence is still in the
+    // framework's history: `"note": "filed for review: priority=High"` carries the
+    // sworn `High` exactly as surely as `"priority": "High"` would. Anything else —
+    // a number, a boolean, an object — is its whole JSON form.
+    const text =
+      typeof field.value === "string"
+        ? (JSON.stringify(field.value) ?? '""').slice(1, -1)
+        : (JSON.stringify(field.value) ?? "");
+    if (text === "") continue;
+    // A serialisation shorter than three characters — `1`, `0`, `ok` — would match
+    // almost any output as a substring, so it is compared as a whole JSON token
+    // instead. Anything longer is looked for in the text, wherever it sits.
+    const found = text.length < 3 ? containsToken(serialised, text) : serialised.includes(text);
+    if (found) {
+      failures.push({
+        at: "modelOutput.carriesNoFieldValues",
+        expected: `nothing anywhere in the output's text equal to the sworn value of ${field.name}`,
+        actual: serialised,
+      });
+    }
+  }
+}
+
+/**
+ * Whether `token` appears in `serialised` as a whole JSON token — bounded on each side
+ * by something that cannot be part of the same literal.
+ *
+ * The short-value rule. `1` as a substring matches `"entryId":"...1..."` and a dozen
+ * other things; as a token it matches only a value that *is* `1`.
+ */
+function containsToken(serialised: string, token: string): boolean {
+  const boundary = /[A-Za-z0-9_.+-]/;
+  let at = serialised.indexOf(token);
+  while (at !== -1) {
+    const before = serialised[at - 1];
+    const after = serialised[at + token.length];
+    if (
+      (before === undefined || !boundary.test(before)) &&
+      (after === undefined || !boundary.test(after))
+    ) {
+      return true;
+    }
+    at = serialised.indexOf(token, at + 1);
+  }
+  return false;
 }
 
 /** Whether any object anywhere in `value` has a key named `name`. */
@@ -1212,17 +1380,13 @@ function hasKey(value: unknown, name: string): boolean {
   return Object.values(record).some((item) => hasKey(item, name));
 }
 
-/** Whether any scalar anywhere in `haystack` is structurally equal to `needle`. */
-function containsValue(haystack: unknown, needle: unknown): boolean {
-  if (deepEqual(haystack, needle)) return true;
-  if (Array.isArray(haystack)) return haystack.some((item) => containsValue(item, needle));
-  if (haystack === null || typeof haystack !== "object") return false;
-  return Object.values(haystack as Record<string, unknown>).some((item) =>
-    containsValue(item, needle),
-  );
-}
-
-/** Every key path in `value` whose value is the string `id`, as top-level key names. */
+/**
+ * Every path in `value` whose value is the string `id`, dotted for a nested match and
+ * bracketed for an array index — `entryId`, `result.entryId`, `items[0].entryId`.
+ *
+ * Paths rather than bare key names, so a summary that buried the entry id somewhere
+ * unexpected is named rather than merely counted (CV-3).
+ */
 function keysCarrying(value: unknown, id: string): string[] {
   const found: string[] = [];
   const walk = (node: unknown, path: string): void => {

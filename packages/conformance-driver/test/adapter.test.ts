@@ -1,9 +1,16 @@
 import { adapterManifest, conformanceManifest } from "@affiant/contract/conformance";
+import type { ConformanceFixtureDocument } from "@affiant/contract/conformance";
+import { AffiantError } from "@affiant/core";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { aiSdkAdapter } from "../src/adapters/ai-sdk.js";
 import { mergeRuns, runAdapterFixture, runAdapterSection } from "../src/adapter.js";
-import type { AdapterRun } from "../src/adapter.js";
+import type {
+  AdapterBinding,
+  AdapterCall,
+  AdapterRun,
+  AdapterToolDefinition,
+} from "../src/adapter.js";
 import { compareToManifest, describeVerdict, parityManifest } from "../src/parity.js";
 import { runConformance, validateRunDocument } from "../src/run.js";
 
@@ -19,12 +26,22 @@ import { runConformance, validateRunDocument } from "../src/run.js";
  * failing set over the **union** of the sections a run covered, so the two runs are
  * merged and compared to the published manifest once: a failing adapter fixture is a
  * failing fixture like any other.
+ *
+ * Half of what is below is deliberately broken bindings. A green run of ten documents
+ * says nothing on its own — the first round of this work had seven documents, a green
+ * run, and three seams that would have passed it. Each mutation here is one of those
+ * seams, and the assertion is which document catches it.
  */
 let run: AdapterRun;
 
 beforeAll(async () => {
   run = await runAdapterSection(aiSdkAdapter);
 }, 120_000);
+
+/** The binding, with one thing about it changed. */
+function binding(patch: Partial<AdapterBinding<never>>): AdapterBinding<never> {
+  return { ...(aiSdkAdapter as unknown as AdapterBinding<never>), ...patch };
+}
 
 describe("the run covers the whole adapter section", () => {
   it("reports one result per document in the rulebook's adapter manifest, passes included", () => {
@@ -34,9 +51,9 @@ describe("the run covers the whole adapter section", () => {
     );
   });
 
-  it("runs the seven documents the section lists", () => {
-    expect(adapterManifest.fixtures).toHaveLength(7);
-    expect(run.declaration.fixtures).toBe(7);
+  it("runs the ten documents the section lists", () => {
+    expect(adapterManifest.fixtures).toHaveLength(10);
+    expect(run.declaration.fixtures).toBe(10);
   });
 
   it("passes every one", () => {
@@ -78,28 +95,166 @@ describe("the union of the two sections is what the parity manifest is asserted 
   }, 120_000);
 });
 
+describe("a seam that decides from the framework's history is caught (CV-3, AZ-5)", () => {
+  it("fails the replayed-approval document when the summary reads the artefact", async () => {
+    // The seam AZ-5 closes: an approval reconstructed from the message history the
+    // client sent back, and the model told the row is approved. The Docket row is
+    // untouched, so every assertion about the row still holds — only `modelOutput`
+    // sees it, which is why that clause is on the document.
+    const readsTheArtefact = binding({
+      async modelOutput(set, call: AdapterCall, output: unknown) {
+        const summary = (await aiSdkAdapter.modelOutput(set as never, call, output)) as Record<
+          string,
+          unknown
+        >;
+        const approved = call.messages.some(
+          (message) => message.kind === "framework-approval" && message.approved !== false,
+        );
+        return (approved ? { ...summary, status: "approved" } : summary) as never;
+      },
+    });
+
+    const broken = await runAdapterSection(readsTheArtefact);
+
+    expect(broken.failingIds).toContain("adapter/cv3-replayed-approval-changes-nothing");
+    const result = broken.results.find(
+      (one) => one.id === "adapter/cv3-replayed-approval-changes-nothing",
+    );
+    expect(result?.diff?.map((entry) => entry.at)).toContain("modelOutput.status");
+  }, 120_000);
+});
+
+describe("a refusal that carries the wrong code is caught (CV-2)", () => {
+  it("fails the two refusal documents on outcome.code", async () => {
+    // `wireup-invalid` and `coverage-refused` are different statements about why a
+    // call did not file, and a document that only knew "it was refused" would pass a
+    // seam that refused for the wrong reason.
+    const wrongCode = binding({
+      async call(): Promise<unknown> {
+        throw new AffiantError("coverage-refused", "the wrong refusal entirely");
+      },
+    });
+
+    const broken = await runAdapterSection(wrongCode);
+
+    for (const id of [
+      "adapter/cv2-write-without-context-refuses",
+      "adapter/cv2-read-without-context-never-runs",
+    ]) {
+      const result = broken.results.find((one) => one.id === id);
+      expect(result?.outcome, id).toBe("fail");
+      expect(
+        result?.diff?.map((entry) => entry.at),
+        id,
+      ).toContain("outcome.code");
+    }
+  }, 120_000);
+});
+
+describe("a seam that runs the host's own code before checking the context is caught (CV-2)", () => {
+  it("fails the read document on hostExecuteRan", async () => {
+    // CV-2's real content on a read: the refusal happens at the seam, before anything
+    // the host wrote runs. Without a positive case for the tripwire, `hostExecuteRan`
+    // was a clause that read `false` because nothing ever set it.
+    let definitions: readonly AdapterToolDefinition[] = [];
+    const runsTheHostFirst = binding({
+      build(gate, given) {
+        definitions = given;
+        return aiSdkAdapter.build(gate, given) as never;
+      },
+      async call(set, call: AdapterCall): Promise<unknown> {
+        const definition = definitions.find((one) => one.name === call.tool);
+        if (definition?.writeCapable === false && definition.execute !== undefined) {
+          (definition.execute as (args: unknown, ctx: unknown) => unknown)(call.args, null);
+        }
+        return await aiSdkAdapter.call(set as never, call);
+      },
+    });
+
+    const broken = await runAdapterSection(runsTheHostFirst);
+    const result = broken.results.find(
+      (one) => one.id === "adapter/cv2-read-without-context-never-runs",
+    );
+
+    expect(result?.outcome).toBe("fail");
+    expect(result?.diff?.map((entry) => entry.at)).toContain("hostExecuteRan");
+  }, 120_000);
+});
+
+describe("a step kind this driver has not bound is an error, always", () => {
+  /** A document of the adapter section, with `step` and `prior` as given. */
+  function document(given: Record<string, unknown>): ConformanceFixtureDocument {
+    return {
+      id: "adapter/cv2-write-with-context-files",
+      rules: ["CV-2"],
+      title: "a document carrying a step kind this driver has not bound",
+      given: {
+        clock: "2026-09-15T09:00:00.000Z",
+        gate: { defaultTtlMs: 3_600_000, authorization: { allow: ["*"] } },
+        ctx: {
+          tenantId: "tenant-a",
+          conversationId: "conv-1",
+          channel: "chat",
+          principal: { kind: "member", id: "member-1" },
+          utterance: "Set the ticket priority to High",
+          messageId: "msg-1",
+        },
+        ...given,
+      },
+      expect: { entries: 0 },
+    } as unknown as ConformanceFixtureDocument;
+  }
+
+  const unbound = {
+    kind: "file",
+    toolName: "update_ticket",
+    operation: { kind: "update", entityType: "Ticket", entityId: "ticket-1", fields: ["priority"] },
+  };
+
+  it("errors when the step under test is unbound", async () => {
+    // Not a pass, and not a failure of the implementation: a driver that cannot run a
+    // document says so, and an `error` counts against it exactly like a failure
+    // (DRIVER.md section 3).
+    const outcome = await runAdapterFixture(document({ step: unbound }), aiSdkAdapter);
+
+    expect(outcome.outcome).toBe("error");
+    expect(outcome.reason).toContain("does not bind");
+  });
+
+  it("errors when a prior step is unbound, rather than reporting on a scene nobody set", async () => {
+    // This is the one that was wrong. The raise was folded into that step's outcome,
+    // nothing compared it, and a document stating no `expect.outcome` reported `pass`
+    // for a document whose `prior` never ran.
+    const outcome = await runAdapterFixture(
+      document({ prior: [unbound], step: { kind: "get" } }),
+      aiSdkAdapter,
+    );
+
+    expect(outcome.outcome).toBe("error");
+    expect(outcome.reason).toContain("does not bind");
+  });
+});
+
 describe("the section is not vacuous", () => {
   it("fails a document whose expectation the adapter does not meet", async () => {
     // A driver that reported a pass for a document it did not really check is the
     // failure mode the whole arrangement exists to prevent, so the runner is made to
-    // fail on purpose: a binding that hands back a context the seam never got would
-    // make CV-2's refusal fixtures pass and its filing fixture fail.
-    const alwaysRefuses = {
-      ...aiSdkAdapter,
+    // fail on purpose: a binding that never reaches the seam fails the filing
+    // documents rather than passing them.
+    const alwaysRefuses = binding({
       async call(): Promise<unknown> {
         return { kind: "error", code: "wireup-invalid", message: "a binding that never calls" };
       },
-    };
+    });
     const broken = await runAdapterSection(alwaysRefuses);
 
     expect(broken.failingIds).toContain("adapter/cv2-write-with-context-files");
     expect(broken.failingIds).toContain("adapter/cv3-model-output-carries-no-values");
   }, 120_000);
 
-  it("errors rather than passes when a document states a clause it does not bind", async () => {
-    // An expectation key a driver does not answer is a fact nobody checks, so it is an
-    // error outcome and it counts against the implementation exactly like a failure
-    // (RUNNER.md §8). Proven by running one document with a clause added.
+  it("fails, naming itself, when a document states a clause it does not bind", async () => {
+    // An expectation key a driver does not answer is a fact nobody checks, so it is a
+    // failure naming the clause — never a pass.
     const outcome = await runAdapterFixture(
       {
         id: "adapter/cv2-write-with-context-files",
@@ -112,10 +267,53 @@ describe("the section is not vacuous", () => {
           step: { kind: "get" },
         },
         expect: { canonicalHash: "0".repeat(64) },
-      },
+      } as unknown as ConformanceFixtureDocument,
       aiSdkAdapter,
     );
 
-    expect(outcome.outcome).not.toBe("pass");
+    expect(outcome.outcome).toBe("fail");
+    expect(outcome.diff?.map((entry) => entry.at)).toContain("canonicalHash");
   });
+
+  it("fails a summary that carries a sworn value inside a sentence (CV-3)", async () => {
+    // `carriesNoFieldValues` is a check over text, not over structure. A structural
+    // comparison passes a summary whose `note` reads `priority=High`, and the sworn
+    // value is in the framework's history either way.
+    const tellsTheValue = binding({
+      async modelOutput(set, call: AdapterCall, output: unknown) {
+        const summary = (await aiSdkAdapter.modelOutput(set as never, call, output)) as Record<
+          string,
+          unknown
+        >;
+        return { ...summary, note: "filed for review: priority=High" } as never;
+      },
+    });
+
+    const broken = await runAdapterSection(tellsTheValue);
+    const result = broken.results.find(
+      (one) => one.id === "adapter/cv3-model-output-carries-no-values",
+    );
+
+    expect(result?.outcome).toBe("fail");
+    expect(result?.diff?.map((entry) => entry.at)).toContain("modelOutput.carriesNoFieldValues");
+  }, 120_000);
+
+  it("fails a refusal that hands the framework something anyway (CV-2)", async () => {
+    // `"modelOutput": null` is the statement that the framework was handed nothing.
+    // Without it a refusal document observes only an empty Docket, and a seam that
+    // refused and returned the raw proposal to the model would pass it.
+    const refusesAndTells = binding({
+      async call(): Promise<unknown> {
+        return { kind: "error", code: "wireup-invalid", message: "refused, but here it is" };
+      },
+    });
+
+    const broken = await runAdapterSection(refusesAndTells);
+    const result = broken.results.find(
+      (one) => one.id === "adapter/cv2-write-without-context-refuses",
+    );
+
+    expect(result?.outcome).toBe("fail");
+    expect(result?.diff?.map((entry) => entry.at)).toContain("modelOutput");
+  }, 120_000);
 });

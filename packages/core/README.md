@@ -23,7 +23,7 @@ reaches the person — those are ports you supply.
 > running the shared fixture suite against this package. Both hold, at the rulebook's [`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3)
 > tag, the one the committed parity manifest names: the [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.1.3/conformance/parity/dotnet-v0.1.json)
 > is public, with its oracle run log alongside it under `conformance/results/`, and
-> this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.1.json)
+> this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.2.json)
 > is green on Node, Bun and workerd, asserted by the `conformance` job that is
 > required on `main`. Publishing is a separate, deliberate step, and the gate is
 > enforced rather than relaxed on trust: `prepack` refuses, so `npm pack` and

@@ -15,7 +15,7 @@
  *     (the oracle run log is alongside it, under conformance/results/)
  *   - this repository's conformance driver is green on Node, Bun and workerd, and
  *     the `conformance` job is required on `main`: see
- *     packages/conformance-driver/conformance/parity/typescript-v0.1.json, which
+ *     packages/conformance-driver/conformance/parity/typescript-v0.2.json, which
  *     records `"failing": []`
  *
  * The tag is **read from that manifest** rather than repeated here. It has moved once
@@ -46,7 +46,7 @@ if (process.env["AFFIANT_ALLOW_PUBLISH"] === "1") {
 
 /** The manifest this message is about, in the sibling package that produces it. */
 const manifestFile = fileURLToPath(
-  new URL("../../conformance-driver/conformance/parity/typescript-v0.1.json", import.meta.url),
+  new URL("../../conformance-driver/conformance/parity/typescript-v0.2.json", import.meta.url),
 );
 
 /** The protocol tag the committed manifest names, or `null` when it cannot be read. */
@@ -78,7 +78,7 @@ console.error(
     dotnetReport +
     "  (the oracle run log sits beside it, under conformance/results/). This\n" +
     "  repository's conformance driver is green on Node, Bun and workerd and required\n" +
-    "  by branch protection: packages/conformance-driver/conformance/parity/typescript-v0.1.json\n" +
+    "  by branch protection: packages/conformance-driver/conformance/parity/typescript-v0.2.json\n" +
     againstTag +
     "  on 2026-09-06 on that basis, from .github/workflows/publish.yml, which is the only\n" +
     "  thing that sets the override.\n" +

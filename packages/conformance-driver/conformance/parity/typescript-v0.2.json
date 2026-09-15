@@ -1,10 +1,10 @@
 {
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
-  "version": "0.1.0-alpha.1",
-  "protocolTag": "0ae1125cbf6bc00dec7fda2a9a235f049003f13c",
+  "version": "0.1.0-alpha.2",
+  "protocolTag": "435e1bc5459247262b812307fa0c58ee5498b094",
   "producedAt": "2026-09-15T00:00:00.000Z",
-  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.1.json",
+  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.2.json",
   "failing": [],
   "adapters": [
     {
@@ -12,7 +12,7 @@
       "version": "0.1.0-alpha.0",
       "runtime": "ai",
       "runtimeVersion": "7.0.101",
-      "fixtures": 7,
+      "fixtures": 10,
       "claimsLint": "pass",
       "note": "the rulebook's conformance/lint/adapter-claims.mjs, run against this package in the adapter-claims CI job of this repository, where the npm registry is reachable (CV-5)"
     }

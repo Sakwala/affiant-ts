@@ -1,10 +1,10 @@
 {
-  "id": "adapter/cv2-write-without-context-refuses",
+  "id": "adapter/cv2-second-call-without-context-refuses",
   "rules": [
     "CV-2",
     "GT-2"
   ],
-  "title": "The same write tool called with no turn context is refused with wireup-invalid, nothing is filed, and the framework is handed nothing at all: a seam that cannot obtain a context refuses rather than falling back to a shared default, and never returns the raw proposal as the tool's result.",
+  "title": "A second call on the same built tool set, this one with no turn context, is refused and files nothing: a seam that remembered the first call's context would have a default to fall back to, which is the thing CV-2 forbids.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -56,13 +56,22 @@
             ]
           }
         ]
+      },
+      {
+        "kind": "adapter-call",
+        "tool": "update_ticket",
+        "args": {
+          "priority": "High"
+        },
+        "context": "turn",
+        "refusal": null
       }
     ],
     "step": {
       "kind": "adapter-call",
       "tool": "update_ticket",
       "args": {
-        "priority": "High"
+        "priority": "Low"
       },
       "context": null
     }
@@ -72,7 +81,7 @@
       "kind": "refused",
       "code": "wireup-invalid"
     },
-    "entries": 0,
+    "entries": 1,
     "modelOutput": null,
     "hostExecuteRan": false
   }

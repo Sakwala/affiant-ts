@@ -5,7 +5,7 @@
     "AZ-5",
     "DK-1"
   ],
-  "title": "A framework approval artefact replayed at the seam changes nothing: the call replays to the same row, which is still pending, still carries no attestation and still records no decision.",
+  "title": "A framework approval artefact replayed at the seam changes nothing and is told to nobody: the call replays to the same row, which is still pending and carries no attestation and no decision, and the model is told the status the row reads at rather than the one the artefact claims.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -77,14 +77,8 @@
       "context": "turn",
       "messages": [
         {
-          "role": "tool",
-          "content": [
-            {
-              "type": "tool-approval-response",
-              "approvalId": "approval-1",
-              "approved": true
-            }
-          ]
+          "kind": "framework-approval",
+          "approved": true
         }
       ],
       "refusal": null
@@ -101,6 +95,13 @@
       "decision": null,
       "amendedAffidavit": null
     },
+    "modelOutput": {
+      "status": "pending",
+      "carriesNoFieldValues": true
+    },
+    "frameworkCarries": [
+      "entryId"
+    ],
     "entries": 1,
     "hostExecuteRan": false
   }

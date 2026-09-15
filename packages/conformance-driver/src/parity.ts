@@ -18,9 +18,9 @@
  *
  * The format is the rulebook's `conformance/PARITY.md`, and the shape is its
  * `conformance/parity/MANIFEST.schema.json`. This module is the source; the
- * committed JSON beside it (`conformance/parity/typescript-v0.1.json`) is the
- * artifact, and `test/node/parity-file.test.ts` asserts the two are identical, so
- * the file cannot be regenerated without being committed — and cannot be edited
+ * committed JSON beside it (`conformance/parity/typescript-v0.2.json`) is the
+ * artifact, and `test/node/published-claims.test.ts` asserts the two are identical,
+ * so the file cannot be regenerated without being committed — and cannot be edited
  * without the module saying so.
  *
  * @packageDocumentation

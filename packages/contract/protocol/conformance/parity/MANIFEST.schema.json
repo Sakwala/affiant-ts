@@ -141,7 +141,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["package", "version", "runtime", "fixtures"],
+        "required": ["package", "version", "runtime", "runtimeVersion", "fixtures", "claimsLint"],
         "properties": {
           "package": {
             "description": "The adapter package, by the name a reader installs it under.",
@@ -156,7 +156,7 @@
             "type": "string"
           },
           "runtimeVersion": {
-            "description": "The version of that framework the run resolved and ran against. CV-5 is about a claim resting on a version pinned at build time, so the version a run measured is worth more than the range a package declares.",
+            "description": "The version of that framework the run resolved and ran against. Required: CV-5 is about a claim resting on a version pinned at build time, so a row that named no version would be a claim about an adapter nobody can reproduce — the range a package declares is not the version a run used.",
             "type": "string"
           },
           "fixtures": {
@@ -165,7 +165,7 @@
             "minimum": 0
           },
           "claimsLint": {
-            "description": "What conformance/lint/adapter-claims.mjs said about this package, run in the adapter's own CI where the registry is reachable (CV-5). \"skipped\" is the honest answer for a run made with --offline, which verifies the declaration and the README but checks no claim against a published dist-tag.",
+            "description": "What conformance/lint/adapter-claims.mjs said about this package, run in the adapter's own CI where the registry is reachable (CV-5). Required: an adapter row that answered nothing about CV-5 would leave a reader to assume it passed. \"skipped\" is the honest answer for a run made with --offline, which verifies the declaration and the README but checks no claim against a published dist-tag.",
             "type": "string",
             "enum": ["pass", "fail", "skipped"]
           },

@@ -650,7 +650,8 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
       },
       {
         id: "deadline/preserves-the-first-record-not-the-second",
-        title: "keeps the first preserved amendments when a second late decision arrives (DK-4)",
+        title:
+          "keeps the first preserved amendments when a second late decision arrives (DK-1, DK-4)",
         async run({ store, clock, expect, scope, entry }) {
           // A recorded fact is appended, never edited. Two reviewers deciding a row
           // that has already expired both have their decision refused; the first one
@@ -1076,7 +1077,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
       },
       {
         id: "lineage/keeps-the-first-successor-not-the-second",
-        title: "keeps the first successor when a second supersession arrives (DK-4)",
+        title: "keeps the first successor when a second supersession arrives (DK-1, DK-4)",
         async run({ store, clock, expect, scope, entry }) {
           // The successor link is a later fact like any other: a row reads forward,
           // so the second report is not written over the first. Two resubmissions of

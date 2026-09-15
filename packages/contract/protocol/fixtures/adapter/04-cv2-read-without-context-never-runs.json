@@ -4,7 +4,7 @@
     "CV-2",
     "GT-2"
   ],
-  "title": "A read tool called with no turn context is refused the same way, and the host's own read function is never called: the refusal happens at the seam, before anything the host wrote runs.",
+  "title": "A read tool that answers when it is called with a context is refused when it is called without one, and the host's own read function is never reached: the refusal happens at the seam, before anything the host wrote runs.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -42,6 +42,10 @@
             "description": "Find a ticket.",
             "entityType": "Ticket",
             "writeCapable": false,
+            "readResult": {
+              "ticketId": "ticket-1",
+              "summary": "Left engine oil pressure"
+            },
             "fields": [
               {
                 "name": "query",
@@ -54,6 +58,15 @@
             ]
           }
         ]
+      },
+      {
+        "kind": "adapter-call",
+        "tool": "find_ticket",
+        "args": {
+          "query": "left engine"
+        },
+        "context": "turn",
+        "refusal": null
       }
     ],
     "step": {
@@ -71,6 +84,7 @@
       "code": "wireup-invalid"
     },
     "entries": 0,
+    "modelOutput": null,
     "hostExecuteRan": false
   }
 }

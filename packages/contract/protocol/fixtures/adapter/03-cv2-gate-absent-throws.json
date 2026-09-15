@@ -3,7 +3,7 @@
   "rules": [
     "CV-2"
   ],
-  "title": "The same write tool, built against a gate that cannot be reached, throws when it is called: a seam whose gate is unreachable never returns the raw proposal as the tool's result.",
+  "title": "The same write tool, built against a gate that cannot be reached, throws when it is called and hands the framework nothing: a seam whose gate is unreachable never returns the raw proposal as the tool's result.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -72,6 +72,7 @@
       "kind": "thrown"
     },
     "entries": 0,
+    "modelOutput": null,
     "hostExecuteRan": false
   }
 }

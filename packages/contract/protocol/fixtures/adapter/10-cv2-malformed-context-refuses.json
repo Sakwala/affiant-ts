@@ -1,10 +1,10 @@
 {
-  "id": "adapter/cv2-write-without-context-refuses",
+  "id": "adapter/cv2-malformed-context-refuses",
   "rules": [
     "CV-2",
     "GT-2"
   ],
-  "title": "The same write tool called with no turn context is refused with wireup-invalid, nothing is filed, and the framework is handed nothing at all: a seam that cannot obtain a context refuses rather than falling back to a shared default, and never returns the raw proposal as the tool's result.",
+  "title": "A call whose context is the wrong shape is refused exactly as a call with none is, and files nothing: GT-2 is about a context an implementation can read, not about a property being present.",
   "given": {
     "clock": "2026-09-15T09:00:00.000Z",
     "store": "memory",
@@ -64,7 +64,13 @@
       "args": {
         "priority": "High"
       },
-      "context": null
+      "context": {
+        "malformed": {
+          "turn": {
+            "nonsense": true
+          }
+        }
+      }
     }
   },
   "expect": {

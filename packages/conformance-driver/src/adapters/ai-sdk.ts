@@ -32,6 +32,7 @@ import type {
   AdapterCall,
   AdapterCallShape,
   AdapterToolDefinition,
+  FrameworkMessage,
 } from "../adapter.js";
 import { AI_SDK_VERSION } from "./version.js";
 
@@ -39,6 +40,28 @@ export { ADAPTER_PACKAGE_VERSION, AI_SDK_VERSION } from "./version.js";
 
 /** The call id every scripted call uses. A fixture never states one; nothing reads it. */
 const TOOL_CALL_ID = "call-1";
+
+/**
+ * One abstract framework artefact, in the shape the AI SDK carries it.
+ *
+ * A fixture states `{ kind: "framework-approval", approved: true }` and names no
+ * framework; this is where that becomes the SDK's own `tool-approval-response` part,
+ * the thing the SDK reconstructs an approval from on the next call — the path AZ-5
+ * closes. Mapping it here rather than in the fixture is what keeps the document about
+ * the rule instead of about one SDK's message format.
+ */
+function sdkMessage(message: FrameworkMessage): unknown {
+  return {
+    role: "tool",
+    content: [
+      {
+        type: "tool-approval-response",
+        approvalId: `approval-${TOOL_CALL_ID}`,
+        approved: message.approved ?? true,
+      },
+    ],
+  };
+}
 
 /** `@affiant/adapter-ai-sdk`, bound to the rulebook's adapter fixture section. */
 export const aiSdkAdapter: AdapterBinding<ToolSet> = {
@@ -64,15 +87,23 @@ export const aiSdkAdapter: AdapterBinding<ToolSet> = {
     // assembles it — `ToolExecutionOptions` types `context` as required, and a call
     // that arrived with none is precisely the case CV-2 is about, so the absence has
     // to be expressible here.
+    //
+    // Three context kinds and three shapes. `"turn"` is the ordinary one, wrapped as
+    // the SDK's tool context is. `"none"` passes no `context` at all, which is what
+    // the SDK does when the generation call carried no `toolsContext`. `"malformed"`
+    // passes the fixture's value through **unwrapped**: GT-2 is about a context an
+    // implementation can read, and wrapping a malformed value would quietly repair it.
     const options = {
       toolCallId: TOOL_CALL_ID,
-      // The framework's own history for this call. An adapter reads no approval, no
-      // Affidavit and no entry state out of it (CV-3); a fixture states one to prove
-      // that.
-      messages: call.messages,
-      // No context at all is what the SDK passes when the generation call carried no
-      // `toolsContext`.
-      ...(call.context === null ? {} : { context: { turn: call.context } }),
+      // The framework's own history for this call, in the SDK's own shape. An adapter
+      // reads no approval, no Affidavit and no entry state out of it (CV-3); a fixture
+      // states one to prove that.
+      messages: call.messages.map(sdkMessage),
+      ...(call.contextKind === "none"
+        ? {}
+        : call.contextKind === "malformed"
+          ? { context: call.context }
+          : { context: { turn: call.context } }),
     };
     return await (execute as (input: unknown, options: unknown) => unknown)(call.args, options);
   },

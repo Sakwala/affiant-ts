@@ -27,8 +27,12 @@ the [root changelog](../../CHANGELOG.md).
   definitions, the Docket, the expectations; the three things only a framework can answer are an
   `AdapterBinding`, so a second adapter is a second binding and no change to the runner (CV-2, CV-3).
   A write definition's own host function is a tripwire that fails the fixture if it is ever reached
-  (GT-6), and a read definition's records that it ran, so a fixture can state that a refused call
-  never got that far (CV-2).
+  (GT-6), and a read definition's records that it ran and returns the value the fixture stated, so a
+  fixture can state that a refused call never got that far (CV-2) and can pin what a read returned.
+  A call that raised hands the framework nothing, which `"modelOutput": null` states; a step kind the
+  runner has not bound is an `error` for the whole document, in the step under test and in any
+  `prior` step alike; and an `expect` clause it does not answer is a `fail` naming the clause. None
+  of the three is ever a pass.
 - **`mergeRuns`**, because the rulebook asserts the failing set over the **union** of the sections a
   run covered: one run document, one comparison, and a failing adapter fixture is a failing fixture
   like any other.
@@ -60,7 +64,8 @@ the [root changelog](../../CHANGELOG.md).
   could not be checked for completeness. A document the manifest lists and the driver
   cannot load is an `error`, never an absence and never a silent skip.
 - **The parity manifest and the assertion**
-  ([`conformance/parity/typescript-v0.1.json`](conformance/parity/typescript-v0.1.json)):
+  ([`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json), named
+  `typescript-v0.1.json` until the protocol pin moved to v0.2.0):
   the failing set is compared with the published claim in **both** directions, so a
   regression and a quietly-closed gap are equally loud. `skipped` is checked too — a
   skip is legitimate only where the manifest declares one. The manifest's

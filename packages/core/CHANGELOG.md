@@ -177,7 +177,7 @@ type was removed and no signature changed: `presence` and `utteranceSpan` became
   conformance driver; both are now facts, cited by link — the .NET parity report at
   the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/dotnet-v0.1.json)
   tag, and this package's own conformance parity manifest,
-  [`typescript-v0.1.json`](../conformance-driver/conformance/parity/typescript-v0.1.json),
+  [`typescript-v0.2.json`](../conformance-driver/conformance/parity/typescript-v0.2.json),
   green on Node, Bun and workerd and required by branch protection. `@affiant/core`
   is publishable. The refusal behaviour is unchanged — `npm pack` and `npm publish`
   still fail until `AFFIANT_ALLOW_PUBLISH=1` is set.

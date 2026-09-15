@@ -59,13 +59,15 @@ From protocol `v0.2.0` the rulebook carries a second fixture section, `adapter`,
 about an adapter's seam and could not be checked before an adapter existed: CV-2's fail-closed call site, CV-3's
 delegation clause, and CV-5 — which is a lint over the adapter package rather than a fixture, because no fixture
 can observe a statement about documentation and packaging. The format is the rulebook's
-[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/main/conformance/ADAPTER-RUNNER.md):
-a conformance fixture with two step kinds of its own, `adapter-build` and `adapter-call`.
+[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/435e1bc/conformance/ADAPTER-RUNNER.md):
+a conformance fixture with two step kinds of its own, `adapter-build` and `adapter-call`, and five matchers of its own.
+The link is to the **pinned ref**, not to a branch: `packages/contract/protocol/PIN` is what this repository vendors and
+runs against, and a link to `main` would describe a document the run did not read. It moves when the pin moves.
 
 A driver runs that section **once for every adapter its implementation ships and declares**, and an
 implementation that ships none runs none of it and publishes `adapters: []`. This implementation ships one,
-`@affiant/adapter-ai-sdk`, so the section runs once, against it, on every runtime — and its seven documents are
-in the same run document and the same failing set as the other sixty-eight.
+`@affiant/adapter-ai-sdk`, so the section runs once, against it, on every runtime — and its **ten** documents are
+in the same run document and the same failing set as the other sixty-eight, for **78** in all.
 
 `src/adapter.ts` is the section runner and everything in it is the rulebook's: the gate built from `given.gate`
 the same way a conformance fixture's is, the definitions, the Docket, the expectations. The three things only a
@@ -73,11 +75,12 @@ framework can answer — build a tool set, call one tool of it, and say what the
 an `AdapterBinding`, and `src/adapters/ai-sdk.ts` is the one for the AI SDK. A second TypeScript adapter is a
 second binding and no change to the runner.
 
-Two limits worth stating. The runner binds `adapter-build`, `adapter-call`, `get`, `decide`, `markExecuted`,
-`resubmit`, `expireDue` and `rehydrate`; `wrap-execute` and `file` are the gate's own seams rather than an
-adapter's, and a document about either belongs in the conformance section. And an `expect` clause this driver
-does not answer is an `error` outcome, never a pass, so a fixture stating one counts against the implementation
-until the clause is bound.
+Two limits worth stating, and neither is silent. The runner binds `adapter-build`, `adapter-call`, `get`, `decide`,
+`markExecuted`, `resubmit`, `expireDue` and `rehydrate`; `wrap-execute` and `file` are the gate's own seams rather than
+an adapter's, and a document about either belongs in the conformance section. A step kind the runner has **not** bound
+is an `error` for the whole document — in the step under test and in any `prior` step alike, because a scene that was
+never set makes every expectation after it meaningless. And an `expect` clause this driver does not answer is a
+**`fail` naming the clause**: the document ran, and the fact it stated is one nobody checked. Neither is ever a pass.
 
 CV-5's lint needs the npm registry and the package it is about is here, so it runs in this repository's
 `adapter claims` job rather than in the rulebook's CI, against the **vendored** copy at

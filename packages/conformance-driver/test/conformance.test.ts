@@ -19,7 +19,9 @@ import type { ConformanceRun } from "../src/run.js";
  * This suite is the merge-blocking one. It runs every document the rulebook's
  * conformance manifest lists through `@affiant/core` and asserts that the set of
  * documents this implementation does **not** pass equals
- * `conformance/parity/typescript-v0.1.json` exactly — in both directions.
+ * `conformance/parity/typescript-v0.2.json` exactly — in both directions, over the
+ * union of the two sections a run covers (`test/adapter.test.ts` runs the adapter
+ * one and makes the comparison over both).
  *
  * Why both directions. A document that starts failing and is not listed is a
  * regression, or a rule the implementation never met and nobody wrote down. A
