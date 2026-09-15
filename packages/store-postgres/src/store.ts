@@ -70,7 +70,7 @@ import {
   requirePosition,
 } from "./cursor.js";
 import type { FoldRow } from "./fold.js";
-import { decisionPayload, expired, foldEntry } from "./fold.js";
+import { decisionPayload, expired, foldEntry, withDecision } from "./fold.js";
 import { DEFAULT_SCHEMA, requireSchema } from "./schema.js";
 
 // ---------------------------------------------------------------------------
@@ -224,13 +224,19 @@ class Store implements DocketStore, SessionStore {
         on conflict (tenant_id, entry_id) do nothing
         returning entry_id`;
 
+      // A row this call just created carries no later fact yet, so its fold is the
+      // entry as it was handed in and reading it back would be a round trip for an
+      // answer already in hand. A re-file has to be read: what it returns is the
+      // entry that is *already* there, with the deadline it already had (GT-4).
+      if (inserted.length === 1) return { entry: this.#read(entry), created: true };
+
       const stored = await this.#fold(tx, entry.entryId, { tenantId: entry.tenantId });
       if (stored === null) {
-        // Only reachable when the row this call just wrote is not visible to it,
+        // Only reachable when the row that conflicted is not visible to this call,
         // which means the tenant setting and the row's tenant disagree.
         throw new RangeError(`the filed entry ${entry.entryId} is not visible in its own tenant`);
       }
-      return { entry: this.#read(stored), created: inserted.length === 1 };
+      return { entry: this.#read(stored), created: false };
     });
   }
 
@@ -281,9 +287,9 @@ class Store implements DocketStore, SessionStore {
         return this.#refusalFor(again, expected) ?? ("already-decided" as TransitionResult);
       }
 
-      const decided = await this.#fold(tx, entryId, scope);
-      if (decided === null) return "not-found" as TransitionResult;
-      return this.#read(decided);
+      // The write succeeded, so the row is the one just read with this decision laid
+      // over it — the same overlay the fold would compute, without the round trip.
+      return this.#read(withDecision(stored, payload));
     });
   }
 

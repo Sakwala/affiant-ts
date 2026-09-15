@@ -97,18 +97,7 @@ export function foldEntry(row: FoldRow): DocketEntry {
 
   const decision = row.decision_payload;
   if (decision !== null) {
-    entry = {
-      ...entry,
-      status: decision.status,
-      execution: decision.execution,
-      decision: decision.decision,
-      amendments: decision.amendments,
-      amendedAffidavit: decision.amendedAffidavit,
-      attestation: decision.attestation,
-      executionDetail: decision.executionDetail,
-      decidedAt: decision.decidedAt,
-      lineage: { supersedes: entry.lineage.supersedes, supersededBy: decision.supersededBy },
-    };
+    entry = withDecision(entry, decision);
   } else if (row.expiry_payload !== null) {
     entry = expired(entry);
   }
@@ -143,6 +132,30 @@ export function foldEntry(row: FoldRow): DocketEntry {
   }
 
   return entry;
+}
+
+/**
+ * `entry` with a recorded decision laid over it.
+ *
+ * The same overlay whether the decision is being read back or has just been written:
+ * a caller that has both the row and the fact it just recorded knows the result
+ * without reading it again, and no other fact can be on the row — an execution report
+ * needs an approval, a supersession needs a terminal row, a preserved amendment map
+ * needs an expired one, and the sweep is excluded by the guard that wrote this.
+ */
+export function withDecision(entry: DocketEntry, decision: DecisionPayload): DocketEntry {
+  return {
+    ...entry,
+    status: decision.status,
+    execution: decision.execution,
+    decision: decision.decision,
+    amendments: decision.amendments,
+    amendedAffidavit: decision.amendedAffidavit,
+    attestation: decision.attestation,
+    executionDetail: decision.executionDetail,
+    decidedAt: decision.decidedAt,
+    lineage: { supersedes: entry.lineage.supersedes, supersededBy: decision.supersededBy },
+  };
 }
 
 /**

@@ -18,10 +18,22 @@ import { adminReachable, createTestDatabase } from "./setup.js";
  * It measures the local development server, so it is skipped — with a printed reason —
  * where no server answers. A tripwire that fails because nothing is listening teaches
  * people to ignore it.
+ *
+ * It is retried, for the same reason. The whole workspace's suites share a machine and
+ * this one shares a database server with them, so a round that lost the CPU for a
+ * moment is scheduling noise and not the thing being watched for. A statement that has
+ * turned into a sequential scan fails every attempt; a stall fails one. Each attempt
+ * files under a tenant of its own so the retry measures an empty Docket, as the first
+ * attempt did.
  */
 const ITERATIONS = 200;
 /** Milliseconds per operation, above which something has gone structurally wrong. */
 const BUDGET_MS = 25;
+/** How many attempts a stalled round gets before the tripwire stands. */
+const ATTEMPTS = 3;
+
+/** Which attempt this is, so each one files into a Docket of its own. */
+let attempt = 0;
 
 let database: TestDatabase | null = null;
 let store: PostgresDocketStore | null = null;
@@ -44,40 +56,48 @@ afterAll(async () => {
 });
 
 describe("file and decide stay inside the store's share of the envelope (RT-2)", () => {
-  it(`averages under ${BUDGET_MS} ms per operation over ${ITERATIONS} iterations`, async () => {
-    if (store === null) {
-      expect(database).toBeNull();
-      return;
-    }
+  it(
+    `averages under ${BUDGET_MS} ms per operation over ${ITERATIONS} iterations`,
+    async () => {
+      if (store === null) {
+        expect(database).toBeNull();
+        return;
+      }
 
-    const scope = { tenantId: "tenant-budget" };
-    const affidavit = sampleAffidavit([
-      "status",
-      "amount",
-      "currency",
-      "recipient",
-      "reference",
-      "dueDate",
-      "category",
-      "note",
-      "approver",
-      "source",
-    ]);
-    expect(affidavit.fields).toHaveLength(10);
+      attempt += 1;
+      const scope = { tenantId: `tenant-budget-${attempt}` };
+      const affidavit = sampleAffidavit([
+        "status",
+        "amount",
+        "currency",
+        "recipient",
+        "reference",
+        "dueDate",
+        "category",
+        "note",
+        "approver",
+        "source",
+      ]);
+      expect(affidavit.fields).toHaveLength(10);
 
-    // One warm pass, so the measurement is of the statements rather than of the
-    // first connection and the first plan.
-    await run(store, scope.tenantId, "warm-up", affidavit);
+      // One warm pass, so the measurement is of the statements rather than of the
+      // first connection and the first plan.
+      await run(store, scope.tenantId, "warm-up", affidavit);
 
-    const started = Date.now();
-    for (let index = 0; index < ITERATIONS; index += 1) {
-      await run(store, scope.tenantId, `budget-${index}`, affidavit);
-    }
-    const perOperation = (Date.now() - started) / (ITERATIONS * 2);
+      const started = Date.now();
+      for (let index = 0; index < ITERATIONS; index += 1) {
+        await run(store, scope.tenantId, `budget-${index}`, affidavit);
+      }
+      const perOperation = (Date.now() - started) / (ITERATIONS * 2);
 
-    console.info(`budget: ${perOperation.toFixed(2)} ms per operation over ${ITERATIONS} rounds`);
-    expect(perOperation).toBeLessThan(BUDGET_MS);
-  }, 120_000);
+      console.info(
+        `budget: ${perOperation.toFixed(2)} ms per operation over ${ITERATIONS} rounds ` +
+          `(attempt ${attempt} of ${ATTEMPTS})`,
+      );
+      expect(perOperation).toBeLessThan(BUDGET_MS);
+    },
+    { timeout: 120_000, retry: ATTEMPTS - 1 },
+  );
 });
 
 /** One file and one decision — the two operations the budget is stated over. */

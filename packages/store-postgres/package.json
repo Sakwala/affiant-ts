@@ -50,6 +50,7 @@
   },
   "scripts": {
     "build": "node scripts/generate-migrations.mjs --check && tsc -p tsconfig.build.json",
+    "prepack": "node scripts/prepack-guard.mjs",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
     "test": "vitest run",
     "test:workers": "vitest run --config vitest.workers.config.ts",

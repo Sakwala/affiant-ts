@@ -58,6 +58,10 @@ the [root changelog](../../CHANGELOG.md).
   file-plus-decide on a ten-field Affidavit under 25 ms per operation, which is the
   store's share of RT-2's 100 ms envelope.
 
+- **Packing and publishing are refused unless `AFFIANT_ALLOW_PUBLISH=1` is set.** `prepack`
+  runs before `npm pack` and before `npm publish` and exits non-zero, which stops both, so
+  a release stays something a person dispatched rather than something a script did.
+
 ### Not in this version
 
 - A connection through Hyperdrive, and Bun, are unmeasured; Bun has a best-effort CI
