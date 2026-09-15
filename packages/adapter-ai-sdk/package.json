@@ -25,6 +25,18 @@
   "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/adapter-ai-sdk#readme",
   "bugs": "https://github.com/Sakwala/affiant-ts/issues",
   "sideEffects": false,
+  "affiant": {
+    "$note": "What this package is, as an Affiant adapter, for the rulebook's adapter claims lint (conformance/ADAPTER-CLAIMS.md). durabilityClaims is empty: this package claims no durability beyond the Docket row, which is what AZ-5 says is true anyway.",
+    "adapter": {
+      "runtime": "ai",
+      "surfaces": [
+        "generateText",
+        "streamText",
+        "ToolLoopAgent"
+      ],
+      "durabilityClaims": []
+    }
+  },
   "engines": {
     "node": ">=22"
   },
