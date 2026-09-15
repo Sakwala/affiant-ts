@@ -31,6 +31,14 @@ was made against.
 
 ### Changed
 
+- **The in-memory Docket store keeps the first of a repeated later fact, rather than the last.**
+  A second `preserveAmendments` on the same entry leaves the first preserved record standing, and
+  a second `recordSupersession` leaves the first successor standing; both return the entry as it
+  is. A recorded fact is appended and never edited (DK-4), and the previous behaviour wrote the
+  second call over the first — so two reviewers deciding an already-expired row, or two
+  resubmissions of one rejected row, left the Docket holding whichever arrived last. Neither
+  method's return type changed.
+
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.1`.** Published 2026-09-10 under the `alpha` dist-tag by the hand-dispatched
   workflow (run [`34542413066`](https://github.com/Sakwala/affiant-ts/actions/runs/34542413066)),

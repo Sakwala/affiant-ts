@@ -281,6 +281,34 @@ describe("a caller may put the suite through its own Docket", () => {
     expect(custom.document.summary.passed).toBe(custom.document.summary.total);
   }, 120_000);
 
+  it("stops rather than reporting a store it could not build as failed documents", async () => {
+    // A document that fails is a fact about the implementation; a store that could
+    // not be built is a fact about the machine. Folded together, a run whose
+    // database was unreachable would publish a parity manifest listing 61 failures
+    // of an implementation nobody measured - which is the one thing a parity
+    // manifest must never be.
+    await expect(
+      runConformance({
+        ports: {
+          store: () => {
+            throw new Error("no route to host");
+          },
+        },
+      }),
+    ).rejects.toThrow(/no route to host/);
+
+    await expect(
+      runConformance({
+        ports: {
+          store: async () => {
+            await Promise.resolve();
+            throw new Error("connection refused");
+          },
+        },
+      }),
+    ).rejects.toThrow(/connection refused/);
+  }, 120_000);
+
   it("runs the reference store when the caller names no ports", async () => {
     // The default has to stay the reference wiring, or the published run document
     // would describe a run nobody asked for.

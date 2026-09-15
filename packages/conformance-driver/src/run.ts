@@ -178,6 +178,53 @@ export function detectRuntime(): string {
   return "unknown";
 }
 
+/**
+ * Marks an error raised inside a port the caller supplied.
+ *
+ * A document that fails is a fact about the implementation; a store that could not
+ * be built is a fact about the machine the run is on, and the two must not be
+ * reported in the same column. Without this the first shape is swallowed into the
+ * second and a run whose database was unreachable publishes "61 failures" — a parity
+ * manifest describing an implementation nobody measured.
+ */
+const PORT_FAILURE = Symbol.for("affiant.conformance.port-failure");
+
+/** Whether `cause` came out of a caller's port rather than out of the gate. */
+function isPortFailure(cause: unknown): boolean {
+  return (
+    typeof cause === "object" &&
+    cause !== null &&
+    (cause as Record<symbol, unknown>)[PORT_FAILURE] === true
+  );
+}
+
+/**
+ * `ports` with the caller's store factory wrapped, so a failure inside it is
+ * distinguishable from a document the implementation did not pass.
+ *
+ * Only the store is wrapped: it is the port a second implementation supplies, and
+ * the one that reaches a database. The other three are wired from the document
+ * itself.
+ */
+function guardStore(ports: FixturePorts): FixturePorts {
+  const store = ports.store;
+  if (store === undefined) return ports;
+  return {
+    ...ports,
+    store: async (clock) => {
+      try {
+        return await store(clock);
+      } catch (cause) {
+        const failure = new Error(
+          `the store port could not build a Docket: ${cause instanceof Error ? cause.message : String(cause)}`,
+          { cause },
+        );
+        throw Object.assign(failure, { [PORT_FAILURE]: true });
+      }
+    },
+  };
+}
+
 /** A validator with every schema a run needs registered by `$id`. */
 function validator(): Ajv2020 {
   const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -209,6 +256,7 @@ function errorsOf(ajv: Ajv2020, key: string): string {
  */
 export async function runConformance(options: RunOptions = {}): Promise<ConformanceRun> {
   const ajv = validator();
+  const guarded = guardStore(options.ports ?? {});
   const started = Date.now();
   const results: FixtureOutcome[] = [];
 
@@ -235,7 +283,7 @@ export async function runConformance(options: RunOptions = {}): Promise<Conforma
     const outcome =
       row.set === "canonical"
         ? await runVector(ajv, document as CanonicalVectorDocument)
-        : await runOne(ajv, document as ConformanceFixtureDocument, options.ports ?? {});
+        : await runOne(ajv, document as ConformanceFixtureDocument, guarded);
     results.push({ ...outcome, durationMs: Date.now() - at });
   }
 
@@ -306,6 +354,10 @@ async function runOne(
       })),
     };
   } catch (cause) {
+    // A port the caller supplied that could not answer is not a document this
+    // implementation failed, and the run has nothing to say about the suite: it
+    // stops, rather than reporting an infrastructure fault as a conformance result.
+    if (isPortFailure(cause)) throw cause;
     // A crash is an `error`, and an error counts against the implementation
     // exactly like a failure. The runner propagates a programming error in a
     // document or a port on purpose; swallowing one would hide a broken document
