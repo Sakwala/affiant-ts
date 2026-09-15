@@ -166,7 +166,41 @@ describe("the same path through streamText (A-10)", () => {
 });
 
 describe("how the refusal reaches a host through the SDK (GT-2)", () => {
-  it("arrives as the SDK's own validation error carrying the AffiantError as cause", async () => {
+  it("is delivered to streamText's onError, and the step carries no tool result", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    const ctx = turnContext();
+    const errors: unknown[] = [];
+
+    // `streamText` neither throws nor rejects for this: the tool call is dropped from
+    // the step and the failure is handed to `onError`. A host that only awaits the
+    // stream sees a turn in which the model called a tool and nothing came back.
+    const result = streamText({
+      model: scriptedModel([
+        { call: "update_ticket", input: { priority: "High" } },
+        { text: "Filed it." },
+      ]),
+      tools,
+      stopWhen: stopWhenFiled(),
+      prompt: ctx.turn.utterance,
+      onError({ error }) {
+        errors.push(error);
+      },
+    });
+
+    for await (const chunk of result.textStream) void chunk;
+    const steps = await result.steps;
+
+    expect(errors).toHaveLength(1);
+    const cause = (errors[0] as { cause?: unknown }).cause;
+    expect(isAffiantError(cause)).toBe(true);
+    expect((cause as { code: string }).code).toBe("wireup-invalid");
+    expect(steps[0]?.content.map((part) => part.type)).toEqual(["tool-call"]);
+    expect(steps[0]?.toolResults).toHaveLength(0);
+    expect(await docketRows(gate)).toHaveLength(0);
+  });
+
+  it("is what generateText throws, carrying the AffiantError as cause", async () => {
     const gate = testGate();
     const tools = affiantTools(gate, [writeTool()]);
     const ctx = turnContext();

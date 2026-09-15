@@ -24,18 +24,22 @@ the [root changelog](../../CHANGELOG.md).
 
 - **Coverage is settled when the `ToolSet` is built, not on the first call** (CV-4,
   CV-1). A write-capable definition the adapter cannot intercept — provider-executed,
-  hosted-MCP, no `execute`, or exposed as a dynamic tool — is refused there with
-  `coverage-refused` naming the tool and the category, unless the gate already carries a
-  declaration for it, in which case its proposals file `pending` and `blocked` (AZ-4).
+  hosted-MCP or with no `execute` — is refused there with `coverage-refused` naming the
+  tool and the category, unless the gate already carries a declaration for it, in which
+  case its proposals file `pending` and `blocked` (AZ-4). A write-capable **dynamic**
+  tool is refused unconditionally: it is this adapter's own limit rather than one of the
+  rulebook's three categories, what is missing is the field schema an Affidavit is sworn
+  over, and so there is nothing a declaration could put on the record.
 
 - **A call with no usable turn context is refused, never defaulted** (GT-2, CV-2). The
   context arrives through the SDK's own per-tool channel, is validated against the
   `contextSchema` the adapter declares, and is used once; there is no registry keyed by
   conversation and no shared default. The seam checks the whole shape before the gate is
   touched: a blank conversation, tenant, channel, message id or instant is refused, and
-  `principal` must be present, `null` included. Through `generateText` or `streamText`
-  the refusal reaches a host as the SDK's own `TypeValidationError` carrying the
-  `AffiantError` as `cause`.
+  `principal` must be present, `null` included. The refusal reaches a host as the SDK's own
+  `TypeValidationError` carrying the `AffiantError` as `cause`: `generateText` throws it,
+  while `streamText` throws nothing, drops the tool call from the step and delivers the
+  error to `onError`. Nothing is filed on either surface.
 
 - **The gate's write path is what the SDK calls, and a write tool's own `execute` is
   not** (GT-6). The suites carry a tripwire `execute` on every write fixture, so a call
@@ -46,9 +50,11 @@ the [root changelog](../../CHANGELOG.md).
 - **The SDK's approval mechanism is not used, and cannot be added back** (AZ-5, CV-1).
   Neither `needsApproval` nor `toolApproval` is set: the SDK reconstructs approval from
   client-supplied message history, and approval authority lives on the Docket row and
-  nowhere else. Every built tool is frozen and the returned set's entry type does not
-  admit `needsApproval`, so neither a later assignment nor a type-checked build can put
-  it back. `WorkflowAgent` is unsupported in this version because the `latest` release of
+  nowhere else. Every built tool is frozen, the returned set is frozen, and the set's
+  entry type does not admit `needsApproval` — and because a spread copy of a tool keeps
+  the mark that identifies it, `affiantToolsContext` refuses any marked tool that is no
+  longer frozen or that carries `needsApproval`, which is what stops
+  `{ ...tool, needsApproval: true }` from being handed a turn's context. `WorkflowAgent` is unsupported in this version because the `latest` release of
   `@ai-sdk/workflow` requires a peer range only that package's `beta` dist-tag satisfies
   (CV-5).
 

@@ -41,6 +41,11 @@ filed on the Docket `pending` and `blocked`, which can never be decided and neve
 executes (CV-4, CV-1, AZ-4). There is no option that turns the gate off for a tool it
 covers.
 
+A write-capable **dynamic** tool is the one refusal a declaration does not lift. The
+three categories a host may declare are the rulebook's; a dynamic tool is this adapter's
+own limit, and what is missing is the field schema the Affidavit would be sworn over —
+so there is nothing a Docket record could be made from.
+
 **2. Build the per-turn context map and pass it as `toolsContext`.**
 
 ```ts
@@ -59,10 +64,15 @@ to fall back to, because two conversations must never observe each other's conte
 (GT-2, CV-2). `principal` must be present; `null` is a valid value and means the host
 resolved no identity.
 
-Through `generateText` or `streamText` that refusal reaches the host **wrapped**: the
-SDK validates the context itself and raises its own `TypeValidationError`, carrying the
-`AffiantError` as `cause`. Catch it as `error.cause` — or call the tool's `execute`
-directly, where the `AffiantError` is what is thrown.
+That refusal reaches a host differently on each surface, and on neither is it the plain
+`AffiantError`. The SDK validates the context itself and raises its own
+`TypeValidationError` with the `AffiantError` as `cause`. `generateText` **throws** it,
+so `catch (error) { error.cause }` reaches it. `streamText` **throws nothing and rejects
+nothing**: the tool call is dropped from the step — the step's content is the
+`tool-call` part with no tool result beside it — and the `TypeValidationError` goes only
+to the `onError` callback, so a host that passes none sees a turn in which the model
+called a tool and nothing came back. Either way **nothing is filed**. Calling a tool's
+`execute` yourself throws the `AffiantError` unwrapped.
 
 `toolsContext` is a constructor setting on `ToolLoopAgent` rather than a `generate()`
 argument, so the constructor form above is for an agent built for **exactly one turn**
@@ -105,8 +115,12 @@ One **tool-free** `generateText` call per inference, with the field schema as th
 structured output: the model is asked for values, never for an action (GT-1 step 3). A
 field the model could not fill comes back **absent**, which is "not proposed" and is
 left out of the Affidavit. A field it reported as `null` is passed through as reported,
-and the gate reads that as **nothing reported for that field** — not as a value — so the
-field stays whatever it already was (PV-3, AF-1). The `presence` the model reports is a
+and the gate reads that as **nothing reported for that field** rather than as a value:
+the field is on the Affidavit with `value: null`, provenance source `Empty` and
+confidence `0`, and it counts towards `emptyFieldCount`, so a reviewer can see how much
+of the record is unknown (AF-1, AF-2, PV-3). A proposal whose reported fields are _all_
+`null` swears to nothing and is refused outright — `substance-refused`, nothing filed
+(GT-3). The `presence` the model reports is a
 hint; the gate establishes presence from the turn itself and never mints a stronger
 grade from the model's claim about its own literalness (PV-3).
 
@@ -176,8 +190,18 @@ limit, stated as one rather than pretended away: a tool that writes in its body 
 outside the guarantee.
 
 So is a tool the host puts into the `ToolSet` itself, after `affiantTools` has returned.
-`affiantToolsContext` leaves such a tool alone — it has no way to know what the tool is —
-and nothing in this package saw it to refuse it. If it writes, it writes ungated.
+It carries no mark of this package's, so `affiantToolsContext` leaves it alone; nothing
+here saw it, so nothing here refuses it. If it writes, it writes ungated.
+
+A **copy** of a gated tool is a different matter, and is refused. Every gated tool is
+frozen when it is built and carries the gate it was built for, and `affiantToolsContext`
+throws `wireup-invalid` for any marked tool that is no longer frozen or that carries a
+`needsApproval` setting. The copy that makes this worth checking is
+`{ ...tools.update_ticket, needsApproval: true }`: it keeps the mark, so without the
+check it would be named in the context map, and the SDK would answer the step with an
+approval request and file nothing — approval reconstructed from the message history the
+client sends back, which is the path AZ-5 closes. Pass the set `affiantTools` returned;
+it is frozen too.
 
 An aborted generation is a third edge worth naming. A tool call that has not begun when
 the signal fires does not begin, and nothing is filed; a filing already under way runs to

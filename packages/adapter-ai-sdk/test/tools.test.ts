@@ -398,7 +398,19 @@ describe("the model-facing input schema is derived from the field schema (A-5)",
     })();
 
     expect((failure as AffiantError).code).toBe("wireup-invalid");
-    expect((failure as AffiantError).message).toContain("nested object");
+    expect((failure as AffiantError).message).toContain("`properties`");
+  });
+
+  it("refuses a property declared object with no properties of its own", () => {
+    const gate = testGate();
+    expect(() =>
+      affiantTools(gate, [
+        {
+          ...writeTool(),
+          modelInputSchema: { type: "object", properties: { priority: { type: "object" } } },
+        },
+      ]),
+    ).toThrow(/as `object`/);
   });
 
   it("refuses a host schema with an array property", () => {
@@ -413,7 +425,54 @@ describe("the model-facing input schema is derived from the field schema (A-5)",
           },
         },
       ]),
-    ).toThrow(/array/);
+    ).toThrow(/`items`/);
+  });
+
+  it("refuses a property whose shape is settled somewhere else in the document", () => {
+    const gate = testGate();
+    const shapes: readonly (readonly [string, Record<string, unknown>])[] = [
+      ["$ref", { $ref: "#/$defs/Priority" }],
+      ["oneOf", { oneOf: [{ type: "string" }, { type: "object" }] }],
+      ["anyOf", { anyOf: [{ type: "string" }] }],
+      ["allOf", { allOf: [{ type: "string" }] }],
+      ["patternProperties", { type: "object", patternProperties: { "^p": { type: "string" } } }],
+      ["additionalProperties", { type: "string", additionalProperties: { type: "string" } }],
+      ["a list of types", { type: ["object", "string"] }],
+      ["nothing at all", { description: "A priority." }],
+      ["a type the record has no place for", { type: "null" }],
+    ];
+
+    for (const [what, property] of shapes) {
+      expect(
+        () =>
+          affiantTools(gate, [
+            {
+              ...writeTool(),
+              modelInputSchema: { type: "object", properties: { priority: property } },
+            },
+          ]),
+        `a property described with ${what} must be refused`,
+      ).toThrow(AffiantError);
+    }
+  });
+
+  it("takes a property that is an enum of scalars, with or without a type", () => {
+    const gate = testGate();
+    for (const property of [
+      { enum: ["Low", "High"] },
+      { type: "string", enum: ["Low", "High"] },
+      { type: "integer", minimum: 1 },
+      { type: "boolean" },
+    ]) {
+      expect(() =>
+        affiantTools(gate, [
+          {
+            ...writeTool(),
+            modelInputSchema: { type: "object", properties: { priority: property } },
+          },
+        ]),
+      ).not.toThrow();
+    }
   });
 
   it("refuses a host schema requiring a property the field schema does not declare", () => {

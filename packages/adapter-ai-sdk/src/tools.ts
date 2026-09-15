@@ -147,16 +147,47 @@ function named(value: unknown): value is string {
 }
 
 /**
+ * Whether `value` is a {@link Principal} the core would recognise, or `null`.
+ *
+ * `null` is "no identity resolved", and a decision made under it is refused on
+ * identity grounds (AZ-2). Anything else has to be one of the two kinds the core
+ * defines, with an id: `{}`, `[]` and a `Date` are none of them, and admitting one
+ * puts a principal on the record that no attestation rule can read (AZ-3). A relay's
+ * assertion is checked where it is present, because that is what names the person a
+ * service says it speaks for and the message it is carrying.
+ */
+function isPrincipal(value: unknown): boolean {
+  if (value === null) return true;
+  if (typeof value !== "object" || Array.isArray(value)) return false;
+  const principal = value as { readonly kind?: unknown; readonly id?: unknown };
+  if (!named(principal.id)) return false;
+  if (principal.kind === "member") return true;
+  if (principal.kind !== "service") return false;
+  const service = value as {
+    readonly relay?: unknown;
+    readonly assertedMember?: unknown;
+  };
+  if (service.assertedMember !== undefined && !named(service.assertedMember)) return false;
+  if (service.relay === undefined) return true;
+  if (typeof service.relay !== "object" || service.relay === null) return false;
+  const relay = service.relay as {
+    readonly channelIdentity?: unknown;
+    readonly messageId?: unknown;
+  };
+  return named(relay.channelIdentity) && named(relay.messageId);
+}
+
+/**
  * Whether `value` is an {@link AffiantToolContext} the gate can be called with.
  *
  * Every property of the turn context is checked here, at the seam, before the gate is
  * touched (GT-2, CV-2). The five identifiers must be **non-empty**: a blank tenant is
  * not a tenant, and a context carrying one would either partition the Docket under the
  * empty string or reach the core's own range checks as a `RangeError` a host reads as
- * a crash rather than as a refusal (AZ-2). `principal` must be **present** and may be
- * `null`, which is the host saying "no identity resolved" — a different statement from
- * a context that forgot to mention one, and the difference decides whether a later
- * decision is refused on identity grounds or the wiring is simply wrong.
+ * a crash rather than as a refusal (AZ-2). `principal` must be **present**, and is
+ * either `null` — the host saying "no identity resolved", a different statement from a
+ * context that forgot to mention one — or one of the two kinds the core defines, in the
+ * shape it defines them ({@link isPrincipal}).
  *
  * `turn.utterance` may be empty: an empty message is a thing a person can send, and
  * what the gate does with a proposal that swears to nothing is GT-3's business.
@@ -166,13 +197,7 @@ function isToolContext(value: unknown): value is AffiantToolContext {
   const turn = (value as { readonly turn?: unknown }).turn;
   if (typeof turn !== "object" || turn === null) return false;
   const ctx = turn as Partial<TurnContext>;
-  if (!("principal" in ctx)) return false;
-  if (
-    ctx.principal !== null &&
-    (typeof ctx.principal !== "object" || ctx.principal === undefined)
-  ) {
-    return false;
-  }
+  if (!("principal" in ctx) || !isPrincipal(ctx.principal)) return false;
   return (
     named(ctx.conversationId) &&
     named(ctx.tenantId) &&
@@ -391,13 +416,21 @@ export function affiantTools(
     // host mutates after wire-up (a `writeCapable` that flips, an `execute` swapped
     // in) cannot turn a checked tool into an unchecked one behind the ToolSet's back
     // (CV-1: there is no option that turns the gate off, and a mutation is not an
-    // option either).
-    const snapshot: AffiantToolDefinition = Object.freeze({ ...definition });
+    // option either). The copy is the whole mechanism; freezing it would guard a
+    // value nothing else reads.
+    const snapshot: AffiantToolDefinition = { ...definition };
 
     if (snapshot.writeCapable) {
       const classification = classify(snapshot);
-      if (!classification.covered && gate.coverage.lookup(name) === null) {
-        throw coverageRefusal(name, classification.category);
+      if (!classification.covered) {
+        // A declaration converts a wire-up refusal into a Docket record for the three
+        // categories the rulebook names (CV-4). `"dynamic"` is not one of them: it is
+        // this adapter's own limit, and what is missing is the field schema an
+        // Affidavit is sworn over — so there is nothing a declaration could record,
+        // and no declaration lifts it.
+        if (classification.category === "dynamic" || gate.coverage.lookup(name) === null) {
+          throw coverageRefusal(name, classification.category);
+        }
       }
       if (typeof snapshot.operation !== "function") {
         throw new AffiantError(
@@ -423,7 +456,9 @@ export function affiantTools(
         : declaredTool(snapshot, inputSchema);
   }
 
-  return tools as AffiantToolSet;
+  // The set itself is frozen too, so a host that means to add a tool has to build a
+  // new object — and the one it builds is the one `affiantToolsContext` inspects.
+  return Object.freeze(tools) as AffiantToolSet;
 }
 
 /** The model-facing schema for one definition: the host's, checked, or the derived one (AF-1). */
@@ -512,9 +547,9 @@ function declaredTool(
  * A **registered** symbol, not a module-local one and not an object identity: two
  * copies of this package in one dependency tree — a host on one version, a library on
  * another — resolve `Symbol.for` to the same symbol, so a set built by either is
- * recognised by either. It is an ordinary enumerable property, so a host's structural
- * copy of a tool (`{ ...tools.x }`) carries the mark with it rather than losing the
- * context and failing at the call.
+ * recognised by either. It is an ordinary enumerable property, which is also why a
+ * *copy* of a gated tool carries the mark: a copy that claims to be a gated tool has
+ * to answer for the claim, and {@link affiantToolsContext} makes it.
  *
  * The value is the {@link Gate} the tool was built for, which is what lets
  * {@link affiantToolsContext} refuse a set holding two gates' tools.
@@ -524,9 +559,10 @@ const GATE_OF = Symbol.for("affiant.adapter-ai-sdk.gate");
 /** Record the gate `built` was made for, and freeze it. */
 function markGated(built: ToolSet[string], gate: Gate): ToolSet[string] {
   const marked = Object.assign(built, { [GATE_OF]: gate });
-  // Frozen so nothing can add `needsApproval` to an adapter-built tool after the
-  // fact: the SDK's approval flow reconstructs approval from client-supplied history,
-  // and AZ-5 puts approval authority on the Docket row and nowhere else.
+  // Frozen, and checked for still being frozen where the mark is read: an object that
+  // carries the mark but is not the object this package built is not a gated tool, and
+  // the difference is what stops `{ ...tool, needsApproval: true }` from passing as
+  // one (AZ-5).
   return Object.freeze(marked);
 }
 
@@ -541,15 +577,23 @@ function gateOf(entry: unknown): Gate | null {
  * The `toolsContext` map for one turn: `{ turn: ctx }` under the name of every tool
  * in `tools` this adapter gated.
  *
- * Built per turn and passed on the generation call. A tool the host added to the same
- * `ToolSet` itself is left out, so a host's own context for its own tools is not
- * overwritten by this one — and a tool the host added that writes without going
- * through {@link affiantTools} is outside the guarantee altogether, because there is
- * nothing here that could have seen it.
+ * Built per turn and passed on the generation call. A tool this package did not build
+ * carries no mark and is left alone, so a host's own context for its own tools is not
+ * overwritten by this one. A tool the host added that *writes* without going through
+ * {@link affiantTools} is outside the guarantee: it carries no mark either, and
+ * nothing here saw it to refuse it.
  *
- * @throws AffiantError `"wireup-invalid"` when `tools` holds gated tools built for
- *         **more than one gate**. One map carries one turn context, and a turn belongs
- *         to one tenant: handing it to two gates' tools would run a call under a
+ * What is **not** left alone is an object that carries the mark and is not the object
+ * this package built — a copy. Naming it in the context map would hand a turn's
+ * context to something with the gate's name on it and none of the gate in front of it,
+ * and the copy that matters is `{ ...tool, needsApproval: true }`: the SDK would then
+ * ask the client for approval and reconstruct the answer from the message history it
+ * sends back, which is the path AZ-5 exists to close.
+ *
+ * @throws AffiantError `"wireup-invalid"` when a marked tool is not frozen or carries
+ *         `needsApproval` (AZ-5, CV-1), or when `tools` holds gated tools built for
+ *         **more than one gate** — one map carries one turn context, and a turn belongs
+ *         to one tenant, so handing it to two gates' tools would run a call under a
  *         wiring its context was never meant for (GT-2, CV-1).
  */
 export function affiantToolsContext(
@@ -561,6 +605,28 @@ export function affiantToolsContext(
   for (const [name, entry] of Object.entries(tools)) {
     const gate = gateOf(entry);
     if (gate === null) continue;
+    if (Object.prototype.hasOwnProperty.call(entry, "needsApproval")) {
+      throw new AffiantError(
+        "wireup-invalid",
+        `AZ-5: tool ${JSON.stringify(name)} carries this package's mark and a ` +
+          `\`needsApproval\` setting. The SDK's approval flow returns an approval request to ` +
+          `the client and reads the answer back out of the message history the client sends ` +
+          `— approval authority is the Docket row and nothing else stands in for it. A gated ` +
+          `tool never sets it, so this object is a copy of one, and it is refused rather ` +
+          `than given a turn's context.`,
+        { toolName: name },
+      );
+    }
+    if (!Object.isFrozen(entry)) {
+      throw new AffiantError(
+        "wireup-invalid",
+        `CV-1: tool ${JSON.stringify(name)} carries this package's mark but is not the object ` +
+          `this package built — every gated tool is frozen when it is made, and this one is ` +
+          `not. Pass the tool set \`affiantTools\` returned. A copy can be changed after the ` +
+          `checks that made it safe, so it is refused rather than given a turn's context.`,
+        { toolName: name },
+      );
+    }
     if (seen !== null && seen !== gate) {
       throw new AffiantError(
         "wireup-invalid",

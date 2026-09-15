@@ -267,14 +267,54 @@ describe("one context map stands for one gate (GT-2, CV-1)", () => {
     expect((failure as AffiantError).details["toolName"]).toBe("update_invoice");
   });
 
-  it("recognises a structural copy of a gated tool", () => {
+  it("refuses a copy of a gated tool, because a copy is not the object that was checked", () => {
     const gate = testGate();
     const tools = affiantTools(gate, [writeTool()]);
     const copied = { copied_tool: { ...(tools["update_ticket"] as object) } };
 
-    const map = affiantToolsContext(turnContext(), copied as never);
+    const failure = (() => {
+      try {
+        affiantToolsContext(turnContext(), copied as never);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
 
-    expect(Object.keys(map)).toEqual(["copied_tool"]);
+    expect((failure as AffiantError).code).toBe("wireup-invalid");
+    expect((failure as AffiantError).message).toContain("is not the object");
+  });
+
+  it("refuses a copy that adds the SDK's approval flag (AZ-5)", () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    // The exact input: a spread of a gated tool with `needsApproval` set. Without the
+    // check the SDK answers the step with a tool-approval-request and files nothing —
+    // approval reconstructed from client history, in front of the gate.
+    const set = { update_ticket: { ...(tools["update_ticket"] as object), needsApproval: true } };
+
+    const failure = (() => {
+      try {
+        affiantToolsContext(turnContext(), set as never);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+
+    expect((failure as AffiantError).code).toBe("wireup-invalid");
+    expect((failure as AffiantError).message).toContain("AZ-5");
+    expect((failure as AffiantError).details["toolName"]).toBe("update_ticket");
+  });
+
+  it("freezes the set it returns, so a tool cannot be swapped into it in place", () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+
+    expect(Object.isFrozen(tools)).toBe(true);
+    expect(() => {
+      (tools as Record<string, unknown>)["update_ticket"] = { needsApproval: true };
+    }).toThrow(TypeError);
   });
 
   it("says nothing about a write tool the host added to the set itself", () => {
@@ -286,5 +326,85 @@ describe("one context map stands for one gate (GT-2, CV-1)", () => {
 
     // Outside the guarantee: nothing here saw it, so nothing here can refuse it.
     expect(Object.keys(map)).toEqual(["update_ticket"]);
+  });
+});
+
+describe("a principal has to be one the core would recognise (GT-2, AZ-3)", () => {
+  const base = turnContext();
+  const cases: readonly (readonly [string, unknown])[] = [
+    ["an empty object", {}],
+    ["an array", []],
+    ["a Date", new Date()],
+    ["a kind the core does not define", { kind: "robot", id: "r-1" }],
+    ["a member with no id", { kind: "member", id: "" }],
+    [
+      "a relay assertion missing its message id",
+      { kind: "service", id: "relay-1", relay: { channelIdentity: "+94770000000" } },
+    ],
+  ];
+
+  for (const [what, principal] of cases) {
+    it(`refuses ${what}, and files nothing`, async () => {
+      const gate = testGate();
+      const tools = affiantTools(gate, [writeTool()]);
+
+      const failure = await callTool(
+        tools,
+        "update_ticket",
+        { priority: "High" },
+        { turn: { ...base, principal } },
+      ).catch((error: unknown) => error);
+
+      expect((failure as AffiantError).code).toBe("wireup-invalid");
+      expect(await docketRows(gate)).toHaveLength(0);
+    });
+  }
+
+  it("accepts a relay speaking for a named person", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+
+    const result = await callTool(
+      tools,
+      "update_ticket",
+      { priority: "High" },
+      {
+        turn: {
+          ...base,
+          principal: {
+            kind: "service",
+            id: "relay-1",
+            assertedMember: "member-1",
+            relay: { channelIdentity: "+94770000000", messageId: "wamid-1" },
+          },
+        },
+      },
+    );
+
+    expect(result.kind).toBe("write");
+  });
+});
+
+describe("a dynamic write tool is refused whatever the host declares (CV-4)", () => {
+  it("does not lift the refusal when the tool is declared uncovered under a core category", () => {
+    const gate = testGate();
+    const definition = { ...writeTool(), sdkKind: "dynamic" as const };
+    // A declaration converts a wire-up refusal into a Docket record for the three
+    // categories the rulebook names. `"dynamic"` is not one of them, and there is no
+    // field schema for a record to be made from.
+    gate.declareUncovered(definition, "provider-executed");
+    gate.declareUncovered({ name: "update_ticket" }, "provider-executed");
+
+    const failure = (() => {
+      try {
+        affiantTools(gate, [definition]);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+
+    expect((failure as AffiantError).code).toBe("coverage-refused");
+    expect((failure as AffiantError).details["category"]).toBe("dynamic");
   });
 });

@@ -26,16 +26,23 @@ import { AffiantError } from "@affiant/core";
  * make a transitive type a part of this package's API.
  */
 export interface JsonSchemaObject {
-  readonly type?: string;
+  readonly type?: string | readonly string[];
   readonly description?: string;
   readonly properties?: { readonly [name: string]: JsonSchemaObject };
   readonly items?: JsonSchemaObject;
   readonly required?: readonly string[];
   readonly additionalProperties?: boolean;
-  readonly enum?: readonly string[];
+  readonly enum?: readonly (string | number | boolean | null)[];
   readonly format?: string;
   readonly minimum?: number;
   readonly maximum?: number;
+  /**
+   * Any other JSON Schema keyword. A schema is an open document and a host may carry
+   * whatever its own tooling emits; what {@link assertMatchesFields} does with the
+   * keywords it does not recognise is refuse the ones that would stop a property being
+   * one scalar value.
+   */
+  readonly [keyword: string]: unknown;
 }
 
 /**
@@ -164,6 +171,85 @@ export function inferenceSchemaOf(schema: FieldSchema): JsonSchemaObject {
   };
 }
 
+/** The `type` values a single sworn field can carry. */
+const SCALAR_TYPES: readonly string[] = ["string", "number", "integer", "boolean"];
+
+/**
+ * The keywords that make a property's shape something other than one scalar, or
+ * something this check cannot see from here.
+ */
+const NOT_SCALAR_KEYWORDS: readonly string[] = [
+  "$ref",
+  "$dynamicRef",
+  "$defs",
+  "definitions",
+  "oneOf",
+  "anyOf",
+  "allOf",
+  "not",
+  "if",
+  "then",
+  "else",
+  "properties",
+  "patternProperties",
+  "additionalProperties",
+  "unevaluatedProperties",
+  "propertyNames",
+  "dependentSchemas",
+  "dependentRequired",
+  "items",
+  "prefixItems",
+  "contains",
+  "unevaluatedItems",
+];
+
+/** Whether `value` is a scalar an `enum` may offer. */
+function isScalarValue(value: unknown): boolean {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null
+  );
+}
+
+/**
+ * Why `property` is not one scalar value, or `null` when it is.
+ *
+ * The admission is positive: something has to say "this is a string" or "this is one
+ * of these values", and nothing may say the shape is settled elsewhere.
+ */
+function scalarFault(property: JsonSchemaObject): string | null {
+  for (const keyword of NOT_SCALAR_KEYWORDS) {
+    if (Object.prototype.hasOwnProperty.call(property, keyword)) {
+      return `with \`${keyword}\`, which puts its shape somewhere this check cannot see.`;
+    }
+  }
+
+  const type = property.type;
+  const enumerated = property.enum;
+
+  if (Array.isArray(type)) {
+    return `with a list of types (${type.map((each) => String(each)).join(", ")}); a sworn field is one value of one kind.`;
+  }
+  if (type !== undefined && (typeof type !== "string" || !SCALAR_TYPES.includes(type))) {
+    return `as \`${String(type)}\`; a sworn field is one of ${SCALAR_TYPES.join(", ")}.`;
+  }
+  if (enumerated !== undefined) {
+    if (!Array.isArray(enumerated) || enumerated.length === 0) {
+      return "with an `enum` that is not a non-empty list of values.";
+    }
+    if (!enumerated.every(isScalarValue)) {
+      return "with an `enum` offering something other than scalar values.";
+    }
+    return null;
+  }
+  if (type === undefined) {
+    return "without a `type` or an `enum`, so nothing says it is one scalar value.";
+  }
+  return null;
+}
+
 /**
  * Check a host-supplied model schema against the field schema it must describe, and
  * refuse it at wire-up when it does not (CV-1, AF-1).
@@ -171,20 +257,33 @@ export function inferenceSchemaOf(schema: FieldSchema): JsonSchemaObject {
  * Three things are checked, and each of them is a proposal the Affidavit could not
  * carry rather than a matter of taste:
  *
- * - the schema is an **object with properties**, and every property is a **scalar** —
- *   no nested object, no array. A field is one value with one provenance tag; there
- *   is no field to swear to under `lines[2].price`, and the model would fill a shape
- *   the gate then refuses at run time for having no substance (GT-3) rather than at
- *   wire-up, where a misconfiguration the framework can see belongs (CV-1);
+ * - the schema is an **object with properties**, and every property is a **scalar**;
  * - the property names are **exactly** the declared field names: one the field schema
  *   does not name has no place on the Affidavit, and a field the model is never
  *   offered can never be proposed;
  * - every entry of `required` **names a declared field**, so a schema cannot insist on
  *   a property it does not have.
  *
- * What is *not* checked is the shape of a scalar property: a tighter pattern, a longer
- * description or a narrower `enum` than the derived schema carries is the reason this
- * override exists.
+ * ## What "scalar" is allowed to mean, stated positively
+ *
+ * A field is one value with one provenance tag. There is no field to swear to under
+ * `lines[2].price`, and a property whose shape is decided somewhere else in the
+ * document — by a `$ref`, by an `anyOf` branch — is a property whose shape this check
+ * cannot see. A list of the ways to smuggle an object past a check is never finished,
+ * so the rule is the other way round: a property is admitted when it **is** a scalar
+ * and refused otherwise.
+ *
+ * Admitted: a `type` of exactly `"string"`, `"number"`, `"integer"` or `"boolean"`; or
+ * an `enum` of scalar values, with or without such a `type`. Refused: no `type` and no
+ * `enum`, a `type` that is a list, any other `type`, and any of the composition,
+ * reference and sub-schema keywords — `$ref`, `oneOf`, `anyOf`, `allOf`, `not`,
+ * `if`/`then`/`else`, `properties`, `patternProperties`, `additionalProperties`,
+ * `unevaluatedProperties`, `propertyNames`, `dependentSchemas`, `items`,
+ * `prefixItems`, `contains`, `unevaluatedItems`, `$defs`, `definitions`.
+ *
+ * What is *not* checked is anything that only narrows a scalar: a `pattern`, a
+ * `format`, a `minimum`, a longer `description` or a shorter `enum` than the derived
+ * schema carries is the reason this override exists.
  *
  * @throws AffiantError `"wireup-invalid"`, naming the tool and the mismatch.
  */
@@ -221,12 +320,8 @@ export function assertMatchesFields(
   for (const name of supplied_) {
     const property = properties[name];
     if (property === undefined) continue;
-    if (property.type === "object" || property.properties !== undefined) {
-      refuse(`describes ${JSON.stringify(name)} as a nested object.`);
-    }
-    if (property.type === "array" || property.items !== undefined) {
-      refuse(`describes ${JSON.stringify(name)} as an array.`);
-    }
+    const fault = scalarFault(property);
+    if (fault !== null) refuse(`describes ${JSON.stringify(name)} ${fault}`);
   }
 
   for (const name of supplied.required ?? []) {

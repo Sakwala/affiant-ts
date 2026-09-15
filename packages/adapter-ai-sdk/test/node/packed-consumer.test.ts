@@ -112,8 +112,17 @@ describe.skipIf(!built)("a consumer of the packed tarball", () => {
             module: "NodeNext",
             moduleResolution: "NodeNext",
             noEmit: true,
-            skipLibCheck: true,
-            types: [],
+            // With `skipLibCheck` on, a published `.d.ts` that names a type only this
+            // repository has — `vitest`'s `Mock`, say — compiles for a consumer who
+            // does not have it, and the guard is blind to exactly the defect it exists
+            // to catch. So the check is on, and the scratch project is given what a
+            // real consumer has: `@types/node` (the SDK's own declarations name
+            // `Buffer` and `node:http`) and `@types/json-schema` (which
+            // `@ai-sdk/provider` imports). `skipDefaultLibCheck` carries the one part
+            // of the program nobody here owns.
+            skipLibCheck: false,
+            skipDefaultLibCheck: true,
+            types: ["node"],
           },
           include: ["consumer.ts"],
         },
@@ -163,6 +172,12 @@ describe.skipIf(!built)("a consumer of the packed tarball", () => {
         adapterTarball as string,
         coreTarball as string,
         `ai@${pinnedAi}`,
+        // What a consumer of the AI SDK already has. Without them the SDK's own
+        // declarations do not compile under a full library check: `@ai-sdk/provider`
+        // imports `json-schema`, and `ai` and `@ai-sdk/provider-utils` name
+        // `node:http`, `http` and `Buffer`.
+        "@types/node@22",
+        "@types/json-schema@7",
       ],
       project,
     );
