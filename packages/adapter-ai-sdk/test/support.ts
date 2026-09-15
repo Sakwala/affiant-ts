@@ -104,7 +104,11 @@ export function writeTool(init: WriteToolInit = {}): ToolDefinition<WriteArgs, s
 export function readTool(
   seen: TurnContext[],
   name = "find_ticket",
-): ToolDefinition<WriteArgs, string> {
+  extra: {
+    readonly sdkKind?: "function" | "dynamic" | "provider";
+    readonly hostedMcp?: boolean;
+  } = {},
+): ToolDefinition<WriteArgs, string> & typeof extra {
   return {
     name,
     description: "Find a ticket.",
@@ -114,6 +118,7 @@ export function readTool(
       seen.push(ctx);
       return `ticket-1 matches ${String(args["query"])}`;
     },
+    ...extra,
   };
 }
 
@@ -291,13 +296,25 @@ export async function callTool(
   name: string,
   input: unknown,
   context: unknown,
+  abortSignal?: AbortSignal,
 ): Promise<GatedToolResult<unknown>> {
   const entry = tools[name];
   if (entry === undefined) throw new Error(`no tool named ${name}`);
   const run = entry.execute;
   if (run === undefined) throw new Error(`tool ${name} declares no execute`);
-  const output = await run(input, { toolCallId: "call-1", messages: [], context });
+  const output = await run(input, {
+    toolCallId: "call-1",
+    messages: [],
+    context,
+    ...(abortSignal === undefined ? {} : { abortSignal }),
+  });
   return output as GatedToolResult<unknown>;
+}
+
+/** Every row on the tenant's Docket, in filing order. */
+export async function docketRows(gate: Gate, tenantId = "tenant-a"): Promise<readonly unknown[]> {
+  const page = await gate.rehydrate({ tenantId }, { limit: 50, cursor: null });
+  return page.items;
 }
 
 /** What one entry's `toModelOutput` makes of a result — what the model is actually shown. */

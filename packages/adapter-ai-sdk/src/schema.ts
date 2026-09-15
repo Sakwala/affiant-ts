@@ -29,6 +29,7 @@ export interface JsonSchemaObject {
   readonly type?: string;
   readonly description?: string;
   readonly properties?: { readonly [name: string]: JsonSchemaObject };
+  readonly items?: JsonSchemaObject;
   readonly required?: readonly string[];
   readonly additionalProperties?: boolean;
   readonly enum?: readonly string[];
@@ -57,7 +58,9 @@ export const TURN_CONTEXT_SCHEMA: JsonSchemaObject = {
         conversationId: { type: "string" },
         tenantId: { type: "string" },
         channel: { type: "string" },
-        principal: { type: "object" },
+        // Present, and `null` when the host has not resolved an identity — so the
+        // property is required and carries no `type`, which would exclude `null`.
+        principal: { description: "Who is acting, or null when unresolved." },
         turn: {
           type: "object",
           properties: {
@@ -68,7 +71,7 @@ export const TURN_CONTEXT_SCHEMA: JsonSchemaObject = {
           required: ["utterance", "messageId", "at"],
         },
       },
-      required: ["conversationId", "tenantId", "channel", "turn"],
+      required: ["conversationId", "tenantId", "channel", "principal", "turn"],
     },
   },
   required: ["turn"],
@@ -165,11 +168,23 @@ export function inferenceSchemaOf(schema: FieldSchema): JsonSchemaObject {
  * Check a host-supplied model schema against the field schema it must describe, and
  * refuse it at wire-up when it does not (CV-1, AF-1).
  *
- * The check is flatness and identity of names, nothing more: the property *shapes*
- * are the host's business — a host that wants a tighter pattern or a longer
- * description than the derived schema carries is the reason this override exists.
- * What it may not do is propose a field the Affidavit has no place for, or leave one
- * of the declared fields unreachable.
+ * Three things are checked, and each of them is a proposal the Affidavit could not
+ * carry rather than a matter of taste:
+ *
+ * - the schema is an **object with properties**, and every property is a **scalar** —
+ *   no nested object, no array. A field is one value with one provenance tag; there
+ *   is no field to swear to under `lines[2].price`, and the model would fill a shape
+ *   the gate then refuses at run time for having no substance (GT-3) rather than at
+ *   wire-up, where a misconfiguration the framework can see belongs (CV-1);
+ * - the property names are **exactly** the declared field names: one the field schema
+ *   does not name has no place on the Affidavit, and a field the model is never
+ *   offered can never be proposed;
+ * - every entry of `required` **names a declared field**, so a schema cannot insist on
+ *   a property it does not have.
+ *
+ * What is *not* checked is the shape of a scalar property: a tighter pattern, a longer
+ * description or a narrower `enum` than the derived schema carries is the reason this
+ * override exists.
  *
  * @throws AffiantError `"wireup-invalid"`, naming the tool and the mismatch.
  */
@@ -179,26 +194,44 @@ export function assertMatchesFields(
   toolName: string,
 ): void {
   const declared = schema.fields.map((entry) => entry.name);
-  if (supplied.type !== "object" || supplied.properties === undefined) {
+  const refuse = (what: string): never => {
     throw new AffiantError(
       "wireup-invalid",
-      `CV-1: the model input schema supplied for ${JSON.stringify(toolName)} is not a flat ` +
-        `object with properties. An Affidavit is sworn per field, so the schema the model ` +
-        `fills has one property per declared field: ${declared.join(", ")}.`,
+      `CV-1: the model input schema supplied for ${JSON.stringify(toolName)} ${what} An ` +
+        `Affidavit is sworn per field, so the schema the model fills is one flat object with ` +
+        `one scalar property per declared field: ${declared.join(", ") || "(none declared)"}.`,
       { toolName },
     );
+  };
+
+  if (supplied.type !== "object" || supplied.properties === undefined) {
+    refuse("is not a flat object with properties.");
   }
-  const supplied_ = Object.keys(supplied.properties).sort();
+  const properties = supplied.properties ?? {};
+
+  const supplied_ = Object.keys(properties).sort();
   const declared_ = [...declared].sort();
   if (supplied_.length !== declared_.length || supplied_.some((n, i) => n !== declared_[i])) {
-    throw new AffiantError(
-      "wireup-invalid",
-      `CV-1: the model input schema supplied for ${JSON.stringify(toolName)} names ` +
-        `${supplied_.join(", ") || "no properties"}, and the field schema declares ` +
-        `${declared_.join(", ") || "no fields"}. They must be the same set: a property the ` +
-        `field schema does not name has no place on the Affidavit, and a field the schema ` +
-        `does not offer can never be proposed.`,
-      { toolName },
+    refuse(
+      `names ${supplied_.join(", ") || "no properties"}, and the field schema declares ` +
+        `${declared_.join(", ") || "no fields"}. They must be the same set.`,
     );
+  }
+
+  for (const name of supplied_) {
+    const property = properties[name];
+    if (property === undefined) continue;
+    if (property.type === "object" || property.properties !== undefined) {
+      refuse(`describes ${JSON.stringify(name)} as a nested object.`);
+    }
+    if (property.type === "array" || property.items !== undefined) {
+      refuse(`describes ${JSON.stringify(name)} as an array.`);
+    }
+  }
+
+  for (const name of supplied.required ?? []) {
+    if (!declared.includes(name)) {
+      refuse(`requires ${JSON.stringify(name)}, which the field schema does not declare.`);
+    }
   }
 }

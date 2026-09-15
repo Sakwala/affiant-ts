@@ -5,8 +5,8 @@
  * **Rules served: GT-2** (the context is supplied per call through the SDK's own
  * channel and a call without one is refused, never defaulted), **CV-2** (this is a
  * call site: it calls the gate directly and throws when it cannot), **GT-6** (a
- * write-capable definition's own `execute` is never reachable from the function the
- * SDK calls), **CV-4** and **CV-1** (a write-capable tool the adapter cannot
+ * write-capable definition's own `execute` is never called), **CV-4** and **CV-1**
+ * (a write-capable tool the adapter cannot
  * intercept is refused when `affiantTools` is built, unless the host has already
  * declared it uncovered), **AZ-5** (the filing is the result; the SDK's approval
  * mechanism is not used, because the Docket is the record of approval authority).
@@ -116,10 +116,19 @@ export interface AffiantToolsOptions {
 export type AffiantToolSet = Record<
   string,
   Tool<any, any, AffiantToolContext> &
-    Pick<
-      Tool<any, any, any>,
-      "execute" | "onInputAvailable" | "onInputStart" | "onInputDelta" | "needsApproval"
-    >
+    Pick<Tool<any, any, any>, "execute" | "onInputAvailable" | "onInputStart" | "onInputDelta"> & {
+      /**
+       * Never set on an adapter-built tool, and not settable on one.
+       *
+       * The SDK's approval flow returns an approval request to the client and
+       * reconstructs the answer from the message history the client sends back.
+       * AZ-5 puts approval authority on the Docket row and nowhere else, so a tool
+       * this package built must not carry a second place for it to appear to live.
+       * The built objects are frozen as well, so this holds at run time and not only
+       * in a type-checked build (CV-1: no option turns the gate off).
+       */
+      readonly needsApproval?: never;
+    }
 >;
 
 /**
@@ -132,30 +141,56 @@ export type AdapterUncoveredCategory = UncoveredCategory | "dynamic";
 // The context schema
 // ---------------------------------------------------------------------------
 
-/** Whether `value` is an {@link AffiantToolContext} the gate can be called with. */
+/** Whether `value` is a non-empty string — an identifier the record can carry. */
+function named(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/**
+ * Whether `value` is an {@link AffiantToolContext} the gate can be called with.
+ *
+ * Every property of the turn context is checked here, at the seam, before the gate is
+ * touched (GT-2, CV-2). The five identifiers must be **non-empty**: a blank tenant is
+ * not a tenant, and a context carrying one would either partition the Docket under the
+ * empty string or reach the core's own range checks as a `RangeError` a host reads as
+ * a crash rather than as a refusal (AZ-2). `principal` must be **present** and may be
+ * `null`, which is the host saying "no identity resolved" — a different statement from
+ * a context that forgot to mention one, and the difference decides whether a later
+ * decision is refused on identity grounds or the wiring is simply wrong.
+ *
+ * `turn.utterance` may be empty: an empty message is a thing a person can send, and
+ * what the gate does with a proposal that swears to nothing is GT-3's business.
+ */
 function isToolContext(value: unknown): value is AffiantToolContext {
   if (typeof value !== "object" || value === null) return false;
   const turn = (value as { readonly turn?: unknown }).turn;
   if (typeof turn !== "object" || turn === null) return false;
   const ctx = turn as Partial<TurnContext>;
+  if (!("principal" in ctx)) return false;
+  if (
+    ctx.principal !== null &&
+    (typeof ctx.principal !== "object" || ctx.principal === undefined)
+  ) {
+    return false;
+  }
   return (
-    typeof ctx.conversationId === "string" &&
-    typeof ctx.tenantId === "string" &&
-    typeof ctx.channel === "string" &&
+    named(ctx.conversationId) &&
+    named(ctx.tenantId) &&
+    named(ctx.channel) &&
     typeof ctx.turn === "object" &&
     ctx.turn !== null &&
     typeof ctx.turn.utterance === "string" &&
-    typeof ctx.turn.messageId === "string" &&
-    typeof ctx.turn.at === "string"
+    named(ctx.turn.messageId) &&
+    named(ctx.turn.at)
   );
 }
 
 /**
  * The `contextSchema` every gated tool declares.
  *
- * One frozen value for the module: it is the schema itself, not state, and its
- * identity is what {@link affiantToolsContext} matches on so that a host's own
- * context-taking tools in the same `ToolSet` are left alone.
+ * One value for the module: it is the schema itself, not state. Nothing recognises a
+ * gated tool by this object's identity — see {@link GATE_OF}, which survives a
+ * structural copy and a second copy of this package.
  */
 const TURN_CONTEXT_FLEX_SCHEMA: Schema<AffiantToolContext> = jsonSchema<AffiantToolContext>(
   TURN_CONTEXT_SCHEMA as Parameters<typeof jsonSchema>[0],
@@ -197,14 +232,20 @@ type Classification =
   | { readonly covered: false; readonly category: AdapterUncoveredCategory };
 
 /**
- * Whether the adapter can intercept `definition`, and if not, which category it falls
- * in (CV-4).
+ * Whether the adapter can intercept a **write-capable** `definition`, and if not,
+ * which category it falls in (CV-4).
  *
  * Two categories the core cannot see from a `ToolDefinition` alone are added here,
  * because they are facts about the SDK rather than about the tool: a definition the
  * host exposes as a provider tool is provider-executed, and one it exposes as a
  * dynamic tool carries no field schema the model's input can be checked against, so
  * there is nothing to derive an Affidavit's shape from.
+ *
+ * **Only write-capable definitions are classified.** CV-4 is about writes that would
+ * escape the gate; a read has none to escape with. A read definition with an `execute`
+ * is wrapped as a read whatever the host says about how it is exposed — classifying it
+ * uncovered would drop the host's own function on the floor and declare a tool nobody
+ * runs.
  */
 function classify(definition: AffiantToolDefinition): Classification {
   if (definition.sdkKind === "provider") return { covered: false, category: "provider-executed" };
@@ -288,12 +329,16 @@ function modelSummary(result: GatedToolResult<unknown>): JSONValue {
  * - a **write-capable** definition becomes a tool whose `execute` calls the gate and
  *   returns the proposal. The definition's own `execute` is never called from here:
  *   the only function this closure invokes is `gate.wrap(...).execute`, and the gate's
- *   write path holds no reference to it (GT-6);
- * - a **read** definition the adapter can intercept becomes a tool whose `execute`
- *   calls the gate, which calls the host's own function with the same explicit
- *   context (GT-2);
- * - a definition with nothing to intercept and no write to guard — a read the client
- *   or the provider runs — is declared to the model and executed by nobody here.
+ *   write path does not call it either (GT-6);
+ * - a **read** definition with an `execute` becomes a tool whose own `execute` calls
+ *   the gate, which calls the host's function with the same explicit context (GT-2).
+ *   This holds however the host exposes it — a read has no write to escape with, so
+ *   CV-4's categories do not apply to one;
+ * - a **read with no `execute`** — one the client or the provider runs — is declared
+ *   to the model and executed by nobody here.
+ *
+ * Every definition is **snapshotted** as it is read. A host that mutates one
+ * afterwards changes nothing about the tool that was built from it.
  *
  * Nothing here sets `needsApproval` or `toolApproval`. The SDK's approval flow
  * reconstructs approval from client-supplied message history; AZ-5 says approval
@@ -308,12 +353,13 @@ function modelSummary(result: GatedToolResult<unknown>): JSONValue {
  */
 export function affiantTools(
   gate: Gate,
-  // `any` rather than the core's `<never, unknown>` defaults: the gated `execute`
-  // receives the model's input, which is only ever `unknown` at this seam, and a
-  // definition typed for its own arguments must still be accepted without a cast at
-  // the call site. The host's types are preserved where they matter — in the
-  // definition's own `operation` and `execute`.
-  definitions: readonly AffiantToolDefinition<any, any>[],
+  // The core's own default generics, `<never, unknown>`, which make the bare
+  // `ToolDefinition` a supertype of every concrete one — so a host's
+  // `ToolDefinition<TicketArgs, string>` and a host's `readonly ToolDefinition[]`
+  // variable both go in without a cast. Widening these to `any` would make the
+  // second fail under `strictFunctionTypes`, because `any` is not assignable to the
+  // `never` that `execute`'s first parameter reads as.
+  definitions: readonly AffiantToolDefinition[],
   options: AffiantToolsOptions = {},
 ): AffiantToolSet {
   const tools: Record<string, ToolSet[string]> = {};
@@ -340,13 +386,20 @@ export function affiantTools(
     }
 
     const inputSchema = modelSchemaOf(definition);
-    const classification = classify(definition);
+    // The definition as it reads *now*. Everything below — the coverage check, the
+    // `operation` check, and the gated closure — reads this copy, so a definition a
+    // host mutates after wire-up (a `writeCapable` that flips, an `execute` swapped
+    // in) cannot turn a checked tool into an unchecked one behind the ToolSet's back
+    // (CV-1: there is no option that turns the gate off, and a mutation is not an
+    // option either).
+    const snapshot: AffiantToolDefinition = Object.freeze({ ...definition });
 
-    if (definition.writeCapable) {
+    if (snapshot.writeCapable) {
+      const classification = classify(snapshot);
       if (!classification.covered && gate.coverage.lookup(name) === null) {
         throw coverageRefusal(name, classification.category);
       }
-      if (typeof definition.operation !== "function") {
+      if (typeof snapshot.operation !== "function") {
         throw new AffiantError(
           "wireup-invalid",
           `CV-1: write-capable tool ${JSON.stringify(name)} declares no \`operation\`. A write ` +
@@ -356,15 +409,18 @@ export function affiantTools(
           { toolName: name },
         );
       }
-      tools[name] = gatedTool(gate, definition, inputSchema, onResult);
+      tools[name] = gatedTool(gate, snapshot, inputSchema, onResult);
       continue;
     }
 
-    if (!classification.covered) {
-      tools[name] = declaredTool(definition, inputSchema);
-      continue;
-    }
-    tools[name] = gatedTool(gate, definition, inputSchema, onResult);
+    // A read. The only question is whether there is a function to call: a read the
+    // client or the provider runs is declared to the model and executed by nobody
+    // here, and everything else goes through the gate so the host's own function is
+    // reached with this call's explicit context (GT-2).
+    tools[name] =
+      typeof snapshot.execute === "function"
+        ? gatedTool(gate, snapshot, inputSchema, onResult)
+        : declaredTool(snapshot, inputSchema);
   }
 
   return tools as AffiantToolSet;
@@ -379,26 +435,42 @@ function modelSchemaOf(definition: AffiantToolDefinition): JsonSchemaObject {
   return supplied;
 }
 
+/** The abort a discarded generation deserves, in the shape the SDK recognises. */
+function abortError(signal: AbortSignal): unknown {
+  const reason: unknown = signal.reason;
+  if (reason instanceof Error) return reason;
+  // `name === "AbortError"` is what the SDK's own `isAbortError` looks for.
+  return new DOMException("The generation was aborted before the tool ran.", "AbortError");
+}
+
 /** A tool the adapter puts the gate in front of. */
 function gatedTool(
   gate: Gate,
-  definition: AffiantToolDefinition<any, any>,
+  definition: AffiantToolDefinition,
   inputSchema: JsonSchemaObject,
   onResult: AffiantToolsOptions["onResult"],
 ): ToolSet[string] {
   const name = definition.name;
-  return tool({
+  // The definition the gate is handed. `wrap` is generic over the tool's own argument
+  // type, and what arrives here is the model's input — `unknown` at this seam,
+  // whatever the host's own signature says.
+  const forGate = definition as unknown as ToolDefinition<unknown, unknown>;
+  const built = tool({
     description: definition.description,
     inputSchema: jsonSchema<unknown>(inputSchema as Parameters<typeof jsonSchema>[0]),
     contextSchema: TURN_CONTEXT_FLEX_SCHEMA,
-    async execute(input: unknown, { context }): Promise<GatedToolResult<unknown>> {
+    async execute(input: unknown, { context, abortSignal }): Promise<GatedToolResult<unknown>> {
       // The context is this call's, validated, and used once. Not stored, not
       // defaulted, not read from anywhere else (GT-2).
       const turn = requireContext(context, name).turn;
+      // An abandoned generation should not leave a row on somebody's Docket for a
+      // person to decide on. A filing already under way still completes — the gate
+      // takes no signal — but one that has not started does not begin (AZ-7).
+      if (abortSignal?.aborted === true) throw abortError(abortSignal);
       // The only function called from this closure. For a write-capable definition
-      // the gate's write path never reaches `definition.execute` (GT-6); for a read
-      // it calls it with this same context as its second argument.
-      const result = await gate.wrap(definition, turn).execute(input);
+      // the gate's write path never calls `definition.execute` (GT-6); for a read it
+      // calls it with this same context as its second argument.
+      const result = await gate.wrap(forGate, turn).execute(input);
       if (onResult !== undefined) await onResult(result, turn);
       return result;
     },
@@ -406,11 +478,12 @@ function gatedTool(
       return { type: "json", value: modelSummary(output as GatedToolResult<unknown>) };
     },
   });
+  return markGated(built, gate);
 }
 
 /**
  * A tool the adapter declares to the model and executes nobody's code for: a read
- * with no `execute`, or one the provider or the client runs.
+ * with no `execute`.
  *
  * It carries no `contextSchema` and no `execute`, which is also what ends an agent
  * loop when the model calls it — the SDK stops when a tool has no `execute`, and the
@@ -420,11 +493,13 @@ function declaredTool(
   definition: AffiantToolDefinition,
   inputSchema: JsonSchemaObject,
 ): ToolSet[string] {
-  return tool({
-    description: definition.description,
-    inputSchema: jsonSchema<unknown>(inputSchema as Parameters<typeof jsonSchema>[0]),
-    outputSchema: jsonSchema<unknown>({}),
-  });
+  return Object.freeze(
+    tool({
+      description: definition.description,
+      inputSchema: jsonSchema<unknown>(inputSchema as Parameters<typeof jsonSchema>[0]),
+      outputSchema: jsonSchema<unknown>({}),
+    }),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -432,24 +507,73 @@ function declaredTool(
 // ---------------------------------------------------------------------------
 
 /**
+ * The key an adapter-built tool records its gate under.
+ *
+ * A **registered** symbol, not a module-local one and not an object identity: two
+ * copies of this package in one dependency tree — a host on one version, a library on
+ * another — resolve `Symbol.for` to the same symbol, so a set built by either is
+ * recognised by either. It is an ordinary enumerable property, so a host's structural
+ * copy of a tool (`{ ...tools.x }`) carries the mark with it rather than losing the
+ * context and failing at the call.
+ *
+ * The value is the {@link Gate} the tool was built for, which is what lets
+ * {@link affiantToolsContext} refuse a set holding two gates' tools.
+ */
+const GATE_OF = Symbol.for("affiant.adapter-ai-sdk.gate");
+
+/** Record the gate `built` was made for, and freeze it. */
+function markGated(built: ToolSet[string], gate: Gate): ToolSet[string] {
+  const marked = Object.assign(built, { [GATE_OF]: gate });
+  // Frozen so nothing can add `needsApproval` to an adapter-built tool after the
+  // fact: the SDK's approval flow reconstructs approval from client-supplied history,
+  // and AZ-5 puts approval authority on the Docket row and nowhere else.
+  return Object.freeze(marked);
+}
+
+/** The gate a tool was built for, or `null` when this adapter did not build it. */
+function gateOf(entry: unknown): Gate | null {
+  if (typeof entry !== "object" || entry === null) return null;
+  const gate = (entry as { readonly [GATE_OF]?: unknown })[GATE_OF];
+  return gate === undefined || gate === null ? null : (gate as Gate);
+}
+
+/**
  * The `toolsContext` map for one turn: `{ turn: ctx }` under the name of every tool
  * in `tools` this adapter gated.
  *
- * Built per turn and passed on the generation call. A tool a host added to the same
+ * Built per turn and passed on the generation call. A tool the host added to the same
  * `ToolSet` itself is left out, so a host's own context for its own tools is not
- * overwritten by this one.
+ * overwritten by this one — and a tool the host added that writes without going
+ * through {@link affiantTools} is outside the guarantee altogether, because there is
+ * nothing here that could have seen it.
+ *
+ * @throws AffiantError `"wireup-invalid"` when `tools` holds gated tools built for
+ *         **more than one gate**. One map carries one turn context, and a turn belongs
+ *         to one tenant: handing it to two gates' tools would run a call under a
+ *         wiring its context was never meant for (GT-2, CV-1).
  */
 export function affiantToolsContext(
   ctx: TurnContext,
   tools: ToolSet,
 ): Record<string, AffiantToolContext> {
   const map: Record<string, AffiantToolContext> = {};
+  let seen: Gate | null = null;
   for (const [name, entry] of Object.entries(tools)) {
-    if (
-      (entry as { readonly contextSchema?: unknown }).contextSchema === TURN_CONTEXT_FLEX_SCHEMA
-    ) {
-      map[name] = { turn: ctx };
+    const gate = gateOf(entry);
+    if (gate === null) continue;
+    if (seen !== null && seen !== gate) {
+      throw new AffiantError(
+        "wireup-invalid",
+        `CV-1: the tool set holds tools built for two different gates, and one turn context ` +
+          `cannot stand for both — a turn belongs to one tenant and one wiring (GT-2). Build ` +
+          `one context map per gate's tool set, and pass the set that matches the gate this ` +
+          `turn is running against. ${JSON.stringify(name)} is the first tool from the second ` +
+          `gate.`,
+        { toolName: name },
+      );
     }
+    seen = gate;
+    map[name] = { turn: ctx };
   }
   return map;
 }

@@ -366,11 +366,70 @@ describe("the model-facing input schema is derived from the field schema (A-5)",
     ).toThrow(AffiantError);
   });
 
-  it("refuses a nested host schema", () => {
+  it("refuses a host schema that is not an object at all", () => {
     const gate = testGate();
     expect(() =>
       affiantTools(gate, [{ ...writeTool(), modelInputSchema: { type: "string" } }]),
     ).toThrow(/flat object/);
+  });
+
+  it("refuses a nested host schema", () => {
+    const gate = testGate();
+    const failure = (() => {
+      try {
+        affiantTools(gate, [
+          {
+            ...writeTool(),
+            modelInputSchema: {
+              type: "object",
+              properties: {
+                priority: {
+                  type: "object",
+                  properties: { level: { type: "string" }, note: { type: "string" } },
+                },
+              },
+            },
+          },
+        ]);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+
+    expect((failure as AffiantError).code).toBe("wireup-invalid");
+    expect((failure as AffiantError).message).toContain("nested object");
+  });
+
+  it("refuses a host schema with an array property", () => {
+    const gate = testGate();
+    expect(() =>
+      affiantTools(gate, [
+        {
+          ...writeTool(),
+          modelInputSchema: {
+            type: "object",
+            properties: { priority: { type: "array", items: { type: "string" } } },
+          },
+        },
+      ]),
+    ).toThrow(/array/);
+  });
+
+  it("refuses a host schema requiring a property the field schema does not declare", () => {
+    const gate = testGate();
+    expect(() =>
+      affiantTools(gate, [
+        {
+          ...writeTool(),
+          modelInputSchema: {
+            type: "object",
+            properties: { priority: { type: "string" } },
+            required: ["priority", "assignee"],
+          },
+        },
+      ]),
+    ).toThrow(/"assignee", which the field schema does not declare/);
   });
 });
 

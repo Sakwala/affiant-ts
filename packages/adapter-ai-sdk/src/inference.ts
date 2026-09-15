@@ -129,9 +129,10 @@ export function createInferencePort(options: InferencePortOptions): InferencePor
           const presence = presenceOf(field.presence);
           fields[entry.name] = {
             value: field.value as JsonValue,
-            // Out of range or not a number at all reads as no confidence rather than
-            // a confident nothing. The pipeline clamps whatever arrives (PV-1); this
-            // is the floor for a port that answered with prose.
+            // Not a number at all reads as no confidence rather than as a confident
+            // nothing. A number outside `0`–`1` is passed through as reported: the
+            // pipeline clamps whatever arrives (PV-1), and clamping here as well
+            // would be a second opinion on a rule that has an owner.
             confidence: isFiniteNumber(field.confidence) ? field.confidence : 0,
             ...(presence === undefined ? {} : { presence }),
           };

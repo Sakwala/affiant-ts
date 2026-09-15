@@ -8,12 +8,13 @@
  * step, and the loop ends there.
  */
 
-import { streamText, ToolLoopAgent } from "ai";
+import { isAffiantError } from "@affiant/core";
+import { generateText, streamText, ToolLoopAgent } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { affiantTools, affiantToolsContext, stopWhenFiled } from "../src/index.js";
 
-import { scriptedModel, testGate, turnContext, writeTool } from "./support.js";
+import { docketRows, scriptedModel, testGate, turnContext, writeTool } from "./support.js";
 
 describe("a ToolLoopAgent run ends at the filing (A-4, AZ-5)", () => {
   it("files once, stops, and never runs the host's execute", async () => {
@@ -78,6 +79,36 @@ describe("a ToolLoopAgent run ends at the filing (A-4, AZ-5)", () => {
     expect(await gate.get(b, second)).not.toBeNull();
   });
 
+  it("refuses a turn prepareStep does not answer for, when prepareStep is the only source", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    const ctx = turnContext();
+    let current: ReturnType<typeof turnContext> | null = ctx;
+
+    const agent = new ToolLoopAgent({
+      // One scripted step, so every turn's first model call is the same tool call.
+      model: scriptedModel([{ call: "update_ticket", input: { priority: "High" } }]),
+      tools,
+      stopWhen: stopWhenFiled(),
+      // The only source of the turn. No constructor-level `toolsContext`.
+      prepareStep: () =>
+        current === null ? {} : { toolsContext: affiantToolsContext(current, tools) },
+    });
+
+    const first = await agent.generate({ prompt: ctx.turn.utterance });
+    expect((first.steps[0]?.toolResults[0]?.output as { kind: string }).kind).toBe("write");
+
+    // Turn two arrives and the host forgot to name it. Nothing is filed for it.
+    current = null;
+    const failure = await agent
+      .generate({ prompt: "and set it back to Low" })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect(isAffiantError((failure as { cause?: unknown }).cause)).toBe(true);
+    expect(await docketRows(gate)).toHaveLength(1);
+  });
+
   it("runs on when the model does not file, because only a filing stops the loop", async () => {
     const gate = testGate();
     const tools = affiantTools(gate, [writeTool()]);
@@ -131,5 +162,31 @@ describe("the same path through streamText (A-10)", () => {
     const output = steps[0]?.toolResults[0]?.output as { kind: string; entryId: string };
     expect(output.kind).toBe("write");
     expect(await gate.get(output.entryId, ctx)).not.toBeNull();
+  });
+});
+
+describe("how the refusal reaches a host through the SDK (GT-2)", () => {
+  it("arrives as the SDK's own validation error carrying the AffiantError as cause", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    const ctx = turnContext();
+
+    // The host forgot `toolsContext` altogether.
+    const failure = await generateText({
+      model: scriptedModel([
+        { call: "update_ticket", input: { priority: "High" } },
+        { text: "Filed it." },
+      ]),
+      tools,
+      stopWhen: stopWhenFiled(),
+      prompt: ctx.turn.utterance,
+    }).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    const cause = (failure as { cause?: unknown }).cause;
+    expect(isAffiantError(cause)).toBe(true);
+    expect((cause as { code: string }).code).toBe("wireup-invalid");
+    expect((cause as Error).message).toContain("GT-2");
+    expect(await docketRows(gate)).toHaveLength(0);
   });
 });
