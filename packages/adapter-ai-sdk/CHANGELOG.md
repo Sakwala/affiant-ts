@@ -17,10 +17,10 @@ the [root changelog](../../CHANGELOG.md).
   the SDK supplied for that call; `affiantToolsContext(ctx, tools)` builds the
   `toolsContext` map a host passes per turn; `stopWhenFiled()` ends an agent loop once an
   Affidavit is filed; and `@affiant/adapter-ai-sdk/inference` exposes
-  `createInferencePort({ model })`, one tool-free structured call per inference. A tool
-  set carries the gate it was built for under a registered symbol, so
-  `affiantToolsContext` recognises the tools it should name even across a structural copy
-  or a second copy of this package, and refuses a set holding two gates' tools (CV-1).
+  `createInferencePort({ model })`, one tool-free structured call per inference. Each
+  gated tool carries the gate it was built for under a registered symbol, which is what
+  lets a refusal say precisely what it is looking at, and `affiantToolsContext` refuses a
+  set holding two gates' tools (CV-1).
 
 - **Coverage is settled when the `ToolSet` is built, not on the first call** (CV-4,
   CV-1). A write-capable definition the adapter cannot intercept — provider-executed,

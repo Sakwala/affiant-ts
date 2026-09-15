@@ -267,7 +267,7 @@ describe("one context map stands for one gate (GT-2, CV-1)", () => {
     expect((failure as AffiantError).details["toolName"]).toBe("update_invoice");
   });
 
-  it("refuses a copy of a gated tool, because a copy is not the object that was checked", () => {
+  it("refuses a copy of a gated tool, because a copy is not the object that was built", () => {
     const gate = testGate();
     const tools = affiantTools(gate, [writeTool()]);
     const copied = { copied_tool: { ...(tools["update_ticket"] as object) } };
@@ -282,7 +282,37 @@ describe("one context map stands for one gate (GT-2, CV-1)", () => {
     })();
 
     expect((failure as AffiantError).code).toBe("wireup-invalid");
-    expect((failure as AffiantError).message).toContain("is not the object");
+    expect((failure as AffiantError).message).toContain("is not an object this copy");
+  });
+
+  it("refuses a frozen copy carrying its own execute, which nothing but identity catches", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    let ran = 0;
+    // The forgery: frozen, no `needsApproval`, keeps the mark - and runs the host's own
+    // function instead of the gate. Only the register tells it from the real thing.
+    const forged = Object.freeze({
+      ...(tools["update_ticket"] as object),
+      execute: () => {
+        ran += 1;
+        return "written";
+      },
+    });
+
+    const failure = (() => {
+      try {
+        affiantToolsContext(turnContext(), { update_ticket: forged } as never);
+        return null;
+      } catch (error) {
+        return error;
+      }
+    })();
+
+    expect((failure as AffiantError).code).toBe("wireup-invalid");
+    expect((failure as AffiantError).message).toContain("is not an object this copy");
+    expect((failure as AffiantError).details["toolName"]).toBe("update_ticket");
+    expect(ran).toBe(0);
+    expect(await docketRows(gate)).toHaveLength(0);
   });
 
   it("refuses a copy that adds the SDK's approval flag (AZ-5)", () => {
@@ -329,14 +359,22 @@ describe("one context map stands for one gate (GT-2, CV-1)", () => {
   });
 });
 
-describe("a principal has to be one the core would recognise (GT-2, AZ-3)", () => {
+describe("a principal is one of the core two kinds, with non-empty ids (GT-2, AZ-3)", () => {
   const base = turnContext();
   const cases: readonly (readonly [string, unknown])[] = [
     ["an empty object", {}],
     ["an array", []],
     ["a Date", new Date()],
     ["a kind the core does not define", { kind: "robot", id: "r-1" }],
-    ["a member with no id", { kind: "member", id: "" }],
+    // The next three are admitted by the core's `Principal` type, which says `string`.
+    // This seam is stricter on purpose: a blank id travels onto an attestation record
+    // where a reader can no longer tell it from an absent one (AZ-1).
+    ["a member with a blank id", { kind: "member", id: "" }],
+    ["a service with a blank assertedMember", { kind: "service", id: "svc-1", assertedMember: "" }],
+    [
+      "a relay assertion with a blank channel identity",
+      { kind: "service", id: "relay-1", relay: { channelIdentity: "", messageId: "wamid-1" } },
+    ],
     [
       "a relay assertion missing its message id",
       { kind: "service", id: "relay-1", relay: { channelIdentity: "+94770000000" } },

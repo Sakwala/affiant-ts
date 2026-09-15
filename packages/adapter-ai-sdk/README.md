@@ -69,10 +69,12 @@ That refusal reaches a host differently on each surface, and on neither is it th
 `TypeValidationError` with the `AffiantError` as `cause`. `generateText` **throws** it,
 so `catch (error) { error.cause }` reaches it. `streamText` **throws nothing and rejects
 nothing**: the tool call is dropped from the step — the step's content is the
-`tool-call` part with no tool result beside it — and the `TypeValidationError` goes only
-to the `onError` callback, so a host that passes none sees a turn in which the model
-called a tool and nothing came back. Either way **nothing is filed**. Calling a tool's
-`execute` yourself throws the `AffiantError` unwrapped.
+`tool-call` part with no tool result beside it. The `TypeValidationError` reaches the
+host in two places: the `onError` callback, and an `error` part on `fullStream`. A host
+that passes no `onError` and reads only `textStream` sees a turn in which the model
+called a tool and nothing came back, with the SDK's default handler printing the error
+to stderr. Either way **nothing is filed**. Calling a tool's `execute` yourself throws
+the `AffiantError` unwrapped.
 
 `toolsContext` is a constructor setting on `ToolLoopAgent` rather than a `generate()`
 argument, so the constructor form above is for an agent built for **exactly one turn**
@@ -189,19 +191,27 @@ can see is a tool that opens its own connection and writes inside its body. That
 limit, stated as one rather than pretended away: a tool that writes in its body is
 outside the guarantee.
 
-So is a tool the host puts into the `ToolSet` itself, after `affiantTools` has returned.
-It carries no mark of this package's, so `affiantToolsContext` leaves it alone; nothing
-here saw it, so nothing here refuses it. If it writes, it writes ungated.
+So is a tool of the host's own, sitting in the same set. The returned set is **frozen**,
+so a host adding tools beside the gated ones spreads it into a new object —
+`{ ...affiantTools(gate, definitions), ...myOwnTools }` — and its own tools carry no
+mark of this package's. `affiantToolsContext` leaves them alone; nothing here saw them,
+so nothing here refuses them. If one of them writes, it writes ungated.
 
-A **copy** of a gated tool is a different matter, and is refused. Every gated tool is
-frozen when it is built and carries the gate it was built for, and `affiantToolsContext`
-throws `wireup-invalid` for any marked tool that is no longer frozen or that carries a
-`needsApproval` setting. The copy that makes this worth checking is
-`{ ...tools.update_ticket, needsApproval: true }`: it keeps the mark, so without the
-check it would be named in the context map, and the SDK would answer the step with an
-approval request and file nothing — approval reconstructed from the message history the
-client sends back, which is the path AZ-5 closes. Pass the set `affiantTools` returned;
-it is frozen too.
+A **copy** of a gated tool is a different matter, and is refused. This package keeps a
+private register of the tool objects it built, and `affiantToolsContext` names only
+objects in it: anything carrying the package's mark that is not one of them throws
+`wireup-invalid`, and so does any marked tool carrying a `needsApproval` setting, with
+its own message. Two copies are worth naming. `{ ...tools.update_ticket,
+needsApproval: true }` would make the SDK answer the step with an approval request and
+file nothing — approval reconstructed from the message history the client sends back,
+the path AZ-5 closes. `{ ...tools.update_ticket, execute: mine }`, frozen, carrying no
+approval flag, is a gated tool in every respect except having the gate in front of it;
+nothing but identity tells them apart.
+
+That register is **this copy's**, which has a consequence worth knowing if two versions
+of this package end up in one dependency tree: neither recognises the other's tools, and
+each refuses them by name rather than quietly leaving them out of the map. Build each
+set's context with the same copy that built the set.
 
 An aborted generation is a third edge worth naming. A tool call that has not begun when
 the signal fires does not begin, and nothing is filed; a filing already under way runs to

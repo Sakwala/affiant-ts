@@ -200,6 +200,34 @@ describe("how the refusal reaches a host through the SDK (GT-2)", () => {
     expect(await docketRows(gate)).toHaveLength(0);
   });
 
+  it("also puts the failure on fullStream as an error part", async () => {
+    const gate = testGate();
+    const tools = affiantTools(gate, [writeTool()]);
+    const ctx = turnContext();
+
+    const result = streamText({
+      model: scriptedModel([
+        { call: "update_ticket", input: { priority: "High" } },
+        { text: "Filed it." },
+      ]),
+      tools,
+      stopWhen: stopWhenFiled(),
+      prompt: ctx.turn.utterance,
+      onError() {
+        // Swallowed here so the SDK's default handler, which prints to stderr, does
+        // not run: what this test is about is the stream, not the console.
+      },
+    });
+
+    const parts: { readonly type: string; readonly error?: unknown }[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+
+    const errorParts = parts.filter((part) => part.type === "error");
+    expect(errorParts).toHaveLength(1);
+    expect(isAffiantError((errorParts[0]?.error as { cause?: unknown }).cause)).toBe(true);
+    expect(await docketRows(gate)).toHaveLength(0);
+  });
+
   it("is what generateText throws, carrying the AffiantError as cause", async () => {
     const gate = testGate();
     const tools = affiantTools(gate, [writeTool()]);

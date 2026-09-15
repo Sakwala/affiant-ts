@@ -192,8 +192,6 @@ const NOT_SCALAR_KEYWORDS: readonly string[] = [
   "else",
   "properties",
   "patternProperties",
-  "additionalProperties",
-  "unevaluatedProperties",
   "propertyNames",
   "dependentSchemas",
   "dependentRequired",
@@ -228,9 +226,20 @@ function scalarFault(property: JsonSchemaObject): string | null {
 
   const type = property.type;
   const enumerated = property.enum;
+  const constant: unknown = property["const"];
 
   if (Array.isArray(type)) {
-    return `with a list of types (${type.map((each) => String(each)).join(", ")}); a sworn field is one value of one kind.`;
+    // `["string", "null"]` is 2020-12's nullable string. One kind plus `null` is still
+    // one kind: a `null` value is nothing reported for the field (AF-1), not a second
+    // sort of thing to swear to.
+    const kinds = type.filter((each) => each !== "null");
+    if (kinds.length !== 1 || !SCALAR_TYPES.includes(String(kinds[0]))) {
+      return (
+        `with a list of types (${type.map((each) => String(each)).join(", ")}); a sworn field ` +
+        `is one value of one kind, optionally nullable.`
+      );
+    }
+    return null;
   }
   if (type !== undefined && (typeof type !== "string" || !SCALAR_TYPES.includes(type))) {
     return `as \`${String(type)}\`; a sworn field is one of ${SCALAR_TYPES.join(", ")}.`;
@@ -244,8 +253,13 @@ function scalarFault(property: JsonSchemaObject): string | null {
     }
     return null;
   }
+  if (Object.prototype.hasOwnProperty.call(property, "const")) {
+    return isScalarValue(constant)
+      ? null
+      : "with a `const` that is not a scalar value; a sworn field is one value.";
+  }
   if (type === undefined) {
-    return "without a `type` or an `enum`, so nothing says it is one scalar value.";
+    return "without a `type`, an `enum` or a `const`, so nothing says it is one scalar value.";
   }
   return null;
 }
@@ -273,13 +287,22 @@ function scalarFault(property: JsonSchemaObject): string | null {
  * so the rule is the other way round: a property is admitted when it **is** a scalar
  * and refused otherwise.
  *
- * Admitted: a `type` of exactly `"string"`, `"number"`, `"integer"` or `"boolean"`; or
- * an `enum` of scalar values, with or without such a `type`. Refused: no `type` and no
- * `enum`, a `type` that is a list, any other `type`, and any of the composition,
- * reference and sub-schema keywords — `$ref`, `oneOf`, `anyOf`, `allOf`, `not`,
- * `if`/`then`/`else`, `properties`, `patternProperties`, `additionalProperties`,
- * `unevaluatedProperties`, `propertyNames`, `dependentSchemas`, `items`,
+ * Admitted: a `type` of exactly `"string"`, `"number"`, `"integer"` or `"boolean"`; the
+ * same as a one-element list, with `"null"` allowed beside it (`["string", "null"]` is
+ * how 2020-12 spells a nullable string, and a field that reads `null` is a field the
+ * gate records as nothing reported — AF-1); an `enum` of scalar values; or a `const`
+ * that is a scalar. Refused: nothing that says what the value is, a list naming more
+ * than one kind, any other `type`, and the composition, reference and sub-schema
+ * keywords — `$ref`, `oneOf`, `anyOf`, `allOf`, `not`, `if`/`then`/`else`,
+ * `properties`, `patternProperties`, `propertyNames`, `dependentSchemas`, `items`,
  * `prefixItems`, `contains`, `unevaluatedItems`, `$defs`, `definitions`.
+ *
+ * `additionalProperties` and `unevaluatedProperties` are **ignored** on a property that
+ * is otherwise a scalar. They constrain the members of an object and a scalar has none,
+ * so on `{ "type": "string", "additionalProperties": false }` they say nothing at all —
+ * and a property that really is an object is already refused by its `type` or by
+ * `properties`. Refusing a keyword that changes nothing would mean telling a host its
+ * schema describes an object when it does not.
  *
  * What is *not* checked is anything that only narrows a scalar: a `pattern`, a
  * `format`, a `minimum`, a longer `description` or a shorter `enum` than the derived

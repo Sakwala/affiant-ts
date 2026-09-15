@@ -147,14 +147,23 @@ function named(value: unknown): value is string {
 }
 
 /**
- * Whether `value` is a {@link Principal} the core would recognise, or `null`.
+ * Whether `value` is a principal this seam will pass to the gate, or `null`.
  *
- * `null` is "no identity resolved", and a decision made under it is refused on
- * identity grounds (AZ-2). Anything else has to be one of the two kinds the core
- * defines, with an id: `{}`, `[]` and a `Date` are none of them, and admitting one
- * puts a principal on the record that no attestation rule can read (AZ-3). A relay's
- * assertion is checked where it is present, because that is what names the person a
- * service says it speaks for and the message it is carrying.
+ * `null` is "no identity resolved", and a decision made under it is refused on identity
+ * grounds (AZ-2). Anything else has to be one of the two kinds the core defines —
+ * `"member"` or `"service"` — carrying an id: `{}`, `[]` and a `Date` are none of them,
+ * and admitting one puts a principal on the record that no attestation rule can read
+ * (AZ-3).
+ *
+ * **Stricter than the core's type, deliberately.** `Principal` types `id`,
+ * `assertedMember`, `relay.channelIdentity` and `relay.messageId` as `string`, which
+ * admits `""`. This seam requires each of them to be **non-empty** where it is present,
+ * for the same reason the turn's own identifiers must be: a blank id is not an
+ * identity, and it travels onto an attestation record (AZ-1) where a reader can no
+ * longer tell it from an absent one. So a host that would have been admitted by the
+ * type is refused here, at wire-up, rather than at the point somebody reads the record.
+ * Both of `relay`'s fields are checked where a `relay` is present, and
+ * `assertedMember` where it is present.
  */
 function isPrincipal(value: unknown): boolean {
   if (value === null) return true;
@@ -457,8 +466,11 @@ export function affiantTools(
   }
 
   // The set itself is frozen too, so a host that means to add a tool has to build a
-  // new object — and the one it builds is the one `affiantToolsContext` inspects.
-  return Object.freeze(tools) as AffiantToolSet;
+  // new object — and the one it builds is the one `affiantToolsContext` inspects. It
+  // is registered so a refusal can say whether the set it was handed came from here.
+  const built = Object.freeze(tools);
+  BUILT_SETS.add(built);
+  return built as AffiantToolSet;
 }
 
 /** The model-facing schema for one definition: the host's, checked, or the derived one (AF-1). */
@@ -544,29 +556,47 @@ function declaredTool(
 /**
  * The key an adapter-built tool records its gate under.
  *
- * A **registered** symbol, not a module-local one and not an object identity: two
- * copies of this package in one dependency tree — a host on one version, a library on
- * another — resolve `Symbol.for` to the same symbol, so a set built by either is
- * recognised by either. It is an ordinary enumerable property, which is also why a
- * *copy* of a gated tool carries the mark: a copy that claims to be a gated tool has
- * to answer for the claim, and {@link affiantToolsContext} makes it.
+ * A **registered** symbol (`Symbol.for`), so that a second copy of this package in the
+ * same dependency tree reads the same key and can say *what* it is looking at. It is
+ * the **diagnostic**, not the credential: it is an ordinary enumerable property, so any
+ * copy of a gated tool carries it, and a mark a copy can carry is a mark a copy can
+ * forge. What decides whether an object is a gated tool is {@link BUILT_TOOLS}.
  *
  * The value is the {@link Gate} the tool was built for, which is what lets
  * {@link affiantToolsContext} refuse a set holding two gates' tools.
  */
 const GATE_OF = Symbol.for("affiant.adapter-ai-sdk.gate");
 
-/** Record the gate `built` was made for, and freeze it. */
+/**
+ * The tool objects this module built — the credential the mark only points at.
+ *
+ * Membership cannot be spread, copied, assigned or forged: an object is in here if and
+ * only if {@link gatedTool} returned it, which is the only way an object has the gate
+ * in front of its `execute`. A frozen copy carrying its own `execute` and no
+ * `needsApproval` satisfies every property a gated tool has *except* being one, and
+ * identity is the only thing that tells them apart (GT-6, AZ-5).
+ *
+ * A `WeakSet` because it holds no tool alive: a host that discards a tool set discards
+ * the tools with it.
+ *
+ * **This copy's, not the package's.** Two copies of this package hold two of these, so
+ * neither recognises the other's tools — and refuses them by name rather than skipping
+ * them. That is the honest answer: this copy can vouch for what it built and for
+ * nothing else.
+ */
+const BUILT_TOOLS = new WeakSet<object>();
+
+/** The tool sets this module returned, so a refusal can say where the set came from. */
+const BUILT_SETS = new WeakSet<object>();
+
+/** Record the gate `built` was made for, register it, and freeze it. */
 function markGated(built: ToolSet[string], gate: Gate): ToolSet[string] {
-  const marked = Object.assign(built, { [GATE_OF]: gate });
-  // Frozen, and checked for still being frozen where the mark is read: an object that
-  // carries the mark but is not the object this package built is not a gated tool, and
-  // the difference is what stops `{ ...tool, needsApproval: true }` from passing as
-  // one (AZ-5).
-  return Object.freeze(marked);
+  const marked = Object.freeze(Object.assign(built, { [GATE_OF]: gate }));
+  BUILT_TOOLS.add(marked);
+  return marked;
 }
 
-/** The gate a tool was built for, or `null` when this adapter did not build it. */
+/** The gate a tool claims to have been built for, or `null` when it claims none. */
 function gateOf(entry: unknown): Gate | null {
   if (typeof entry !== "object" || entry === null) return null;
   const gate = (entry as { readonly [GATE_OF]?: unknown })[GATE_OF];
@@ -583,24 +613,32 @@ function gateOf(entry: unknown): Gate | null {
  * {@link affiantTools} is outside the guarantee: it carries no mark either, and
  * nothing here saw it to refuse it.
  *
- * What is **not** left alone is an object that carries the mark and is not the object
- * this package built — a copy. Naming it in the context map would hand a turn's
- * context to something with the gate's name on it and none of the gate in front of it,
- * and the copy that matters is `{ ...tool, needsApproval: true }`: the SDK would then
- * ask the client for approval and reconstruct the answer from the message history it
- * sends back, which is the path AZ-5 exists to close.
+ * What is **not** left alone is an object that carries the mark and is not one this
+ * copy of the package built. Naming it would hand a turn's context to something with
+ * the gate's name on it and none of the gate in front of it. Two shapes of that:
+ * `{ ...tool, needsApproval: true }`, where the SDK would ask the client for approval
+ * and reconstruct the answer from the message history it sends back (the path AZ-5
+ * closes); and `{ ...tool, execute: mine }`, a frozen copy carrying its own function,
+ * which nothing but identity can tell from the real one (GT-6). Both are refused, with
+ * the message that says which.
  *
- * @throws AffiantError `"wireup-invalid"` when a marked tool is not frozen or carries
- *         `needsApproval` (AZ-5, CV-1), or when `tools` holds gated tools built for
- *         **more than one gate** — one map carries one turn context, and a turn belongs
- *         to one tenant, so handing it to two gates' tools would run a call under a
- *         wiring its context was never meant for (GT-2, CV-1).
+ * A tool built by a **second copy** of this package is refused the same way. Two copies
+ * hold two registers, and neither can vouch for the other's objects — so it says so,
+ * by name, rather than quietly leaving the tool out of the map and letting the call
+ * fail later for a reason that reads like a host's mistake.
+ *
+ * @throws AffiantError `"wireup-invalid"` when a marked tool carries `needsApproval`
+ *         (AZ-5) or is not an object this copy built (CV-1, GT-6), or when `tools`
+ *         holds gated tools built for **more than one gate** — one map carries one turn
+ *         context, and a turn belongs to one tenant, so handing it to two gates' tools
+ *         would run a call under a wiring its context was never meant for (GT-2, CV-1).
  */
 export function affiantToolsContext(
   ctx: TurnContext,
   tools: ToolSet,
 ): Record<string, AffiantToolContext> {
   const map: Record<string, AffiantToolContext> = {};
+  const ourSet = BUILT_SETS.has(tools);
   let seen: Gate | null = null;
   for (const [name, entry] of Object.entries(tools)) {
     const gate = gateOf(entry);
@@ -617,13 +655,20 @@ export function affiantToolsContext(
         { toolName: name },
       );
     }
-    if (!Object.isFrozen(entry)) {
+    if (!BUILT_TOOLS.has(entry)) {
       throw new AffiantError(
         "wireup-invalid",
-        `CV-1: tool ${JSON.stringify(name)} carries this package's mark but is not the object ` +
-          `this package built — every gated tool is frozen when it is made, and this one is ` +
-          `not. Pass the tool set \`affiantTools\` returned. A copy can be changed after the ` +
-          `checks that made it safe, so it is refused rather than given a turn's context.`,
+        `CV-1: tool ${JSON.stringify(name)} carries this package's mark but is not an object ` +
+          `this copy of the package built. A copy of a gated tool keeps the mark and can carry ` +
+          `its own \`execute\`, so the mark says what an object claims and not what it is; only ` +
+          `the object built by \`affiantTools\` has the gate in front of it (GT-6). ` +
+          (ourSet
+            ? `This set came from \`affiantTools\`, so something replaced the entry in it. `
+            : `Pass the set \`affiantTools\` returned — spread it into a new object if you are ` +
+              `adding tools of your own, keeping the gated entries as they are. If the tool ` +
+              `came from a second copy of this package, build its context map with that copy's ` +
+              `\`affiantToolsContext\`. `) +
+          `It is refused rather than given a turn's context.`,
         { toolName: name },
       );
     }

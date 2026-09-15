@@ -436,9 +436,14 @@ describe("the model-facing input schema is derived from the field schema (A-5)",
       ["anyOf", { anyOf: [{ type: "string" }] }],
       ["allOf", { allOf: [{ type: "string" }] }],
       ["patternProperties", { type: "object", patternProperties: { "^p": { type: "string" } } }],
-      ["additionalProperties", { type: "string", additionalProperties: { type: "string" } }],
-      ["a list of types", { type: ["object", "string"] }],
-      ["nothing at all", { description: "A priority." }],
+      // `additionalProperties` on a scalar is meaningless and ignored; on an object it
+      // is the `type` that refuses.
+      [
+        "additionalProperties beside an object type",
+        { type: "object", additionalProperties: false },
+      ],
+      ["a list naming a kind the record has no place for", { type: ["object", "string"] }],
+      ["nothing that says what the value is", { description: "A priority." }],
       ["a type the record has no place for", { type: "null" }],
     ];
 
@@ -452,6 +457,48 @@ describe("the model-facing input schema is derived from the field schema (A-5)",
             },
           ]),
         `a property described with ${what} must be refused`,
+      ).toThrow(AffiantError);
+    }
+  });
+
+  it("takes the nullable spellings and a scalar const", () => {
+    const gate = testGate();
+    for (const property of [
+      // 2020-12's nullable string. A `null` value is nothing reported for the field,
+      // not a second kind of thing to swear to.
+      { type: ["string", "null"] },
+      { type: ["null", "string"] },
+      { type: ["number"] },
+      { enum: ["High", null] },
+      { const: "High" },
+      { const: 3 },
+      // Meaningless on a scalar, and ignored rather than refused: it constrains the
+      // members of an object and a string has none.
+      { type: "string", additionalProperties: false },
+    ]) {
+      expect(
+        () =>
+          affiantTools(gate, [
+            {
+              ...writeTool(),
+              modelInputSchema: { type: "object", properties: { priority: property } },
+            },
+          ]),
+        `a property described with ${JSON.stringify(property)} must be admitted`,
+      ).not.toThrow();
+    }
+  });
+
+  it("still refuses a list naming two kinds, and a const that is not a scalar", () => {
+    const gate = testGate();
+    for (const property of [{ type: ["string", "number"] }, { const: { level: "High" } }]) {
+      expect(() =>
+        affiantTools(gate, [
+          {
+            ...writeTool(),
+            modelInputSchema: { type: "object", properties: { priority: property } },
+          },
+        ]),
       ).toThrow(AffiantError);
     }
   });
