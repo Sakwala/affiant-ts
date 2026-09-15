@@ -100,6 +100,116 @@ describe("a decision that crosses the deadline while it is being applied (DK-1)"
   });
 });
 
+describe("every reader of a swept row agrees about when it left pending (DK-1, DK-4)", () => {
+  it("keeps a swept row whose deadline is after the retention cut", async () => {
+    // `get` reads the sweep's recorded instant and `retention` reads the view, so the
+    // two have to be reading the same fact. With a cut strictly between the filing and
+    // the deadline, a view that reached for `filed_at` would age the row out while the
+    // entry still reported itself as having left `pending` after the cut.
+    const scope = { tenantId: "tenant-cut" };
+    clock.set(NOON);
+    await store.file(
+      sampleEntry("inside-the-cut", {
+        tenantId: scope.tenantId,
+        filedAt: NOON,
+        expiresAt: DEADLINE,
+      }),
+    );
+    clock.set(SWEEP_RAN_AT);
+    await store.expireDue(SWEEP_RAN_AT, scope, 10);
+
+    const cut = "2026-09-04T09:15:00.000Z";
+    expect((await store.get("inside-the-cut", scope))?.decidedAt).toBe(DEADLINE);
+    expect(await store.retention({ olderThan: cut }, scope, 10)).toEqual({
+      removed: 0,
+      more: false,
+    });
+    expect(await store.get("inside-the-cut", scope)).not.toBeNull();
+
+    // Past the deadline, the same row goes.
+    expect(await store.retention({ olderThan: SWEEP_RAN_AT }, scope, 10)).toEqual({
+      removed: 1,
+      more: false,
+    });
+  });
+});
+
+describe("a stored fact the type forbids is a refusal, not a value (DK-1)", () => {
+  // The fold reads the row, which means it trusts the row, and a row can have been
+  // written by something other than this package. What must never happen is that a
+  // broken record is handed back as though it were a sound one — a `DocketEntry` whose
+  // `decidedAt` is a number or absent is a value every caller's types say cannot exist.
+  const malformed: readonly [string, Record<string, unknown>][] = [
+    ["absent", { status: "expired", execution: null }],
+    ["not an instant", { status: "expired", execution: null, decidedAt: "whenever" }],
+    ["a number", { status: "expired", execution: null, decidedAt: 1_757_000_000_000 }],
+  ];
+
+  for (const [what, payload] of malformed) {
+    it(`refuses an expiry event whose decidedAt is ${what}`, async () => {
+      const scope = { tenantId: `tenant-malformed-${what.replace(/[^a-z]+/g, "-")}` };
+      clock.set(NOON);
+      await store.file(sampleEntry("broken", { tenantId: scope.tenantId }));
+      await database.sql`
+        insert into affiant.docket_events (tenant_id, entry_id, kind, payload, at)
+        values (${scope.tenantId}, ${"broken"}, ${"expiry"},
+                ${database.sql.json(payload as Parameters<typeof database.sql.json>[0])},
+                ${DEADLINE}::timestamptz)`;
+
+      await expect(store.get("broken", scope)).rejects.toThrow(RangeError);
+      // The refusal names the row, because the row is the only thing anybody can act on.
+      await expect(store.get("broken", scope)).rejects.toThrow(/broken/);
+    });
+  }
+});
+
+describe("removing a filing removes what was appended to it (DK-4)", () => {
+  it("takes the events with the filing on purge", async () => {
+    // The foreign key's cascade is the only thing that does this, and nothing that
+    // goes through the store's own interface can see whether it is there: a purged
+    // tenant reads empty either way, while its later facts sit in the events table.
+    const scope = { tenantId: "tenant-purge-cascade" };
+    clock.set(NOON);
+    await store.file(sampleEntry("purged", { tenantId: scope.tenantId }));
+    await store.transition("purged", scope, "pending", {
+      status: "rejected",
+      decision: { kind: "reject", reason: "no", at: NOON },
+    });
+    expect(await eventCount(scope.tenantId)).toBe(1);
+
+    expect(await store.purge(scope.tenantId)).toEqual({ removed: 1 });
+    expect(await eventCount(scope.tenantId)).toBe(0);
+  });
+
+  it("takes the events with the filing on retention", async () => {
+    const scope = { tenantId: "tenant-retention-cascade" };
+    await store.file(
+      sampleEntry("aged-out", { tenantId: scope.tenantId, filedAt: NOON, expiresAt: DEADLINE }),
+    );
+    clock.set(NOON);
+    await store.transition("aged-out", scope, "pending", {
+      status: "rejected",
+      decision: { kind: "reject", reason: "no", at: NOON },
+      decidedAt: NOON,
+    });
+    expect(await eventCount(scope.tenantId)).toBe(1);
+
+    clock.set(SWEEP_RAN_AT);
+    expect(await store.retention({ olderThan: SWEEP_RAN_AT }, scope, 10)).toEqual({
+      removed: 1,
+      more: false,
+    });
+    expect(await eventCount(scope.tenantId)).toBe(0);
+  });
+});
+
+/** How many later facts the tenant's rows carry, read off the table. */
+async function eventCount(tenantId: string): Promise<number> {
+  const rows = await database.sql<{ count: string }[]>`
+    select count(*)::text as count from affiant.docket_events where tenant_id = ${tenantId}`;
+  return Number(rows[0]?.count ?? "0");
+}
+
 /** A clock that answers `first` for its first `answers` reads and `rest` after that. */
 function advancingClock(first: string, rest: string, answers: number): Clock {
   let reads = 0;

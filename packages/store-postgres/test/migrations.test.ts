@@ -144,11 +144,6 @@ describe("the files the package ships", () => {
       }));
   }
 
-  /** The placeholder substituted the way a host vendoring the file would substitute it. */
-  function renderFile(text: string, schema: string): string {
-    return text.split("{{schema}}").join(`"${schema}"`);
-  }
-
   it("carries one constant per file, digesting to what the file digests to", () => {
     const files = shipped();
 
@@ -160,14 +155,19 @@ describe("the files the package ships", () => {
     }
   });
 
-  it("builds a working Docket from the text on disk, not from the constant", async () => {
-    // What a host vendoring the SQL into its own migration sequence actually runs is
-    // the file. If the file and the module ever part company, this is the half that
-    // says which of them is the one that works.
+  it("builds a working Docket from the text on disk, through the shipped renderer", async () => {
+    // What a host vendoring the SQL runs is the file, rendered by the renderer this
+    // package ships. The case above proves the file and the constant are the same
+    // bytes; this one proves those bytes, put through that renderer, build a Docket
+    // that works — which is the half a byte comparison cannot reach.
     const { sql } = await bare();
     const schema = "affiant_from_disk";
     for (const file of shipped()) {
-      await sql.unsafe(renderFile(file.sql, schema));
+      // The package's own renderer, over the file's own bytes. Substituting the
+      // placeholder here instead would be this suite writing a second renderer and
+      // then measuring it, which is how a shipped one that stopped at the first
+      // occurrence would go unnoticed.
+      await sql.unsafe(renderMigration({ name: file.name, sha256: "", sql: file.sql }, schema));
     }
 
     const store = createPostgresDocketStore({ sql, schema });

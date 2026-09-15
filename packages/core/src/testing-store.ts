@@ -881,18 +881,28 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
       },
       {
         id: "execution/refuses-an-outcome-on-an-expired-row",
-        title: "refuses an execution outcome on a row that expired unswept",
+        title: "refuses an execution outcome on an expired row, swept or not",
         async run({ store, clock, expect, scope, entry }) {
           // The same distinction for the row nobody decided at all. It reads `expired`
           // whether or not a sweep has run (DK-1), so the answer is `not-approved`
-          // here too, and it does not depend on the sweep having caught up.
-          await store.file(entry("entry-1"));
+          // here too — and both halves are asserted, because a store whose guard asks
+          // "has this row a recorded outcome?" rather than "is this row approved?"
+          // answers correctly for the unswept row by accident and wrongly for the
+          // swept one.
+          await store.file(entry("unswept"));
+          await store.file(entry("swept"));
           clock.set(AFTER_DEADLINE);
+          expect(await store.expireDue(AFTER_DEADLINE, scope, 10)).toEqual({
+            expired: ["unswept", "swept"],
+            more: false,
+          });
 
-          expect(
-            await store.recordExecution("entry-1", scope, "executed", null, "unexecuted"),
-          ).toBe("not-approved");
-          expect((await store.get("entry-1", scope))?.execution).toBeNull();
+          for (const entryId of ["unswept", "swept"]) {
+            expect(
+              await store.recordExecution(entryId, scope, "executed", null, "unexecuted"),
+            ).toBe("not-approved");
+            expect((await store.get(entryId, scope))?.execution).toBeNull();
+          }
         },
       },
       {

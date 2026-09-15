@@ -32,8 +32,9 @@ const ITERATIONS = 200;
  *
  * 25 on Node, which is where the bound is stated and where it is enforced.
  * `AFFIANT_BUDGET_MS` moves it, so a slower runtime or a slower machine can be
- * *measured* without the number in this file being edited to suit it — the mean is
- * printed either way, so a run that moved the bound still says what it found.
+ * *measured* without the number in this file being edited to suit it — every run that
+ * measures prints the mean it measured, so a run that moved the bound still says what
+ * it found. A run with no server to measure against prints why it skipped.
  */
 const BUDGET_MS = Number(environment("AFFIANT_BUDGET_MS") ?? "25");
 /** How many attempts a stalled round gets before the tripwire stands. */

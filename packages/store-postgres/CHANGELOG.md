@@ -67,7 +67,8 @@ the [root changelog](../../CHANGELOG.md).
   auditor reads the row. A tripwire keeps
   file-plus-decide on a ten-field Affidavit under 25 ms per operation, which is the
   store's share of RT-2's 100 ms envelope; `AFFIANT_BUDGET_MS` moves the bound for a
-  slower machine, and the measured mean is printed on every run.
+  slower machine, and every run that measures prints the mean it measured — a run with
+  no server to measure against prints why it skipped instead.
 
 - **`export` says what it is.** A walk in filing order, in bounded batches, each its own
   transaction — so an entry committed during the walk, behind the position the walk has

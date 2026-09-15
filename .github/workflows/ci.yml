@@ -62,7 +62,7 @@ jobs:
   bun:
     name: bun
     runs-on: ubuntu-latest
-    # The store's best-effort line needs somewhere to file entries.
+    # The Docket store files real entries under Bun too, and its line here blocks.
     services:
       postgres:
         image: postgres:17

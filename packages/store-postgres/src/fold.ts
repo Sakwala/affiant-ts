@@ -16,6 +16,7 @@
  * @packageDocumentation
  */
 
+import { instantMs } from "@affiant/core";
 import type {
   Affidavit,
   AmendmentMap,
@@ -103,8 +104,18 @@ export function foldEntry(row: FoldRow): DocketEntry {
     // `decidedAt` from `expires_at` would read the same for a correct sweep and for one
     // that had stamped the instant it ran, which is the mistake DK-1 is about — and the
     // row, not the code, is what an auditor is reading (DK-4).
-    const sweep = row.expiry_payload;
-    entry = { ...entry, status: "expired", execution: null, decidedAt: sweep.decidedAt };
+    //
+    // Checked, because reading the row means trusting it, and a row can have been
+    // written by something other than this package: a host's own migration, a restore,
+    // a repair somebody did by hand. What must never happen is that a stored fact the
+    // type forbids is handed back as though it were one the type allows.
+    const sweptAt = row.expiry_payload.decidedAt;
+    entry = {
+      ...entry,
+      status: "expired",
+      execution: null,
+      decidedAt: requireStoredInstant(sweptAt, entry.entryId, "the expiry event's decidedAt"),
+    };
   }
 
   const execution = row.execution_payload;
@@ -161,6 +172,30 @@ export function withDecision(entry: DocketEntry, decision: DecisionPayload): Doc
     decidedAt: decision.decidedAt,
     lineage: { supersedes: entry.lineage.supersedes, supersededBy: decision.supersededBy },
   };
+}
+
+/**
+ * `value` as an ISO instant, or a refusal that says which row is unreadable.
+ *
+ * A `RangeError` rather than an `AffiantError`, for the reason the core gives: the
+ * error-code registry names the reasons the gate refuses a *request*, and a stored fact
+ * that does not parse is a broken record, not a request anybody made. The entry id is
+ * in the message because the row it names is the only thing anybody can act on.
+ *
+ * @throws RangeError when `value` is not a string, or is not a readable instant.
+ */
+function requireStoredInstant(value: unknown, entryId: string, what: string): string {
+  if (typeof value !== "string") {
+    throw new RangeError(
+      `${what} on entry ${entryId} is ${value === undefined ? "missing" : typeof value}, not an ISO 8601 instant`,
+    );
+  }
+  try {
+    instantMs(value, what);
+  } catch {
+    throw new RangeError(`${what} on entry ${entryId} is not a readable instant: ${value}`);
+  }
+  return value;
 }
 
 /**

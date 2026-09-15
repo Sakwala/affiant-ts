@@ -123,9 +123,14 @@ select
     when q.payload is not null then null
     else e.filed_row ->> 'execution'
   end as execution,
+  -- Each branch reads the fact that was written down, never a second derivation of
+  -- it: the sweep records the entry's deadline, and a view that reached for
+  -- `expires_at` here instead would agree with that only for as long as it stayed
+  -- true, leaving `retention` and the folded entry disagreeing about when a row left
+  -- `pending` in every case where it did not (DK-1, DK-4).
   case
     when d.payload is not null then (d.payload ->> 'decidedAt')::timestamptz
-    when q.payload is not null then e.expires_at
+    when q.payload is not null then (q.payload ->> 'decidedAt')::timestamptz
     else (e.filed_row ->> 'decidedAt')::timestamptz
   end as decided_at
 from {{schema}}.docket_entries e

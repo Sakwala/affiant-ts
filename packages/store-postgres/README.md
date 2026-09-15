@@ -153,12 +153,13 @@ its sockets with it when it ends, so there is nothing to close; and with postgre
 with `Error: Stream was cancelled.` from `cf/polyfills.js` — a rejection raised outside
 any call of yours, which nothing you write can catch.
 
-**Speed.** `file` plus `transition` on a ten-field Affidavit averages 5 to 16 ms per
-operation on a development laptop, against a Postgres in a container beside it. A
-tripwire in the suite fails the build above 25 ms on Node, which is this store's share
-of the 100 ms envelope RT-2 pins for a per-request path. Your own numbers depend on
-where your database is and are the only ones worth planning against, so the bound is
-overridable with `AFFIANT_BUDGET_MS` and the measured mean is printed on every run.
+**Speed.** `file` plus `transition` on a ten-field Affidavit averages roughly 4 to
+16 ms per operation on a development laptop, against a Postgres in a container beside
+it. A tripwire in the suite fails the build above 25 ms on Node, which is this store's
+share of the 100 ms envelope RT-2 pins for a per-request path. Your own numbers depend
+on where your database is and are the only ones worth planning against, so the bound is
+overridable with `AFFIANT_BUDGET_MS`, and every run that measures prints the mean it
+measured.
 
 **Not measured here: a connection through Hyperdrive.** Every runtime this package
 claims is exercised in CI; Hyperdrive is not, and this README will say so until a
