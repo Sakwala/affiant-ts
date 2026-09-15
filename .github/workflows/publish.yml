@@ -53,7 +53,13 @@
 # (https://docs.npmjs.com/cli/v11/commands/npm-trust/). So `@affiant/store-postgres`
 # and `@affiant/adapter-ai-sdk` need one publish under a credential a person holds
 # before this workflow can publish them, and until that has happened their two
-# preflight lines below will report a refused exchange rather than a 2xx.
+# preflight lines below will report a refused exchange rather than a 2xx. The
+# credential for that first publish is an **interactive 2FA login**: a granular access
+# token with `bypass_2fa` can publish, but npm's API refuses it on the operation that
+# registers the trusted publisher afterwards — "Granular Access Tokens with
+# `bypass_2fa: true` are not permitted to call this endpoint and receive 403
+# Forbidden" (api-docs.npmjs.com, `configureTrustedPublisher`) — so a token that
+# bootstraps the package cannot then hand the job to this workflow.
 #
 # Why the real upload runs the npm CLI directly. pnpm 10 has no OIDC implementation
 # of its own — `pnpm publish` packs the package and shells out to whatever `npm` is
@@ -98,8 +104,16 @@
 # `@affiant/evidence-card` depend on `@affiant/contract` at `workspace:^`, and npm
 # has no rewriting of that protocol anywhere in its publish path — the range would
 # reach the registry verbatim. pnpm's pack is what turns it into `^0.1.0-alpha.1`,
-# which is why the tarballs stay. The two newest packages carry no workspace range
-# at all: `@affiant/core` is a peer dependency of each, at a published range.
+# which is why the tarballs stay. The two newest packages need that rewriting for a
+# different reason: nothing they ship at runtime is a workspace range — `@affiant/core`
+# is a peer dependency of each, at a published range, and neither declares a runtime
+# dependency at all — but both carry `workspace:` ranges in `devDependencies`, and
+# `@affiant/store-postgres` carries one on `@affiant/conformance-driver`, which is
+# `private: true` and has no published version. pnpm's pack rewrites those too, so the
+# store's published manifest names `@affiant/conformance-driver: ^0.1.0-alpha.0`, a
+# version nobody can install. It is inert — a consumer installs a dependency's
+# `dependencies` and its `peerDependencies`, never its `devDependencies` — but it is in
+# the manifest, and the sentence that said otherwise was wrong.
 
 name: Publish to npm
 

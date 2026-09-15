@@ -50,7 +50,7 @@ step and it has not been dispatched for this version.
 
 - `CORE_VERSION` reads `0.1.0-alpha.2`.
 
-## [0.1.0-alpha.1] — 2026-09-09
+## [0.1.0-alpha.1] — 2026-09-10
 
 The grade a person's own words earn. At `0.1.0-alpha.0` the pipeline graded an inferred
 field `Conversation` only where the inference port's `StructuredField` said
@@ -454,3 +454,6 @@ resource-envelope tripwires that print the numbers they measured (RT-2).
   (AZ-4).
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
+[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...main
+[0.1.0-alpha.1]: https://github.com/Sakwala/affiant-ts/compare/v0.1.0-alpha.0...e837598608b35d3ab90dfd35645d2308538250dc
+[0.1.0-alpha.0]: https://github.com/Sakwala/affiant-ts/releases/tag/v0.1.0-alpha.0
