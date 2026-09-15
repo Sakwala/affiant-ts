@@ -73,7 +73,9 @@ export async function createTestDatabase(options: TestDatabaseOptions = {}): Pro
     sql,
     name,
     close: async () => {
-      await sql.end();
+      if (!isWorkerd()) await sql.end();
+      // `with (force)` closes whatever is still attached, which is what makes the
+      // drop work under workerd where the pool was deliberately left open.
       await onAdmin((admin) => admin.unsafe(`drop database if exists "${name}" with (force)`));
     },
   };
@@ -95,8 +97,26 @@ async function onAdmin<T>(work: (admin: Sql) => Promise<T>): Promise<T> {
   try {
     return await work(admin);
   } finally {
-    await admin.end();
+    if (!isWorkerd()) await admin.end();
   }
+}
+
+/**
+ * Whether this is running inside workerd.
+ *
+ * It matters for exactly one thing: closing a connection there. postgres.js's workerd
+ * build reads its socket through a `ReadableStream`, and ending a connection cancels
+ * that stream while a read is pending, which surfaces as an unhandled
+ * `Error: Stream was cancelled.` (postgres 3.4.9, `cf/polyfills.js`) that no caller
+ * can catch. There is nothing to close there in any case — the isolate goes away with
+ * the test run, and the database is dropped with `force`, which detaches whatever is
+ * still attached to it.
+ */
+function isWorkerd(): boolean {
+  return (
+    (globalThis as { navigator?: { userAgent?: string } }).navigator?.userAgent ===
+    "Cloudflare-Workers"
+  );
 }
 
 /** The driver options every connection here is opened with. */
