@@ -12,6 +12,23 @@ was made against.
 
 ### Added
 
+- **A parametrised store contract behind `@affiant/core/testing`.** `runDocketStoreContract`
+  and `runSessionStoreContract` register every assertion a `DocketStore` and a `SessionStore`
+  must pass — idempotent filing that keeps the deadline it already had (DK-1, GT-4), the
+  guarded compare-and-set, expiry applied on read whether or not a sweep has run, amendment
+  `null` as a cleared field and an absent key as an untouched one (DK-2), the bounded paged
+  sweep and its opaque cursors (DK-3), retention, purge and export (DK-4), rehydration order
+  (DK-5), and a wrong-tenant lookup that is a miss rather than a distinguishable refusal
+  (AZ-2) — so a store a host builds on a database is measured by the same assertions as the
+  shipped in-memory one. The test runner comes in as a parameter (`{ describe, it, expect,
+  beforeAll, afterAll }`), so the package gains no dependency of any kind from carrying it.
+
+- **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
+  run against a caller's own ports instead of the reference wiring, and a store factory given
+  there is used for every one of them. `FixturePorts.store` may now return a promise, which the
+  runner awaits, so a store that has to reach a database before it can answer is buildable one
+  document at a time.
+
 - **`@affiant/adapter-ai-sdk`, a new package at `0.1.0-alpha.0`.** It turns Affiant tool
   definitions into an [AI SDK](https://ai-sdk.dev) `ToolSet` whose every `execute` runs
   through the gate with the turn context the SDK supplied for that call, refuses a
@@ -23,6 +40,14 @@ was made against.
   [README](packages/adapter-ai-sdk/README.md).
 
 ### Changed
+
+- **The in-memory Docket store keeps the first of a repeated later fact, rather than the last.**
+  A second `preserveAmendments` on the same entry leaves the first preserved record standing, and
+  a second `recordSupersession` leaves the first successor standing; both return the entry as it
+  is. A recorded fact is appended and never edited (DK-4), and the previous behaviour wrote the
+  second call over the first — so two reviewers deciding an already-expired row, or two
+  resubmissions of one rejected row, left the Docket holding whichever arrived last. Neither
+  method's return type changed.
 
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.1`.** Published 2026-09-10 under the `alpha` dist-tag by the hand-dispatched

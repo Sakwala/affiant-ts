@@ -1089,8 +1089,14 @@ export function fixedRiskScorer(score: number): RiskScorer {
 
 /** The ports a fixture is wired from. Every one has a default; a driver may replace any. */
 export interface FixturePorts {
-  /** The Docket. Defaults to the in-memory reference store. */
-  readonly store?: (clock: Clock) => DocketStore;
+  /**
+   * The Docket. Defaults to the in-memory reference store.
+   *
+   * Called once per fixture and awaited, so a store that has to reach a database
+   * before it can answer — one schema per document, say — is buildable here. The
+   * same allowance the store contract's factory makes, for the same reason.
+   */
+  readonly store?: (clock: Clock) => DocketStore | Promise<DocketStore>;
   readonly inference?: (fixture: Fixture) => InferencePort;
   readonly projection?: (fixture: Fixture) => ProjectionPort;
   readonly authorization?: (fixture: Fixture) => AuthorizationPort;
@@ -1142,7 +1148,7 @@ export async function runFixture(
   const given = fixture.given;
 
   const clock = (ports.clock ?? ((f: Fixture) => fixedClock(f.given.clock)))(fixture);
-  const store = (ports.store ?? ((c: Clock) => new InMemoryDocketStore({ clock: c })))(clock);
+  const store = await (ports.store ?? ((c: Clock) => new InMemoryDocketStore({ clock: c })))(clock);
   const events: TelemetryEvent[] = [];
   const telemetry: TelemetryPort = {
     emit(event) {
@@ -2100,3 +2106,46 @@ function checkCard(
     compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
   }
 }
+
+// ---------------------------------------------------------------------------
+// The store contract
+// ---------------------------------------------------------------------------
+
+/**
+ * The parametrised store contract, re-exported so that everything a test reaches
+ * for arrives from one subpath.
+ *
+ * `runDocketStoreContract` and `runSessionStoreContract` register the assertions any
+ * `DocketStore` and `SessionStore` implementation must pass; the reference in-memory
+ * stores are the first caller and a store on a database is the next. The sample
+ * builders are exported with them because a store's own suite needs a real Affidavit
+ * to file.
+ */
+export {
+  DOCKET_CONTRACT_CASES,
+  DOCKET_CONTRACT_SECTIONS,
+  SESSION_CONTRACT_CASES,
+  SESSION_CONTRACT_SECTIONS,
+  entryIds,
+  runDocketStoreContract,
+  runSessionStoreContract,
+  sampleAffidavit,
+  sampleEntry,
+  sampleField,
+  stubClock,
+  withSessionStore,
+} from "./testing-store.js";
+export type {
+  ContractAssertion,
+  ContractCaseContext,
+  ContractCaseSummary,
+  ContractExpect,
+  ContractMatchers,
+  ContractRunnerApi,
+  DocketContractSection,
+  DocketStoreFactory,
+  SessionContractSection,
+  SessionStoreFactory,
+  StoreContractOptions,
+  StubClock,
+} from "./testing-store.js";
