@@ -1,0 +1,71 @@
+{
+  "name": "@affiant/store-postgres",
+  "version": "0.1.0-alpha.0",
+  "description": "The Affiant Docket on Postgres: the durable record of every proposed write, its decision, its attestation and its execution outcome, over a host-owned postgres.js connection.",
+  "keywords": [
+    "affiant",
+    "docket",
+    "postgres",
+    "postgresjs",
+    "row-level-security",
+    "audit-trail",
+    "human-in-the-loop",
+    "approval-workflow",
+    "ai-agents",
+    "cloudflare-workers"
+  ],
+  "private": false,
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sakwala/affiant-ts.git",
+    "directory": "packages/store-postgres"
+  },
+  "homepage": "https://github.com/Sakwala/affiant-ts/tree/main/packages/store-postgres#readme",
+  "bugs": "https://github.com/Sakwala/affiant-ts/issues",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./migrations": {
+      "types": "./dist/migrations.d.ts",
+      "default": "./dist/migrations.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "dist",
+    "migrations"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  },
+  "scripts": {
+    "build": "node scripts/generate-migrations.mjs --check && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:workers": "vitest run --config vitest.workers.config.ts",
+    "lint": "node scripts/lint-no-durable-object.mjs && node scripts/lint-no-node-imports.mjs",
+    "generate": "node scripts/generate-migrations.mjs"
+  },
+  "peerDependencies": {
+    "@affiant/core": ">=0.1.0-alpha.1",
+    "postgres": ">=3.4.0"
+  },
+  "devDependencies": {
+    "@affiant/conformance-driver": "workspace:^",
+    "@affiant/core": "workspace:^",
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "postgres": "3.4.9",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
