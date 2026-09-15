@@ -10,6 +10,14 @@ the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Changed
+
+- **The implementation under test is `@affiant/core@0.1.0-alpha.2`.** `IMPLEMENTATION_VERSION`
+  and the parity manifest follow the package manifest on disk, which
+  `test/node/published-claims.test.ts` asserts; the manifest's `runLog` names the run
+  document recorded at that version. The protocol tag is unchanged at `v0.1.3` and the
+  failing set is still empty.
+
 ### Added
 
 - **The driver.** Runs every document the rulebook's conformance manifest lists — 61

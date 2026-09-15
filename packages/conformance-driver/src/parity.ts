@@ -272,8 +272,8 @@ export const parityManifest: ParityManifest = {
   implementation: IMPLEMENTATION_NAME,
   version: IMPLEMENTATION_VERSION,
   protocolTag: PROTOCOL_PIN,
-  producedAt: "2026-09-09T00:00:00.000Z",
-  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.1.json",
+  producedAt: "2026-09-15T00:00:00.000Z",
+  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.2.json",
   failing: [],
   runtimes: [
     { name: "node", version: ">=22", claimed: true, unicodeVersion: unicodeVersionOf("node") },

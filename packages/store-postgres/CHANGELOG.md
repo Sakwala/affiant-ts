@@ -8,7 +8,12 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
-## [Unreleased]
+## [0.1.0-alpha.0] — 2026-09-15
+
+The first version. Built against the rulebook's
+[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, which
+`@affiant/core` pins and vendors byte for byte. Not on npm yet: publishing is a separate,
+hand-dispatched step and it has not been dispatched for this version.
 
 ### Added
 

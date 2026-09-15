@@ -10,6 +10,46 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] — 2026-09-15
+
+A testing release. Nothing in the gate, the pipeline or the decision path changed; what
+moved is the reference Docket store's treatment of a repeated later fact, and what
+arrived is a way for somebody else's store to be measured by this package's own
+assertions. Built against the rulebook's
+[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, the same
+tag `0.1.0-alpha.1` was built against. Not on npm: publishing is a separate, hand-dispatched
+step and it has not been dispatched for this version.
+
+### Added
+
+- **A parametrised store contract behind `@affiant/core/testing`.** `runDocketStoreContract`
+  and `runSessionStoreContract` register every assertion a `DocketStore` and a `SessionStore`
+  must pass — idempotent filing that keeps the deadline it already had (DK-1, GT-4), the
+  guarded compare-and-set, expiry applied on read whether or not a sweep has run, amendment
+  `null` as a cleared field and an absent key as an untouched one (DK-2), the bounded paged
+  sweep and its opaque cursors (DK-3), retention, purge and export (DK-4), rehydration order
+  (DK-5), and a wrong-tenant lookup that is a miss rather than a distinguishable refusal
+  (AZ-2). A store a host builds on a database is then measured by the same cases as the
+  in-memory one shipped here, and the four hand-written docket suites in this package are
+  callers of it. The test runner comes in as a parameter (`{ describe, it, expect, beforeAll,
+  afterAll }`), so the package gains no dependency of any kind from carrying it.
+
+- **`FixturePorts.store` may return a promise**, which the fixture runner awaits, so a store
+  that has to reach a database before it can answer can be built one document at a time.
+  A factory that returns the store directly is unaffected.
+
+### Changed
+
+- **The in-memory Docket store keeps the first of a repeated later fact, rather than the last.**
+  A second `preserveAmendments` on the same entry leaves the first preserved record standing, and
+  a second `recordSupersession` leaves the first successor standing; both return the entry as it
+  is. A recorded fact is appended and never edited (DK-4), and the previous behaviour wrote the
+  second call over the first — so two reviewers deciding an already-expired row, or two
+  resubmissions of one rejected row, left the Docket holding whichever arrived last. Neither
+  method's return type changed.
+
+- `CORE_VERSION` reads `0.1.0-alpha.2`.
+
 ## [0.1.0-alpha.1] — 2026-09-09
 
 The grade a person's own words earn. At `0.1.0-alpha.0` the pipeline graded an inferred
