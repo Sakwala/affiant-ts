@@ -23,6 +23,22 @@ was made against.
   shipped in-memory one. The test runner comes in as a parameter (`{ describe, it, expect,
   beforeAll, afterAll }`), so the package gains no dependency of any kind from carrying it.
 
+- **`@affiant/store-postgres`, the Docket on Postgres.** `createPostgresDocketStore({ sql })`
+  implements `DocketStore` and `SessionStore` from `@affiant/core` over two append-only
+  tables and a fold across them, on a postgres.js connection the host owns — the package
+  opens none, pools none and closes none. There is no `update` statement in it: every
+  guard the Docket needs is a unique index, so a second decision is refused, an execution
+  outcome is recorded once and a sweep cannot expire the same row twice (DK-1), and a
+  recorded fact is appended rather than edited (DK-4). The tenant is scoped twice (AZ-2):
+  every statement filters by it, and the tables force row-level security over a
+  transaction-scoped setting of the package's own name. `within(tx)` binds the store to a
+  transaction the host already has open, for the executor that must record an outcome
+  atomically with its own write (AZ-5). The SQL ships both as a file a host can vendor and
+  as `MIGRATIONS` with a SHA-256 per migration, with `applyMigrations` for a host with no
+  migration tool of its own. Acceptance is a measurement: the store contract's 69 cases on
+  Node and inside workerd, and the 61 declarative conformance documents through this store
+  with nothing failing.
+
 - **`ports` on `runConformance` in the conformance driver.** The declarative documents can be
   run against a caller's own ports instead of the reference wiring, and a store factory given
   there is used for every one of them. `FixturePorts.store` may now return a promise, which the
