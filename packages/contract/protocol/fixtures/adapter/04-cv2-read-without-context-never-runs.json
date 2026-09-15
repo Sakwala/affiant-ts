@@ -1,0 +1,76 @@
+{
+  "id": "adapter/cv2-read-without-context-never-runs",
+  "rules": [
+    "CV-2",
+    "GT-2"
+  ],
+  "title": "A read tool called with no turn context is refused the same way, and the host's own read function is never called: the refusal happens at the seam, before anything the host wrote runs.",
+  "given": {
+    "clock": "2026-09-15T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 3600000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "inference": {
+        "priority": {
+          "value": "High",
+          "confidence": 0.9
+        }
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Set the ticket priority to High",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "adapter-build",
+        "definitions": [
+          {
+            "name": "find_ticket",
+            "description": "Find a ticket.",
+            "entityType": "Ticket",
+            "writeCapable": false,
+            "fields": [
+              {
+                "name": "query",
+                "kind": "text",
+                "description": "What to search for",
+                "required": false,
+                "allowedValues": null,
+                "pattern": null
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "adapter-call",
+      "tool": "find_ticket",
+      "args": {
+        "query": "left engine"
+      },
+      "context": null
+    }
+  },
+  "expect": {
+    "outcome": {
+      "kind": "refused",
+      "code": "wireup-invalid"
+    },
+    "entries": 0,
+    "hostExecuteRan": false
+  }
+}

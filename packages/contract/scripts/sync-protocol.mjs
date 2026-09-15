@@ -78,6 +78,14 @@ assertValidPin(pin);
  * (`parity/MANIFEST.schema.json`). `lint/coverage-exemptions.json` comes with
  * them because a driver copies its entries into its own manifest rather than
  * inventing exemptions of its own.
+ *
+ * `lint/adapter-claims.mjs` is the one script vendored rather than read. It is
+ * CV-5's check — what an adapter package declares about durability, against what
+ * the runtime it depends on actually publishes — and it has to run in THIS
+ * repository's CI, because it reads the npm registry and the package it is about
+ * is here. Vendoring it pins and checksums it exactly like a fixture, so the
+ * script a run was judged by is the script the pinned ref carries, and no CI job
+ * needs credentials for a second repository to fetch it.
  */
 function localPathFor(upstreamPath) {
   const wireVersion = /^schemas\/(\d+\.\d+\.\d+)\/([^/]+\.schema\.json)$/.exec(upstreamPath);
@@ -93,7 +101,8 @@ function localPathFor(upstreamPath) {
   if (
     /^conformance\/(?:fixture|canonical-vector|results)\.schema\.json$/.test(upstreamPath) ||
     upstreamPath === "conformance/parity/MANIFEST.schema.json" ||
-    upstreamPath === "conformance/lint/coverage-exemptions.json"
+    upstreamPath === "conformance/lint/coverage-exemptions.json" ||
+    upstreamPath === "conformance/lint/adapter-claims.mjs"
   ) {
     return upstreamPath;
   }
@@ -181,7 +190,9 @@ function walk(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return walk(full);
-    return entry.name.endsWith(".json") ? [relative(protocolDir, full).split(sep).join("/")] : [];
+    return entry.name.endsWith(".json") || entry.name.endsWith(".mjs")
+      ? [relative(protocolDir, full).split(sep).join("/")]
+      : [];
   });
 }
 

@@ -187,7 +187,23 @@ const conformanceEntries = conformance.fixtures.map((entry) => ({
 const stepFixtures = conformanceEntries.filter((entry) => entry.set !== "canonical");
 const canonicalEntries = conformanceEntries.filter((entry) => entry.set === "canonical");
 
-const conformanceTs = `${banner("Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical}/ and protocol/conformance/")}
+// The adapter section (protocol v0.2.0). A pin older than that carries none, and the
+// two exports below are then an empty manifest and an empty list rather than absent
+// ones: a driver that has to branch on whether a symbol exists is a driver that will
+// one day run no adapter fixtures and report a pass.
+const adapterSection = manifest.adapter ?? {
+  protocolVersion: manifest.conformance.protocolVersion,
+  $note: "This pin predates the adapter section, which arrived at protocol v0.2.0.",
+  sets: {},
+  fixtures: [],
+};
+const adapterEntries = adapterSection.fixtures.map((entry) => ({
+  id: entry.id,
+  set: entry.set,
+  json: readJson(join(protocolDir, "fixtures", entry.file)),
+}));
+
+const conformanceTs = `${banner("Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/")}
 import type { JsonSchemaDocument } from "./schemas.js";
 
 /** Any value JSON can carry. Re-declared here so this module imports no types it does not need. */
@@ -288,6 +304,30 @@ ${conformanceEntries
   .join("\n")}
 };
 
+/**
+ * The \`"adapter"\` section of \`conformance/fixtures/MANIFEST.json\` (protocol v0.2.0): the
+ * documents that check the three rules about an adapter's seam. Scoped differently
+ * from the conformance section — a driver runs this one **once for every adapter its
+ * implementation ships and declares**, and an implementation that ships none runs none
+ * of it and publishes \`adapters: []\`. The format is the rulebook's
+ * \`conformance/ADAPTER-RUNNER.md\`.
+ */
+export const adapterManifest = ${literal(adapterSection, "")} as const;
+
+/**
+ * The ${adapterEntries.length} adapter fixtures, in manifest order. Every one is
+ * model-free and network-free: the call is made the way the framework makes it, with a
+ * scripted context and the arguments a model would have produced.
+ */
+export const adapterFixtures: readonly ConformanceFixtureDocument[] = [
+${adapterEntries.map((e) => `  ${literal(e.json, "  ")},`).join("\n")}
+];
+
+/** Every adapter fixture, keyed by its manifest id. */
+export const adapterById: Readonly<Record<string, ConformanceFixtureDocument>> = {
+${adapterEntries.map((e, index) => `  ${JSON.stringify(e.id)}: adapterFixtures[${String(index)}]!,`).join("\n")}
+};
+
 /** \`conformance/fixture.schema.json\` — what a declarative fixture may say. */
 export const fixtureSchema: JsonSchemaDocument = ${literal(readJson(join(protocolDir, "conformance", "fixture.schema.json")), "")};
 
@@ -360,6 +400,7 @@ writeFileSync(join(packageRoot, "test", "fixtures.generated.ts"), fixturesTs);
 
 console.log(
   `generated src/schemas.ts (${wireSchemas.length} schemas + ${seedSchemaEntries.length} seed), ` +
-    `src/conformance.ts (${stepFixtures.length} fixtures + ${canonicalEntries.length} vectors) and ` +
+    `src/conformance.ts (${stepFixtures.length} fixtures + ${canonicalEntries.length} vectors + ` +
+    `${adapterEntries.length} adapter fixtures) and ` +
     `test/fixtures.generated.ts (${wireEntries.length} wire + ${v01Entries.length} v0.1 fixtures) from ${pin}`,
 );
