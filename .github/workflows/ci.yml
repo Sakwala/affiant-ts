@@ -93,8 +93,11 @@ jobs:
       - run: pnpm -C packages/adapter-ai-sdk test:workers
 
   # The protocol's conformance suite, run against @affiant/core on every runtime
-  # this implementation claims, with the failing set asserted equal to the
-  # published parity manifest — in both directions.
+  # this implementation claims — and, from protocol v0.2.0, the adapter fixture
+  # section run against @affiant/adapter-ai-sdk beside it, because a driver runs
+  # that section once for every adapter its implementation ships and declares. The
+  # failing set is asserted equal to the published parity manifest over the UNION
+  # of the two sections — in both directions.
   #
   # REQUIRED on `main`: a red run here cannot merge. That is the whole point. An
   # empty `failing[]` is a published claim about this implementation, and a claim
@@ -118,6 +121,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
+      # Both sections on every runtime: test/conformance.test.ts is the conformance
+      # one and test/adapter.test.ts the adapter one, and the second suite merges
+      # the two runs before comparing them to the manifest.
       - name: node
         run: pnpm -C packages/conformance-driver test
 
@@ -126,6 +132,11 @@ jobs:
 
       - name: workerd
         run: pnpm -C packages/conformance-driver test:workers
+
+      # The adapter section on its own, through the command a host working on an
+      # adapter reaches for. Cheap, and it keeps that entry point from rotting.
+      - name: adapter section
+        run: node packages/conformance-driver/dist/cli.js adapter --package @affiant/adapter-ai-sdk
 
       # The evidence, not the claim: one run document per runtime, published with
       # the run so a reader can check the manifest rather than take it. Written to
@@ -143,3 +154,44 @@ jobs:
           name: conformance-results
           path: ${{ runner.temp }}/conformance
           if-no-files-found: error
+
+  # CV-5: no durability claim rests on a non-`latest` dist-tag of a third-party
+  # runtime. The rulebook's own check for it is a lint over an adapter package
+  # rather than a fixture, because no fixture can observe a statement about
+  # documentation and packaging — and it reads the npm registry, so it runs here,
+  # where the package it is about lives, rather than in the rulebook's CI.
+  #
+  # The script is the vendored one: packages/contract/protocol/ is a byte-for-byte
+  # copy of the pinned rulebook ref with a checksum per file, so the script a run
+  # is judged by is the script that ref carries, and no cross-repository credential
+  # is needed to fetch it.
+  #
+  # `--offline` is the fallback for a registry the runner cannot reach, and it is
+  # reached only on the lint's exit code 2, which means exactly that. A job that
+  # retried offline on any failure would swallow the one failure the fallback
+  # cannot see — a claim resting on a version `latest` has not reached, which is
+  # what the registry half is for — and report CV-5 green for it.
+  adapter-claims:
+    name: adapter claims
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: adapter claims (CV-5)
+        run: |
+          set +e
+          node packages/contract/protocol/conformance/lint/adapter-claims.mjs packages/adapter-ai-sdk
+          status=$?
+          set -e
+          if [ "$status" -eq 2 ]; then
+            echo "::warning::the npm registry was unreachable; re-running the claims lint offline"
+            node packages/contract/protocol/conformance/lint/adapter-claims.mjs \
+              packages/adapter-ai-sdk --offline
+          else
+            exit "$status"
+          fi
