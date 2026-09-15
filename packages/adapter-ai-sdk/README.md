@@ -220,9 +220,9 @@ Docket for a person to expire or reject.
 
 ## Runtimes
 
-Merge-blocking on **Node 22** and on **workerd** (through
-`@cloudflare/vitest-pool-workers`, with `nodejs_compat`), and run best-effort under
-**Bun**. The package's `src/` is compiled as a program with no `@types/node` in scope, so
+Merge-blocking on **Node 22**, on **workerd** (through
+`@cloudflare/vitest-pool-workers`, with `nodejs_compat`) and under **Bun** — a red run
+on any of the three stops a merge. The package's `src/` is compiled as a program with no `@types/node` in scope, so
 a Node built-in cannot be reached from the published surface by accident, and a lint
 keeps Durable Object storage unreachable from it (RT-1, RT-3).
 

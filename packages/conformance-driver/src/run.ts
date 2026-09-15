@@ -63,7 +63,7 @@ import ajvFormats from "ajv-formats";
  * about would make the run unreproducible. `test/node/published-claims.test.ts` asserts it
  * against the package manifest on disk, so the literal cannot drift.
  */
-export const IMPLEMENTATION_VERSION = "0.1.0-alpha.1";
+export const IMPLEMENTATION_VERSION = "0.1.0-alpha.2";
 
 /** The implementation name the rulebook's parity manifest and result documents use. */
 export const IMPLEMENTATION_NAME = "typescript";

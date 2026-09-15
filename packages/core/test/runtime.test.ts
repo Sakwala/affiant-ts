@@ -27,7 +27,7 @@ describe("runtime envelope (RT-1)", () => {
   it("resolves the public entry point on this runtime", async () => {
     const core = await import("@affiant/core");
 
-    expect(core.CORE_VERSION).toBe("0.1.0-alpha.1");
+    expect(core.CORE_VERSION).toBe("0.1.0-alpha.2");
     expect(typeof core.PROTOCOL_VERSION).toBe("string");
     expect(typeof core.AffiantError).toBe("function");
     expect(typeof core.defaultClock.now).toBe("function");

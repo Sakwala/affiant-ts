@@ -16,11 +16,12 @@ reaches the person — those are ports you supply.
 
 > **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
 > attestation, since 2026-09-10: `npm i @affiant/core@alpha`. `latest` and `alpha` both
-> point at `0.1.0-alpha.1`. The condition for publishing was exact: a **public parity
+> point at `0.1.0-alpha.1`; the repository carries `0.1.0-alpha.2`, which goes with the
+> next dispatch. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
-> running the shared fixture suite against this package. Both hold, at the rulebook's [`v0.1.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.0)
-> tag: the [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.1.0/conformance/parity/dotnet-v0.1.json)
+> running the shared fixture suite against this package. Both hold, at the rulebook's [`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3)
+> tag, the one the committed parity manifest names: the [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.1.3/conformance/parity/dotnet-v0.1.json)
 > is public, with its oracle run log alongside it under `conformance/results/`, and
 > this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.1.json)
 > is green on Node, Bun and workerd, asserted by the `conformance` job that is

@@ -49,7 +49,7 @@ node packages/conformance-driver/dist/cli.js       # the same run, as a command
 4. **Emits a run document** validating against the rulebook's `results.schema.json`, with one entry per
    document including the ones that passed — a run that reported only failures could not be checked for
    completeness. The committed evidence is
-   [`conformance/results/typescript-0.1.0-alpha.1.json`](conformance/results/typescript-0.1.0-alpha.1.json).
+   [`conformance/results/typescript-0.1.0-alpha.2.json`](conformance/results/typescript-0.1.0-alpha.2.json).
 5. **Asserts the failing set equals the parity manifest**, exactly, in both directions, over the **union** of
    the sections the run covered.
 

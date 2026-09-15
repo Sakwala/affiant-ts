@@ -10,6 +10,18 @@ was made against.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] — 2026-09-15
+
+Three packages move together and none of them is on npm yet: `@affiant/core` to
+`0.1.0-alpha.2`, and `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` at
+`0.1.0-alpha.0`, their first version. Each was built against the rulebook's
+[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, which is
+what `packages/contract/protocol/PIN` pins and `@affiant/contract` vendors byte for byte.
+`@affiant/contract` and `@affiant/evidence-card` stay at `0.1.0-alpha.1`: nothing under
+either package has changed since that version but their READMEs. Publishing is the
+separate, hand-dispatched step it has always been, and it has not been dispatched for
+these versions.
+
 ### Added
 
 - **The rulebook's adapter fixture section, run against `@affiant/adapter-ai-sdk`.** The protocol
@@ -95,6 +107,10 @@ was made against.
   resubmissions of one rejected row, left the Docket holding whichever arrived last. Neither
   method's return type changed.
 
+## [0.1.0-alpha.1] — 2026-09-10
+
+### Changed
+
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.1`.** Published 2026-09-10 under the `alpha` dist-tag by the hand-dispatched
   workflow (run [`34542413066`](https://github.com/Sakwala/affiant-ts/actions/runs/34542413066)),
@@ -111,6 +127,10 @@ was made against.
   and `utteranceSpan` became optional on `StructuredField` — so the upgrade from
   `0.1.0-alpha.0` is a version bump, and what changes under a host that already ran it is
   the grade and the binding on fields whose values are in the turn.
+
+## [0.1.0-alpha.0] — 2026-09-06
+
+### Changed
 
 - **`@affiant/contract`, `@affiant/core` and `@affiant/evidence-card` went to npm at
   `0.1.0-alpha.0`.** Published 2026-09-06 under the `alpha` dist-tag, each tarball
@@ -530,3 +550,6 @@ was made against.
   <https://sakwala.github.io/affiant-ts/>.
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
+[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...main
+[0.1.0-alpha.1]: https://github.com/Sakwala/affiant-ts/compare/v0.1.0-alpha.0...e837598608b35d3ab90dfd35645d2308538250dc
+[0.1.0-alpha.0]: https://github.com/Sakwala/affiant-ts/releases/tag/v0.1.0-alpha.0

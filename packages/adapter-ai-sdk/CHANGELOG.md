@@ -8,7 +8,13 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
-## [Unreleased]
+## [0.1.0-alpha.0] — 2026-09-15
+
+The first version. Built against the rulebook's
+[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, which
+`@affiant/core` pins and vendors byte for byte, and against `ai@7.0.101`, the version the
+suites resolved and held to the declared peer range (CV-5). Not on npm yet: publishing is
+a separate, hand-dispatched step and it has not been dispatched for this version.
 
 ### Added
 
@@ -67,8 +73,8 @@ the [root changelog](../../CHANGELOG.md).
   `@ai-sdk/workflow` requires a peer range only that package's `beta` dist-tag satisfies
   (CV-5).
 
-- **Node, workerd and Bun.** The behavioural suites run on Node 22 and inside workerd,
-  both merge-blocking, and under Bun best-effort; `src/` compiles with no `@types/node`
+- **Node, workerd and Bun.** The behavioural suites run on Node 22, inside workerd and
+  under Bun, and a red run on any of the three blocks a merge; `src/` compiles with no `@types/node`
   in scope and a lint keeps Durable Object storage unreachable from it (RT-1, RT-3). One
   Node-only suite reads the installed `ai` version and holds it to the declared peer
   range and the pinned development dependency (CV-5).

@@ -96,11 +96,11 @@ jobs:
       - run: bun run --bun vitest run --project contract
       # RT-1: the core is runtime-neutral, so its whole suite runs under Bun.
       - run: bun run --bun vitest run --project core
-      # The AI SDK adapter under Bun is best-effort: Node and workerd are the two
-      # runtimes its suites block a merge on, and a Bun failure here is a report
-      # rather than a gate.
+      # The AI SDK adapter blocks here too. It was best-effort while nothing had
+      # measured it under Bun; its whole suite — the gated tool path, the agent
+      # loop, the inference port and the packed consumer — passes, so a red run is
+      # a gate rather than a report, like the other two runtimes it claims.
       - run: bun run --bun vitest run --project adapter-ai-sdk
-        continue-on-error: true
       # The Docket store under Bun, which is where the driver resolves a build of its
       # own — the one thing about this package that is not the same code on all three
       # runtimes, and therefore the one worth a job that can go red.

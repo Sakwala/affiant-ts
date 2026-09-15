@@ -12,11 +12,12 @@
  * peers, writes the consumer a host would write, and compiles it. A non-zero exit from
  * `tsc` fails the test.
  *
- * Node-only: it packs, installs and spawns. Excluded from the workerd run by
- * `vitest.workers.config.ts`. It needs the registry for `ai`, and it asks the registry
- * whether it is there before it packs anything: a silent registry skips the suite, and
- * an install that fails against a registry that answered is a failure, because that is a
- * manifest a consumer cannot resolve.
+ * Node-only: it packs, installs and spawns, and it never opens a database. Excluded
+ * from the workerd run by `vitest.workers.config.ts`, which names one file. It needs the
+ * registry for `postgres`, and it asks the registry whether it is there before it packs
+ * anything: a silent registry skips the suite, and an install that fails against a
+ * registry that answered is a failure, because that is a manifest a consumer cannot
+ * resolve.
  */
 
 import { execFileSync } from "node:child_process";
@@ -39,12 +40,12 @@ const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
 const coreRoot = join(workspaceRoot, "packages", "core");
 
-/** The `ai` version this package is pinned to for development, which the consumer installs. */
-const pinnedAi = (
+/** The `postgres` version this package is pinned to for development, which the consumer installs. */
+const pinnedPostgres = (
   JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8")) as {
-    readonly devDependencies: { readonly ai: string };
+    readonly devDependencies: { readonly postgres: string };
   }
-).devDependencies.ai;
+).devDependencies.postgres;
 
 /** Run a command, returning its output, or `null` with the reason when it failed. */
 function run(command: string, args: readonly string[], cwd: string): string | null {
@@ -90,7 +91,7 @@ function registryReachable(): boolean {
   }
 }
 
-const scratch = mkdtempSync(join(tmpdir(), "affiant-packed-"));
+const scratch = mkdtempSync(join(tmpdir(), "affiant-packed-store-"));
 afterAll(() => {
   rmSync(scratch, { recursive: true, force: true });
 });
@@ -112,10 +113,10 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     // The workspace's own core is packed too, rather than pulled from the registry:
     // a consumer must compile against the `@affiant/core` this branch builds, not
     // against whatever is published.
-    const packedAdapter = run("pnpm", ["pack", "--pack-destination", packs], packageRoot);
-    expect(packedAdapter, "pnpm pack failed for the adapter").not.toBeNull();
-    const adapterTarball = tarballIn(packs);
-    expect(adapterTarball).not.toBeNull();
+    const packedStore = run("pnpm", ["pack", "--pack-destination", packs], packageRoot);
+    expect(packedStore, "pnpm pack failed for the store").not.toBeNull();
+    const storeTarball = tarballIn(packs);
+    expect(storeTarball).not.toBeNull();
 
     const packedCore = run("pnpm", ["pack", "--pack-destination", corePacks], coreRoot);
     expect(packedCore, "pnpm pack failed for the core").not.toBeNull();
@@ -145,10 +146,10 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
             // repository has — `vitest`'s `Mock`, say — compiles for a consumer who
             // does not have it, and the guard is blind to exactly the defect it exists
             // to catch. So the check is on, and the scratch project is given what a
-            // real consumer has: `@types/node` (the SDK's own declarations name
-            // `Buffer` and `node:http`) and `@types/json-schema` (which
-            // `@ai-sdk/provider` imports). `skipDefaultLibCheck` carries the one part
-            // of the program nobody here owns.
+            // real consumer has: `@types/node`, because postgres.js's own declarations
+            // name `node:stream`, `node:tls` and `Buffer` — which is the reason this
+            // package's `src/` is type-checked with Node types in scope at all (S-14).
+            // `skipDefaultLibCheck` carries the one part of the program nobody here owns.
             skipLibCheck: false,
             skipDefaultLibCheck: true,
             types: ["node"],
@@ -159,33 +160,43 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
         2,
       )}\n`,
     );
-    // The consumer a host writes: a list typed with the core's own default generics,
-    // the two wire-up functions, the stop condition and the inference port.
+    // The consumer a host writes: the connection is its own, the migrations are applied
+    // or vendored, the store goes to the gate as both interfaces, and an executor binds
+    // it to a transaction the host already has open.
     writeFileSync(
       join(project, "consumer.ts"),
       [
-        `import { affiantTools, affiantToolsContext, stopWhenFiled } from "@affiant/adapter-ai-sdk";`,
-        `import { createInferencePort } from "@affiant/adapter-ai-sdk/inference";`,
-        `import type { Gate, InferencePort, ToolDefinition, TurnContext } from "@affiant/core";`,
-        `import type { LanguageModel, StopCondition, ToolSet } from "ai";`,
+        `import postgres from "postgres";`,
+        `import {`,
+        `  applyMigrations,`,
+        `  createPostgresDocketStore,`,
+        `  MIGRATIONS,`,
+        `} from "@affiant/store-postgres";`,
+        `import type { Migration } from "@affiant/store-postgres/migrations";`,
+        `import type { DocketStore, Scope, SessionStore } from "@affiant/core";`,
         ``,
-        `declare const gate: Gate;`,
-        `declare const ctx: TurnContext;`,
-        `declare const model: LanguageModel;`,
-        `declare const definitions: readonly ToolDefinition[];`,
+        `declare const connectionString: string;`,
+        `declare const scope: Scope;`,
+        `declare const invoiceId: string;`,
         ``,
-        `const tools: ToolSet = affiantTools(gate, definitions, {`,
-        `  onResult(result, seen) {`,
-        `    void result.kind;`,
-        `    void seen.tenantId;`,
-        `  },`,
-        `});`,
-        `const toolsContext: Record<string, { readonly turn: TurnContext }> =`,
-        `  affiantToolsContext(ctx, tools);`,
-        `const stop: StopCondition<ToolSet> = stopWhenFiled();`,
-        `const inference: InferencePort = createInferencePort({ model });`,
+        `export async function wire(): Promise<DocketStore & SessionStore> {`,
+        `  const sql = postgres(connectionString, { prepare: false });`,
+        `  const applied: { readonly applied: string[] } = await applyMigrations(sql);`,
+        `  void applied.applied.length;`,
         ``,
-        `export { tools, toolsContext, stop, inference };`,
+        `  const store = createPostgresDocketStore({ sql });`,
+        ``,
+        `  await sql.begin(async (tx) => {`,
+        `    await tx\`insert into invoices (id) values (\${invoiceId})\`;`,
+        `    const bound: DocketStore & SessionStore = store.within(tx);`,
+        `    await bound.listApprovedUnexecuted(scope, { limit: 10 });`,
+        `  });`,
+        ``,
+        `  return store;`,
+        `}`,
+        ``,
+        `export const vendored: readonly Migration[] = MIGRATIONS;`,
+        `export const digests: readonly string[] = vendored.map((m) => m.sha256);`,
         ``,
       ].join("\n"),
     );
@@ -198,15 +209,13 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
         "--no-fund",
         "--loglevel",
         "error",
-        adapterTarball as string,
+        storeTarball as string,
         coreTarball as string,
-        `ai@${pinnedAi}`,
-        // What a consumer of the AI SDK already has. Without them the SDK's own
-        // declarations do not compile under a full library check: `@ai-sdk/provider`
-        // imports `json-schema`, and `ai` and `@ai-sdk/provider-utils` name
-        // `node:http`, `http` and `Buffer`.
+        `postgres@${pinnedPostgres}`,
+        // What a consumer of postgres.js already has: its declarations name
+        // `node:stream`, `node:tls`, `node:events` and `Buffer`, none of which resolve
+        // under a full library check without them.
         "@types/node@22",
-        "@types/json-schema@7",
       ],
       project,
     );
@@ -216,9 +225,9 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
       // consumer would hit.
       expect.soft(registryReachable(), "the npm registry stopped answering mid-test").toBe(true);
       throw new Error(
-        `installing the packed tarballs and ai@${pinnedAi} into a scratch project ` +
-          `failed against a registry that answered \`npm ping\`: the published manifest ` +
-          `cannot be resolved by a consumer.`,
+        `installing the packed tarballs and postgres@${pinnedPostgres} into a scratch ` +
+          `project failed against a registry that answered \`npm ping\`: the published ` +
+          `manifest cannot be resolved by a consumer.`,
       );
     }
 
