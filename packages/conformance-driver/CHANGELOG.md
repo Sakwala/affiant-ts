@@ -12,6 +12,31 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Added
 
+- **The adapter section** (`src/adapter.ts`, `src/adapters/ai-sdk.ts`). Runs every document the
+  rulebook's `adapter` manifest section lists against one Affiant adapter, and reports the same
+  `results.schema.json` entries the conformance section does. Everything in the runner is the
+  rulebook's — the gate built from `given.gate` exactly as a conformance fixture's is, the tool
+  definitions, the Docket, the expectations; the three things only a framework can answer are an
+  `AdapterBinding`, so a second adapter is a second binding and no change to the runner (CV-2, CV-3).
+  A write definition's own host function is a tripwire that fails the fixture if it is ever reached
+  (GT-6), and a read definition's records that it ran, so a fixture can state that a refused call
+  never got that far (CV-2).
+- **`mergeRuns`**, because the rulebook asserts the failing set over the **union** of the sections a
+  run covered: one run document, one comparison, and a failing adapter fixture is a failing fixture
+  like any other.
+- **`affiant-conformance adapter --package <name>`**, the adapter section alone — what a host
+  working on an adapter reaches for rather than waiting for the other sixty-eight documents.
+- **`adapters[]` on the parity manifest**, naming `@affiant/adapter-ai-sdk`, the `ai` version the run
+  resolved, how many documents the section covered, and what the rulebook's adapter claims lint said
+  about the package (CV-5). The manifest moves to
+  [`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json).
+
+### Changed
+
+- `exemptions[]` no longer carries CV-2, CV-3 or CV-5. The rows are built from the vendored
+  exemption file rather than retyped, so they disappeared in the same change that moved the pin —
+  which is what "an implementation may not invent an exemption" is for.
+
 - **The driver.** Runs every document the rulebook's conformance manifest lists — 61
   declarative fixtures and 7 canonical byte vectors — against `@affiant/core` through
   its own published `@affiant/core/testing` runner and its own exported

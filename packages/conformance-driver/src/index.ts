@@ -31,6 +31,19 @@
  * with the `affiant-conformance` command, and publish the run document beside
  * whatever it claims about the framework it depends on.
  *
+ * From protocol v0.2.0 there is a second fixture section, `adapter`, and a driver
+ * runs it once for every Affiant adapter its implementation ships and declares. This
+ * implementation ships one, `@affiant/adapter-ai-sdk`:
+ *
+ * ```ts
+ * import { aiSdkAdapter, mergeRuns, runAdapterSection, runConformance } from "@affiant/conformance-driver";
+ *
+ * const run = mergeRuns(await runConformance(), await runAdapterSection(aiSdkAdapter));
+ * ```
+ *
+ * The parity assertion is over the union: a failing adapter fixture is a failing
+ * fixture like any other.
+ *
  * @packageDocumentation
  */
 
@@ -50,6 +63,18 @@ export type {
   RunOptions,
 } from "./run.js";
 
+export { adapterRunDocument, mergeRuns, runAdapterSection } from "./adapter.js";
+export type {
+  AdapterBinding,
+  AdapterCall,
+  AdapterCallShape,
+  AdapterRun,
+  AdapterToolDefinition,
+} from "./adapter.js";
+
+export { aiSdkAdapter } from "./adapters/ai-sdk.js";
+export { ADAPTER_PACKAGE_VERSION, AI_SDK_VERSION } from "./adapters/version.js";
+
 export {
   compareToManifest,
   describeVerdict,
@@ -57,6 +82,7 @@ export {
   parityManifest,
 } from "./parity.js";
 export type {
+  AdapterClaim,
   ExemptionRow,
   FailingRow,
   ParityManifest,

@@ -1,7 +1,7 @@
 {
   "name": "@affiant/conformance-driver",
   "version": "0.1.0-alpha.0",
-  "description": "Runs the Affiant protocol's conformance suite against @affiant/core on Node, Bun and workerd, and asserts the failing set equals the published parity manifest.",
+  "description": "Runs the Affiant protocol's conformance suite against @affiant/core and its adapter section against @affiant/adapter-ai-sdk, on Node, Bun and workerd, and asserts the failing set equals the published parity manifest.",
   "keywords": [
     "affiant",
     "conformance",
@@ -52,7 +52,9 @@
     "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
+    "@affiant/adapter-ai-sdk": "workspace:^",
     "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "ai": "7.0.101",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
   }

@@ -26,8 +26,9 @@
  * @packageDocumentation
  */
 
-import { PROTOCOL_PIN, coverageExemptions } from "@affiant/contract/conformance";
+import { adapterManifest, PROTOCOL_PIN, coverageExemptions } from "@affiant/contract/conformance";
 
+import { ADAPTER_PACKAGE_VERSION, AI_SDK_VERSION } from "./adapters/version.js";
 import { IMPLEMENTATION_NAME, IMPLEMENTATION_VERSION, detectRuntime } from "./run.js";
 import type { ConformanceRun } from "./run.js";
 
@@ -61,6 +62,29 @@ export interface RuntimeClaim {
   readonly note?: string;
 }
 
+/**
+ * One Affiant adapter this implementation ships and declares, and what the rulebook's
+ * adapter fixture section said about it (protocol v0.2.0, `conformance/PARITY.md`).
+ *
+ * An implementation that ships none publishes `adapters: []`, which is the positive
+ * statement that it runs none of that section — silence is not the same claim.
+ */
+export interface AdapterClaim {
+  /** The adapter package, by the name a reader installs it under. */
+  readonly package: string;
+  /** The version of it the run exercised. */
+  readonly version: string;
+  /** The host framework it is for, by the name its own registry knows it by. */
+  readonly runtime: string;
+  /** The version of that framework the run resolved and ran against. */
+  readonly runtimeVersion?: string;
+  /** How many documents of the adapter section this adapter's run covered. */
+  readonly fixtures: number;
+  /** What the rulebook's adapter claims lint said about the package (CV-5). */
+  readonly claimsLint?: "pass" | "fail" | "skipped";
+  readonly note?: string;
+}
+
 /** A rulebook exemption this implementation inherits, and what it checks in its place. */
 export interface ExemptionRow {
   readonly rule: string;
@@ -79,6 +103,7 @@ export interface ParityManifest {
   readonly runLog?: string;
   readonly failing: readonly FailingRow[];
   readonly runtimes: readonly RuntimeClaim[];
+  readonly adapters?: readonly AdapterClaim[];
   readonly exemptions: readonly ExemptionRow[];
   readonly notes?: string;
 }
@@ -272,9 +297,22 @@ export const parityManifest: ParityManifest = {
   implementation: IMPLEMENTATION_NAME,
   version: IMPLEMENTATION_VERSION,
   protocolTag: PROTOCOL_PIN,
-  producedAt: "2026-09-09T00:00:00.000Z",
+  producedAt: "2026-09-15T00:00:00.000Z",
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.1.json",
   failing: [],
+  adapters: [
+    {
+      package: "@affiant/adapter-ai-sdk",
+      version: ADAPTER_PACKAGE_VERSION,
+      runtime: "ai",
+      runtimeVersion: AI_SDK_VERSION,
+      fixtures: adapterManifest.fixtures.length,
+      claimsLint: "pass",
+      note:
+        "the rulebook's conformance/lint/adapter-claims.mjs, run against this package in the " +
+        "adapter-claims CI job of this repository, where the npm registry is reachable (CV-5)",
+    },
+  ],
   runtimes: [
     { name: "node", version: ">=22", claimed: true, unicodeVersion: unicodeVersionOf("node") },
     {
@@ -292,12 +330,17 @@ export const parityManifest: ParityManifest = {
   ],
   exemptions: inheritedExemptions,
   notes:
-    "The protocolTag is the rulebook's v0.1.3 tag, which this repository pins in " +
-    "packages/contract/protocol/PIN and vendors byte for byte, checksummed on every run. The " +
-    "suite is run on all three claimed runtimes and the failing set is asserted identical on " +
-    "each; an empty failing set is what this implementation owes, being the one the fixtures " +
-    "were promoted from, and the run it is read off is published beside this manifest in the " +
-    "rulebook. Each runtime's unicodeVersion is measured by probe, not declared: " +
+    "The protocolTag is the rulebook ref this repository pins in packages/contract/protocol/PIN " +
+    "and vendors byte for byte, checksummed on every run. The failing set is the union over the " +
+    "two fixture sections the run covers: the conformance section against @affiant/core, and the " +
+    "adapter section against @affiant/adapter-ai-sdk, which is the one adapter this " +
+    "implementation ships and declares. The suite is run on all three claimed runtimes and the " +
+    "failing set is asserted identical on each; an empty failing set is what this implementation " +
+    "owes, being the one the fixtures were promoted from, and the run it is read off is " +
+    "published beside this manifest in the rulebook. The adapter row's claimsLint is what the " +
+    "rulebook's conformance/lint/adapter-claims.mjs said about the package in this repository's " +
+    "adapter-claims CI job; that lint reads the npm registry, which is why it runs there and not " +
+    "in the rulebook's own CI. Each runtime's unicodeVersion is measured by probe, not declared: " +
     "probeUnicodeVersion() in packages/conformance-driver/src/parity.ts tests code points first " +
     "assigned in Unicode 14.0, 15.0, 15.1, 16.0 and 17.0 against the four General_Category " +
     "classes PV-3's neighbour rule reads, and states the highest release all of whose code " +
