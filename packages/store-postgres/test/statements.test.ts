@@ -153,14 +153,73 @@ describe("a stored fact the type forbids is a refusal, not a value (DK-1)", () =
       await database.sql`
         insert into affiant.docket_events (tenant_id, entry_id, kind, payload, at)
         values (${scope.tenantId}, ${"broken"}, ${"expiry"},
-                ${database.sql.json(payload as Parameters<typeof database.sql.json>[0])},
-                ${DEADLINE}::timestamptz)`;
+                ${JSON.stringify(payload)}::text::jsonb,
+                ${DEADLINE}::text::timestamptz)`;
 
       await expect(store.get("broken", scope)).rejects.toThrow(RangeError);
       // The refusal names the row, because the row is the only thing anybody can act on.
       await expect(store.get("broken", scope)).rejects.toThrow(/broken/);
     });
   }
+});
+
+describe("a character Postgres cannot store is this package's refusal (DK-2)", () => {
+  // Two characters a JavaScript string can hold and a Postgres row cannot: U+0000,
+  // which the encoding has no room for, and an unpaired surrogate, which cannot survive
+  // the round trip through `text` that `jsonb` requires. Left to the driver they arrive
+  // as `invalid byte sequence for encoding "UTF8": 0x00` and
+  // `invalid input syntax for type json` — errors that name neither the entry nor the
+  // field, and that come back from a plain column as a complaint about JSON, because the
+  // whole entry is also stored as a document beside the columns.
+  const NUL = String.fromCharCode(0);
+  const LONE_SURROGATE = String.fromCharCode(0xd800);
+
+  for (const [what, bad] of [
+    ["U+0000", NUL],
+    ["an unpaired surrogate", LONE_SURROGATE],
+  ] as const) {
+    it(`refuses a column value carrying ${what}, naming the entry and the field`, async () => {
+      clock.set(NOON);
+      const entry = sampleEntry("bad-column", {
+        tenantId: "tenant-unstorable",
+        channel: `chat${bad}`,
+      });
+
+      await expect(store.file(entry)).rejects.toThrow(RangeError);
+      await expect(store.file(entry)).rejects.toThrow(/entry bad-column: channel/);
+    });
+
+    it(`refuses a value inside the Affidavit carrying ${what}, naming where it is`, async () => {
+      clock.set(NOON);
+      const base = sampleEntry("bad-document");
+      const entry = sampleEntry("bad-document", {
+        tenantId: "tenant-unstorable",
+        affidavit: { ...base.affidavit, entityId: `invoice-1${bad}` },
+      });
+
+      await expect(store.file(entry)).rejects.toThrow(RangeError);
+      // The path, not just the record: an Affidavit has dozens of strings in it and the
+      // host has to be told which one it cannot file.
+      await expect(store.file(entry)).rejects.toThrow(/entry bad-document: affidavit\.entityId/);
+    });
+  }
+
+  it("leaves nothing behind when it refuses", async () => {
+    clock.set(NOON);
+    const base = sampleEntry("no-half-row");
+    await expect(
+      store.file(
+        sampleEntry("no-half-row", {
+          tenantId: "tenant-unstorable",
+          affidavit: { ...base.affidavit, entityId: `invoice-1${NUL}` },
+        }),
+      ),
+    ).rejects.toThrow(RangeError);
+
+    const rows = await database.sql`
+      select entry_id from affiant.docket_entries where entry_id = ${"no-half-row"}`;
+    expect(rows).toHaveLength(0);
+  });
 });
 
 describe("removing a filing removes what was appended to it (DK-4)", () => {

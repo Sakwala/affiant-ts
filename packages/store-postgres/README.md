@@ -85,14 +85,15 @@ the schema, `select, insert, delete` on the two tables, and `select` on the view
 are the grants the package's own row-level-security suite issues and measures; the view
 is not updatable, so it needs no more.
 
-**Grant `usage` on the schema to the role that owns these tables as well**, if that is
-not the role that owns the schema. `docket_events` references `docket_entries`, and
-Postgres runs that referential-integrity check as the owner of the _referencing_ table
-rather than as the caller. Without the grant the first later fact a host records — the
-first decision — fails with `permission denied for schema affiant` however complete the
-application role's grants are, and reads go on working, which makes it a puzzling
-failure to meet in production. A host whose migrations run as a role that owns the
-tables in a schema somebody else created is in exactly that position.
+**Grant `usage` on the schema to the role that owns `docket_entries` as well**, if that
+is not the role that owns the schema. `docket_events` references `docket_entries`, and
+Postgres enforces that reference as the owner of the table being referenced — not as the
+caller, and not as the owner of the table the foreign key is declared on. Without the
+grant the first later fact a host records — the first decision — fails with
+`permission denied for schema affiant` however complete the application role's grants
+are, and reads go on working, which makes it a puzzling failure to meet in production. A
+host whose migrations run as a role that owns the tables in a schema somebody else
+created is in exactly that position.
 
 ## Migrations
 
@@ -187,10 +188,16 @@ deployment proves it.
   more. A conversation's history is your working state, not an Affiant record.
 - **No model client, and no Drizzle schema.** The tables are ordinary tables; describe
   them in your own ORM if you want typed reads of them. Handing the same connection to
-  `drizzle-orm/postgres-js` is fine: it replaces the driver's JSON serializers on the
-  client it wraps, so this package encodes its own JSON and casts it in the statement
-  rather than asking the driver to, and the whole contract runs over a wrapped client
-  in CI.
+  `drizzle-orm/postgres-js` is fine, and the whole contract runs over a wrapped client in
+  CI. It has to be measured rather than assumed, because wrapping a client changes it for
+  everybody: Drizzle replaces the serializers for `json` and `jsonb`, and both the
+  serializers and the parsers for eight date and numeric types, with the identity
+  function. So this package encodes its own JSON and normalises its own instants and
+  binds both as text, rather than asking the driver to. The parser half needs nothing
+  from this package, for a reason worth stating: no statement here reads a `timestamptz`
+  column into TypeScript. What comes back is the stored entry and the event payloads as
+  `jsonb`, the filing sequence, and entry ids — every instant the store returns was
+  written into a document by the core, not decoded from a column by the driver.
 
 ## Status
 

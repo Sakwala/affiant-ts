@@ -57,10 +57,56 @@ let wrapped: Promise<TestDatabase> | null = null;
 function openWrapped(): Promise<TestDatabase> {
   wrapped ??= createTestDatabase({ max: 20 }).then((created) => {
     drizzle(created.sql as never);
+    requireWrapped(created);
     return created;
   });
   return wrapped;
 }
+
+/**
+ * The client's `jsonb` serializer, or `undefined` when the driver's own is still there.
+ *
+ * `drizzle(client)` writes an identity function into the registry; postgres.js's own
+ * entry is `JSON.stringify`. Reading the registry is the only way to tell from outside
+ * whether the wrapping took, and telling is the point: without this check, deleting the
+ * `drizzle(...)` call above leaves every case in this run green, and the run proves
+ * nothing at all.
+ */
+function jsonbSerializer(database: TestDatabase): ((value: unknown) => unknown) | undefined {
+  const registry = (
+    database.sql as unknown as {
+      options?: { serializers?: Record<string, (value: unknown) => unknown> };
+    }
+  ).options?.serializers;
+  return registry?.["3802"];
+}
+
+/** Fail loudly, before any case runs, if the client under test is not wrapped after all. */
+function requireWrapped(database: TestDatabase): void {
+  const document = { wrapped: true };
+  if (jsonbSerializer(database)?.(document) !== document) {
+    throw new Error(
+      "the second contract run is not running over a Drizzle-wrapped client: the driver's " +
+        "own jsonb serializer is still in the registry",
+    );
+  }
+}
+
+describe("the second run really is over a wrapped client", () => {
+  it("finds the driver's jsonb serializer replaced by Drizzle's identity function", async () => {
+    const database = await openWrapped();
+    const document = { a: 1 };
+
+    // Identity, not JSON text: this is the whole of the defect #48 reported, held in
+    // place so that the run below cannot quietly become a second plain run.
+    expect(jsonbSerializer(database)?.(document)).toBe(document);
+  });
+
+  it("leaves the plain run's client with the driver's own serializer", async () => {
+    const document = { a: 1 };
+    expect(jsonbSerializer(await open())?.(document)).toBe('{"a":1}');
+  });
+});
 
 runDocketStoreContract(
   async (clock) => createPostgresDocketStore({ sql: (await openWrapped()).sql, clock }),
