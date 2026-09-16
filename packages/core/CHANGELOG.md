@@ -16,8 +16,9 @@ A testing release. Nothing in the gate, the pipeline or the decision path change
 moved is the reference Docket store's treatment of a repeated later fact, and what
 arrived is a way for somebody else's store to be measured by this package's own
 assertions. Built against the rulebook's
-[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, the same
-tag `0.1.0-alpha.1` was built against. Not on npm: publishing is a separate, hand-dispatched
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, one release
+on from the [`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3)
+`0.1.0-alpha.1` was built against; no wire shape and no vector changed between them. Not on npm: publishing is a separate, hand-dispatched
 step and it has not been dispatched for this version.
 
 ### Added

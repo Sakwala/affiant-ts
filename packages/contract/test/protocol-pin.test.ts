@@ -113,21 +113,42 @@ function sha256(bytes: Uint8Array): string {
 }
 
 describe("the pinned protocol ref", () => {
-  it("is a rulebook tag for the wire version this package targets, or an immutable commit", () => {
+  it("is a rulebook release tag, or an immutable commit", () => {
     // Two versions, and they are not the same number. `PROTOCOL_VERSION` is the
     // **wire** version SR-4 stamps on an envelope; the pin is a **rulebook release**
-    // tag, and the rulebook may cut a patch — new conformance vectors, a new lint —
-    // over a wire that did not change. So the tag's major and minor must be the
-    // wire's, and its patch is the rulebook's own. A differing minor would mean this
-    // package vendored the schemas of a wire it does not target.
+    // tag, and the rulebook releases over a wire that did not change — `v0.2.0` added
+    // a second fixture section, its runner contract and a lint, and left
+    // `schemas/0.1.0/` and `protocolVersion` `"0.1.0"` exactly as they were. So the
+    // tag's own numbers say nothing about the wire, and reading the wire out of them
+    // is what the case below replaces.
     //
     // The second arm is for the window in which a version's text is on the rulebook's
     // default branch and its tag has not been cut: a full commit is as immutable as a
     // tag and, unlike a tag, cannot be moved under a running build.
-    const [major, minor] = PROTOCOL_VERSION.split(".");
-    const tag = new RegExp(`^v${major}\\.${minor}\\.(0|[1-9][0-9]*)$`);
+    expect(TAG_PATTERN.test(pin) || COMMIT_PATTERN.test(pin), pin).toBe(true);
+  });
 
-    expect(tag.test(pin) || COMMIT_PATTERN.test(pin), pin).toBe(true);
+  it("vendors the schemas of the wire version this package targets", () => {
+    // What the tag's minor used to stand in for, read where it can actually be read:
+    // out of the vendored bytes. Every schema at `protocol/schemas/` carries the wire
+    // version in its own `$id`, so a pin that moved to a rulebook release carrying a
+    // different wire fails here rather than being taken on the tag's word.
+    // `fixtures.test.ts` makes the same check from the other end, against the vendored
+    // fixture manifest's own `protocolVersion`.
+    const wrong = readdirSync(join(protocolDir, "schemas"), { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".schema.json"))
+      .map((entry) => {
+        const schema = JSON.parse(
+          readFileSync(join(protocolDir, "schemas", entry.name), "utf8"),
+        ) as { $id?: string };
+        return { file: entry.name, id: schema.$id ?? null };
+      })
+      .filter(
+        ({ id }) =>
+          id === null || !id.startsWith(`https://affiant.dev/schemas/${PROTOCOL_VERSION}/`),
+      );
+
+    expect(wrong).toEqual([]);
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {

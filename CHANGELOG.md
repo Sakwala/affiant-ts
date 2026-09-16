@@ -15,7 +15,7 @@ was made against.
 Three packages move together and none of them is on npm yet: `@affiant/core` to
 `0.1.0-alpha.2`, and `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` at
 `0.1.0-alpha.0`, their first version. Each was built against the rulebook's
-[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, which is
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which is
 what `packages/contract/protocol/PIN` pins and `@affiant/contract` vendors byte for byte.
 `@affiant/contract` and `@affiant/evidence-card` stay at `0.1.0-alpha.1`: nothing under
 either package has changed since that version but their READMEs. Publishing is the
@@ -25,7 +25,7 @@ these versions.
 ### Added
 
 - **The rulebook's adapter fixture section, run against `@affiant/adapter-ai-sdk`.** The protocol
-  pin moves to the `v0.2.0` text, which adds a second fixture section for the three rules that are
+  pin moves to the rulebook's `v0.2.0` tag, which adds a second fixture section for the three rules that are
   about an adapter's seam: CV-2's fail-closed call site, CV-3's delegation clause and CV-5's
   durability claims. A driver runs that section once for every adapter its implementation ships and
   declares; this one ships one, so it runs once, on Node, under Bun and inside workerd, and its
