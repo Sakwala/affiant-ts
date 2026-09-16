@@ -8,6 +8,39 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [0.1.0-alpha.1] — 2026-09-16
+
+Two defects the first host to wire this package up ran into, both in the seam between
+the package and a host's own database work. Not published: `npm i
+@affiant/store-postgres@alpha` still installs `0.1.0-alpha.0`.
+
+### Fixed
+
+- **This package encodes its own JSON**
+  ([#48](https://github.com/Sakwala/affiant-ts/issues/48)). `drizzle-orm/postgres-js`
+  replaces the `json` and `jsonb` serializers on the postgres.js client it wraps with
+  the identity function, because it encodes values itself; the replacement belongs to
+  the connection, so it applied to this store's statements too whenever a host built
+  both on one client. A filing then handed a raw object to the driver's socket write and
+  failed there with `TypeError: The "string" argument must be of type string or an
+  instance of Buffer or ArrayBuffer. Received an instance of Object`. Every document is
+  now written by `JSON.stringify` here and bound as text with a `::text::jsonb` cast.
+  The text half of that cast is load-bearing: postgres.js takes each parameter's type
+  from the server's description of the statement, so a parameter written `::jsonb` would
+  be encoded a second time and store a JSON string where a document belongs. The store
+  contract now runs a second time over a client Drizzle has wrapped, on Node and inside
+  workerd — 89 cases each way (DK-1).
+
+- **The grant the tables' owner needs is stated**
+  ([#49](https://github.com/Sakwala/affiant-ts/issues/49)). `docket_events` references
+  `docket_entries`, and Postgres runs that referential-integrity check as the owner of
+  the referencing table rather than as the caller, so a role that owns these tables in a
+  schema it did not create needs `usage` on the schema even though it never appears in a
+  statement. Without it a host's first decision fails with `permission denied for schema
+  affiant` while reads go on working. The README states the grant beside the application
+  role's, and the row-level-security suite has a case where the tables' owner is not the
+  schema's owner (AZ-2).
+
 ## [0.1.0-alpha.0] — 2026-09-16
 
 The first version. Built against the rulebook's

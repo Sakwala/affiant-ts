@@ -1,4 +1,5 @@
 import { runDocketStoreContract, runSessionStoreContract } from "@affiant/core/testing";
+import { drizzle } from "drizzle-orm/postgres-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createPostgresDocketStore } from "../src/store.js";
@@ -38,8 +39,42 @@ runSessionStoreContract(
   { api: { describe, it, expect, beforeAll, afterAll }, name: "postgres" },
 );
 
+/**
+ * The same contract again, over a connection a host has also built an ORM on.
+ *
+ * A host is entitled to use its own connection for its own tables, and
+ * `drizzle-orm/postgres-js` reconfigures the client it is handed: it replaces the
+ * driver's serializers — `json` and `jsonb` among them — with the identity function,
+ * because it encodes values itself. That change lives on the connection, so it applies
+ * to every statement anyone sends over it. Running the whole contract here is what says
+ * every operation still reaches the row over a client configured that way (DK-1).
+ *
+ * A second database, because the cases file the same ids as the run above.
+ */
+let wrapped: Promise<TestDatabase> | null = null;
+
+/** The second database, wrapped by Drizzle before the store ever sees the client. */
+function openWrapped(): Promise<TestDatabase> {
+  wrapped ??= createTestDatabase({ max: 20 }).then((created) => {
+    drizzle(created.sql as never);
+    return created;
+  });
+  return wrapped;
+}
+
+runDocketStoreContract(
+  async (clock) => createPostgresDocketStore({ sql: (await openWrapped()).sql, clock }),
+  { api: { describe, it, expect, beforeAll, afterAll }, name: "postgres behind drizzle" },
+);
+
+runSessionStoreContract(
+  async (clock) => createPostgresDocketStore({ sql: (await openWrapped()).sql, clock }),
+  { api: { describe, it, expect, beforeAll, afterAll }, name: "postgres behind drizzle" },
+);
+
 afterAll(async () => {
-  const held = database;
+  const held = [database, wrapped];
   database = null;
-  if (held !== null) await (await held).close();
+  wrapped = null;
+  for (const one of held) if (one !== null) await (await one).close();
 });

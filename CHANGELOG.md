@@ -10,6 +10,21 @@ was made against.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`@affiant/store-postgres` `0.1.0-alpha.1`: the two defects its first consumer found.**
+  The package encodes its own JSON and binds it as text with a `::text::jsonb` cast,
+  rather than through postgres.js's serializer registry, which
+  `drizzle-orm/postgres-js` replaces on any client it wraps — so a host that builds both
+  on one connection can file again
+  ([#48](https://github.com/Sakwala/affiant-ts/issues/48), DK-1); the store contract runs
+  a second time over a wrapped client, on Node and inside workerd. And the README states
+  that the role owning the store's tables needs `usage` on the schema when it is not the
+  schema's owner, because the events table's referential-integrity check runs as that
+  owner, with a row-level-security case for it
+  ([#49](https://github.com/Sakwala/affiant-ts/issues/49), AZ-2).
+
+
 ## [0.1.0-alpha.2] — 2026-09-16
 
 Three packages move together, and all three are now on npm: `@affiant/core` to
