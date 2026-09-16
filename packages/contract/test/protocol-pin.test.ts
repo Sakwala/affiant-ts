@@ -152,9 +152,13 @@ describe("the pinned protocol ref", () => {
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
-    // 181 at protocol v0.1.3, plus the twelve documents of the adapter fixture section,
-    // the adapter claims lint and the file it reads its allowed feature names out of
-    // (conformance/ADAPTER-RUNNER.md, conformance/ADAPTER-CLAIMS.md).
+    // 181 at protocol v0.1.3, plus the twelve documents of the adapter fixture section
+    // (conformance/fixtures/adapter/), the adapter claims lint
+    // (conformance/lint/adapter-claims.mjs) and the one file it reads its allowed feature
+    // names out of (conformance/ADAPTER-CLAIMS.md). ADAPTER-RUNNER.md, which states the
+    // format those twelve documents are in, is NOT vendored: the driver implements that
+    // contract in code rather than reading it, and localPathFor in
+    // scripts/sync-protocol.mjs takes only the prose file the lint parses.
     expect(trackedFiles.length).toBe(195);
   });
 
