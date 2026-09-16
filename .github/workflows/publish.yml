@@ -21,8 +21,9 @@
 # because the stated conditions for publishing it were a public parity report for
 # both implementations and a green, merge-blocking conformance driver. Those
 # conditions hold at the rulebook's v0.2.0 tag, the ref packages/contract/protocol/PIN
-# names — the .NET parity report at
-# https://github.com/Sakwala/affiant-protocol/blob/v0.2.0/conformance/parity/dotnet-v0.1.json
+# names — the .NET parity report read at that tag, which is the one named v0.2 and not
+# the v0.1 document frozen inside the tag, whose own protocolTag reads v0.1.3:
+# https://github.com/Sakwala/affiant-protocol/blob/main/conformance/parity/dotnet-v0.2.json
 # and this package's own
 # packages/conformance-driver/conformance/parity/typescript-v0.2.json — so this
 # workflow sets the variable —
@@ -34,7 +35,7 @@
 #
 # Authentication: npm trusted publishing, not a token. The exchange below succeeds
 # only where the registry carries a trusted-publisher entry naming this repository
-# and this workflow filename for the package being published; the three entries on
+# and this workflow filename for the package being published; the five entries on
 # npmjs.com name the owner `Sakwala`, the repository `affiant-ts`, this file and
 # no environment, and permit a direct `npm publish`. The job's OIDC token
 # (`id-token: write`) is exchanged for a short-lived, package-scoped credential at
@@ -57,9 +58,12 @@
 # `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` were first published on
 # 2026-09-16 under a credential a person holds rather than by this workflow — their
 # `0.1.0-alpha.0` tarballs carry the registry's signatures but no provenance
-# attestation, which is what a hand publish leaves behind. The package now exists, so
-# a trusted-publisher entry can be registered for each; whether one has been is what
-# the two preflight lines below report, a refused exchange until it is. The credential
+# attestation, which is what a hand publish leaves behind. Both packages then existed,
+# and both entries were registered: run 35044285665 of this workflow, on 2026-09-16 at
+# 01:31 UTC, exchanged the job's id token for all five packages and both operations —
+# ten HTTP 201s in the preflight step, `@affiant/store-postgres` and
+# `@affiant/adapter-ai-sdk` among them — which the registry answers only where an entry
+# naming this repository and this filename exists. The credential
 # for that first publish is an **interactive 2FA login**: a granular access
 # token with `bypass_2fa` can publish, but npm's API refuses it on the operation that
 # registers the trusted publisher afterwards — "Granular Access Tokens with

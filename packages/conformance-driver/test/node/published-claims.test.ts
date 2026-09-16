@@ -71,6 +71,13 @@ describe("conformance/parity/typescript-v0.2.json", () => {
     // cannot be read is a claim a reader has to take on trust.
     expect(validatorFor(resultsSchema)(log)).toEqual([]);
     expect((log as { protocolTag: string }).protocolTag).toBe(parityManifest.protocolTag);
+
+    // And `producedAt` is the instant that run happened, which is what the rulebook
+    // defines it as (conformance/PARITY.md). It is a literal in src/parity.ts because
+    // that module runs inside workerd and has no filesystem, so nothing but this would
+    // stop a regenerated run and a stale literal being committed together — which is
+    // how the manifest came to be dated an hour and a half before the run it names.
+    expect(parityManifest.producedAt).toBe((log as { producedAt: string }).producedAt);
   });
 });
 
