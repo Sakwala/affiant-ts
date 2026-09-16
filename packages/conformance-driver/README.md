@@ -59,7 +59,7 @@ From protocol `v0.2.0` the rulebook carries a second fixture section, `adapter`,
 about an adapter's seam and could not be checked before an adapter existed: CV-2's fail-closed call site, CV-3's
 delegation clause, and CV-5 — which is a lint over the adapter package rather than a fixture, because no fixture
 can observe a statement about documentation and packaging. The format is the rulebook's
-[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/d6827c5/conformance/ADAPTER-RUNNER.md):
+[`conformance/ADAPTER-RUNNER.md`](https://github.com/Sakwala/affiant-protocol/blob/v0.2.0/conformance/ADAPTER-RUNNER.md):
 a conformance fixture with two step kinds of its own, `adapter-build` and `adapter-call`, and five matchers of its own.
 The link is to the **pinned ref**, not to a branch: `packages/contract/protocol/PIN` is what this repository vendors and
 runs against, and a link to `main` would describe a document the run did not read. It moves when the pin moves.
@@ -179,7 +179,7 @@ The manifest belongs beside the fixtures it is about, and the rulebook carries i
 [`conformance/parity/typescript-v0.1.json`](https://github.com/Sakwala/affiant-protocol/blob/v0.1.3/conformance/parity/typescript-v0.1.json)
 for the `v0.1` readings, with the run each was read off beside it under
 [`conformance/results/`](https://github.com/Sakwala/affiant-protocol/tree/v0.1.3/conformance/results). The
-`v0.2` manifest is published there when the `v0.2.0` tag is cut, under its own name.
+`v0.2` manifest is published there under its own name, in a pull request of its own.
 The copy under `conformance/` here is the one this package's CI asserts against and the one the upstream copy is
 made from; the two move in the same pull request, because a manifest names the ref it was produced against and a
 copy that disagreed with its own run would be a claim nobody could check.
