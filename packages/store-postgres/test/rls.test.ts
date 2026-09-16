@@ -99,8 +99,9 @@ describe("row-level security over the tenant setting (AZ-2)", () => {
           filed_at, expires_at, protocol_version, filed_row
         ) values (
           ${"tenant-c"}, ${"smuggled"}, ${"conv-1"}, ${"chat"}, ${"update_invoice"},
-          ${tx.json({})}, ${"ReviewerConfirmation"}, ${"2026-09-04T09:00:00.000Z"}::timestamptz,
-          ${"2026-09-04T09:30:00.000Z"}::timestamptz, ${"0.1.0"}, ${tx.json({})}
+          ${"{}"}::text::jsonb, ${"ReviewerConfirmation"},
+          ${"2026-09-04T09:00:00.000Z"}::text::timestamptz,
+          ${"2026-09-04T09:30:00.000Z"}::text::timestamptz, ${"0.1.0"}, ${"{}"}::text::jsonb
         )`;
       return { value: null };
     });
@@ -176,8 +177,9 @@ describe("row-level security applies to the tables' own owner (AZ-2)", () => {
           filed_at, expires_at, protocol_version, filed_row
         ) values (
           ${"tenant-a"}, ${"owner-wrote-this"}, ${"conv-1"}, ${"chat"}, ${"update_invoice"},
-          ${tx.json({})}, ${"ReviewerConfirmation"}, ${"2026-09-04T09:00:00.000Z"}::timestamptz,
-          ${"2026-09-04T09:30:00.000Z"}::timestamptz, ${"0.1.0"}, ${tx.json({})}
+          ${"{}"}::text::jsonb, ${"ReviewerConfirmation"},
+          ${"2026-09-04T09:00:00.000Z"}::text::timestamptz,
+          ${"2026-09-04T09:30:00.000Z"}::text::timestamptz, ${"0.1.0"}, ${"{}"}::text::jsonb
         )`;
       return { value: null };
     });
@@ -199,11 +201,13 @@ describe("row-level security applies to the tables' own owner (AZ-2)", () => {
 });
 
 describe("the grants the store's objects need to reference each other (AZ-2)", () => {
-  // A third database, because this one hands the tables to a role that is not the
-  // schema's owner and grants it less than the arrangements above do.
+  // A third database, because this one hands the two tables to two roles that are not
+  // the schema's owner and grants them less than the arrangements above do.
   let split: TestDatabase;
-  /** Owns the two tables and the view, and is not the schema's owner. */
-  const tablesOwner = `affiant_tables_${Math.random().toString(36).slice(2, 8)}`;
+  /** Owns `docket_entries` — the table the foreign key points *at*. */
+  const referencedOwner = `affiant_ref_${Math.random().toString(36).slice(2, 8)}`;
+  /** Owns `docket_events` and the view — the table the foreign key is *on*. */
+  const referencingOwner = `affiant_src_${Math.random().toString(36).slice(2, 8)}`;
   /** The application role, with exactly the grants the README lists for it. */
   const application = `affiant_role_${Math.random().toString(36).slice(2, 8)}`;
   /** Fixed, so nothing the case files reads expired before it is decided. */
@@ -213,16 +217,19 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
     split = await createTestDatabase({ max: 4 });
     const sql = split.sql;
 
-    await sql.unsafe(`create role "${tablesOwner}" nosuperuser`);
-    await sql.unsafe(`create role "${application}" nosuperuser`);
+    for (const role of [referencedOwner, referencingOwner, application]) {
+      await sql.unsafe(`create role "${role}" nosuperuser`);
+    }
     // `create` is what lets a role own an object in a schema; `usage` is what lets it
     // look one up there, and the two are separate grants. The tables are handed over
     // with only the first, which is the arrangement a host lands in when its migrations
-    // run as a role that did not create the schema.
-    await sql.unsafe(`grant create on schema affiant to "${tablesOwner}"`);
-    await sql.unsafe(`alter table affiant.docket_entries owner to "${tablesOwner}"`);
-    await sql.unsafe(`alter table affiant.docket_events owner to "${tablesOwner}"`);
-    await sql.unsafe(`alter view affiant.docket_current owner to "${tablesOwner}"`);
+    // run as a role that did not create the schema. The two tables go to two different
+    // roles so that the case can say *which* owner the grant belongs to.
+    await sql.unsafe(`grant create on schema affiant to "${referencedOwner}"`);
+    await sql.unsafe(`grant create on schema affiant to "${referencingOwner}"`);
+    await sql.unsafe(`alter table affiant.docket_entries owner to "${referencedOwner}"`);
+    await sql.unsafe(`alter table affiant.docket_events owner to "${referencingOwner}"`);
+    await sql.unsafe(`alter view affiant.docket_current owner to "${referencingOwner}"`);
 
     await sql.unsafe(`grant usage on schema affiant to "${application}"`);
     await sql.unsafe(
@@ -232,10 +239,15 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
   }, 120_000);
 
   afterAll(async () => {
-    await split.sql.unsafe(`drop owned by "${application}"`);
-    await split.sql.unsafe(`drop owned by "${tablesOwner}"`);
-    await split.sql.unsafe(`drop role if exists "${application}"`);
-    await split.sql.unsafe(`drop role if exists "${tablesOwner}"`);
+    // The tables have to come back to the role that made them before the two owners can
+    // be dropped: a role that owns an object in a live database is not droppable, and a
+    // role is a cluster object that would outlive this database otherwise.
+    const owned = [referencedOwner, referencingOwner, application]
+      .map((role) => `"${role}"`)
+      .join(", ");
+    await split.sql.unsafe(`reassign owned by ${owned} to current_user`);
+    await split.sql.unsafe(`drop owned by ${owned}`);
+    await split.sql.unsafe(`drop role if exists ${owned}`);
     await split.close();
   });
 
@@ -258,18 +270,17 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
     return held.value;
   }
 
-  it("needs usage on the schema for the role that owns the tables, not only for the caller", async () => {
+  it("needs usage on the schema for the owner of the table the foreign key points at", async () => {
     // The application role has every grant the README lists, and the filing goes in:
     // `docket_entries` references nothing. The decision is a row in `docket_events`,
-    // which references `docket_entries`, and Postgres runs that referential-integrity
-    // check as the owner of the *referencing* table — so it is the tables' owner, not
-    // the caller, that has to be able to look the schema up.
-    await expect(fileAndDecide("before-the-grant")).rejects.toThrow(
+    // which references `docket_entries`, and the check that enforces that reference
+    // runs as a role the statement never names.
+    await expect(fileAndDecide("before-any-grant")).rejects.toThrow(
       /permission denied for schema affiant/,
     );
 
-    // Not a general loss of access: the caller reads the tables perfectly well. What
-    // is missing is a grant to a role that never appears in the statement.
+    // Not a general loss of access: the caller reads the tables perfectly well. What is
+    // missing is a grant to a role that never appears in the statement.
     const readable = await split.sql.begin(async (tx) => {
       await tx.unsafe(`set local role "${application}"`);
       await tx`select set_config('affiant.tenant_id', ${"tenant-a"}, true)`;
@@ -277,7 +288,15 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
     });
     expect(readable.value).toHaveLength(0);
 
-    await split.sql.unsafe(`grant usage on schema affiant to "${tablesOwner}"`);
-    expect(await fileAndDecide("after-the-grant")).toBe("approved");
+    // Granting it to the owner of the *referencing* table changes nothing, which is
+    // what makes this case discriminate rather than merely pass: the referenced table
+    // is the one being looked up.
+    await split.sql.unsafe(`grant usage on schema affiant to "${referencingOwner}"`);
+    await expect(fileAndDecide("referencing-owner-granted")).rejects.toThrow(
+      /permission denied for schema affiant/,
+    );
+
+    await split.sql.unsafe(`grant usage on schema affiant to "${referencedOwner}"`);
+    expect(await fileAndDecide("referenced-owner-granted")).toBe("approved");
   });
 });

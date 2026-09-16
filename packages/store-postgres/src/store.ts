@@ -215,11 +215,18 @@ class Store implements DocketStore, SessionStore {
           tenant_id, entry_id, conversation_id, channel, tool_name, affidavit, requirement,
           blocked, composite_ref, supersedes, filed_at, expires_at, protocol_version, filed_row
         ) values (
-          ${entry.tenantId}, ${entry.entryId}, ${entry.conversationId}, ${entry.channel},
-          ${entry.toolName}, ${json(entry.affidavit)}::text::jsonb, ${entry.requirement},
-          ${entry.blocked === null ? null : json(entry.blocked)}::text::jsonb, ${entry.compositeRef},
-          ${entry.lineage.supersedes}, ${entry.filedAt}::timestamptz,
-          ${entry.expiresAt}::timestamptz, ${entry.protocolVersion}, ${json(entry)}::text::jsonb
+          ${text(entry, "tenantId", entry.tenantId)}, ${text(entry, "entryId", entry.entryId)},
+          ${text(entry, "conversationId", entry.conversationId)},
+          ${text(entry, "channel", entry.channel)}, ${text(entry, "toolName", entry.toolName)},
+          ${json(entry, "affidavit", entry.affidavit)}::text::jsonb,
+          ${text(entry, "requirement", entry.requirement)},
+          ${entry.blocked === null ? null : json(entry, "blocked", entry.blocked)}::text::jsonb,
+          ${text(entry, "compositeRef", entry.compositeRef)},
+          ${text(entry, "lineage.supersedes", entry.lineage.supersedes)},
+          ${instant(entry.filedAt, "filedAt")}::text::timestamptz,
+          ${instant(entry.expiresAt, "expiresAt")}::text::timestamptz,
+          ${text(entry, "protocolVersion", entry.protocolVersion)},
+          ${json(entry, "the entry", entry)}::text::jsonb
         )
         on conflict (tenant_id, entry_id) do nothing
         returning entry_id`;
@@ -476,7 +483,7 @@ class Store implements DocketStore, SessionStore {
     limit: number,
   ): Promise<{ expired: string[]; more: boolean }> {
     requireLimit(limit);
-    instantMs(now, "now");
+    const due = instant(now, "now");
 
     return this.#run(scope.tenantId, async (tx) => {
       // Choosing the rows and recording the sweep are **one statement**. As two, a
@@ -494,7 +501,7 @@ class Store implements DocketStore, SessionStore {
             and (${conversationOf(scope)}::text is null
                  or v.conversation_id = ${conversationOf(scope)}::text)
             and v.status = 'pending'
-            and v.expires_at <= ${now}::timestamptz
+            and v.expires_at <= ${due}::text::timestamptz
           order by v.filing_seq
           limit ${limit + 1}
         ),
@@ -509,7 +516,7 @@ class Store implements DocketStore, SessionStore {
           from capped c
           join ${tx(this.#table("docket_entries"))} e
             on e.tenant_id = ${scope.tenantId}::text and e.entry_id = c.entry_id
-          where e.expires_at <= ${now}::timestamptz
+          where e.expires_at <= ${due}::text::timestamptz
             and not exists (
               select 1 from ${tx(this.#table("docket_events"))} x
               where x.tenant_id = ${scope.tenantId}::text
@@ -552,14 +559,15 @@ class Store implements DocketStore, SessionStore {
     limit: number,
   ): Promise<{ removed: number; more: boolean }> {
     requireLimit(limit);
-    instantMs(policy.olderThan, "olderThan");
-    const now = this.#clock.now();
+    const cut = instant(policy.olderThan, "olderThan");
+    const now = instant(this.#clock.now(), "now");
 
     return this.#run(scope.tenantId, async (tx) => {
       const candidates = await tx<{ entry_id: string }[]>`
         with scoped as (
           select v.*,
-                 case when v.status = 'pending' and v.expires_at <= ${now}::timestamptz
+                 case when v.status = 'pending'
+                           and v.expires_at <= ${now}::text::timestamptz
                       then 'expired' else v.status end as read_status
           from ${tx(this.#table("docket_current"))} v
           where v.tenant_id = ${scope.tenantId}::text
@@ -571,7 +579,7 @@ class Store implements DocketStore, SessionStore {
           and not (read_status = 'approved' and execution = 'unexecuted')
           and (case when read_status = 'expired'
                     then coalesce(decided_at, expires_at) else decided_at end)
-              < ${policy.olderThan}::timestamptz
+              < ${cut}::text::timestamptz
         order by filing_seq
         limit ${limit + 1}`;
 
@@ -687,23 +695,26 @@ class Store implements DocketStore, SessionStore {
     payload: unknown,
     options: { readonly at: string; readonly liveAt?: string },
   ): Promise<boolean> {
-    const liveAt = options.liveAt ?? null;
+    const liveAt = options.liveAt === undefined ? null : instant(options.liveAt, "liveAt");
+    const at = instant(options.at, "at");
     const written = await tx`
       insert into ${tx(this.#table("docket_events"))} (tenant_id, entry_id, kind, payload, at)
       select ${tenantId}::text, ${entryId}::text, ${kind}::text,
-             ${json(payload)}::text::jsonb, ${options.at}::timestamptz
+             ${json({ entryId }, `the ${kind} payload`, payload)}::text::jsonb,
+             ${at}::text::timestamptz
       where exists (
         select 1 from ${tx(this.#table("docket_entries"))} e
         where e.tenant_id = ${tenantId}::text
           and e.entry_id = ${entryId}::text
-          and (${liveAt}::timestamptz is null or e.expires_at > ${liveAt}::timestamptz)
+          and (${liveAt}::text::timestamptz is null
+               or e.expires_at > ${liveAt}::text::timestamptz)
       )
       and not exists (
         select 1 from ${tx(this.#table("docket_events"))} x
         where x.tenant_id = ${tenantId}::text
           and x.entry_id = ${entryId}::text
           and (x.kind = ${kind}::text
-               or (${liveAt}::timestamptz is not null and x.kind = 'expiry'))
+               or (${liveAt}::text::timestamptz is not null and x.kind = 'expiry'))
       )
       on conflict do nothing
       returning id`;
@@ -721,7 +732,7 @@ class Store implements DocketStore, SessionStore {
     after: string,
     limit: number,
   ): Promise<Slice> {
-    const now = this.#clock.now();
+    const now = instant(this.#clock.now(), "now");
     const rows = await tx<FoldRow[]>`
       select filed_row, decision_payload, execution_payload, supersession_payload,
              preserved_payload, expiry_payload, filing_seq
@@ -733,7 +744,7 @@ class Store implements DocketStore, SessionStore {
         and (
           ${kind}::text = 'all'
           or (${kind}::text = 'pending'
-              and v.status = 'pending' and v.expires_at > ${now}::timestamptz)
+              and v.status = 'pending' and v.expires_at > ${now}::text::timestamptz)
           or (${kind}::text = 'approved-unexecuted'
               and v.status = 'approved' and v.execution = 'unexecuted')
         )
@@ -757,26 +768,127 @@ function conversationOf(scope: Scope): string | null {
 }
 
 /**
- * `value` as JSON text — the one place a record becomes SQL.
+ * `value` as JSON text, refused first if it carries a character Postgres cannot store —
+ * the one place a record becomes SQL.
  *
  * The encoding is this package's own, because the driver's encoding of a JSON document
- * is not reliably the driver's. `drizzle-orm/postgres-js` replaces the serializers for
- * `json` and `jsonb` on the client it wraps with the identity function — it encodes
- * values itself before binding them — and it does that to the *connection*, so it
- * reaches every other user of that connection. A store that asked the driver to encode
- * would hand a raw object to the socket write and fail inside the driver's own `Bind`.
- * The host's client is the host's, and the filing has to reach the row over it however
- * the host has configured it (DK-1).
+ * is not reliably the driver's. postgres.js keeps a registry of serializers by Postgres
+ * type, and a wrapper is free to replace the entries in it: `drizzle-orm/postgres-js`
+ * replaces the serializers for `json` and `jsonb`, and both the serializers *and* the
+ * parsers for eight date and numeric types, with the identity function, because it
+ * encodes and decodes those itself. It does that to the *connection*, so it reaches
+ * every other user of that connection. A store that asked such a client to encode would
+ * hand a raw object to the socket write and fail inside the driver's own `Bind`. The
+ * host's client is the host's, and the filing has to reach the row over it however the
+ * host has configured it (DK-1).
  *
- * Every statement that binds the result casts it **`::text::jsonb`**, and the first
- * half of that cast is the point of it. postgres.js asks the server to describe the
+ * The *parser* half of that registry needs nothing from this package, for a reason worth
+ * writing down rather than rediscovering: no statement here reads a `timestamptz` column
+ * into TypeScript. What comes back is `filed_row` and the event payloads as `jsonb`, the
+ * filing sequence, entry ids and counts — the sweep even carries the deadline out of the
+ * stored document as text (`filed_row ->> 'expiresAt'`) rather than off the column.
+ *
+ * Every statement that binds the result casts it **`::text::jsonb`**, and the first half
+ * of that cast is the point of it. postgres.js asks the server to describe the
  * statement's parameters and then applies the serializer registered for the type that
- * came back: a parameter written `$n::jsonb` is described as `jsonb`, so the driver
- * would encode this text a second time and store a JSON string where a document
- * belongs. Described as `text` it is passed through, and the server casts it once.
+ * came back: over a client whose registry is intact, a parameter written `$n::jsonb` is
+ * described as `jsonb` and this text would be encoded a second time, storing a JSON
+ * string where a document belongs. Described as `text` it is passed through, and the
+ * server casts it once — on a wrapped client and an untouched one alike.
+ *
+ * @throws RangeError when any string in `value` carries U+0000 or an unpaired surrogate.
  */
-function json(value: unknown): string {
+function json(entry: { readonly entryId: string }, field: string, value: unknown): string {
+  walkStorable(value, entry.entryId, field);
   return JSON.stringify(value);
+}
+
+/**
+ * `value` as a bound text parameter, refused first for the same characters.
+ *
+ * @throws RangeError when `value` carries U+0000 or an unpaired surrogate.
+ */
+function text<T extends string | null>(
+  entry: { readonly entryId: string },
+  field: string,
+  value: T,
+): T {
+  if (value !== null) requireStorable(value, entry.entryId, field);
+  return value;
+}
+
+/**
+ * `value` as the instant this package binds: normalised here, never by the driver.
+ *
+ * Two reasons, and the second is the one that bites. A `timestamptz` parameter goes
+ * through the same serializer registry a JSON document does — postgres.js's own entry
+ * turns a value into `new Date(x).toISOString()`, and `drizzle-orm/postgres-js` replaces
+ * it with the identity function. The rulebook's instants are whatever `Date.parse` can
+ * read, which includes a zoneless one such as `2026-09-04 09:30:00`; the driver's
+ * serializer resolves that against the *process's* time zone and the identity function
+ * leaves the server to resolve it against its own, so the same filing produced two
+ * different deadlines on two clients of the same database. Normalised here and bound as
+ * text, both write the same row (DK-1).
+ *
+ * @throws RangeError when `value` is not a readable instant.
+ */
+function instant(value: string, what: string): string {
+  return new Date(instantMs(value, what)).toISOString();
+}
+
+/**
+ * Refuse a string Postgres cannot store, naming the entry and the field it came from.
+ *
+ * Postgres's `text` holds no U+0000 — the encoding has no room for it — and its `jsonb`
+ * holds neither that nor an unpaired surrogate, because both have to survive a
+ * round trip through `text`. A host that reaches the driver with one gets
+ * `invalid byte sequence for encoding "UTF8": 0x00` or
+ * `invalid input syntax for type json`, neither of which names the entry or the field,
+ * and the second of which arrives even when the character is in a plain column, because
+ * the whole entry is stored as a document beside the columns. The refusal is this
+ * package's own, in the shape it refuses every other bad row in (DK-2 — a value the
+ * store cannot hold is never quietly something else).
+ *
+ * @throws RangeError naming the entry, the field and the offending position.
+ */
+function requireStorable(value: string, entryId: string, field: string): void {
+  for (let index = 0; index < value.length; index += 1) {
+    const unit = value.charCodeAt(index);
+    if (unit === 0) throw unstorable(entryId, field, index, "U+0000");
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (Number.isNaN(next) || next < 0xdc00 || next > 0xdfff) {
+        throw unstorable(entryId, field, index, "an unpaired high surrogate");
+      }
+      index += 1;
+      continue;
+    }
+    if (unit >= 0xdc00 && unit <= 0xdfff) {
+      throw unstorable(entryId, field, index, "an unpaired low surrogate");
+    }
+  }
+}
+
+/** The same refusal for every string inside a document, keys included. */
+function walkStorable(value: unknown, entryId: string, field: string): void {
+  if (typeof value === "string") return requireStorable(value, entryId, field);
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => walkStorable(item, entryId, `${field}[${index}]`));
+    return;
+  }
+  if (typeof value === "object" && value !== null) {
+    for (const [key, item] of Object.entries(value)) {
+      requireStorable(key, entryId, `${field} (a property name)`);
+      walkStorable(item, entryId, `${field}.${key}`);
+    }
+  }
+}
+
+/** The message a refused string carries. */
+function unstorable(entryId: string, field: string, index: number, what: string): RangeError {
+  return new RangeError(
+    `entry ${entryId}: ${field} carries ${what} at index ${index}, which Postgres cannot store`,
+  );
 }
 
 /** A slice as the contract's page shape, with a cursor only when another page exists. */

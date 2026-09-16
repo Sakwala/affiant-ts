@@ -11,35 +11,60 @@ the [root changelog](../../CHANGELOG.md).
 ## [0.1.0-alpha.1] — 2026-09-16
 
 Two defects the first host to wire this package up ran into, both in the seam between
-the package and a host's own database work. Not published: `npm i
-@affiant/store-postgres@alpha` still installs `0.1.0-alpha.0`.
+the package and a host's own database work, and what looking at that seam turned up
+beside them. Not published: `npm i @affiant/store-postgres@alpha` still installs
+`0.1.0-alpha.0`.
 
 ### Fixed
 
-- **This package encodes its own JSON**
-  ([#48](https://github.com/Sakwala/affiant-ts/issues/48)). `drizzle-orm/postgres-js`
-  replaces the `json` and `jsonb` serializers on the postgres.js client it wraps with
-  the identity function, because it encodes values itself; the replacement belongs to
-  the connection, so it applied to this store's statements too whenever a host built
-  both on one client. A filing then handed a raw object to the driver's socket write and
-  failed there with `TypeError: The "string" argument must be of type string or an
-  instance of Buffer or ArrayBuffer. Received an instance of Object`. Every document is
-  now written by `JSON.stringify` here and bound as text with a `::text::jsonb` cast.
-  The text half of that cast is load-bearing: postgres.js takes each parameter's type
-  from the server's description of the statement, so a parameter written `::jsonb` would
-  be encoded a second time and store a JSON string where a document belongs. The store
-  contract now runs a second time over a client Drizzle has wrapped, on Node and inside
-  workerd — 89 cases each way (DK-1).
+- **This package encodes its own JSON and normalises its own instants**
+  ([#48](https://github.com/Sakwala/affiant-ts/issues/48)). postgres.js keeps a registry
+  of serializers and parsers by Postgres type, and a wrapper is free to replace the
+  entries in it. `drizzle-orm/postgres-js` replaces the serializers for `json` and
+  `jsonb`, and both the serializers and the parsers for eight date and numeric types,
+  with the identity function, because it encodes and decodes those itself; the
+  replacement belongs to the connection, so it applied to this store's statements too
+  whenever a host built both on one client. A filing then handed a raw object to the
+  driver's socket write and failed there with `TypeError: The "string" argument must be
+  of type string or an instance of Buffer or ArrayBuffer. Received an instance of
+  Object`.
 
-- **The grant the tables' owner needs is stated**
+  Every document is now written by `JSON.stringify` here and every instant by
+  `new Date(x).toISOString()`, and both are bound as text with a `::text::jsonb` or
+  `::text::timestamptz` cast. The text half of each cast is load-bearing: postgres.js
+  takes each parameter's type from the server's description of the statement, so over a
+  client whose registry is intact a parameter written `::jsonb` would be encoded a second
+  time and store a JSON string where a document belongs. The instants matter for the
+  opposite reason — the rulebook's instants are whatever `Date.parse` can read, including
+  a zoneless one such as `2026-09-04 09:30:00`, and the driver's serializer resolved that
+  against the process's time zone while the identity function left the server to resolve
+  it against its own, so one filing produced two different deadlines on two clients of
+  the same database.
+
+  The store contract now runs a second time over a client Drizzle has wrapped, on Node
+  and inside workerd — 89 cases each way, with the wrapping asserted live before they run
+  — and a case files a zoneless deadline over both clients and holds the stored row and
+  the sweep's answer identical (DK-1).
+
+- **The grant the owner of `docket_entries` needs is stated**
   ([#49](https://github.com/Sakwala/affiant-ts/issues/49)). `docket_events` references
-  `docket_entries`, and Postgres runs that referential-integrity check as the owner of
-  the referencing table rather than as the caller, so a role that owns these tables in a
-  schema it did not create needs `usage` on the schema even though it never appears in a
-  statement. Without it a host's first decision fails with `permission denied for schema
-  affiant` while reads go on working. The README states the grant beside the application
-  role's, and the row-level-security suite has a case where the tables' owner is not the
-  schema's owner (AZ-2).
+  `docket_entries`, and Postgres enforces that reference as the owner of the table being
+  referenced — not as the caller, and not as the owner of the table the foreign key is
+  declared on. A role that owns `docket_entries` in a schema it did not create therefore
+  needs `usage` on the schema although it never appears in a statement. Without it a
+  host's first decision fails with `permission denied for schema affiant` while reads go
+  on working. The README states the grant beside the application role's, and the
+  row-level-security suite has a case that hands the two tables to two different owners,
+  so it tells which of them the grant belongs to (AZ-2).
+
+- **A character Postgres cannot store is refused by name.** A string carrying U+0000 or
+  an unpaired surrogate reached the driver and came back as
+  `invalid byte sequence for encoding "UTF8": 0x00` or
+  `invalid input syntax for type json` — errors naming neither the entry nor the field,
+  and the second of which arrived even for a plain column, because the whole entry is
+  stored as a document beside the columns. `file` now refuses such a value with a
+  `RangeError` naming the entry and the path to the field, before any statement runs, and
+  writes nothing (DK-2).
 
 ## [0.1.0-alpha.0] — 2026-09-16
 
