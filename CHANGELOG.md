@@ -10,17 +10,20 @@ was made against.
 
 ## [Unreleased]
 
-## [0.1.0-alpha.2] — 2026-09-15
+## [0.1.0-alpha.2] — 2026-09-16
 
-Three packages move together and none of them is on npm yet: `@affiant/core` to
+Three packages move together, and all three are now on npm: `@affiant/core` to
 `0.1.0-alpha.2`, and `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` at
 `0.1.0-alpha.0`, their first version. Each was built against the rulebook's
 [`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which is
 what `packages/contract/protocol/PIN` pins and `@affiant/contract` vendors byte for byte.
 `@affiant/contract` and `@affiant/evidence-card` stay at `0.1.0-alpha.1`: nothing under
 either package has changed since that version but their READMEs. Publishing is the
-separate, hand-dispatched step it has always been, and it has not been dispatched for
-these versions.
+separate, hand-dispatched step it has always been, and it was dispatched for these on
+2026-09-16: `@affiant/core` through the workflow, with a provenance attestation, and the
+two new packages under a maintainer's own credential, which is the one publish npm
+requires of a package before a trusted-publisher entry can name it. All three are at the
+`alpha` dist-tag, and `latest` points at each of them too.
 
 ### Added
 
@@ -74,8 +77,7 @@ these versions.
   write-capable tool it cannot intercept when the set is built (CV-4, CV-1), ends an
   agent loop at the filing, and offers the gate's structured-inference port on the
   `@affiant/adapter-ai-sdk/inference` subpath. `ai` `^7.0.0` and `@affiant/core`
-  `>=0.1.0-alpha.1` are peers; no provider package is a dependency. It is not published
-  yet. See the [package changelog](packages/adapter-ai-sdk/CHANGELOG.md) and
+  `>=0.1.0-alpha.1` are peers; no provider package is a dependency. See the [package changelog](packages/adapter-ai-sdk/CHANGELOG.md) and
   [README](packages/adapter-ai-sdk/README.md).
 
 - **`@affiant/store-postgres`, the Docket on Postgres.** `createPostgresDocketStore({ sql })`

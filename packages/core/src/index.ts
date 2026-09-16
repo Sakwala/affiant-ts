@@ -45,17 +45,16 @@
  * parametrised store contract every `DocketStore` and `SessionStore` implementation is
  * measured by, the same assertions the in-memory reference passes.
  *
- * **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
- * attestation, since 2026-09-06; `0.1.0-alpha.2` is unpublished and goes with the next
- * dispatch. The version above is what a conformance driver
- * pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
+ * **On npm at `0.1.0-alpha.2`**, under the `alpha` dist-tag and with a provenance
+ * attestation, since 2026-09-16; `latest` and `alpha` both point at it. The version
+ * above is what a conformance driver pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
  * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
  * all until an override is set. See the package README.
  *
  * @packageDocumentation
  */
 
-/** The version of this package. `0.1.0-alpha.1` is the version of it that is on npm. */
+/** The version of this package, and the version of it that is on npm. */
 export const CORE_VERSION = "0.1.0-alpha.2";
 
 /**

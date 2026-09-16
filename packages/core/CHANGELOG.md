@@ -10,7 +10,7 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
-## [0.1.0-alpha.2] — 2026-09-15
+## [0.1.0-alpha.2] — 2026-09-16
 
 A testing release. Nothing in the gate, the pipeline or the decision path changed; what
 moved is the reference Docket store's treatment of a repeated later fact, and what
@@ -18,8 +18,9 @@ arrived is a way for somebody else's store to be measured by this package's own
 assertions. Built against the rulebook's
 [`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, one release
 on from the [`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3)
-`0.1.0-alpha.1` was built against; no wire shape and no vector changed between them. Not on npm: publishing is a separate, hand-dispatched
-step and it has not been dispatched for this version.
+`0.1.0-alpha.1` was built against; no wire shape and no vector changed between them. Published to npm on
+2026-09-16 under the `alpha` dist-tag, with a provenance attestation, by the hand-dispatched
+workflow; `latest` and `alpha` both point at it.
 
 ### Added
 
