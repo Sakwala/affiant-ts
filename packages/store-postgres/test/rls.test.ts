@@ -1,4 +1,4 @@
-import { sampleEntry } from "@affiant/core/testing";
+import { sampleEntry, stubClock } from "@affiant/core/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createPostgresDocketStore } from "../src/store.js";
@@ -195,5 +195,89 @@ describe("row-level security applies to the tables' own owner (AZ-2)", () => {
     });
 
     expect(seen.value).toEqual(["tenant-a"]);
+  });
+});
+
+describe("the grants the store's objects need to reference each other (AZ-2)", () => {
+  // A third database, because this one hands the tables to a role that is not the
+  // schema's owner and grants it less than the arrangements above do.
+  let split: TestDatabase;
+  /** Owns the two tables and the view, and is not the schema's owner. */
+  const tablesOwner = `affiant_tables_${Math.random().toString(36).slice(2, 8)}`;
+  /** The application role, with exactly the grants the README lists for it. */
+  const application = `affiant_role_${Math.random().toString(36).slice(2, 8)}`;
+  /** Fixed, so nothing the case files reads expired before it is decided. */
+  const clock = stubClock("2026-09-04T09:00:00.000Z");
+
+  beforeAll(async () => {
+    split = await createTestDatabase({ max: 4 });
+    const sql = split.sql;
+
+    await sql.unsafe(`create role "${tablesOwner}" nosuperuser`);
+    await sql.unsafe(`create role "${application}" nosuperuser`);
+    // `create` is what lets a role own an object in a schema; `usage` is what lets it
+    // look one up there, and the two are separate grants. The tables are handed over
+    // with only the first, which is the arrangement a host lands in when its migrations
+    // run as a role that did not create the schema.
+    await sql.unsafe(`grant create on schema affiant to "${tablesOwner}"`);
+    await sql.unsafe(`alter table affiant.docket_entries owner to "${tablesOwner}"`);
+    await sql.unsafe(`alter table affiant.docket_events owner to "${tablesOwner}"`);
+    await sql.unsafe(`alter view affiant.docket_current owner to "${tablesOwner}"`);
+
+    await sql.unsafe(`grant usage on schema affiant to "${application}"`);
+    await sql.unsafe(
+      `grant select, insert, delete on affiant.docket_entries, affiant.docket_events to "${application}"`,
+    );
+    await sql.unsafe(`grant select on affiant.docket_current to "${application}"`);
+  }, 120_000);
+
+  afterAll(async () => {
+    await split.sql.unsafe(`drop owned by "${application}"`);
+    await split.sql.unsafe(`drop owned by "${tablesOwner}"`);
+    await split.sql.unsafe(`drop role if exists "${application}"`);
+    await split.sql.unsafe(`drop role if exists "${tablesOwner}"`);
+    await split.close();
+  });
+
+  /** File `entryId` and decide it, as the application role. */
+  async function fileAndDecide(entryId: string): Promise<string> {
+    const held = await split.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${application}"`);
+      const store = createPostgresDocketStore({ sql: split.sql, clock }).within(tx);
+      await store.file(entryFor("tenant-a", entryId));
+      const decided = await store.transition(entryId, { tenantId: "tenant-a" }, "pending", {
+        status: "approved",
+        attestation: {
+          by: { kind: "member", id: "person-7" },
+          at: "2026-09-04T09:10:00.000Z",
+          entryId,
+        },
+      });
+      return { value: typeof decided === "string" ? decided : decided.status };
+    });
+    return held.value;
+  }
+
+  it("needs usage on the schema for the role that owns the tables, not only for the caller", async () => {
+    // The application role has every grant the README lists, and the filing goes in:
+    // `docket_entries` references nothing. The decision is a row in `docket_events`,
+    // which references `docket_entries`, and Postgres runs that referential-integrity
+    // check as the owner of the *referencing* table — so it is the tables' owner, not
+    // the caller, that has to be able to look the schema up.
+    await expect(fileAndDecide("before-the-grant")).rejects.toThrow(
+      /permission denied for schema affiant/,
+    );
+
+    // Not a general loss of access: the caller reads the tables perfectly well. What
+    // is missing is a grant to a role that never appears in the statement.
+    const readable = await split.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${application}"`);
+      await tx`select set_config('affiant.tenant_id', ${"tenant-a"}, true)`;
+      return { value: await tx`select entry_id from affiant.docket_events` };
+    });
+    expect(readable.value).toHaveLength(0);
+
+    await split.sql.unsafe(`grant usage on schema affiant to "${tablesOwner}"`);
+    expect(await fileAndDecide("after-the-grant")).toBe("approved");
   });
 });

@@ -85,6 +85,15 @@ the schema, `select, insert, delete` on the two tables, and `select` on the view
 are the grants the package's own row-level-security suite issues and measures; the view
 is not updatable, so it needs no more.
 
+**Grant `usage` on the schema to the role that owns these tables as well**, if that is
+not the role that owns the schema. `docket_events` references `docket_entries`, and
+Postgres runs that referential-integrity check as the owner of the _referencing_ table
+rather than as the caller. Without the grant the first later fact a host records — the
+first decision — fails with `permission denied for schema affiant` however complete the
+application role's grants are, and reads go on working, which makes it a puzzling
+failure to meet in production. A host whose migrations run as a role that owns the
+tables in a schema somebody else created is in exactly that position.
+
 ## Migrations
 
 `migrations/0001_affiant_docket.sql` is plain forward-only SQL. Two ways to run it:
@@ -129,8 +138,10 @@ await sql.begin("isolation level repeatable read", async (tx) => {
 
 Node 22, **workerd** — the runtime a Cloudflare Worker runs on — and Bun all run this
 package in CI, and a red run on any of them blocks a merge. Node and workerd run the
-store contract from `@affiant/core/testing`: 89 cases, the same ones the in-memory
-reference store is measured by. On workerd the connection is a direct TCP one, dialled
+store contract from `@affiant/core/testing` — 89 cases, the same ones the in-memory
+reference store is measured by — twice over: once on a connection nothing else has
+touched, and once on one `drizzle-orm/postgres-js` has wrapped, which is a host sharing
+its connection between this store and its own ORM. On workerd the connection is a direct TCP one, dialled
 by the `workerd` build postgres.js ships in its own `exports` map. On Node and under Bun
 the run additionally puts the protocol's 61 declarative conformance documents through
 this store with nothing failing, so the gate's behaviour is measured with this Docket
@@ -175,12 +186,17 @@ deployment proves it.
 - **No transcript.** `SessionStore` in the core is the rehydration surface and nothing
   more. A conversation's history is your working state, not an Affiant record.
 - **No model client, and no Drizzle schema.** The tables are ordinary tables; describe
-  them in your own ORM if you want typed reads of them.
+  them in your own ORM if you want typed reads of them. Handing the same connection to
+  `drizzle-orm/postgres-js` is fine: it replaces the driver's JSON serializers on the
+  client it wraps, so this package encodes its own JSON and casts it in the statement
+  rather than asking the driver to, and the whole contract runs over a wrapped client
+  in CI.
 
 ## Status
 
-`0.1.0-alpha.0`, on npm under the `alpha` dist-tag since 2026-09-16:
-`npm i @affiant/store-postgres@alpha`. Peer dependencies: `@affiant/core`
+`0.1.0-alpha.1`, not yet published: `npm i @affiant/store-postgres@alpha` installs
+`0.1.0-alpha.0`, which has been on npm under that dist-tag since 2026-09-16, until the
+next release is dispatched. Peer dependencies: `@affiant/core`
 (`>=0.1.0-alpha.1`) and `postgres` (`>=3.4.0`). Apache-2.0.
 
 Source: [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts).

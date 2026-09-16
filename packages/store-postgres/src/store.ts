@@ -216,10 +216,10 @@ class Store implements DocketStore, SessionStore {
           blocked, composite_ref, supersedes, filed_at, expires_at, protocol_version, filed_row
         ) values (
           ${entry.tenantId}, ${entry.entryId}, ${entry.conversationId}, ${entry.channel},
-          ${entry.toolName}, ${json(tx, entry.affidavit)}, ${entry.requirement},
-          ${entry.blocked === null ? null : json(tx, entry.blocked)}, ${entry.compositeRef},
+          ${entry.toolName}, ${json(entry.affidavit)}::text::jsonb, ${entry.requirement},
+          ${entry.blocked === null ? null : json(entry.blocked)}::text::jsonb, ${entry.compositeRef},
           ${entry.lineage.supersedes}, ${entry.filedAt}::timestamptz,
-          ${entry.expiresAt}::timestamptz, ${entry.protocolVersion}, ${json(tx, entry)}
+          ${entry.expiresAt}::timestamptz, ${entry.protocolVersion}, ${json(entry)}::text::jsonb
         )
         on conflict (tenant_id, entry_id) do nothing
         returning entry_id`;
@@ -691,7 +691,7 @@ class Store implements DocketStore, SessionStore {
     const written = await tx`
       insert into ${tx(this.#table("docket_events"))} (tenant_id, entry_id, kind, payload, at)
       select ${tenantId}::text, ${entryId}::text, ${kind}::text,
-             ${json(tx, payload)}::jsonb, ${options.at}::timestamptz
+             ${json(payload)}::text::jsonb, ${options.at}::timestamptz
       where exists (
         select 1 from ${tx(this.#table("docket_entries"))} e
         where e.tenant_id = ${tenantId}::text
@@ -757,19 +757,27 @@ function conversationOf(scope: Scope): string | null {
 }
 
 /**
- * `value` as a bound `jsonb` parameter — the one place a record becomes SQL.
+ * `value` as JSON text — the one place a record becomes SQL.
  *
- * The cast is the driver's type for a JSON document, which is narrower than the
- * shapes the core's records actually have (a readonly array, an optional property).
- * Everything sent through here is a value the core built and `JSON.stringify` can
- * write, so the narrowing is about the driver's declaration and not about the data.
+ * The encoding is this package's own, because the driver's encoding of a JSON document
+ * is not reliably the driver's. `drizzle-orm/postgres-js` replaces the serializers for
+ * `json` and `jsonb` on the client it wraps with the identity function — it encodes
+ * values itself before binding them — and it does that to the *connection*, so it
+ * reaches every other user of that connection. A store that asked the driver to encode
+ * would hand a raw object to the socket write and fail inside the driver's own `Bind`.
+ * The host's client is the host's, and the filing has to reach the row over it however
+ * the host has configured it (DK-1).
+ *
+ * Every statement that binds the result casts it **`::text::jsonb`**, and the first
+ * half of that cast is the point of it. postgres.js asks the server to describe the
+ * statement's parameters and then applies the serializer registered for the type that
+ * came back: a parameter written `$n::jsonb` is described as `jsonb`, so the driver
+ * would encode this text a second time and store a JSON string where a document
+ * belongs. Described as `text` it is passed through, and the server casts it once.
  */
-function json(tx: TransactionSql, value: unknown): JsonParameter {
-  return tx.json(value as Parameters<TransactionSql["json"]>[0]);
+function json(value: unknown): string {
+  return JSON.stringify(value);
 }
-
-/** What the driver hands back for a JSON document: a parameter, not a string. */
-type JsonParameter = ReturnType<TransactionSql["json"]>;
 
 /** A slice as the contract's page shape, with a cursor only when another page exists. */
 function pageOf(slice: Slice, kind: CursorKind): PageResult<DocketEntry> {
