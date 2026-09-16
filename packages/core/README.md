@@ -14,10 +14,9 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-10: `npm i @affiant/core@alpha`. `latest` and `alpha` both
-> point at `0.1.0-alpha.1`; the repository carries `0.1.0-alpha.2`, which goes with the
-> next dispatch. The condition for publishing was exact: a **public parity
+> **On npm at `0.1.0-alpha.2`**, under the `alpha` dist-tag and with a provenance
+> attestation, since 2026-09-16: `npm i @affiant/core@alpha`. `latest` and `alpha` both
+> point at `0.1.0-alpha.2`. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's

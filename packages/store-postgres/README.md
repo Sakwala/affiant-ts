@@ -179,7 +179,8 @@ deployment proves it.
 
 ## Status
 
-`0.1.0-alpha.0`. Peer dependencies: `@affiant/core` (`>=0.1.0-alpha.1`) and `postgres`
-(`>=3.4.0`). Apache-2.0.
+`0.1.0-alpha.0`, on npm under the `alpha` dist-tag since 2026-09-16:
+`npm i @affiant/store-postgres@alpha`. Peer dependencies: `@affiant/core`
+(`>=0.1.0-alpha.1`) and `postgres` (`>=3.4.0`). Apache-2.0.
 
 Source: [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts).

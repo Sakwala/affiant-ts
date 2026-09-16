@@ -8,13 +8,17 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
-## [0.1.0-alpha.0] — 2026-09-15
+## [0.1.0-alpha.0] — 2026-09-16
 
 The first version. Built against the rulebook's
-[`v0.1.3`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.1.3) tag, which
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which
 `@affiant/core` pins and vendors byte for byte, and against `ai@7.0.101`, the version the
-suites resolved and held to the declared peer range (CV-5). Not on npm yet: publishing is
-a separate, hand-dispatched step and it has not been dispatched for this version.
+suites resolved and held to the declared peer range (CV-5). On npm since 2026-09-16 under
+the `alpha` dist-tag, which `latest` also points at: `npm i @affiant/adapter-ai-sdk@alpha`.
+That first publish was made under a maintainer's own credential rather than by the publish
+workflow — npm requires a package to exist on the registry before a trusted-publisher entry
+can name it — so this version carries the registry's signatures but no provenance
+attestation.
 
 ### Added
 

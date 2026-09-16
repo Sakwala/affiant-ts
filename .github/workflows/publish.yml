@@ -8,8 +8,10 @@
 #
 # Five packages go: `@affiant/contract`, `@affiant/core`, `@affiant/evidence-card`,
 # `@affiant/store-postgres` and `@affiant/adapter-ai-sdk`, at the `alpha` dist-tag
-# their own `publishConfig` already names. The last two have never been on the
-# registry; the first three are there at `0.1.0-alpha.1`.
+# their own `publishConfig` already names. All five are on the registry as of
+# 2026-09-16: `@affiant/core` at `0.1.0-alpha.2`, `@affiant/contract` and
+# `@affiant/evidence-card` at `0.1.0-alpha.1`, and `@affiant/store-postgres` and
+# `@affiant/adapter-ai-sdk` at `0.1.0-alpha.0`.
 # `@affiant/conformance-driver` is `private: true` and is not among them, as the
 # samples and the spike are not — the driver is the check on the claim, not part of
 # what is claimed.
@@ -51,11 +53,14 @@
 # opening with "Package MUST exist" (api-docs.npmjs.com, `configureTrustedPublisher`),
 # and the CLI page for `npm trust` says it in words: "Package must exist: The package
 # you're configuring must already exist on the npm registry."
-# (https://docs.npmjs.com/cli/v11/commands/npm-trust/). So `@affiant/store-postgres`
-# and `@affiant/adapter-ai-sdk` need one publish under a credential a person holds
-# before this workflow can publish them, and until that has happened their two
-# preflight lines below will report a refused exchange rather than a 2xx. The
-# credential for that first publish is an **interactive 2FA login**: a granular access
+# (https://docs.npmjs.com/cli/v11/commands/npm-trust/). That is why
+# `@affiant/store-postgres` and `@affiant/adapter-ai-sdk` were first published on
+# 2026-09-16 under a credential a person holds rather than by this workflow — their
+# `0.1.0-alpha.0` tarballs carry the registry's signatures but no provenance
+# attestation, which is what a hand publish leaves behind. The package now exists, so
+# a trusted-publisher entry can be registered for each; whether one has been is what
+# the two preflight lines below report, a refused exchange until it is. The credential
+# for that first publish is an **interactive 2FA login**: a granular access
 # token with `bypass_2fa` can publish, but npm's API refuses it on the operation that
 # registers the trusted publisher afterwards — "Granular Access Tokens with
 # `bypass_2fa: true` are not permitted to call this endpoint and receive 403
