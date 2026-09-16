@@ -297,7 +297,11 @@ export const parityManifest: ParityManifest = {
   implementation: IMPLEMENTATION_NAME,
   version: IMPLEMENTATION_VERSION,
   protocolTag: PROTOCOL_PIN,
-  producedAt: "2026-09-16T00:00:00.000Z",
+  // The instant the run named in `runLog` was produced, which is what `producedAt` is
+  // (conformance/PARITY.md): "When the run happened." A literal because this module runs
+  // inside workerd and cannot read the file; `published-claims.test.ts` holds it to that
+  // file, so a regenerated run and a stale literal cannot both be committed.
+  producedAt: "2026-09-16T01:27:56.227Z",
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.2.json",
   failing: [],
   adapters: [
