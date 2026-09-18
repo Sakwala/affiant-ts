@@ -14,9 +14,9 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> **On npm at `0.1.0-alpha.2`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-16: `npm i @affiant/core@alpha`. `latest` and `alpha` both
-> point at `0.1.0-alpha.2`. The condition for publishing was exact: a **public parity
+> **On npm at `0.1.0-alpha.3`**, under the `alpha` dist-tag and with a provenance
+> attestation, since 2026-09-18: `npm i @affiant/core@alpha`. The `alpha` tag points at
+> `0.1.0-alpha.3`. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's
@@ -282,6 +282,119 @@ A decision that arrives late is refused as expired, and the amendments it carrie
 **preserved on the row** with the instant and principal of the act that carried them —
 so `gate.resubmit` files a fresh entry that prefills what the person had already typed
 rather than making them type it twice (DK-1).
+
+## The read side: a row a queue already holds
+
+A filing hands you the Evidence Card for the entry it just filed. A review queue is the
+other direction: it lists rows hours or days later, and all it has is the row. Two pure
+producers build the envelopes from it — no store, no clock, no port, no network.
+
+```ts
+import { cardFor, decisionResultOf, isCallerError } from "@affiant/core";
+import type { DocketEntry, EvidenceCardRequest } from "@affiant/core";
+
+// A queue item: the row, the host's field schema for the tool that proposed it, and
+// the instant you are rendering at.
+const card: EvidenceCardRequest = cardFor(row, {
+  now: new Date().toISOString(),
+  schema, // the same FieldSchema the tool declares — optional
+  operationLabel: "Reprice", // your own verb for the operation — optional
+});
+
+if (card.requiresConfirmation) {
+  // Only then is a decision still being asked for.
+}
+
+// After the decision: the report, for your own client or your audit surface.
+try {
+  const result = decisionResultOf(row);
+  void result.outcome; // "approved" | "rejected" | "expired" | "resubmitted"
+} catch (error) {
+  if (isCallerError(error) && error.kind === "entry-not-decided") {
+    // Nobody has decided this row yet, and this function reads no clock.
+  } else {
+    throw error;
+  }
+}
+
+// A row that supersedes another needs that row: the reviewer's earlier corrections
+// live on it and nowhere else, so its absence is refused rather than read as `null`.
+const superseded: DocketEntry | null =
+  row.lineage.supersedes === null ? null : await gate.get(row.lineage.supersedes, ctx);
+const resubmissionCard = cardFor(row, {
+  now: new Date().toISOString(),
+  ...(superseded === null ? {} : { superseded }),
+});
+```
+
+What `cardFor` gives you, and what it does not:
+
+- **`requiresConfirmation` is `true` only for a `pending`, unblocked row that has not
+  passed its deadline at `now`** — the same reading of the deadline the stores and the
+  sweep use (DK-1, DK-5). A blocked row's card says why and never claims a confirmation
+  is awaited (AZ-4). Every other row still has a card; only this flag says whether a
+  decision is being asked for.
+- **No policy sentence.** A card built while filing carries the reason the policy chain
+  gave. The row records the chain's **verdict**, not its prose, so a card built from the
+  row carries the sentences the row itself determines — the blocked markers — and no
+  others.
+- **`presentation` and `hostOperation` are whatever this call passes.** They are your
+  rendering of a proposal rather than its sworn substance, so they are not on the record
+  (SR-1). Widen a picker's `allowedValues` and every queue item renders the new set,
+  including rows filed before the change; the row names the tool that proposed it (CV-4),
+  which is how you find the declaration to pass.
+- **`priorAmendments` comes from the Docket.** For a first filing it is what that row
+  preserved — the corrections a decision carried after the deadline had passed. For a row
+  that supersedes another it is the superseded row's, which you pass as `superseded`;
+  omitting it, passing the wrong row, passing one from another tenant, or passing one for
+  a row that supersedes nothing throws kind `superseded-entry-mismatch`.
+- **The card of a row that changed since filing differs from the filing's card.** The
+  card shows the amended Affidavit and the numbers recomputed over it once an amendment
+  has been accepted (AF-2, AF-4), and a row whose deadline has since passed asks for no
+  confirmation. Only for the row **as it was filed** is the card the one the filing
+  returned.
+
+What `decisionResultOf` gives you:
+
+- The outcome from the status, except that an expired row reads **`resubmitted`** once a
+  successor has superseded it.
+- **`attestation: null` and `execution: null` on anything but an approval.** The
+  envelope's `attestation` answers "who agreed", and a rejection and an expiry have no
+  answer (AZ-1) — even though the **row** of a rejection does name the person who
+  rejected it. The two documents answer different questions.
+- A `pending` row throws kind `entry-not-decided`. Whether it has passed its deadline is
+  read against an instant, and this function is given none: settle it with the sweep, or
+  read the row's status at the instant you mean.
+
+### Errors that are yours, not the gate's
+
+A refusal is something the gate decided about a proposal, and it carries an `ErrorCode`
+from the rulebook's registry. A mistake in your own code is not that. Four such mistakes
+now throw `AffiantCallerError` — a subclass of `RangeError`, so anything catching one
+today still catches it — with a stable `kind` and structured `details`:
+
+| `kind`                      | When                                                                                                                                                                                                         |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `amendment-unknown-field`   | An amendment names a field the Affidavit does not propose. It changes no state (DK-2), so you may catch it after `decide` rather than pre-check; the row stays decidable.                                    |
+| `turn-context-invalid`      | The turn context's `conversationId`, `tenantId` or `channel` is blank. Thrown at the top of the pipeline, before the interceptors and before your model is called (GT-1): nothing is filed and no port runs. |
+| `superseded-entry-mismatch` | `cardFor` was given the wrong superseded row, or none for a row that needs one, or one for a row that supersedes nothing.                                                                                    |
+| `entry-not-decided`         | `decisionResultOf` was given a `pending` row.                                                                                                                                                                |
+
+- **A `kind` is not an `ErrorCode`.** It is not in the rulebook's refusal registry and it
+  never crosses the wire as one. `isCallerError(value)` is the guard, and it answers
+  truthfully even across two loaded copies of this package.
+- **`kind` and `details` survive `JSON.stringify`; they do not survive
+  `structuredClone`.** They are own enumerable properties, so
+  `JSON.stringify(error)` reads `{"kind":…,"details":…,"name":"AffiantCallerError"}` —
+  enough to log or to send to your own client (`message` and `stack` are not enumerable
+  on any `Error`, so a JSON round trip is data and not an error, and `isCallerError`
+  reads `false` on it). `structuredClone` goes the other way: it carries an error's
+  `message`, `stack` and `cause` and drops every other own property, and the clone reads
+  `name: "Error"` — so a caller error does not cross a `postMessage` intact. Read `kind`
+  on the caught error, not on a copy of it.
+- **A blank `turn.messageId` is not refused**, and neither is a blank utterance or an
+  absent `turn`. Only the three identifiers above are read at the top of the pipeline,
+  and the set of inputs the gate refuses did not change when they moved there.
 
 ## What this package does not claim
 

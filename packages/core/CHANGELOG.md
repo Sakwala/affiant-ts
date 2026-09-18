@@ -10,6 +10,73 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] — 2026-09-18
+
+The read side. A review queue lists Docket entries long after they were filed, and until
+now the envelopes a host shows a person — the Evidence Card, the decision report — were
+only ever built while a proposal was being filed. Both are producers now, pure functions
+over a row. Alongside them, the two mistakes a host can make in its own code stop being
+bare `RangeError`s and get a machine-readable identity. Built against the rulebook's
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which
+`0.1.0-alpha.2` was also built against; no wire shape, no schema and no vector changed.
+
+### Added
+
+- **`cardFor(entry, options)` — the Evidence Card for an entry already on the Docket.**
+  Pure: no store, no clock, no port. It runs the same internal builder the filing path
+  runs, so the card a review queue renders and the card the filing returned cannot drift
+  (SR-1). `options.now` is required and is what `requiresConfirmation` is measured
+  against: it is `true` only for a row that is `pending`, is not blocked, and has not
+  passed its deadline at that instant, read by the same DK-1 reading the stores and the
+  sweep use (DK-1, DK-5, AZ-4). `presentation` and `hostOperation` come from
+  `options.schema` and `options.operationLabel` — they are a host's rendering of a
+  proposal and not its sworn substance, so they are not on the record to read back
+  (SR-1); the row names the tool that proposed it (CV-4), which is how a host finds the
+  declaration to pass. `priorAmendments` is the row's own preserved amendments for a
+  first filing, and for a row that supersedes another it is the superseded row's, which
+  the caller passes as `options.superseded`. The card shows the amended Affidavit and the
+  numbers recomputed over it when the row has one (AF-2, AF-4). It carries no policy
+  sentence: the row records the chain's verdict, not its prose.
+
+- **`decisionResultOf(entry)` — the `DecisionResult` a decided row makes.** Pure. The
+  protocol version and the entry id come off the row (SR-4); `approved` and `rejected`
+  come from the status, and an `expired` row reads `resubmitted` once a successor has
+  superseded it. `attestation` answers "who agreed", so it is the row's attestation on an
+  approval and `null` on every other outcome — including a rejection, whose row names the
+  person who rejected (AZ-1). `execution` is the row's execution outcome on an approval
+  and `null` otherwise (DK-1).
+
+- **`AffiantCallerError`, `isCallerError` and `CallerErrorKind`.** A subclass of
+  `RangeError` with a stable `kind` and structured `details`, for the inputs the rulebook
+  classes as a caller's programming error rather than a gate refusal. The kinds are
+  `amendment-unknown-field` (DK-2), `turn-context-invalid`, `superseded-entry-mismatch`
+  and `entry-not-decided`. A `kind` is **not** an `ErrorCode`: it is not in the rulebook's
+  refusal registry and never crosses the wire as one. `isCallerError` answers truthfully
+  across two loaded copies of this package, the way `isAffiantError` does.
+
+### Changed
+
+- **Two throws are now `AffiantCallerError`, and both are still `RangeError`s**, so a
+  host that catches one today keeps catching it. An amendment naming a field the
+  Affidavit does not propose throws kind `amendment-unknown-field` with the field and the
+  entry id in `details`, and changes no state — the row is decidable afterwards, so a
+  host may catch rather than pre-check (DK-2). `decisionResultOf` on a `pending` row
+  throws kind `entry-not-decided`; whether such a row has passed its deadline is read
+  against an instant, and that is the caller's to settle.
+
+- **The turn context's `conversationId`, `tenantId` and `channel` are read first.** A
+  blank one of the three now throws `AffiantCallerError` of kind `turn-context-invalid`
+  at the top of the pipeline — before the deterministic interceptors and before the
+  inference port — which is the order GT-1 fixes. Nothing that filed successfully before
+  is refused now, and nothing refused before files: a blank `turn.messageId`, a blank
+  utterance and an absent `turn` all still file. The entry's own checks are unchanged
+  (defence in depth). One answer changes shape: a wrapped tool called with a blank
+  identifier **and** a proposal that swears to nothing used to return a
+  `substance-refused` error result after the ports had been called, and now throws the
+  caller error before any port is reached.
+
+- `CORE_VERSION` reads `0.1.0-alpha.3`.
+
 ## [0.1.0-alpha.2] — 2026-09-16
 
 A testing release. Nothing in the gate, the pipeline or the decision path changed; what
@@ -457,6 +524,7 @@ resource-envelope tripwires that print the numbers they measured (RT-2).
   (AZ-4).
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
-[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...main
+[0.1.0-alpha.3]: https://github.com/Sakwala/affiant-ts/compare/b8120f3a220187ed0e5d7f40c87eb630375d234f...main
+[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...b8120f3a220187ed0e5d7f40c87eb630375d234f
 [0.1.0-alpha.1]: https://github.com/Sakwala/affiant-ts/compare/v0.1.0-alpha.0...e837598608b35d3ab90dfd35645d2308538250dc
 [0.1.0-alpha.0]: https://github.com/Sakwala/affiant-ts/releases/tag/v0.1.0-alpha.0

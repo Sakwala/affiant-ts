@@ -18,7 +18,7 @@
  * supplies (see `ports.ts`), which is what lets one gate sit in front of any model,
  * any database and any approval surface.
  *
- * **What is here at `0.1.0-alpha.2`:** the turn context (GT-2), the port
+ * **What is here at `0.1.0-alpha.3`:** the turn context (GT-2), the port
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
@@ -33,7 +33,12 @@
  * the gate: fail-closed tenant-scoped authorization, the three attestation kinds with
  * a relay's identity mapped to `member-via-relay`, amendments with the recompute they
  * force, the execution outcome a host reports, resubmission lineage and rehydration
- * order (AZ-1..AZ-3, AZ-5..AZ-7, DK-1, DK-2, DK-5, AF-4, PV-2).
+ * order (AZ-1..AZ-3, AZ-5..AZ-7, DK-1, DK-2, DK-5, AF-4, PV-2); and **the read
+ * side** — `cardFor`, the Evidence Card for a row a review queue already holds
+ * (SR-1, DK-1, DK-5, AZ-4, CV-4, AF-2, AF-4), `decisionResultOf`, the decision
+ * report a decided row makes (SR-4, AZ-1), and `AffiantCallerError` with
+ * `isCallerError`, the typed form of the errors the rulebook classes as a caller's
+ * own (DK-2, GT-1).
  *
  * Three checks stand between a policy's verdict and a write with no person present, and
  * each degrades to asking a person rather than refusing: a proposed field marked
@@ -45,8 +50,8 @@
  * parametrised store contract every `DocketStore` and `SessionStore` implementation is
  * measured by, the same assertions the in-memory reference passes.
  *
- * **On npm at `0.1.0-alpha.2`**, under the `alpha` dist-tag and with a provenance
- * attestation, since 2026-09-16; `latest` and `alpha` both point at it. The version
+ * **On npm at `0.1.0-alpha.3`**, under the `alpha` dist-tag and with a provenance
+ * attestation, since 2026-09-18; `alpha` points at it. The version
  * above is what a conformance driver pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
  * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
  * all until an override is set. See the package README.
@@ -55,7 +60,7 @@
  */
 
 /** The version of this package, and the version of it that is on npm. */
-export const CORE_VERSION = "0.1.0-alpha.2";
+export const CORE_VERSION = "0.1.0-alpha.3";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from

@@ -29,6 +29,53 @@ was made against.
   naming the entry and the field, instead of reaching the driver as an error that names
   neither (DK-2).
 
+## [0.1.0-alpha.3] — 2026-09-18
+
+One package moves: `@affiant/core` to `0.1.0-alpha.3`, with the read-side producers a
+review surface needs and typed errors for a host's own mistakes. It was built against the
+rulebook's [`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0)
+tag, the same tag `packages/contract/protocol/PIN` already pins; no wire type, no vendored
+schema and no fixture changed, so nothing else is republished —
+`@affiant/store-postgres` and `@affiant/adapter-ai-sdk` declare the peer range
+`>=0.1.0-alpha.1` on the core, which `0.1.0-alpha.3` satisfies. Publishing stays the
+separate, hand-dispatched step it has always been.
+
+### Added
+
+- **`@affiant/core`: `cardFor` and `decisionResultOf`, the two envelopes built from a
+  row.** An Evidence Card and a decision report were until now produced only while a
+  proposal was being filed, and a review queue holds rows long after that.
+  `cardFor(entry, { now, schema?, operationLabel?, superseded? })` builds the card
+  through the same internal builder the filing path uses, so the two cannot drift
+  (SR-1); `requiresConfirmation` is `true` only for a `pending`, unblocked row that has
+  not passed its deadline at `now` (DK-1, DK-5, AZ-4).
+  `decisionResultOf(entry)` builds the report: the outcome from the status and the
+  lineage, with an expiry a successor replaced reading `resubmitted`, and an attestation
+  and an execution outcome only on an approval (SR-4, AZ-1, DK-1). Both are pure — no
+  store, no clock, no port.
+
+- **`@affiant/core`: `AffiantCallerError`, `isCallerError` and `CallerErrorKind`.** The
+  inputs the rulebook classes as a caller's programming error rather than a gate refusal
+  now carry a stable `kind` and structured `details`, on a subclass of `RangeError`. A
+  `kind` is not an `ErrorCode` and is never in the refusal registry.
+
+### Changed
+
+- **`@affiant/core`: the turn context's `conversationId`, `tenantId` and `channel` are
+  read at the top of the pipeline**, before the deterministic interceptors and before the
+  inference port, which is the order GT-1 fixes; a blank one throws
+  `AffiantCallerError` of kind `turn-context-invalid` with nothing filed and no port
+  called. The set of refused inputs does not change. One answer changes shape: a wrapped
+  tool called with a blank identifier **and** a proposal that swears to nothing used to
+  return a `substance-refused` error result after the ports had been called, and now
+  throws the caller error before any port is reached.
+
+- **`@affiant/core`'s packed tarball is exercised, not only compiled.** Its new
+  packed-consumer suite installs the tarball into a scratch project and, from there, files
+  an entry through a gate over `@affiant/core/store-memory`, builds a card, approves it,
+  reports it, and compiles a `tsc --strict` consumer naming `CardForOptions`,
+  `DecisionResult` and `CallerErrorKind` — the third package to carry one.
+
 ## [0.1.0-alpha.2] — 2026-09-16
 
 Three packages move together, and all three are now on npm: `@affiant/core` to
@@ -572,6 +619,7 @@ requires of a package before a trusted-publisher entry can name it. All three ar
   <https://sakwala.github.io/affiant-ts/>.
 
 [unreleased]: https://github.com/Sakwala/affiant-ts/commits/main
-[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...main
+[0.1.0-alpha.3]: https://github.com/Sakwala/affiant-ts/compare/b8120f3a220187ed0e5d7f40c87eb630375d234f...main
+[0.1.0-alpha.2]: https://github.com/Sakwala/affiant-ts/compare/e837598608b35d3ab90dfd35645d2308538250dc...b8120f3a220187ed0e5d7f40c87eb630375d234f
 [0.1.0-alpha.1]: https://github.com/Sakwala/affiant-ts/compare/v0.1.0-alpha.0...e837598608b35d3ab90dfd35645d2308538250dc
 [0.1.0-alpha.0]: https://github.com/Sakwala/affiant-ts/releases/tag/v0.1.0-alpha.0

@@ -9,7 +9,7 @@
 # Five packages go: `@affiant/contract`, `@affiant/core`, `@affiant/evidence-card`,
 # `@affiant/store-postgres` and `@affiant/adapter-ai-sdk`, at the `alpha` dist-tag
 # their own `publishConfig` already names. All five are on the registry as of
-# 2026-09-16: `@affiant/core` at `0.1.0-alpha.2`, `@affiant/contract` and
+# 2026-09-18: `@affiant/core` at `0.1.0-alpha.3`, `@affiant/contract` and
 # `@affiant/evidence-card` at `0.1.0-alpha.1`, and `@affiant/store-postgres` and
 # `@affiant/adapter-ai-sdk` at `0.1.0-alpha.0`.
 # `@affiant/conformance-driver` is `private: true` and is not among them, as the
