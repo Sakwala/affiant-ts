@@ -363,6 +363,47 @@ function truncated(cursor: string | null): string {
 }
 
 /**
+ * A position of thirty digits: larger than any counter, sequence or identity column a
+ * store could have reached, and larger than both `Number.MAX_SAFE_INTEGER` and the
+ * largest `bigint` a database holds.
+ */
+const UNMINTABLE_POSITION = "999999999999999999999999999999";
+
+/**
+ * `cursor` with the position inside it replaced by `position`, whatever the store
+ * wrapped it in (S-10).
+ *
+ * The other forged cursors here break the wrapper: a tampered or truncated string
+ * fails on the store's tag and never reaches the position. This one keeps the store's
+ * own tag and list and rewrites only the number, so what refuses it can only be the
+ * store's check that the position is one it could have minted - the check whose
+ * absence turned a caller's bad cursor into a raw database range error.
+ *
+ * The rewriting stays store-agnostic. Every cursor in this contract is a base64
+ * envelope whose last `|`-delimited field holds the position; a rehydration cursor
+ * puts a group in front of it and then, depending on the store, either the position
+ * itself or a nested cursor carrying it. So: take the last field, and if it names a
+ * group, descend into what follows until a plain number is reached.
+ */
+function repositioned(cursor: string | null, position: string): string {
+  if (cursor === null) throw new Error("the list handed back no cursor to reposition");
+  const decoded = atob(cursor);
+  const field = decoded.lastIndexOf("|");
+  if (field === -1) throw new Error(`the list minted a cursor with no position field: ${decoded}`);
+  return btoa(decoded.slice(0, field + 1) + withinGroup(decoded.slice(field + 1), position));
+}
+
+/** {@link repositioned}'s descent: a position, or a group and a position within it. */
+function withinGroup(field: string, position: string): string {
+  const separator = field.lastIndexOf(":");
+  if (separator === -1) return position;
+  const inner = field.slice(separator + 1);
+  if (inner === "") throw new Error("the list minted a group cursor holding no position");
+  const head = field.slice(0, separator + 1);
+  return head + (/^\d+$/.test(inner) ? position : repositioned(inner, position));
+}
+
+/**
  * Base64 of bytes no store put there: a string a caller invented that happens to
  * decode.
  *
@@ -1372,6 +1413,43 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "paging/refuses-a-position-no-store-could-have-minted",
+        title: "refuses a well-formed cursor naming a position out of range (DK-3)",
+        async run({ store, expect, scope, entry }) {
+          // The store's own tag, the store's own list, and a position thirty digits
+          // long. Nothing here is unreadable, so the refusal is the store saying the
+          // number is not one it could have handed out - and it has to be a
+          // `cursor-invalid` caller error like every other bad cursor, not whatever
+          // the storage layer says when a number does not fit its column.
+          await store.file(entry("entry-1"));
+          await store.file(entry("entry-2"));
+          await store.file(entry("approved-1", { status: "approved" }));
+          await store.file(entry("approved-2", { status: "approved" }));
+
+          const pending = await store.listPending(scope, { limit: 1 });
+          const approved = await store.listApprovedUnexecuted(scope, { limit: 1 });
+
+          await expectCursorInvalid(
+            expect,
+            () =>
+              store.listPending(scope, {
+                cursor: repositioned(pending.cursor, UNMINTABLE_POSITION),
+                limit: 1,
+              }),
+            "pending",
+          );
+          await expectCursorInvalid(
+            expect,
+            () =>
+              store.listApprovedUnexecuted(scope, {
+                cursor: repositioned(approved.cursor, UNMINTABLE_POSITION),
+                limit: 1,
+              }),
+            "approved-unexecuted",
+          );
+        },
+      },
+      {
         id: "paging/refuses-a-truncated-cursor",
         title: "refuses a cursor that arrived truncated (DK-3)",
         async run({ store, expect, scope, entry }) {
@@ -2243,6 +2321,29 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
             await expectCursorInvalid(
               expect,
               () => store.rehydrate(scope, { cursor: tampered(page.cursor), limit: 1 }),
+              "rehydrate",
+            );
+          },
+        },
+        {
+          id: "rehydration/refuses-a-position-no-store-could-have-minted",
+          title: "refuses a rehydration cursor naming a position out of range (DK-3)",
+          async run({ store, expect, scope, entry }) {
+            // The sequence's cursor carries a position inside it, so it inherits the
+            // same bound: a group this store names, and a thirty-digit position
+            // within it that no store could have reached, is a caller error and not
+            // a range error from underneath.
+            await fileMixedDocket(store, scope, entry);
+
+            const page = await store.rehydrate(scope, { limit: 1 });
+
+            await expectCursorInvalid(
+              expect,
+              () =>
+                store.rehydrate(scope, {
+                  cursor: repositioned(page.cursor, UNMINTABLE_POSITION),
+                  limit: 1,
+                }),
               "rehydrate",
             );
           },
