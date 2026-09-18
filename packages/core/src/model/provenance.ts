@@ -216,6 +216,20 @@ export type BindingKind = Binding["kind"];
  */
 export type InterceptorBinding = Extract<Binding, { kind: "external-ref" | "computation-ref" }>;
 
+/**
+ * The same restriction as data, for the check at an interceptor's return (S-9).
+ *
+ * A type restricts a host that compiles against it; an untyped host reaches the same
+ * port with whatever it likes, and a well-formed `reviewer-act` from an interceptor
+ * was filed and honoured by a Standing Order — PV-4's hole again, by kind instead of
+ * by shape. PV-2 ties each kind to the source it explains, and the other three all
+ * point at something a person did.
+ */
+export const INTERCEPTOR_BINDING_KINDS = [
+  "external-ref",
+  "computation-ref",
+] as const satisfies readonly InterceptorBinding["kind"][];
+
 // ---------------------------------------------------------------------------
 // Tags (PV-1, PV-2)
 // ---------------------------------------------------------------------------
