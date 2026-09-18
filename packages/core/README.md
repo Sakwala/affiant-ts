@@ -15,8 +15,9 @@ this depends on which model you use, which database you write to, or how the car
 reaches the person — those are ports you supply.
 
 > **On npm at `0.1.0-alpha.3`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-18: `npm i @affiant/core@alpha`. The `alpha` tag points at
-> `0.1.0-alpha.3`. The condition for publishing was exact: a **public parity
+> attestation, since 2026-09-18: `npm i @affiant/core@alpha`. The publish workflow moves
+> the `alpha` dist-tag and no other, so a bare `npm i @affiant/core` — which follows
+> `latest` — does not reach this release. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's
