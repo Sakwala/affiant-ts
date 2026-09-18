@@ -1,5 +1,9 @@
-import type { EvidenceCardRequest as WireEvidenceCardRequest } from "@affiant/contract";
+import type {
+  DecisionResult as WireDecisionResult,
+  EvidenceCardRequest as WireEvidenceCardRequest,
+} from "@affiant/contract";
 
+import type { DecisionResult } from "../src/gate/decision-result.js";
 import type { EvidenceCardRequest } from "../src/gate/pipeline.js";
 import type { GatedToolResult } from "../src/gate/wrap.js";
 import type { InferenceSource } from "../src/model/provenance.js";
@@ -20,6 +24,11 @@ import type { ToolDefinition } from "../src/gate/coverage.js";
 declare const card: EvidenceCardRequest;
 const asWire: WireEvidenceCardRequest = card;
 void asWire;
+
+// The same for what a decided entry reports back.
+declare const decidedReport: DecisionResult;
+const asWireResult: WireDecisionResult = decidedReport;
+void asWireResult;
 
 // ---------------------------------------------------------------------------
 // PV-3 — the inference step cannot name `UserStated`
