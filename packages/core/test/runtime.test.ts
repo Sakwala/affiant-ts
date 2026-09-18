@@ -44,6 +44,7 @@ describe("runtime envelope (RT-1)", () => {
 
     expect(Object.keys(core).sort()).toEqual([
       "AFFIDAVIT_FIELD_KINDS",
+      "AffiantCallerError",
       "AffiantError",
       "BINDING_KINDS",
       "BLOCKED_CODES",
@@ -74,6 +75,7 @@ describe("runtime envelope (RT-1)", () => {
       "canonicalStringEntry",
       "canonicalize",
       "canonicalizeEntry",
+      "cardFor",
       "chainOf",
       "compareFilingOrder",
       "computeConfidence",
@@ -93,6 +95,7 @@ describe("runtime envelope (RT-1)", () => {
       "instantMs",
       "isAffiantError",
       "isBound",
+      "isCallerError",
       "isDue",
       "isErrorCode",
       "isHonourable",

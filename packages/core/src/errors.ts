@@ -183,3 +183,108 @@ export function isAffiantError(value: unknown): value is AffiantError {
     isErrorCode((value as { readonly code?: unknown }).code)
   );
 }
+
+// ---------------------------------------------------------------------------
+// Caller errors — the host's own programming mistakes, which are not refusals
+// ---------------------------------------------------------------------------
+
+/**
+ * Which programming mistake a caller made, from the closed set this release names.
+ *
+ * A kind is **not** an {@link ErrorCode}. It is not in the protocol's refusal
+ * registry, it never appears in {@link ERROR_CODES}, and it never crosses the wire
+ * as one: the registry names gate refusals only, and the rulebook classes an
+ * amendment naming a field the Affidavit does not propose, or a verdict naming a
+ * requirement outside the four, as a language-level error rather than a refusal
+ * code. These kinds live in this package, for a host that wants to tell one of its
+ * own mistakes from another without reading an error message.
+ *
+ * - `amendment-unknown-field` — an amendment named a field the Affidavit does not
+ *   propose. The entry changes no state (DK-2).
+ * - `turn-context-invalid` — an identifier the turn context must carry was blank.
+ * - `superseded-entry-mismatch` — a card was asked for on a row that supersedes
+ *   another, without the superseded row, or with the wrong one.
+ * - `entry-not-decided` — a decision report was asked for on a row still `pending`.
+ */
+export type CallerErrorKind =
+  | "amendment-unknown-field"
+  | "turn-context-invalid"
+  | "superseded-entry-mismatch"
+  | "entry-not-decided";
+
+/** Every {@link CallerErrorKind}, as data the guard below can test against. */
+const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
+  "amendment-unknown-field",
+  "turn-context-invalid",
+  "superseded-entry-mismatch",
+  "entry-not-decided",
+];
+
+/** Whether `value` is one of the kinds in {@link CallerErrorKind}. */
+function isCallerErrorKind(value: unknown): value is CallerErrorKind {
+  return typeof value === "string" && (CALLER_ERROR_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * Structured context attached to an {@link AffiantCallerError}: the field an
+ * amendment named, the entry it was made on, the identifier that was blank.
+ *
+ * Values are `unknown` because the useful details differ per kind, exactly as they
+ * do on {@link AffiantErrorDetails}. Never put a field value or an utterance in
+ * here — an error is not an audit record.
+ */
+export interface AffiantCallerErrorDetails {
+  readonly [key: string]: unknown;
+}
+
+/**
+ * A programming mistake in the calling code, told apart from the host's own bugs.
+ *
+ * This is **not a refusal**. A refusal is an {@link AffiantError} carrying an
+ * {@link ErrorCode} from the protocol's closed registry — something the gate decided
+ * about a proposal or a decision. This class is the other thing: an argument the
+ * caller could not legally have passed, which the rulebook calls a language-level
+ * error rather than a refusal code. It extends `RangeError`, so every host that
+ * already catches a `RangeError` from these call sites keeps working; what is new is
+ * that `kind` and `details` can be branched on instead of a message string.
+ *
+ * `kind` is not an `ErrorCode`, is not in the refusal registry, and is never sent as
+ * one. Use {@link isCallerError} rather than `instanceof` where two copies of this
+ * package may be loaded in one process.
+ */
+export class AffiantCallerError extends RangeError {
+  /** Which programming mistake was made. */
+  readonly kind: CallerErrorKind;
+  /** Structured context for the mistake. `{}` when the throwing site supplied none. */
+  readonly details: AffiantCallerErrorDetails;
+
+  /**
+   * @param kind    Which programming mistake was made.
+   * @param message A human-readable explanation. Defaults to the kind itself.
+   * @param details Structured context for the mistake.
+   */
+  constructor(kind: CallerErrorKind, message?: string, details?: AffiantCallerErrorDetails) {
+    super(message ?? kind);
+    this.name = "AffiantCallerError";
+    this.kind = kind;
+    this.details = details ?? {};
+  }
+}
+
+/**
+ * Whether `value` is an {@link AffiantCallerError}.
+ *
+ * `instanceof` first, then a structural check, for the same reason
+ * {@link isAffiantError} has one: a host can end up with two copies of this package
+ * in one process, and a `catch` that spans that boundary still has to give a true
+ * answer. The structural arm is deliberately narrow — an `Error` named
+ * `AffiantCallerError` carrying one of the kinds above.
+ */
+export function isCallerError(value: unknown): value is AffiantCallerError {
+  if (value instanceof AffiantCallerError) return true;
+  return (
+    value instanceof Error &&
+    value.name === "AffiantCallerError" &&
+    isCallerErrorKind((value as { readonly kind?: unknown }).kind)
+  );
+}
