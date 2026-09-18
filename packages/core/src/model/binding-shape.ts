@@ -149,8 +149,22 @@ const COMPUTATION_CONSTANT: ObjectSpec = {
   verifiedOn: must(isIdentifier, "a non-empty string"),
 };
 
+/**
+ * An array of `identifier`s, checked by index rather than with `every`.
+ *
+ * `Array.prototype.every` — and `map`, `forEach`, `some` and the rest of the
+ * callback methods — skip holes: `new Array(2).every(isIdentifier)` is `true`
+ * because the callback is never called. A hole is not a value the schema admits,
+ * and it does not stay a hole: it serializes to `null`, which `binding.schema.json`
+ * and this checker both refuse. So every index below `length` must hold an
+ * identifier, present or not.
+ */
 function isIdentifierArray(value: unknown): boolean {
-  return Array.isArray(value) && value.every(isIdentifier);
+  if (!Array.isArray(value)) return false;
+  for (let index = 0; index < value.length; index += 1) {
+    if (!Object.hasOwn(value, index) || !isIdentifier(value[index])) return false;
+  }
+  return true;
 }
 
 /** The `ref` of each of the five kinds, in the schema's order. */

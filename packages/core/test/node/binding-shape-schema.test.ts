@@ -246,6 +246,24 @@ const CASES: readonly Case[] = [
     kind: "computation-ref",
     ref: { rule: "vat-2026", inputs: null },
   }),
+  // A sparse array is not an array of strings. `Array.prototype.every` skips holes,
+  // so a checker written with it admits these; Ajv walks the indices and refuses
+  // them, and so does JSON, which turns every hole into `null`.
+  invalid("computation-ref with inputs that are all holes", {
+    kind: "computation-ref",
+    // eslint-disable-next-line no-sparse-arrays
+    ref: { rule: "vat-2026", inputs: new Array<string>(2) },
+  }),
+  invalid("computation-ref with a hole among the inputs", {
+    kind: "computation-ref",
+    // eslint-disable-next-line no-sparse-arrays
+    ref: { rule: "vat-2026", inputs: ["a", , "b"] },
+  }),
+  invalid("computation-ref with a trailing hole among the inputs", {
+    kind: "computation-ref",
+    // eslint-disable-next-line no-sparse-arrays
+    ref: { rule: "vat-2026", inputs: ["a", , ,] },
+  }),
   invalid("computation-ref with a constant missing verifiedOn", {
     kind: "computation-ref",
     ref: { rule: "vat-2026", inputs: [], constant: { source: "https://revenue.example/vat" } },
@@ -283,6 +301,69 @@ const CASES: readonly Case[] = [
   invalid("an empty object", {}),
 ];
 
+/**
+ * The named exceptions: objects on which the checker and Ajv disagree, and which are
+ * nevertheless **not** defects.
+ *
+ * The equivalence this suite claims is equality **on what can be filed**. A binding
+ * reaches the Docket as JSON, and every object below loses the property it disagrees
+ * about in `JSON.parse(JSON.stringify(...))` — an inherited key is not own and is not
+ * serialized, and `undefined` is not a JSON value. So no row can ever hold the
+ * difference, and each case asserts the two verdicts agree on the round trip.
+ *
+ * `rawChecker` and `rawSchema` pin the disagreement itself, so that a change in Ajv's
+ * behaviour or in the checker's is noticed rather than absorbed.
+ */
+interface Exception {
+  readonly name: string;
+  readonly why: string;
+  readonly binding: unknown;
+  readonly rawChecker: boolean;
+  readonly rawSchema: boolean;
+}
+
+/** An object whose own keys are `own` and which inherits `inherited` enumerably. */
+function inheriting(inherited: object, own: object): object {
+  return Object.assign(Object.create(inherited) as object, own);
+}
+
+const EXCEPTIONS: readonly Exception[] = [
+  {
+    name: "an inherited extra key in ref",
+    why: "Ajv's additionalProperties walks the prototype chain with for-in; the checker reads own keys. The inherited key is not serialized, so no filed row can carry it.",
+    binding: {
+      kind: "form-input",
+      ref: inheriting({ form: "invoice" }, { field: "status" }),
+    },
+    rawChecker: true,
+    rawSchema: false,
+  },
+  {
+    name: "an inherited extra key at the top level",
+    why: "The same for-in walk, one level up. `note` is not own, so it is not serialized.",
+    binding: inheriting(
+      { note: "typed by hand" },
+      { kind: "form-input", ref: { field: "status" } },
+    ),
+    rawChecker: true,
+    rawSchema: false,
+  },
+  {
+    name: "a required key satisfied only by inheritance",
+    why: "Ajv reads the property through the prototype and finds it; the checker requires an own key. Serialized, the ref is `{}` — and then both refuse it, which is the verdict that matters.",
+    binding: { kind: "form-input", ref: inheriting({ field: "status" }, {}) },
+    rawChecker: false,
+    rawSchema: true,
+  },
+  {
+    name: "an extra top-level key explicitly undefined",
+    why: "The module's documented exemption: `undefined` is not a JSON value, and a host that spreads an optional property it does not have should not be told it wrote a bad binding. It does not survive serialization.",
+    binding: { kind: "form-input", ref: { field: "status" }, note: undefined },
+    rawChecker: true,
+    rawSchema: false,
+  },
+];
+
 describe("the binding checker and the protocol's binding schema", () => {
   const validate = validator();
 
@@ -308,6 +389,22 @@ describe("the binding checker and the protocol's binding schema", () => {
       // And the corpus says which verdict it expects, so a case that is wrong in both
       // readings is still caught.
       expect(bySchema).toBe(one.name.startsWith("valid"));
+    });
+  }
+});
+
+describe("the named exceptions: equal on what can be filed", () => {
+  const validate = validator();
+
+  for (const one of EXCEPTIONS) {
+    it(`disagrees only off the wire, and agrees on the JSON round trip: ${one.name}`, () => {
+      expect(one.why.length).toBeGreaterThan(0);
+      // The disagreement itself, pinned.
+      expect(bindingShapeReason(one.binding) === null).toBe(one.rawChecker);
+      expect(validate(one.binding) === true).toBe(one.rawSchema);
+      // And it cannot be filed: the round trip is what a Docket row holds.
+      const filed: unknown = JSON.parse(JSON.stringify(one.binding));
+      expect(bindingShapeReason(filed) === null).toBe(validate(filed) === true);
     });
   }
 });
