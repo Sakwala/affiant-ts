@@ -60,7 +60,7 @@ import type { Principal, TurnContext } from "../context.js";
 import type { Attestation, Attestor, DocketEntry, ExecutionOutcome } from "../docket/entry.js";
 import { readStatus } from "../docket/entry.js";
 import type { Scope, SessionStore, TransitionPatch } from "../docket/store.js";
-import { AffiantError } from "../errors.js";
+import { AffiantCallerError, AffiantError } from "../errors.js";
 import type { Affidavit } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 import { applyAmendments, resolveAmendments } from "../model/amendments.js";
@@ -754,7 +754,7 @@ async function refuseExpired(
 ): Promise<AffiantError> {
   let preserved = false;
   if (amendments !== null && Object.keys(amendments).length > 0) {
-    requireAmendableFields(entry.affidavit, amendments);
+    requireAmendableFields(entry.affidavit, amendments, entryId);
     const attestor = attestorOf(principal);
     if (attestor !== null) {
       // The refused decision's **own** instant and principal (DK-1, PV-2): a
@@ -781,17 +781,23 @@ async function refuseExpired(
 /**
  * Refuse an amendment map that names a field the Affidavit does not propose (DK-2).
  *
- * A `RangeError` and not an `AffiantError`, and the same message `applyAmendments`
- * raises: the {@link ErrorCode} registry names refusals the gate makes about a
- * proposal's substance or a decider's identity, and a field name that is not there is
- * a caller passing an index out of range.
+ * An {@link AffiantCallerError} — still a `RangeError`, and still the message
+ * `applyAmendments` raises: the {@link ErrorCode} registry names refusals the gate
+ * makes about a proposal's substance or a decider's identity, and a field name that
+ * is not there is a caller passing an index out of range. The `kind` is what lets a
+ * host answer its own client about it without reading the message.
+ *
+ * DK-2: nothing is written before this runs, so the row is untouched and a later
+ * valid decision on it still succeeds.
  */
-function requireAmendableFields(affidavit: Affidavit, map: AmendmentMap): void {
+function requireAmendableFields(affidavit: Affidavit, map: AmendmentMap, entryId: string): void {
   for (const resolved of resolveAmendments(map)) {
     if (!affidavit.fields.some((field) => field.name === resolved.name)) {
-      throw new RangeError(
+      throw new AffiantCallerError(
+        "amendment-unknown-field",
         `amendment names field ${JSON.stringify(resolved.name)}, which this Affidavit does ` +
           `not propose`,
+        { field: resolved.name, entryId },
       );
     }
   }
