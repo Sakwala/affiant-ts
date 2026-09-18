@@ -205,8 +205,11 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `superseded-entry-mismatch` — a card was asked for on a row that supersedes
  *   another, without the superseded row, or with the wrong one.
  * - `entry-not-decided` — a decision report was asked for on a row still `pending`.
- * - `binding-invalid` — host-written input carried something in the binding position
- *   that the protocol's binding schema refuses. Nothing is filed (PV-2, SR-3).
+ * - `binding-invalid` — something in the binding position was not a binding: the
+ *   protocol's binding schema refuses it, or an interceptor minted one of the three
+ *   kinds that point at a person's act (S-9). `details.source` says where it came
+ *   from — `"interceptor"`, `"prepared-field"`, or `"stored-row"` with the `entryId`
+ *   of the row a resubmission copied it off (S-8). Nothing is filed (PV-2, SR-3).
  * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
  *   issue: it does not decode, is not the shape the store mints, or was minted for a
  *   different list (DK-3).

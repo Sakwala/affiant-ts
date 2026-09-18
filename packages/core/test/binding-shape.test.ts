@@ -8,11 +8,14 @@ import type { Binding } from "../src/model/provenance.js";
 import { chainOf, mintConversation, mintTag } from "../src/model/provenance.js";
 import type { InterceptedFields, InterceptorBinding } from "../src/ports.js";
 
+import type { DocketEntry } from "../src/docket/entry.js";
+
 import {
   AT,
   harness,
   inferencePort,
   interceptorPort,
+  plus,
   policyReturning,
   structured,
   turnContext,
@@ -244,6 +247,86 @@ describe("a malformed binding from an interceptor", () => {
 });
 
 // ---------------------------------------------------------------------------
+// An interceptor may mint two of the five kinds, at run time too (S-9)
+// ---------------------------------------------------------------------------
+
+describe("a well-formed binding of a kind no interceptor may mint (S-9)", () => {
+  // The type says `external-ref | computation-ref`; an untyped host reaches the same
+  // port with whatever it likes, and each of these three points at something a
+  // *person* did — which PV-3 forbids a machine from claiming.
+  const FORBIDDEN = WELL_FORMED.filter(
+    ([, binding]) => binding.kind !== "external-ref" && binding.kind !== "computation-ref",
+  );
+
+  it("covers all three kinds an interceptor may not mint", () => {
+    expect(FORBIDDEN.map(([kind]) => kind)).toEqual([
+      "utterance-span",
+      "reviewer-act",
+      "form-input",
+    ]);
+  });
+
+  for (const [kind, binding] of FORBIDDEN) {
+    it(`is refused as binding-invalid, with nothing filed and no later port called: ${kind}`, async () => {
+      const trace: Trace = [];
+      const h = harness({
+        interceptors: [
+          interceptorPort("billing", resolved(bad(binding)), trace),
+          interceptorPort("crm", resolved(bad(binding)), trace),
+        ],
+        inference: inferencePort({ status: structured("Active", "literal", 0.9) }, trace),
+        policies: [policyReturning({ requirement: "StandingOrder" }, { trace })],
+        trace,
+      });
+
+      const thrown = await thrownBy(() =>
+        h.gate.wrap(writeTool(), turnContext()).execute({ status: "Active" }),
+      );
+
+      expect(isCallerError(thrown)).toBe(true);
+      expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+      expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
+        field: "status",
+        source: "interceptor",
+        interceptor: "billing",
+      });
+      // The reason says it is the *kind* that is wrong, not the shape: the object is
+      // one the schema admits.
+      expect(bindingShapeReason(binding)).toBeNull();
+      expect(String(isCallerError(thrown) ? thrown.details["reason"] : "")).toContain(
+        "an interceptor may mint",
+      );
+
+      expect(trace).toEqual(["interceptor:billing"]);
+      expect(await pending(h)).toEqual([]);
+    });
+  }
+
+  it("never reaches the Standing Order that would have rested on it (PV-4)", async () => {
+    const trace: Trace = [];
+    const h = harness({
+      interceptors: [interceptorPort("billing", resolved(bad(WELL_FORMED[1]?.[1])), trace)],
+      policies: [
+        policyReturning(
+          { requirement: "StandingOrder" },
+          { id: "auto-approve", declaredInputs: ["External"], trace },
+        ),
+      ],
+      trace,
+    });
+
+    const thrown = await thrownBy(() =>
+      h.gate.wrap(writeTool(), turnContext()).execute({ status: "Active" }),
+    );
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(trace).toEqual(["interceptor:billing"]);
+    expect(await pending(h)).toEqual([]);
+    expect(h.telemetry.keys()).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // A prepared field's chain, checked beside the turn context
 // ---------------------------------------------------------------------------
 
@@ -332,6 +415,73 @@ describe("a malformed binding on a prepared field", () => {
     const filed = await fileOne(h, preparedWith(null));
 
     expect(filed.entry.affidavit.fields[0]?.provenance.current.binding).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A resubmission is a filing, and what it copies is checked (S-8)
+// ---------------------------------------------------------------------------
+
+describe("a resubmission of a row that holds a malformed binding (S-8)", () => {
+  /**
+   * A row as one filed before alpha.4 looks: written straight into the store, past
+   * the gate's check, holding a binding the schema refuses.
+   */
+  async function rowWithABadBinding(h: Harness): Promise<DocketEntry> {
+    const filed = await fileOne(h, preparedWith(WELL_FORMED[3]?.[1]));
+    const entry = filed.entry;
+    const field = entry.affidavit.fields[0] as (typeof entry.affidavit.fields)[number];
+    const stale: DocketEntry = {
+      ...entry,
+      entryId: "11111111-2222-4333-8444-555555555555",
+      affidavit: {
+        ...entry.affidavit,
+        fields: [
+          {
+            ...field,
+            provenance: {
+              ...field.provenance,
+              current: { ...field.provenance.current, binding: bad(MALFORMED[0]?.[1]) as Binding },
+            },
+          },
+        ],
+      },
+    };
+    const { entry: stored } = await h.store.file(stale);
+    return stored;
+  }
+
+  it("is refused as binding-invalid naming the row, not the host's prepared fields", async () => {
+    const trace: Trace = [];
+    const h = harness({ defaultTtlMs: 60_000, policies: [policyReturning(null, { trace })], trace });
+    const stale = await rowWithABadBinding(h);
+    // Past its deadline: only an expired row may be resubmitted (DK-1). Read after
+    // the move, because an expired status is computed at read time rather than
+    // written — so the comparison below is of the record, not of the clock.
+    h.clock.set(plus(AT, 90_000));
+    const before = await h.store.get(stale.entryId, { tenantId: "tenant-a" });
+
+    const thrown = await thrownBy(() => h.gate.resubmit(stale.entryId, turnContext()));
+
+    expect(isCallerError(thrown)).toBe(true);
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
+      field: "status",
+      // Not "prepared-field": the host never wrote this object, the Docket did.
+      source: "stored-row",
+      entryId: stale.entryId,
+    });
+
+    // Nothing filed, and the old row untouched — the Docket is append-only and this
+    // package does not repair a record (S-4).
+    const after = await h.store.get(stale.entryId, { tenantId: "tenant-a" });
+    expect(after).toEqual(before);
+    expect(after?.lineage.supersededBy).toBeNull();
+    expect(
+      (await h.store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items.map(
+        (one) => one.entryId,
+      ),
+    ).toEqual([]);
   });
 });
 
