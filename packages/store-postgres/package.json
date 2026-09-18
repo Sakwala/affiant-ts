@@ -58,7 +58,7 @@
     "generate": "node scripts/generate-migrations.mjs"
   },
   "peerDependencies": {
-    "@affiant/core": ">=0.1.0-alpha.1",
+    "@affiant/core": ">=0.1.0-alpha.4",
     "postgres": ">=3.4.0"
   },
   "devDependencies": {

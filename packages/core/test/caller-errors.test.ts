@@ -6,6 +6,7 @@ import type { DocketStore } from "../src/docket/store.js";
 import { isAffiantError, isCallerError } from "../src/errors.js";
 import type { PreparedField } from "../src/gate/pipeline.js";
 import { chainOf, mintConversation } from "../src/model/provenance.js";
+import { sampleEntry } from "../src/testing-store.js";
 
 import {
   AT,
@@ -21,9 +22,9 @@ import {
 } from "./gate-support.js";
 
 /**
- * The two caller errors a host reaches by making a mistake in its own code: an
- * amendment naming a field the Affidavit does not propose, and a blank identifier in
- * the turn context it assembled.
+ * The caller errors a host reaches by making a mistake in its own code: an
+ * amendment naming a field the Affidavit does not propose, a blank identifier in the
+ * turn context it assembled, and a cursor no store minted.
  *
  * Neither is a refusal. The refusal registry names what the gate decided about a
  * proposal or a decider; these are arguments the caller could not legally have
@@ -273,5 +274,38 @@ describe("a blank turn-context identifier", () => {
 
       expect(filed.entry.status).toBe("pending");
     }
+  });
+});
+
+describe("a cursor the store did not mint", () => {
+  it("names the list it was fed to and the list it was minted for", async () => {
+    // The contract harness holds every store to the kind; this holds the reference
+    // store to the `details` a REST host reads to build its own answer — which list
+    // refused the cursor, and which one issued it (DK-3).
+    const store = new InMemoryDocketStore({ clock: stubClock(AT) });
+    const scope = { tenantId: "tenant-a" };
+    await store.file(sampleEntry("entry-1"));
+    await store.file(sampleEntry("entry-2"));
+    const pending = await store.listPending(scope, { limit: 1 });
+
+    const thrown = await thrownBy(() =>
+      store.listApprovedUnexecuted(scope, { cursor: pending.cursor, limit: 1 }),
+    );
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("cursor-invalid");
+    expect(isCallerError(thrown) ? thrown.details : null).toEqual({
+      list: "approved-unexecuted",
+      mintedFor: "pending",
+    });
+  });
+
+  it("names only the list it was fed to when the string says nothing about a list", async () => {
+    const store = new InMemoryDocketStore({ clock: stubClock(AT) });
+
+    const thrown = await thrownBy(() =>
+      store.listPending({ tenantId: "tenant-a" }, { cursor: "not-a-cursor", limit: 1 }),
+    );
+
+    expect(isCallerError(thrown) ? thrown.details : null).toEqual({ list: "pending" });
   });
 });
