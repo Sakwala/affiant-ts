@@ -17,8 +17,8 @@ now the envelopes a host shows a person — the Evidence Card, the decision repo
 only ever built while a proposal was being filed. Both are producers now, pure functions
 over a row. Alongside them, the two mistakes a host can make in its own code stop being
 bare `RangeError`s and get a machine-readable identity. Built against the rulebook's
-[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which
-`0.1.0-alpha.2` was also built against; no wire shape, no schema and no vector changed.
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag; no wire
+shape, no schema and no vector changed.
 
 ### Added
 
