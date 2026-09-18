@@ -79,6 +79,7 @@ import type {
 } from "../model/affidavit.js";
 import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
+import { bindingShapeReason } from "../model/binding-shape.js";
 import { canonicalJson, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
 import { chainOf, merge, mintConversation, mintInferred, mintTag } from "../model/provenance.js";
@@ -329,6 +330,54 @@ function requireTurnIdentifier(value: string, identifier: string): void {
   }
 }
 
+/**
+ * Refuse a binding the protocol's schema would refuse, before anything is done with
+ * it (PV-2, SR-3, S-1 of the binding-shape design).
+ *
+ * The binding is the one part of an Affidavit a host writes freehand, so it is the
+ * one part that can reach the Docket in a shape no auditor can follow — and PV-4
+ * lets a Standing Order rest on a tag "carrying a binding", which makes a malformed
+ * one a person-free approval resting on nothing. A caller error rather than a
+ * refusal code: the host's own code built the object, and the protocol's refusal
+ * registry names gate refusals only.
+ *
+ * `source` says which of the two host-written inputs it came from. An interceptor is
+ * named by the `name` its port contract already carries, so `details.interceptor` is
+ * that name; a prepared field has no second identity and carries none.
+ */
+function requireBindingShape(
+  binding: unknown,
+  field: string,
+  source: "interceptor" | "prepared-field",
+  interceptor?: string,
+): void {
+  if (binding === null || binding === undefined) return;
+  const reason = bindingShapeReason(binding);
+  if (reason === null) return;
+  const from =
+    interceptor === undefined ? "a prepared field" : `interceptor ${JSON.stringify(interceptor)}`;
+  throw new AffiantCallerError(
+    "binding-invalid",
+    `PV-2: the binding on field ${JSON.stringify(field)} from ${from} is not one the ` +
+      `protocol's binding schema admits: ${reason}; nothing is filed`,
+    { field, source, reason, ...(interceptor === undefined ? {} : { interceptor }) },
+  );
+}
+
+/**
+ * Check every tag in a prepared field's chain, not only the one in force.
+ *
+ * A superseded tag is on the card too — "was `External` at 0.9, before that
+ * `Inferred`" — so a malformed binding two tags down is a card the envelope schema
+ * refuses just as surely as one on the current tag.
+ */
+function requireChainBindingShapes(chain: ProvenanceChain, field: string): void {
+  requireBindingShape(chain.current.binding, field, "prepared-field");
+  for (const tag of chain.prior) {
+    requireBindingShape(tag.binding, field, "prepared-field");
+  }
+}
+
 /** A field mid-pipeline: the chain built so far, and the value the tag in force carries. */
 interface FieldState {
   readonly chain: ProvenanceChain;
@@ -345,6 +394,13 @@ interface FieldState {
  *         the inference port: the same inputs that were refused before are refused
  *         here, with no port called and nothing filed. A host builds its own
  *         `TurnContext`, so a blank identifier is the host's programming error.
+ * @throws AffiantCallerError of kind `binding-invalid` when host-written input carries
+ *         something in the binding position that the protocol's binding schema refuses
+ *         (PV-2, SR-3): an interceptor's result, checked as that interceptor returns,
+ *         so no later interceptor and no other port runs; or a prepared field's chain,
+ *         checked beside the turn context. Nothing is filed. Rows already on the
+ *         Docket are never re-checked — the Docket is append-only and this package
+ *         does not repair a record.
  * @throws AffiantError `"substance-refused"` when the proposal swears to nothing
  *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
  *         telemetry port before the throw.
@@ -367,6 +423,16 @@ export async function runPipeline(
   requireTurnIdentifier(ctx.conversationId, "conversationId");
   requireTurnIdentifier(ctx.tenantId, "tenantId");
   requireTurnIdentifier(ctx.channel, "channel");
+
+  // Beside it, and for the same reason: a prepared field's provenance is written by
+  // the host, so a binding the protocol's schema refuses is refused here — before the
+  // projection port, the policies or the store are touched, and before anything is
+  // filed (PV-2, SR-3).
+  for (const prepared of proposal.preparedFields ?? []) {
+    if (prepared.provenance !== undefined) {
+      requireChainBindingShapes(prepared.provenance, prepared.name);
+    }
+  }
 
   const now = deps.clock.now();
   const op = proposal.operation;
@@ -396,6 +462,12 @@ export async function runPipeline(
     // ---- step 2: deterministic interceptors (PV-2) -------------------------
     for (const interceptor of deps.interceptors) {
       const produced = await interceptor.resolve(op, ctx);
+      // As it returns, before the next interceptor and before any other port: GT-1
+      // fixes the order, and a malformed binding must cost neither a model call nor a
+      // row (PV-2).
+      for (const [name, intercepted] of Object.entries(produced)) {
+        requireBindingShape(intercepted.binding, name, "interceptor", interceptor.name);
+      }
       for (const [name, intercepted] of Object.entries(produced)) {
         if (!proposed.has(name)) {
           throw new RangeError(

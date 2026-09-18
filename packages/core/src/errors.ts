@@ -205,12 +205,19 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `superseded-entry-mismatch` — a card was asked for on a row that supersedes
  *   another, without the superseded row, or with the wrong one.
  * - `entry-not-decided` — a decision report was asked for on a row still `pending`.
+ * - `binding-invalid` — host-written input carried something in the binding position
+ *   that the protocol's binding schema refuses. Nothing is filed (PV-2, SR-3).
+ * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
+ *   issue: it does not decode, is not the shape the store mints, or was minted for a
+ *   different list (DK-3).
  */
 export type CallerErrorKind =
   | "amendment-unknown-field"
   | "turn-context-invalid"
   | "superseded-entry-mismatch"
-  | "entry-not-decided";
+  | "entry-not-decided"
+  | "binding-invalid"
+  | "cursor-invalid";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -218,6 +225,8 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "turn-context-invalid",
   "superseded-entry-mismatch",
   "entry-not-decided",
+  "binding-invalid",
+  "cursor-invalid",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */
