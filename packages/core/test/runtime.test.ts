@@ -83,6 +83,7 @@ describe("runtime envelope (RT-1)", () => {
       "createCoverageRegistry",
       "createGate",
       "decide",
+      "decisionResultOf",
       "declareUncovered",
       "defaultClock",
       "deriveEntryId",

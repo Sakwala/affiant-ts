@@ -338,6 +338,9 @@ export type {
 export { cardFor } from "./gate/card.js";
 export type { CardForOptions } from "./gate/card.js";
 
+export { decisionResultOf } from "./gate/decision-result.js";
+export type { DecisionOutcome, DecisionResult } from "./gate/decision-result.js";
+
 export { deriveEntryId, runPipeline } from "./gate/pipeline.js";
 export type {
   EvidenceCardRequest,
