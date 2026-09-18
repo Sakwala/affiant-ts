@@ -85,7 +85,16 @@ export interface Scope {
  *
  * `cursor` is **opaque**: it is produced by a store, understood only by the same
  * store, and bound to the list that produced it — feeding a `listPending` cursor to
- * `export` is a caller error, not a silently different answer.
+ * `export` is a caller error, not a silently different answer. A cursor a store can
+ * tell it did not issue — one that does not decode, is not the shape the store mints,
+ * or was minted for another list — is an `AffiantCallerError` of kind
+ * `cursor-invalid`.
+ *
+ * Opaque is not authenticated: a store holds no secret to sign a cursor with, so a
+ * cursor altered into one that still decodes to a well-formed position for the same
+ * list is served as that position. That is safe only because a cursor carries no
+ * authority — every list is read inside the {@link Scope} the call passes, so no
+ * cursor, forged or not, reads outside the caller's tenant (AZ-2).
  */
 export interface Page {
   /** The `cursor` from the previous {@link PageResult}, or absent/`null` to start. */

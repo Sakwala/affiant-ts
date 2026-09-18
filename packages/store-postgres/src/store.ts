@@ -58,7 +58,7 @@ import type {
   TransitionPatch,
   TransitionResult,
 } from "@affiant/core";
-import { defaultClock, instantMs, isDue, readStatus } from "@affiant/core";
+import { AffiantCallerError, defaultClock, instantMs, isDue, readStatus } from "@affiant/core";
 import type { Sql, TransactionSql } from "postgres";
 
 import type { CursorKind } from "./cursor.js";
@@ -740,7 +740,7 @@ class Store implements DocketStore, SessionStore {
       where v.tenant_id = ${scope.tenantId}::text
         and (${conversationOf(scope)}::text is null
              or v.conversation_id = ${conversationOf(scope)}::text)
-        and v.filing_seq > ${requirePosition(after)}::bigint
+        and v.filing_seq > ${requirePosition(after, kind)}::bigint
         and (
           ${kind}::text = 'all'
           or (${kind}::text = 'pending'
@@ -921,7 +921,8 @@ function encodeRehydrateCursor(group: string, position: string): string {
 /**
  * `page`'s rehydration cursor as `[group, position]`, or the start of the sequence.
  *
- * @throws RangeError when the cursor belongs to another list or names no position.
+ * @throws AffiantCallerError of kind `cursor-invalid` when the cursor belongs to
+ *         another list or names no position.
  */
 function splitRehydrateCursor(page: Page): [string, string] {
   const cursor = page.cursor;
@@ -930,7 +931,11 @@ function splitRehydrateCursor(page: Page): [string, string] {
   const separator = position.indexOf(":");
   const group = separator === -1 ? "" : position.slice(0, separator);
   if (group !== REHYDRATE_PENDING && group !== REHYDRATE_APPROVED) {
-    throw new RangeError("cursor does not name a position in the rehydration sequence");
+    throw new AffiantCallerError(
+      "cursor-invalid",
+      "cursor does not name a position in the rehydration sequence",
+      { list: "rehydrate" },
+    );
   }
-  return [group, requirePosition(position.slice(separator + 1))];
+  return [group, requirePosition(position.slice(separator + 1), "rehydrate")];
 }

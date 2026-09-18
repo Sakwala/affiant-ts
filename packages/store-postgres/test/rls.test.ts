@@ -125,6 +125,48 @@ describe("row-level security over the tenant setting (AZ-2)", () => {
     // statement filters by tenant and the policy would have hidden the row anyway.
     expect(read.value.missed).toBeNull();
   });
+
+  it("reads no other tenant's row through a cursor minted in that tenant", async () => {
+    // A cursor is opaque but not authenticated: this store holds no secret to sign
+    // one with, so a cursor that still decodes to a well-formed position for the
+    // same list is served as that position, forged or not. What makes that safe is
+    // that a cursor carries no authority — the rows come from the tenant the call
+    // declared, and under row-level security from the tenant the transaction
+    // declared. This is the strongest form of the claim: the cursor really was
+    // minted in the other tenant, by the same list, and it still reads nothing of
+    // that tenant's.
+    // Deadlines far out, because the pending list applies the store's clock on read
+    // and the fixture's own deadline is long past by the time this suite runs.
+    const setup = createPostgresDocketStore({ sql: database.sql });
+    const live = { expiresAt: "2099-01-01T00:00:00.000Z" };
+    await setup.file(sampleEntry("forge-theirs-1", { tenantId: "tenant-b", ...live }));
+    await setup.file(sampleEntry("forge-theirs-2", { tenantId: "tenant-b", ...live }));
+    await setup.file(sampleEntry("forge-mine-1", { tenantId: "tenant-a", ...live }));
+    await setup.file(sampleEntry("forge-mine-2", { tenantId: "tenant-a", ...live }));
+
+    const forged = await database.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${role}"`);
+      const store = createPostgresDocketStore({ sql: database.sql }).within(tx);
+      const page = await store.listPending({ tenantId: "tenant-b" }, { limit: 1 });
+      return { value: page.cursor };
+    });
+    expect(forged.value).not.toBeNull();
+
+    const seen = await database.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${role}"`);
+      const store = createPostgresDocketStore({ sql: database.sql }).within(tx);
+      // Accepted as a position: a well-formed cursor is not a caller error (S-6).
+      const page = await store.listPending(
+        { tenantId: "tenant-a" },
+        { cursor: forged.value, limit: 10 },
+      );
+      return { value: page.items.map((entry) => entry.tenantId) };
+    });
+
+    expect(seen.value).not.toContain("tenant-b");
+    // And it really was served as a position: the caller's own later rows came back.
+    expect(seen.value).toContain("tenant-a");
+  });
 });
 
 describe("row-level security applies to the tables' own owner (AZ-2)", () => {
