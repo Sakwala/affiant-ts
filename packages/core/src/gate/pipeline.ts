@@ -69,7 +69,7 @@ import type {
 import { newEntry } from "../docket/entry.js";
 import { instantMs } from "../docket/expiry.js";
 import type { DocketStore } from "../docket/store.js";
-import { AffiantError } from "../errors.js";
+import { AffiantCallerError, AffiantError } from "../errors.js";
 import type {
   Affidavit,
   AffidavitFieldInput,
@@ -309,6 +309,26 @@ export interface PipelineDeps {
 // The pipeline
 // ---------------------------------------------------------------------------
 
+/**
+ * Refuse a blank turn-context identifier at the top of the pipeline (GT-1).
+ *
+ * Only blankness, and only what the filing already refused: a value that is not a
+ * string at all is left to the checks further down, which have not moved (defence in
+ * depth). This is a caller error and not a refusal code — a host assembles its own
+ * turn context, so a blank identifier is a programming mistake in the host's code
+ * rather than something the gate decided about a proposal.
+ */
+function requireTurnIdentifier(value: string, identifier: string): void {
+  if (typeof value === "string" && value.trim() === "") {
+    throw new AffiantCallerError(
+      "turn-context-invalid",
+      `GT-2: the turn context's ${identifier} is blank; a filing records it on the entry ` +
+        `and cannot be written without it`,
+      { identifier },
+    );
+  }
+}
+
 /** A field mid-pipeline: the chain built so far, and the value the tag in force carries. */
 interface FieldState {
   readonly chain: ProvenanceChain;
@@ -319,6 +339,12 @@ interface FieldState {
  * Run steps 2 through 9 for `proposal` in `ctx` and return the filed entry with its
  * card.
  *
+ * @throws AffiantCallerError of kind `turn-context-invalid` when a turn-context
+ *         identifier the filing needs is blank. GT-1 puts the explicit turn context
+ *         first in the order, so this is checked before the interceptors and before
+ *         the inference port: the same inputs that were refused before are refused
+ *         here, with no port called and nothing filed. A host builds its own
+ *         `TurnContext`, so a blank identifier is the host's programming error.
  * @throws AffiantError `"substance-refused"` when the proposal swears to nothing
  *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
  *         telemetry port before the throw.
@@ -332,6 +358,16 @@ export async function runPipeline(
   ctx: TurnContext,
   deps: PipelineDeps,
 ): Promise<FiledEntry> {
+  // ---- step 1: the explicit turn context (GT-1, GT-2) ----------------------
+  // First, before any port is touched. These identifiers are the ones a filing
+  // cannot be written without, and a blank one has always been refused — but
+  // downstream, after the interceptors had run and a model call had been spent on a
+  // turn that could never be filed. The set refused is unchanged; only the moment
+  // and the type are.
+  requireTurnIdentifier(ctx.conversationId, "conversationId");
+  requireTurnIdentifier(ctx.tenantId, "tenantId");
+  requireTurnIdentifier(ctx.channel, "channel");
+
   const now = deps.clock.now();
   const op = proposal.operation;
   const proposed = new Set(op.fields);

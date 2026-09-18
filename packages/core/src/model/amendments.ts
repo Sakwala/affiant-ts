@@ -47,6 +47,8 @@
  * @packageDocumentation
  */
 
+import { AffiantCallerError } from "../errors.js";
+
 import { mintTag, supersede, type ProvenanceTag } from "./provenance.js";
 
 import {
@@ -194,11 +196,13 @@ export function amendmentTag(
  *
  * The three numbers are recomputed over the amended fields (AF-4).
  *
- * @throws RangeError if `map` names a field the Affidavit does not propose. Not an
- *         {@link AffiantError}: the error-code registry names refusals the gate
+ * @throws AffiantCallerError of kind `amendment-unknown-field` — still a
+ *         `RangeError` — if `map` names a field the Affidavit does not propose. Not
+ *         an {@link AffiantError}: the error-code registry names refusals the gate
  *         makes at runtime about a proposal's substance or a decider's identity,
  *         and this is a caller passing a field name that is not there — a
- *         programming error, in the same class as an out-of-range index.
+ *         programming error, in the same class as an out-of-range index (DK-2),
+ *         which changes no state.
  */
 export function applyAmendments(
   affidavit: Affidavit,
@@ -211,8 +215,10 @@ export function applyAmendments(
   const byName = new Map(resolved.map((entry) => [entry.name, entry.amendment]));
   for (const name of byName.keys()) {
     if (!affidavit.fields.some((field) => field.name === name)) {
-      throw new RangeError(
+      throw new AffiantCallerError(
+        "amendment-unknown-field",
         `amendment names field ${JSON.stringify(name)}, which this Affidavit does not propose`,
+        { field: name, entryId: act.entryId },
       );
     }
   }
