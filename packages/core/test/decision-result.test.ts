@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { DocketEntry } from "../src/docket/entry.js";
+import type { DocketEntry, ExecutionOutcome } from "../src/docket/entry.js";
 import { isAffiantError, isCallerError } from "../src/errors.js";
 import { decisionResultOf } from "../src/gate/decision-result.js";
 import type { PreparedField } from "../src/gate/pipeline.js";
@@ -129,6 +129,32 @@ describe("decisionResultOf reports what became of a review", () => {
     expect(decisionResultOf(row)).toEqual({
       protocolVersion: row.protocolVersion,
       docketId: row.entryId,
+      outcome: "rejected",
+      attestation: null,
+      execution: null,
+    });
+  });
+
+  it("drops an execution outcome a row carries under any outcome but approved", async () => {
+    // A row is not supposed to reach this state, but the envelope's own text says
+    // `execution` is null "when the review did not approve it" — so the mapping
+    // answers from the outcome and never copies the row's field across.
+    const h = harness();
+    const pending = await fileOne(h);
+    const rejected = await h.gate.decide(
+      pending.entryId,
+      { kind: "reject", reason: "not this quarter" },
+      turnContext(),
+    );
+    const copy = JSON.parse(JSON.stringify(rejected)) as { execution: ExecutionOutcome };
+    copy.execution = "executed";
+    const tampered = copy as unknown as DocketEntry;
+
+    expect(tampered.execution).toBe("executed");
+    expect(tampered.attestation).not.toBeNull();
+    expect(decisionResultOf(tampered)).toEqual({
+      protocolVersion: rejected.protocolVersion,
+      docketId: rejected.entryId,
       outcome: "rejected",
       attestation: null,
       execution: null,

@@ -322,7 +322,7 @@ function requireTurnIdentifier(value: string, identifier: string): void {
   if (typeof value === "string" && value.trim() === "") {
     throw new AffiantCallerError(
       "turn-context-invalid",
-      `GT-2: the turn context's ${identifier} is blank; a filing records it on the entry ` +
+      `the turn context's ${identifier} is blank; a filing records it on the entry ` +
         `and cannot be written without it`,
       { identifier },
     );

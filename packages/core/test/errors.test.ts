@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AffiantCallerError,
   AffiantError,
   ERROR_CODES,
   ErrorCode,
   isAffiantError,
+  isCallerError,
   isErrorCode,
 } from "../src/errors.js";
 
@@ -134,5 +136,37 @@ describe("isAffiantError", () => {
     impostor.code = "not-a-real-code";
 
     expect(isAffiantError(impostor)).toBe(false);
+  });
+});
+
+describe("isCallerError", () => {
+  it("is true for an instance, and false for anything else", () => {
+    expect(isCallerError(new AffiantCallerError("entry-not-decided"))).toBe(true);
+    expect(isCallerError(new RangeError("entry-not-decided"))).toBe(false);
+    expect(isCallerError({ kind: "entry-not-decided" })).toBe(false);
+    expect(isCallerError("entry-not-decided")).toBe(false);
+    expect(isCallerError(null)).toBe(false);
+    expect(isCallerError(undefined)).toBe(false);
+  });
+
+  it("recognises an error from a second copy of this package in the same process", () => {
+    // The twin of the `isAffiantError` case above: a bundler, or two versions in one
+    // dependency tree, produces a second class, and a `catch` that spans the two
+    // still has to give a true answer. This is why `instanceof` alone will not do.
+    const foreign = new RangeError('amendment names field "nowhere"') as RangeError & {
+      kind: string;
+    };
+    foreign.name = "AffiantCallerError";
+    foreign.kind = "amendment-unknown-field";
+
+    expect(isCallerError(foreign)).toBe(true);
+  });
+
+  it("is not fooled by an error that only borrows the name", () => {
+    const impostor = new RangeError("nope") as RangeError & { kind: string };
+    impostor.name = "AffiantCallerError";
+    impostor.kind = "not-a-real-kind";
+
+    expect(isCallerError(impostor)).toBe(false);
   });
 });
