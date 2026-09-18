@@ -122,10 +122,13 @@ function decodeSequence(page: Page, kind: CursorKind): number {
   const cursor = page.cursor;
   if (cursor === undefined || cursor === null) return 0;
   // Digits and nothing else, the shape `encodeCursor` mints: `Number` alone would
-  // read "", " 7 " and "1e3" as positions this store never issued.
+  // read "", " 7 " and "1e3" as positions this store never issued. Digits alone are
+  // not enough either (S-10): a 30-digit position is one this store's counter could
+  // never have handed out, and past `Number.MAX_SAFE_INTEGER` a position stops being
+  // a position at all - it rounds, and two different cursors compare equal.
   const decoded = decodeCursor(cursor, kind);
   const position = Number(decoded);
-  if (!/^\d+$/.test(decoded) || !Number.isInteger(position)) {
+  if (!/^\d+$/.test(decoded) || !Number.isInteger(position) || position > Number.MAX_SAFE_INTEGER) {
     throw new AffiantCallerError("cursor-invalid", "cursor does not name a position in this list", {
       list: kind,
     });

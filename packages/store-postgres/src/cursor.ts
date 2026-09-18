@@ -82,12 +82,25 @@ export function decodePosition(cursor: string | null | undefined, kind: CursorKi
 }
 
 /**
- * `position` if it is a non-negative whole number written in digits.
+ * The largest `bigint` Postgres holds, which is the largest position this store's
+ * identity column can ever mint. Compared as a `BigInt`, never as a number: 2^63-1
+ * does not survive a `Number`.
+ */
+const MAX_POSITION = 9223372036854775807n;
+
+/**
+ * `position` if it is a non-negative whole number written in digits **and within the
+ * range this store's own positions live in** (S-10).
+ *
+ * Digits alone are not the shape the store mints: a 30-digit position is one no
+ * identity column could ever have handed out, and before this check it was bound into
+ * a statement as a `::bigint` parameter and came back as a raw `PostgresError` 22003 —
+ * a database error for a caller's bad cursor, which DK-3 asks be a caller error.
  *
  * @param list The list the cursor was fed to, for the caller error's `details`.
  */
 export function requirePosition(position: string, list: string): string {
-  if (!/^\d+$/.test(position)) {
+  if (!/^\d+$/.test(position) || BigInt(position) > MAX_POSITION) {
     throw new AffiantCallerError("cursor-invalid", "cursor does not name a position in this list", {
       list,
     });
