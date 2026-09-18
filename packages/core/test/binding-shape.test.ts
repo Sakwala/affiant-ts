@@ -269,6 +269,27 @@ describe("a malformed binding on a prepared field", () => {
     });
   }
 
+  it("refuses a computation-ref whose inputs are a sparse array", async () => {
+    // A hole is not a value: `["a", , "b"]` serializes to `["a", null, "b"]`, which
+    // the schema — and this checker — refuse. A check written with
+    // `Array.prototype.every` would have filed it, because `every` skips holes.
+    const h = harness({ policies: [policyReturning(null)] });
+    const sparse = {
+      kind: "computation-ref",
+      // eslint-disable-next-line no-sparse-arrays
+      ref: { rule: "vat-2026", inputs: ["amount", , "region"] },
+    };
+
+    const thrown = await thrownBy(() => fileOne(h, preparedWith(sparse)));
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
+      field: "status",
+      source: "prepared-field",
+    });
+    expect(await pending(h)).toEqual([]);
+  });
+
   it("checks every tag in the chain, not only the one in force", async () => {
     const h = harness();
     const field: PreparedField = {
