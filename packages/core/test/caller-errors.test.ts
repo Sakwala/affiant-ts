@@ -129,6 +129,39 @@ describe("an amendment naming a field the Affidavit does not propose", () => {
     );
     expect(decided.status).toBe("approved");
   });
+
+  it("is the same caller error on a row that has passed its deadline (DK-1, DK-2)", async () => {
+    // A late decision carrying amendments takes the other path — the one that
+    // preserves the map on the row before refusing the decision — and checks the
+    // field names there too, so a caller learns about a bad name here rather than
+    // in whoever resubmits the entry.
+    const h = harness({ defaultTtlMs: 60_000 });
+    const filed = await fileOne(h);
+    const after = plus(filed.entry.expiresAt, 1);
+    h.clock.set(after);
+    const before = await h.gate.get(filed.entry.entryId, turnContext());
+
+    const thrown = await thrownBy(() =>
+      h.gate.decide(
+        filed.entry.entryId,
+        { kind: "approve", amendments: { nowhere: "x" } },
+        turnContext(),
+      ),
+    );
+
+    expect(thrown).toBeInstanceOf(RangeError);
+    expect(isCallerError(thrown)).toBe(true);
+    expect(isAffiantError(thrown)).toBe(false);
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("amendment-unknown-field");
+    expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
+      field: "nowhere",
+      entryId: filed.entry.entryId,
+    });
+
+    // Nothing was preserved and nothing else moved: the refusal changed no state.
+    const afterRow = await h.gate.get(filed.entry.entryId, turnContext());
+    expect(afterRow).toEqual(before);
+  });
 });
 
 // ---------------------------------------------------------------------------

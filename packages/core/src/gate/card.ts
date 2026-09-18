@@ -44,10 +44,13 @@ import { buildCard } from "./pipeline.js";
  */
 export interface CardForOptions {
   /**
-   * The instant to read the row's deadline against, as an ISO 8601 string in UTC.
+   * The instant to read the row's deadline against, in any form
+   * {@link readStatus} accepts — it measures the deadline with `instantMs`, which
+   * reads an instant with `Date.parse`, so an offset form is accepted as well as a
+   * UTC one. An instant that reader cannot read throws a plain `RangeError`.
    *
    * Required, and a parameter rather than a reading, because this package owns no
-   * clock (RT-2): a card built from a row is built at a moment the caller knows and
+   * clock: a card built from a row is built at a moment the caller knows and
    * the function cannot. It is what decides whether a `pending` row is still
    * awaiting a decision (DK-1).
    */
