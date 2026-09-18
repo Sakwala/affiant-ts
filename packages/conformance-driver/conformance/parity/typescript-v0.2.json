@@ -1,7 +1,7 @@
 {
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "protocolTag": "v0.2.0",
   "producedAt": "2026-09-16T01:27:56.227Z",
   "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.2.json",
