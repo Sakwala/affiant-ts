@@ -70,8 +70,16 @@ export type { ChannelIdentity, Principal, RelayAssertion, Turn, TurnContext } fr
 
 // -------------------------------------------------------------------- errors
 
-export { AffiantError, ERROR_CODES, ErrorCode, isAffiantError, isErrorCode } from "./errors.js";
-export type { AffiantErrorDetails } from "./errors.js";
+export {
+  AffiantCallerError,
+  AffiantError,
+  ERROR_CODES,
+  ErrorCode,
+  isAffiantError,
+  isCallerError,
+  isErrorCode,
+} from "./errors.js";
+export type { AffiantCallerErrorDetails, AffiantErrorDetails, CallerErrorKind } from "./errors.js";
 
 // ----------------------------------------------------------------- telemetry
 
@@ -326,6 +334,9 @@ export type {
   UncoveredCategory,
   UncoveredDeclaration,
 } from "./gate/coverage.js";
+
+export { cardFor } from "./gate/card.js";
+export type { CardForOptions } from "./gate/card.js";
 
 export { deriveEntryId, runPipeline } from "./gate/pipeline.js";
 export type {

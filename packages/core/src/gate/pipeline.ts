@@ -96,7 +96,7 @@ import type {
 
 import type { CoverageRegistry } from "./coverage.js";
 import { coverageRefusedMarker } from "./coverage.js";
-import type { ApprovalPolicy, PolicyOutcome } from "./policy.js";
+import type { ApprovalPolicy } from "./policy.js";
 import { evaluatePolicies } from "./policy.js";
 import type { UtteranceHit } from "./presence.js";
 import { locateInUtterance, utteranceTextOf } from "./presence.js";
@@ -591,7 +591,21 @@ export async function runPipeline(
     },
   });
 
-  return { entry, created, card: evidenceCard(entry, proposal, outcome) };
+  return {
+    entry,
+    created,
+    card: buildCard(entry, {
+      priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
+      schema: proposal.schema,
+      operationLabel: proposal.operationLabel,
+      policyReason: outcome.reason,
+      // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
+      // it is not a card a person can confirm. Saying `true` here would offer a
+      // reviewer surface an approve button that cannot work, on the same card that
+      // carries a warning saying no decision will be accepted.
+      requiresConfirmation: entry.status === "pending" && entry.blocked === null,
+    }),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -678,18 +692,52 @@ function blockedMarker(
   return null;
 }
 
+/**
+ * Everything a card needs that the Docket row does not carry.
+ *
+ * The row is the sworn substance; these five are the things around it. Three come
+ * from the host on the call that asks for the card — the field schema behind the
+ * rendering hints, the host's own verb for the operation, and the amendments a
+ * reviewer already made on the entry this one supersedes — because SR-1 puts a
+ * host's rendering of a proposal on the envelope and not on the record, and the
+ * Docket entry schema has nowhere to put them. The other two are the two judgements
+ * the caller has already made: the sentence a policy chain gave, which only exists
+ * while the chain is running, and whether a decision is being asked for at all.
+ */
+export interface CardBuild {
+  /** The amendments already made on a superseded entry, or `null`. */
+  readonly priorAmendments: AmendmentMap | null;
+  /** The host's field schema, source of the per-field rendering hints, or `null`. */
+  readonly schema: FieldSchema | null;
+  /** The host's own verb for the operation, or `null` when it named none. */
+  readonly operationLabel: string | null;
+  /**
+   * The policy chain's sentence, first in `warnings`, or `null`.
+   *
+   * `null` on a card built from a stored row: the row records the policy's verdict
+   * and not its prose, and re-running the chain at read time would evaluate a
+   * different moment.
+   */
+  readonly policyReason: string | null;
+  /**
+   * Whether a person must confirm this write before it commits.
+   *
+   * A parameter rather than a computation here because the two callers know
+   * different things: a filing has just written the row and reads its status
+   * directly, while a card built long afterwards must measure the deadline against
+   * an instant the caller names (DK-1, DK-5) — this package reads no clock.
+   */
+  readonly requiresConfirmation: boolean;
+}
+
 /** The card a host delivers, built from the **stored** entry (GT-4) and the wire carry. */
-function evidenceCard(
-  entry: DocketEntry,
-  proposal: PipelineProposal,
-  outcome: PolicyOutcome,
-): EvidenceCardRequest {
+export function buildCard(entry: DocketEntry, build: CardBuild): EvidenceCardRequest {
   // AF-2's three numbers come off the stored Affidavit, so the card and the record
   // can never disagree about them: all three ride the wire Affidavit, and two of
   // them are repeated on the envelope for the one version the superseded wire's
   // consumers are still reading.
   const sworn = entry.amendedAffidavit ?? entry.affidavit;
-  const carry = wireCarry(entry, proposal, outcome);
+  const carry = wireCarry(entry, build);
   return {
     protocolVersion: entry.protocolVersion,
     docketId: entry.entryId,
@@ -702,7 +750,7 @@ function evidenceCard(
     // and then it is the envelope that carries the pin, not the sworn record.
     affidavit: toWire(sworn),
     requiredBy: entry.expiresAt,
-    priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
+    priorAmendments: build.priorAmendments,
     populatedConfidence: sworn.populatedConfidence,
     emptyFieldCount: sworn.emptyFieldCount,
     blocked: entry.blocked,
@@ -716,16 +764,15 @@ function evidenceCard(
  * whether a person must confirm, the reviewer surface's per-field rendering hints,
  * and the host's own verb for the operation.
  */
-function wireCarry(
-  entry: DocketEntry,
-  proposal: PipelineProposal,
-  outcome: PolicyOutcome,
-): WireCarry {
+function wireCarry(entry: DocketEntry, build: CardBuild): WireCarry {
   const warnings: string[] = [];
-  if (outcome.reason !== null) warnings.push(outcome.reason);
+  if (build.policyReason !== null) warnings.push(build.policyReason);
   if (entry.blocked?.code === "coverage-refused") {
+    // The tool that proposed the entry, read off the row (CV-4) rather than off the
+    // call: a card built from a stored row is built long after the proposal, and the
+    // row is where the tool's name survives.
     warnings.push(
-      `CV-4: ${JSON.stringify(proposal.toolName)} is declared uncovered ` +
+      `CV-4: ${JSON.stringify(entry.toolName)} is declared uncovered ` +
         `(${String(entry.blocked.category)}); this proposal is on the record and cannot be ` +
         `approved through the gate.`,
     );
@@ -743,9 +790,7 @@ function wireCarry(
   // all, rather than an entry full of nulls: absence is how the wire spells "no
   // hint, render from the field's own kind".
   const presentation: FieldPresentation[] = [];
-  const schemaByName = new Map(
-    (proposal.schema?.fields ?? []).map((entry_) => [entry_.name, entry_]),
-  );
+  const schemaByName = new Map((build.schema?.fields ?? []).map((entry_) => [entry_.name, entry_]));
   for (const field of (entry.amendedAffidavit ?? entry.affidavit).fields) {
     const declared = schemaByName.get(field.name);
     const allowedValues = declared?.allowedValues ?? null;
@@ -764,19 +809,15 @@ function wireCarry(
 
   return {
     warnings,
-    // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
-    // it is not a card a person can confirm. Saying `true` here would offer a
-    // reviewer surface an approve button that cannot work, on the same card that
-    // carries a warning saying no decision will be accepted.
-    requiresConfirmation: entry.status === "pending" && entry.blocked === null,
+    requiresConfirmation: build.requiresConfirmation,
     presentation,
     // The host's word for what it is doing, carried onto the card so a reviewer
     // surface can head the card with the verb a person recognises rather than with
-    // the protocol's two-valued shape. It comes from this filing, like the hints
-    // beside it — a resubmission builds its proposal from the row, which swears to
-    // the evidence and not to how the host labels it, so a resubmitted card carries
-    // neither until the host supplies them again.
-    hostOperation: proposal.operationLabel,
+    // the protocol's two-valued shape. It comes from the call that asks for the
+    // card, like the hints beside it — a resubmission builds its proposal from the
+    // row, which swears to the evidence and not to how the host labels it, so a
+    // resubmitted card carries neither until the host supplies them again.
+    hostOperation: build.operationLabel,
   };
 }
 
