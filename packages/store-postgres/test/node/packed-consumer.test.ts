@@ -10,14 +10,15 @@
  *
  * So this packs the package, installs the tarball into a scratch project alongside its
  * peers, writes the consumer a host would write, and compiles it. A non-zero exit from
- * `tsc` fails the test.
+ * `tsc` fails the test. A second case packs the same tarballs into a project of their
+ * own, opens a real database and runs a host's script there — proving a defect in the
+ * store's own error against the packed core, not only against `src/`.
  *
- * Node-only: it packs, installs and spawns, and it never opens a database. Excluded
- * from the workerd run by `vitest.workers.config.ts`, which names one file. It needs the
- * registry for `postgres`, and it asks the registry whether it is there before it packs
- * anything: a silent registry skips the suite, and an install that fails against a
- * registry that answered is a failure, because that is a manifest a consumer cannot
- * resolve.
+ * Node-only: it packs, installs and spawns. Excluded from the workerd run by
+ * `vitest.workers.config.ts`, which names one file. It needs the registry for
+ * `postgres`, and it asks the registry whether it is there before it packs anything: a
+ * silent registry skips the suite, and an install that fails against a registry that
+ * answered is a failure, because that is a manifest a consumer cannot resolve.
  */
 
 import { execFileSync } from "node:child_process";
@@ -35,6 +36,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterAll, describe, expect, it } from "vitest";
+
+import { createTestDatabase, databaseUrl } from "../setup.js";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
@@ -248,4 +251,121 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     expect(output, "tsc --strict reported errors against the packed types").toBe("");
     expect(failed).toBe(false);
   });
+
+  it(
+    "raises a caller error the packed core recognises for a cursor it never minted",
+    { timeout: 300_000 },
+    async () => {
+      const packs = join(scratch, "runtime-packs");
+      const project = join(scratch, "runtime-project");
+      const corePacks = join(scratch, "runtime-core-packs");
+      for (const directory of [packs, corePacks, project]) {
+        mkdirSync(directory, { recursive: true });
+      }
+
+      const packedStore = run("pnpm", ["pack", "--pack-destination", packs], packageRoot);
+      expect(packedStore, "pnpm pack failed for the store").not.toBeNull();
+      const storeTarball = tarballIn(packs);
+      expect(storeTarball).not.toBeNull();
+
+      const packedCore = run("pnpm", ["pack", "--pack-destination", corePacks], coreRoot);
+      expect(packedCore, "pnpm pack failed for the core").not.toBeNull();
+      const coreTarball = tarballIn(corePacks);
+      expect(coreTarball).not.toBeNull();
+
+      writeFileSync(
+        join(project, "package.json"),
+        `${JSON.stringify(
+          {
+            name: "affiant-packed-consumer-runtime",
+            version: "0.0.0",
+            private: true,
+            type: "module",
+          },
+          null,
+          2,
+        )}\n`,
+      );
+
+      const installed = run(
+        "npm",
+        [
+          "install",
+          "--no-audit",
+          "--no-fund",
+          "--loglevel",
+          "error",
+          storeTarball as string,
+          coreTarball as string,
+          `postgres@${pinnedPostgres}`,
+        ],
+        project,
+      );
+      if (installed === null) {
+        expect.soft(registryReachable(), "the npm registry stopped answering mid-test").toBe(true);
+        throw new Error(
+          `installing the packed tarballs and postgres@${pinnedPostgres} into a scratch ` +
+            `project failed against a registry that answered \`npm ping\`: the published ` +
+            `manifest cannot be resolved by a consumer.`,
+        );
+      }
+
+      // A real database, created and migrated by the workspace's own driver — not the
+      // packed one — so the runner below is the only thing exercising what was packed.
+      const database = await createTestDatabase({ max: 2 });
+      try {
+        // The runner: a base64 string that decodes cleanly but names no position this
+        // store ever minted, against the PACKED store, checked with `isCallerError`
+        // imported from the PACKED core in the same scratch project — proving the
+        // guard recognises the store's error across the package boundary.
+        const RUNNER = [
+          `import postgres from "postgres";`,
+          `import { createPostgresDocketStore } from "@affiant/store-postgres";`,
+          `import { isCallerError } from "@affiant/core";`,
+          ``,
+          `const sql = postgres(${JSON.stringify(databaseUrl(database.name))}, { prepare: false });`,
+          `const store = createPostgresDocketStore({ sql });`,
+          ``,
+          `let cursorInvalidKind = null;`,
+          `try {`,
+          `  await store.listPending(`,
+          `    { tenantId: "tenant-a" },`,
+          `    { cursor: "bm90LWEtY3Vyc29y", limit: 10 },`,
+          `  );`,
+          `} catch (error) {`,
+          `  cursorInvalidKind = isCallerError(error) === true ? error.kind : null;`,
+          `}`,
+          `if (cursorInvalidKind !== "cursor-invalid") {`,
+          `  throw new Error("expected cursor-invalid, got " + String(cursorInvalidKind));`,
+          `}`,
+          ``,
+          `await sql.end();`,
+          `console.log("ok");`,
+          ``,
+        ].join("\n");
+        writeFileSync(join(project, "run.mjs"), RUNNER);
+
+        let ran = "";
+        let runFailed = false;
+        try {
+          ran = execFileSync("node", ["run.mjs"], {
+            cwd: project,
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+        } catch (error) {
+          runFailed = true;
+          ran = String(
+            (error as { stderr?: unknown }).stderr ??
+              (error as { stdout?: unknown }).stdout ??
+              error,
+          );
+        }
+        expect(ran.trim(), "the host script failed against the packed package").toBe("ok");
+        expect(runFailed).toBe(false);
+      } finally {
+        await database.close();
+      }
+    },
+  );
 });
