@@ -1,10 +1,10 @@
 {
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "protocolTag": "v0.2.0",
-  "producedAt": "2026-09-18T13:28:00.223Z",
-  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.3.json",
+  "producedAt": "2026-09-19T00:13:15.216Z",
+  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.4.json",
   "failing": [],
   "adapters": [
     {
