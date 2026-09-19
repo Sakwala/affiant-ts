@@ -1,6 +1,6 @@
 {
   "name": "@affiant/store-postgres",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "The Affiant Docket on Postgres: the durable record of every proposed write, its decision, its attestation and its execution outcome, over a host-owned postgres.js connection.",
   "keywords": [
     "affiant",
