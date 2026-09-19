@@ -18,7 +18,7 @@
  * supplies (see `ports.ts`), which is what lets one gate sit in front of any model,
  * any database and any approval surface.
  *
- * **What is here at `0.1.0-alpha.3`:** the turn context (GT-2), the port
+ * **What is here at `0.1.0-alpha.4`:** the turn context (GT-2), the port
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
@@ -50,8 +50,8 @@
  * parametrised store contract every `DocketStore` and `SessionStore` implementation is
  * measured by, the same assertions the in-memory reference passes.
  *
- * **On npm at `0.1.0-alpha.3`**, under the `alpha` dist-tag and with a provenance
- * attestation, since 2026-09-18; `alpha` points at it. The version
+ * **On npm at `0.1.0-alpha.4`**, under the `alpha` dist-tag and with a provenance
+ * attestation, since 2026-09-19; `alpha` points at it. The version
  * above is what a conformance driver pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
  * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
  * all until an override is set. See the package README.
@@ -60,7 +60,7 @@
  */
 
 /** The version of this package, and the version of it that is on npm. */
-export const CORE_VERSION = "0.1.0-alpha.3";
+export const CORE_VERSION = "0.1.0-alpha.4";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from
