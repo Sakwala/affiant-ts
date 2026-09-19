@@ -453,7 +453,11 @@ describe("a resubmission of a row that holds a malformed binding (S-8)", () => {
 
   it("is refused as binding-invalid naming the row, not the host's prepared fields", async () => {
     const trace: Trace = [];
-    const h = harness({ defaultTtlMs: 60_000, policies: [policyReturning(null, { trace })], trace });
+    const h = harness({
+      defaultTtlMs: 60_000,
+      policies: [policyReturning(null, { trace })],
+      trace,
+    });
     const stale = await rowWithABadBinding(h);
     // Past its deadline: only an expired row may be resubmitted (DK-1). Read after
     // the move, because an expired status is computed at read time rather than
