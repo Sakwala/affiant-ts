@@ -205,12 +205,22 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `superseded-entry-mismatch` — a card was asked for on a row that supersedes
  *   another, without the superseded row, or with the wrong one.
  * - `entry-not-decided` — a decision report was asked for on a row still `pending`.
+ * - `binding-invalid` — something in the binding position was not a binding: the
+ *   protocol's binding schema refuses it, or an interceptor minted one of the three
+ *   kinds that point at a person's act (S-9). `details.source` says where it came
+ *   from — `"interceptor"`, `"prepared-field"`, or `"stored-row"` with the `entryId`
+ *   of the row a resubmission copied it off (S-8). Nothing is filed (PV-2, SR-3).
+ * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
+ *   issue: it does not decode, is not the shape the store mints, or was minted for a
+ *   different list (DK-3).
  */
 export type CallerErrorKind =
   | "amendment-unknown-field"
   | "turn-context-invalid"
   | "superseded-entry-mismatch"
-  | "entry-not-decided";
+  | "entry-not-decided"
+  | "binding-invalid"
+  | "cursor-invalid";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -218,6 +228,8 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "turn-context-invalid",
   "superseded-entry-mismatch",
   "entry-not-decided",
+  "binding-invalid",
+  "cursor-invalid",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */

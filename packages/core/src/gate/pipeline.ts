@@ -79,9 +79,17 @@ import type {
 } from "../model/affidavit.js";
 import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
+import { bindingShapeReason } from "../model/binding-shape.js";
 import { canonicalJson, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
-import { chainOf, merge, mintConversation, mintInferred, mintTag } from "../model/provenance.js";
+import {
+  INTERCEPTOR_BINDING_KINDS,
+  chainOf,
+  merge,
+  mintConversation,
+  mintInferred,
+  mintTag,
+} from "../model/provenance.js";
 import type {
   Clock,
   FieldInterceptor,
@@ -329,6 +337,119 @@ function requireTurnIdentifier(value: string, identifier: string): void {
   }
 }
 
+/**
+ * Refuse a binding the protocol's schema would refuse, before anything is done with
+ * it (PV-2, SR-3, S-1 of the binding-shape design).
+ *
+ * The binding is the one part of an Affidavit a host writes freehand, so it is the
+ * one part that can reach the Docket in a shape no auditor can follow — and PV-4
+ * lets a Standing Order rest on a tag "carrying a binding", which makes a malformed
+ * one a person-free approval resting on nothing. A caller error rather than a
+ * refusal code: the host's own code built the object, and the protocol's refusal
+ * registry names gate refusals only.
+ *
+ * `source` says where the binding came from. An interceptor is named by the `name` its
+ * port contract already carries, so `details.interceptor` is that name; a prepared
+ * field has no second identity and carries none. `"stored-row"` is the third origin
+ * (S-8): a resubmission copies the superseded row's chains, and the host never wrote
+ * the object this call is refusing — so `details.entryId` names the row instead.
+ */
+function requireBindingShape(
+  binding: unknown,
+  field: string,
+  origin: BindingOrigin,
+  interceptor?: string,
+): void {
+  if (binding === null || binding === undefined) return;
+  const reason = bindingShapeReason(binding);
+  if (reason === null) return;
+  const from =
+    interceptor !== undefined
+      ? `interceptor ${JSON.stringify(interceptor)}`
+      : origin.source === "stored-row"
+        ? `Docket entry ${JSON.stringify(origin.entryId)}`
+        : "a prepared field";
+  throw new AffiantCallerError(
+    "binding-invalid",
+    `PV-2: the binding on field ${JSON.stringify(field)} from ${from} is not one the ` +
+      `protocol's binding schema admits: ${reason}; nothing is filed`,
+    {
+      field,
+      ...origin,
+      reason,
+      ...(interceptor === undefined ? {} : { interceptor }),
+    },
+  );
+}
+
+/**
+ * Where a binding under check came from, and what names it there.
+ *
+ * A resubmission is a filing (S-8): `gate.resubmit` writes a new row and the policy
+ * chain runs again over it, so the chains it copies off the superseded row are checked
+ * exactly as a first filing's are. What differs is only the true account of the
+ * origin — `"prepared-field"` would name something the host never wrote.
+ */
+type BindingOrigin =
+  | { readonly source: "interceptor" }
+  | { readonly source: "prepared-field" }
+  | { readonly source: "stored-row"; readonly entryId: string };
+
+/** The two origins that carry nothing else. */
+const FROM_INTERCEPTOR: BindingOrigin = { source: "interceptor" };
+const FROM_PREPARED_FIELD: BindingOrigin = { source: "prepared-field" };
+
+/**
+ * An interceptor's binding is one of the two kinds its type already allows — at run
+ * time too (S-9).
+ *
+ * `InterceptedField.binding` is typed `InterceptorBinding`, which admits
+ * `external-ref` and `computation-ref` only, and PV-2 ties each kind to the source it
+ * explains: the other three all point at something a *person* did, which PV-3 forbids
+ * a machine from minting. A type binds a host that compiles against it; an untyped
+ * host returning a well-formed `reviewer-act` had it filed, and a Standing Order rest
+ * on it — PV-4's hole again, by kind instead of by shape. Checked after the shape, so
+ * the reason a host gets back is the most specific one true of the object.
+ *
+ * Prepared fields keep all five: a relayed capture legitimately carries what a person
+ * typed.
+ */
+function requireInterceptorBinding(binding: unknown, field: string, interceptor: string): void {
+  requireBindingShape(binding, field, FROM_INTERCEPTOR, interceptor);
+  if (binding === null || binding === undefined) return;
+  const kind = (binding as { readonly kind: string }).kind;
+  if ((INTERCEPTOR_BINDING_KINDS as readonly string[]).includes(kind)) return;
+  const reason =
+    `binding kind ${JSON.stringify(kind)} is not one an interceptor may mint ` +
+    `(${INTERCEPTOR_BINDING_KINDS.join(", ")}): it points at something a person did, and ` +
+    `PV-3 forbids a machine from minting one`;
+  throw new AffiantCallerError(
+    "binding-invalid",
+    `PV-2: the binding on field ${JSON.stringify(field)} from interceptor ` +
+      `${JSON.stringify(interceptor)} is not one an interceptor may mint: ${reason}; ` +
+      `nothing is filed`,
+    { field, ...FROM_INTERCEPTOR, reason, interceptor },
+  );
+}
+
+/**
+ * Check every tag in a prepared field's chain, not only the one in force.
+ *
+ * A superseded tag is on the card too — "was `External` at 0.9, before that
+ * `Inferred`" — so a malformed binding two tags down is a card the envelope schema
+ * refuses just as surely as one on the current tag.
+ */
+function requireChainBindingShapes(
+  chain: ProvenanceChain,
+  field: string,
+  origin: BindingOrigin,
+): void {
+  requireBindingShape(chain.current.binding, field, origin);
+  for (const tag of chain.prior) {
+    requireBindingShape(tag.binding, field, origin);
+  }
+}
+
 /** A field mid-pipeline: the chain built so far, and the value the tag in force carries. */
 interface FieldState {
   readonly chain: ProvenanceChain;
@@ -345,6 +466,17 @@ interface FieldState {
  *         the inference port: the same inputs that were refused before are refused
  *         here, with no port called and nothing filed. A host builds its own
  *         `TurnContext`, so a blank identifier is the host's programming error.
+ * @throws AffiantCallerError of kind `binding-invalid` when host-written input carries
+ *         something in the binding position that the protocol's binding schema refuses
+ *         (PV-2, SR-3): an interceptor's result, checked as that interceptor returns,
+ *         so no later interceptor and no other port runs; or a prepared field's chain,
+ *         checked beside the turn context. An interceptor's binding must also be one
+ *         of the two kinds its type admits — `external-ref` or `computation-ref`, the
+ *         two that do not point at a person's act (S-9). Nothing is filed. Rows are
+ *         never re-checked on a **read** — the Docket is append-only and this package
+ *         does not repair a record — but a resubmission is a filing (S-8), so the
+ *         chains it copies off the superseded row are checked here too, and refused
+ *         with `details.source = "stored-row"` and that row's `entryId`.
  * @throws AffiantError `"substance-refused"` when the proposal swears to nothing
  *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
  *         telemetry port before the throw.
@@ -367,6 +499,26 @@ export async function runPipeline(
   requireTurnIdentifier(ctx.conversationId, "conversationId");
   requireTurnIdentifier(ctx.tenantId, "tenantId");
   requireTurnIdentifier(ctx.channel, "channel");
+
+  // Beside it, and for the same reason: a prepared field's provenance is written by
+  // the host, so a binding the protocol's schema refuses is refused here — before the
+  // projection port, the policies or the store are touched, and before anything is
+  // filed (PV-2, SR-3).
+  //
+  // A resubmission's prepared fields are the superseded row's chains, copied by
+  // `resubmit` rather than written by this caller (S-8). They are checked all the
+  // same — a resubmission is a filing, so SR-4 and PV-4 apply to it — but the origin
+  // they are refused under is the row, by id, because `"prepared-field"` would name
+  // something the host never wrote.
+  const preparedOrigin: BindingOrigin =
+    proposal.supersedes === null
+      ? FROM_PREPARED_FIELD
+      : { source: "stored-row", entryId: proposal.supersedes };
+  for (const prepared of proposal.preparedFields ?? []) {
+    if (prepared.provenance !== undefined) {
+      requireChainBindingShapes(prepared.provenance, prepared.name, preparedOrigin);
+    }
+  }
 
   const now = deps.clock.now();
   const op = proposal.operation;
@@ -396,6 +548,12 @@ export async function runPipeline(
     // ---- step 2: deterministic interceptors (PV-2) -------------------------
     for (const interceptor of deps.interceptors) {
       const produced = await interceptor.resolve(op, ctx);
+      // As it returns, before the next interceptor and before any other port: GT-1
+      // fixes the order, and a malformed binding must cost neither a model call nor a
+      // row (PV-2).
+      for (const [name, intercepted] of Object.entries(produced)) {
+        requireInterceptorBinding(intercepted.binding, name, interceptor.name);
+      }
       for (const [name, intercepted] of Object.entries(produced)) {
         if (!proposed.has(name)) {
           throw new RangeError(

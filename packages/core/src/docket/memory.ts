@@ -33,6 +33,7 @@
  * @packageDocumentation
  */
 
+import { AffiantCallerError, isCallerError } from "../errors.js";
 import type { AmendmentMap } from "../model/amendments.js";
 
 import type { Clock } from "../ports.js";
@@ -78,24 +79,40 @@ function encodeCursor(kind: CursorKind, position: string): string {
   return btoa(`${CURSOR_TAG}|${kind}|${position}`);
 }
 
+/** The list a decoded cursor names as its own, when the string says so. */
+function mintedFor(decoded: string): string | undefined {
+  if (!decoded.startsWith(`${CURSOR_TAG}|`)) return undefined;
+  const rest = decoded.slice(CURSOR_TAG.length + 1);
+  const separator = rest.indexOf("|");
+  return separator === -1 ? undefined : rest.slice(0, separator);
+}
+
 /**
  * The position `cursor` names within `kind`'s list.
  *
- * @throws RangeError when the cursor is unreadable or belongs to a different list.
- *         A `RangeError` and not an `AffiantError`: the error-code registry names
- *         the reasons *the gate refuses a request*, and a bad cursor is a caller's
- *         programming error, not a request the framework declined.
+ * @throws AffiantCallerError of kind `cursor-invalid` when the cursor is unreadable or
+ *         belongs to a different list, with `details.list` naming the list it was fed
+ *         to and `details.mintedFor` the list it came from where the string says. A
+ *         caller error (a `RangeError` subclass) and not an `AffiantError`: the
+ *         error-code registry names the reasons *the gate refuses a request*, and a bad
+ *         cursor is a caller's programming error, not a request the framework declined.
  */
 function decodeCursor(cursor: string, kind: CursorKind): string {
   let decoded: string;
   try {
     decoded = atob(cursor);
   } catch {
-    throw new RangeError("cursor is not a cursor this store minted");
+    throw new AffiantCallerError("cursor-invalid", "cursor is not a cursor this store minted", {
+      list: kind,
+    });
   }
   const tag = `${CURSOR_TAG}|${kind}|`;
   if (!decoded.startsWith(tag)) {
-    throw new RangeError(`cursor does not belong to the ${kind} list`);
+    const from = mintedFor(decoded);
+    throw new AffiantCallerError("cursor-invalid", `cursor does not belong to the ${kind} list`, {
+      list: kind,
+      ...(from === undefined ? {} : { mintedFor: from }),
+    });
   }
   return decoded.slice(tag.length);
 }
@@ -104,9 +121,17 @@ function decodeCursor(cursor: string, kind: CursorKind): string {
 function decodeSequence(page: Page, kind: CursorKind): number {
   const cursor = page.cursor;
   if (cursor === undefined || cursor === null) return 0;
-  const position = Number(decodeCursor(cursor, kind));
-  if (!Number.isInteger(position) || position < 0) {
-    throw new RangeError("cursor does not name a position in this list");
+  // Digits and nothing else, the shape `encodeCursor` mints: `Number` alone would
+  // read "", " 7 " and "1e3" as positions this store never issued. Digits alone are
+  // not enough either (S-10): a 30-digit position is one this store's counter could
+  // never have handed out, and past `Number.MAX_SAFE_INTEGER` a position stops being
+  // a position at all - it rounds, and two different cursors compare equal.
+  const decoded = decodeCursor(cursor, kind);
+  const position = Number(decoded);
+  if (!/^\d+$/.test(decoded) || !Number.isInteger(position) || position > Number.MAX_SAFE_INTEGER) {
+    throw new AffiantCallerError("cursor-invalid", "cursor does not name a position in this list", {
+      list: kind,
+    });
   }
   return position;
 }
@@ -605,11 +630,15 @@ export class InMemorySessionStore implements SessionStore {
     const [group, inner] = splitRehydrateCursor(page);
 
     if (group === REHYDRATE_APPROVED) {
-      const approved = await this.#docket.listApprovedUnexecuted(scope, pageAt(inner, limit));
+      const approved = await asRehydrateList(() =>
+        this.#docket.listApprovedUnexecuted(scope, pageAt(inner, limit)),
+      );
       return this.#result(approved.items, approved, REHYDRATE_APPROVED);
     }
 
-    const pending = await this.#docket.listPending(scope, pageAt(inner, limit));
+    const pending = await asRehydrateList(() =>
+      this.#docket.listPending(scope, pageAt(inner, limit)),
+    );
     if (pending.more) {
       return this.#result(pending.items, pending, REHYDRATE_PENDING);
     }
@@ -643,6 +672,28 @@ export class InMemorySessionStore implements SessionStore {
   }
 }
 
+/**
+ * `read`, with a cursor error from the inner list renamed to the rehydration one.
+ *
+ * A rehydration cursor carries the underlying list's cursor inside it, so a caller
+ * that alters the string is answered by whichever list the remains were handed to.
+ * The list the *caller* named is this one, and that is what `details.list` has to
+ * say; `details.mintedFor`, where the inner list supplied it, stays as it was.
+ */
+async function asRehydrateList<T>(read: () => Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if (isCallerError(error) && error.kind === "cursor-invalid") {
+      throw new AffiantCallerError("cursor-invalid", error.message, {
+        ...error.details,
+        list: "rehydrate",
+      });
+    }
+    throw error;
+  }
+}
+
 /** A page request continuing at `cursor`, or starting from the beginning. */
 function pageAt(cursor: string | null, limit: number): Page {
   return cursor === null ? { limit } : { cursor, limit };
@@ -664,7 +715,11 @@ function splitRehydrateCursor(page: Page): [string, string | null] {
   const separator = position.indexOf(":");
   const group = separator === -1 ? "" : position.slice(0, separator);
   if (group !== REHYDRATE_PENDING && group !== REHYDRATE_APPROVED) {
-    throw new RangeError("cursor does not name a position in the rehydration sequence");
+    throw new AffiantCallerError(
+      "cursor-invalid",
+      "cursor does not name a position in the rehydration sequence",
+      { list: "rehydrate" },
+    );
   }
   const inner = position.slice(separator + 1);
   return [group, inner === "" ? null : inner];

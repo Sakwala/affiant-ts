@@ -1,6 +1,6 @@
 {
   "name": "@affiant/core",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "The Affiant gate for TypeScript: every database write an AI agent proposes becomes an Affidavit a person approves, amends or rejects - or a policy approves with nobody present, on the record.",
   "keywords": [
     "affiant",

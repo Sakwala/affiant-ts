@@ -59,6 +59,10 @@ import type {
   TransitionPatch,
   TransitionResult,
 } from "./docket/store.js";
+import type { AffiantCallerError } from "./errors.js";
+import { isCallerError } from "./errors.js";
+import type { Gate } from "./gate/gate.js";
+import { createGate } from "./gate/gate.js";
 import type { Affidavit, AffidavitField, JsonValue } from "./model/affidavit.js";
 import { withConfidence } from "./model/affidavit.js";
 import { chainOf, mintConversation } from "./model/provenance.js";
@@ -343,6 +347,96 @@ function tampered(cursor: string | null): string {
   if (cursor === null) throw new Error("the list handed back no cursor to tamper with");
   const first = cursor.slice(0, 1);
   return (first === "A" ? "B" : "A") + cursor.slice(1);
+}
+
+/**
+ * `cursor` cut in half.
+ *
+ * A truncated cursor is the accident a client makes on its own — a query string
+ * clipped by a proxy, a column too narrow. Half the string cannot carry the whole of
+ * a store's tag, so what is left either does not decode at all or decodes to
+ * something that is not the shape the store mints.
+ */
+function truncated(cursor: string | null): string {
+  if (cursor === null) throw new Error("the list handed back no cursor to truncate");
+  return cursor.slice(0, Math.max(1, Math.floor(cursor.length / 2)));
+}
+
+/**
+ * A position of thirty digits: larger than any counter, sequence or identity column a
+ * store could have reached, and larger than both `Number.MAX_SAFE_INTEGER` and the
+ * largest `bigint` a database holds.
+ */
+const UNMINTABLE_POSITION = "999999999999999999999999999999";
+
+/**
+ * `cursor` with the position inside it replaced by `position`, whatever the store
+ * wrapped it in (S-10).
+ *
+ * The other forged cursors here break the wrapper: a tampered or truncated string
+ * fails on the store's tag and never reaches the position. This one keeps the store's
+ * own tag and list and rewrites only the number, so what refuses it can only be the
+ * store's check that the position is one it could have minted - the check whose
+ * absence turned a caller's bad cursor into a raw database range error.
+ *
+ * The rewriting stays store-agnostic. Every cursor in this contract is a base64
+ * envelope whose last `|`-delimited field holds the position; a rehydration cursor
+ * puts a group in front of it and then, depending on the store, either the position
+ * itself or a nested cursor carrying it. So: take the last field, and if it names a
+ * group, descend into what follows until a plain number is reached.
+ */
+function repositioned(cursor: string | null, position: string): string {
+  if (cursor === null) throw new Error("the list handed back no cursor to reposition");
+  const decoded = atob(cursor);
+  const field = decoded.lastIndexOf("|");
+  if (field === -1) throw new Error(`the list minted a cursor with no position field: ${decoded}`);
+  return btoa(decoded.slice(0, field + 1) + withinGroup(decoded.slice(field + 1), position));
+}
+
+/** {@link repositioned}'s descent: a position, or a group and a position within it. */
+function withinGroup(field: string, position: string): string {
+  const separator = field.lastIndexOf(":");
+  if (separator === -1) return position;
+  const inner = field.slice(separator + 1);
+  if (inner === "") throw new Error("the list minted a group cursor holding no position");
+  const head = field.slice(0, separator + 1);
+  return head + (/^\d+$/.test(inner) ? position : repositioned(inner, position));
+}
+
+/**
+ * Base64 of bytes no store put there: a string a caller invented that happens to
+ * decode.
+ *
+ * A cursor that is not base64 at all only measures the decoder. This one gets past
+ * it, so what refuses it is the store's own check that the position it is reading
+ * is a position it minted (DK-3).
+ */
+const RANDOM_BASE64 = "q83v/hI0VniQq83v/hI0Vg==";
+
+/**
+ * Asserts that `call` fails with {@link AffiantCallerError} of kind `cursor-invalid`,
+ * naming the list the cursor was fed to.
+ *
+ * Written as a catch rather than through `rejects.toThrow` because the contract's
+ * matcher set has no "and this property holds" form, and the property is the point:
+ * a caller that has to read a message string to tell its own mistake from the
+ * framework's is exactly what the typed kind exists to end.
+ */
+async function expectCursorInvalid(
+  expect: ContractExpect,
+  call: () => Promise<unknown>,
+  list: string,
+): Promise<void> {
+  let caught: unknown = null;
+  try {
+    await call();
+  } catch (error) {
+    caught = error;
+  }
+  expect(isCallerError(caught)).toBe(true);
+  const error = caught as AffiantCallerError;
+  expect(error.kind).toBe("cursor-invalid");
+  expect(error.details["list"]).toBe(list);
 }
 
 /** Everything `export` yields for `scope`, collected. */
@@ -1302,12 +1396,84 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           const pending = await store.listPending(scope, { limit: 1 });
           const approved = await store.listApprovedUnexecuted(scope, { limit: 1 });
 
-          await expect(
-            store.listPending(scope, { cursor: tampered(pending.cursor), limit: 1 }),
-          ).rejects.toThrow(RangeError);
-          await expect(
-            store.listApprovedUnexecuted(scope, { cursor: tampered(approved.cursor), limit: 1 }),
-          ).rejects.toThrow(RangeError);
+          await expectCursorInvalid(
+            expect,
+            () => store.listPending(scope, { cursor: tampered(pending.cursor), limit: 1 }),
+            "pending",
+          );
+          await expectCursorInvalid(
+            expect,
+            () =>
+              store.listApprovedUnexecuted(scope, {
+                cursor: tampered(approved.cursor),
+                limit: 1,
+              }),
+            "approved-unexecuted",
+          );
+        },
+      },
+      {
+        id: "paging/refuses-a-position-no-store-could-have-minted",
+        title: "refuses a well-formed cursor naming a position out of range (DK-3)",
+        async run({ store, expect, scope, entry }) {
+          // The store's own tag, the store's own list, and a position thirty digits
+          // long. Nothing here is unreadable, so the refusal is the store saying the
+          // number is not one it could have handed out - and it has to be a
+          // `cursor-invalid` caller error like every other bad cursor, not whatever
+          // the storage layer says when a number does not fit its column.
+          await store.file(entry("entry-1"));
+          await store.file(entry("entry-2"));
+          await store.file(entry("approved-1", { status: "approved" }));
+          await store.file(entry("approved-2", { status: "approved" }));
+
+          const pending = await store.listPending(scope, { limit: 1 });
+          const approved = await store.listApprovedUnexecuted(scope, { limit: 1 });
+
+          await expectCursorInvalid(
+            expect,
+            () =>
+              store.listPending(scope, {
+                cursor: repositioned(pending.cursor, UNMINTABLE_POSITION),
+                limit: 1,
+              }),
+            "pending",
+          );
+          await expectCursorInvalid(
+            expect,
+            () =>
+              store.listApprovedUnexecuted(scope, {
+                cursor: repositioned(approved.cursor, UNMINTABLE_POSITION),
+                limit: 1,
+              }),
+            "approved-unexecuted",
+          );
+        },
+      },
+      {
+        id: "paging/refuses-a-truncated-cursor",
+        title: "refuses a cursor that arrived truncated (DK-3)",
+        async run({ store, expect, scope, entry }) {
+          await store.file(entry("entry-1"));
+          await store.file(entry("entry-2"));
+
+          const pending = await store.listPending(scope, { limit: 1 });
+
+          await expectCursorInvalid(
+            expect,
+            () => store.listPending(scope, { cursor: truncated(pending.cursor), limit: 1 }),
+            "pending",
+          );
+        },
+      },
+      {
+        id: "paging/refuses-random-base64",
+        title: "refuses base64 of bytes it never minted (DK-3)",
+        async run({ store, expect, scope }) {
+          await expectCursorInvalid(
+            expect,
+            () => store.listPending(scope, { cursor: RANDOM_BASE64, limit: 1 }),
+            "pending",
+          );
         },
       },
       {
@@ -1321,18 +1487,49 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           await store.file(entry("entry-2"));
           const pending = await store.listPending(scope, { limit: 1 });
 
-          await expect(
-            store.listApprovedUnexecuted(scope, { cursor: pending.cursor, limit: 1 }),
-          ).rejects.toThrow(RangeError);
+          await expectCursorInvalid(
+            expect,
+            () => store.listApprovedUnexecuted(scope, { cursor: pending.cursor, limit: 1 }),
+            "approved-unexecuted",
+          );
         },
       },
       {
         id: "paging/refuses-a-cursor-nobody-minted",
         title: "refuses a cursor nobody minted",
         async run({ store, expect, scope }) {
-          await expect(
-            store.listPending(scope, { cursor: "not-a-cursor", limit: 1 }),
-          ).rejects.toThrow(RangeError);
+          await expectCursorInvalid(
+            expect,
+            () => store.listPending(scope, { cursor: "not-a-cursor", limit: 1 }),
+            "pending",
+          );
+        },
+      },
+      {
+        id: "paging/a-forged-cursor-reads-no-other-tenant",
+        title: "serves a well-formed forged cursor as a position, inside the call's tenant (AZ-2)",
+        async run({ store, expect, scope, entry, otherScope }) {
+          // The honest boundary of the check above. A cursor is opaque, not
+          // authenticated: a store holds no secret to sign one with, so a cursor
+          // altered into one that still decodes to a well-formed position for the
+          // same list cannot be told from an issued one, and is served. That is only
+          // safe because a cursor carries no authority — the rows come from the
+          // scope the call passed, never from the scope the cursor came out of.
+          for (const id of ["theirs-1", "theirs-2", "theirs-3"]) {
+            await store.file(entry(id, { tenantId: otherScope.tenantId }));
+          }
+          await store.file(entry("mine-1"));
+          await store.file(entry("mine-2"));
+
+          const theirs = await store.listPending(otherScope, { limit: 1 });
+          expect(theirs.cursor).not.toBeNull();
+
+          // Not an error: for this store it is a position like any other.
+          const forged = await store.listPending(scope, { cursor: theirs.cursor, limit: 10 });
+
+          for (const id of ["theirs-1", "theirs-2", "theirs-3"]) {
+            expect(entryIds(forged.items)).not.toContain(id);
+          }
         },
       },
       {
@@ -1969,6 +2166,27 @@ async function walkRehydration(
   return entryIds(out);
 }
 
+/**
+ * A gate wired to nothing but `store`, for the cases that read through the host's
+ * own surface.
+ *
+ * The three ports throw: the rehydration path calls none of them, and a stub that
+ * answered would hide a gate that started calling one.
+ */
+function rehydrationGate(store: SessionStoreUnderTest): Gate {
+  const unused = (): never => {
+    throw new Error("rehydrating calls no port");
+  };
+  return createGate({
+    store,
+    sessions: store,
+    inference: { infer: unused },
+    projection: { previousValues: unused },
+    authorization: { mayDecide: unused },
+    defaultTtlMs: 60_000,
+  });
+}
+
 const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionContractSection>[] =
   [
     {
@@ -2100,9 +2318,100 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
 
             const page = await store.rehydrate(scope, { limit: 1 });
 
-            await expect(
-              store.rehydrate(scope, { cursor: tampered(page.cursor), limit: 1 }),
-            ).rejects.toThrow(RangeError);
+            await expectCursorInvalid(
+              expect,
+              () => store.rehydrate(scope, { cursor: tampered(page.cursor), limit: 1 }),
+              "rehydrate",
+            );
+          },
+        },
+        {
+          id: "rehydration/refuses-a-position-no-store-could-have-minted",
+          title: "refuses a rehydration cursor naming a position out of range (DK-3)",
+          async run({ store, expect, scope, entry }) {
+            // The sequence's cursor carries a position inside it, so it inherits the
+            // same bound: a group this store names, and a thirty-digit position
+            // within it that no store could have reached, is a caller error and not
+            // a range error from underneath.
+            await fileMixedDocket(store, scope, entry);
+
+            const page = await store.rehydrate(scope, { limit: 1 });
+
+            await expectCursorInvalid(
+              expect,
+              () =>
+                store.rehydrate(scope, {
+                  cursor: repositioned(page.cursor, UNMINTABLE_POSITION),
+                  limit: 1,
+                }),
+              "rehydrate",
+            );
+          },
+        },
+        {
+          id: "rehydration/refuses-a-truncated-cursor-and-random-base64",
+          title: "refuses a truncated cursor and base64 it never minted (DK-3)",
+          async run({ store, expect, scope, entry }) {
+            await fileMixedDocket(store, scope, entry);
+
+            const page = await store.rehydrate(scope, { limit: 1 });
+
+            await expectCursorInvalid(
+              expect,
+              () => store.rehydrate(scope, { cursor: truncated(page.cursor), limit: 1 }),
+              "rehydrate",
+            );
+            await expectCursorInvalid(
+              expect,
+              () => store.rehydrate(scope, { cursor: RANDOM_BASE64, limit: 1 }),
+              "rehydrate",
+            );
+          },
+        },
+        {
+          id: "rehydration/refuses-a-bad-cursor-through-the-gate",
+          title: "reaches a host as the same caller error through gate.rehydrate (DK-3)",
+          async run({ store, expect, scope, entry }) {
+            // The surface a host actually calls. `gate.rehydrate` hands the page
+            // straight to the session store, so what a reconnecting client's bad
+            // cursor produces there must be the store's typed caller error and not
+            // something the gate wrapped, renamed or swallowed.
+            await fileMixedDocket(store, scope, entry);
+            const gate = rehydrationGate(store);
+
+            const page = await gate.rehydrate(scope, { limit: 1 });
+
+            await expectCursorInvalid(
+              expect,
+              () => gate.rehydrate(scope, { cursor: tampered(page.cursor), limit: 1 }),
+              "rehydrate",
+            );
+            await expectCursorInvalid(
+              expect,
+              () => gate.rehydrate(scope, { cursor: RANDOM_BASE64, limit: 1 }),
+              "rehydrate",
+            );
+          },
+        },
+        {
+          id: "rehydration/a-forged-cursor-reads-no-other-tenant",
+          title:
+            "serves a well-formed forged cursor as a position, inside the call's tenant (AZ-2)",
+          async run({ store, expect, scope, entry, otherScope }) {
+            // S-6's boundary on the rehydration sequence: a cursor is opaque, not
+            // authenticated, so one that still decodes is served — and still reads
+            // only what the scope the call passed may read.
+            await store.file(entry("theirs-1", { tenantId: otherScope.tenantId }));
+            await store.file(entry("theirs-2", { tenantId: otherScope.tenantId }));
+            await store.file(entry("mine-1"));
+
+            const theirs = await store.rehydrate(otherScope, { limit: 1 });
+            expect(theirs.cursor).not.toBeNull();
+
+            const forged = await store.rehydrate(scope, { cursor: theirs.cursor, limit: 10 });
+
+            expect(entryIds(forged.items)).not.toContain("theirs-1");
+            expect(entryIds(forged.items)).not.toContain("theirs-2");
           },
         },
         {
@@ -2121,9 +2430,12 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
             await fileMixedDocket(store, scope, entry);
             const pending = await store.listPending(scope, { limit: 1 });
 
-            await expect(
-              store.rehydrate(scope, { cursor: pending.cursor, limit: 2 }),
-            ).rejects.toThrow(RangeError);
+            await expectCursorInvalid(
+              expect,
+              () => store.rehydrate(scope, { cursor: pending.cursor, limit: 2 }),
+              "rehydrate",
+            );
+            // A page size is not a cursor: an unbounded page stays a bare RangeError.
             await expect(store.rehydrate(scope, { limit: 0 })).rejects.toThrow(RangeError);
           },
         },

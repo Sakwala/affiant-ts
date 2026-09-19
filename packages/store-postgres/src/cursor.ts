@@ -5,13 +5,15 @@
  *
  * Opaque has to mean *checked*, not merely *ugly*. A cursor from one list handed to
  * another, or a string a caller invented, is a loud refusal rather than a quietly
- * different page — a wrong page looks like data and a `RangeError` looks like a bug,
+ * different page — a wrong page looks like data and a caller error looks like a bug,
  * and the second is the one a caller can fix. The reference store's cursors work the
  * same way; the position inside is this store's own, so a cursor minted by one of the
  * two is not readable by the other and says so.
  *
  * @packageDocumentation
  */
+
+import { AffiantCallerError } from "@affiant/core";
 
 /** The tag every cursor this store mints carries: the store and the cursor format. */
 const CURSOR_TAG = "affiant.docket.pg.v1";
@@ -24,24 +26,41 @@ export function encodeCursor(kind: CursorKind, position: string): string {
   return btoa(`${CURSOR_TAG}|${kind}|${position}`);
 }
 
+/** The list a decoded cursor names as its own, when the string says so. */
+function mintedFor(decoded: string): string | undefined {
+  if (!decoded.startsWith(`${CURSOR_TAG}|`)) return undefined;
+  const rest = decoded.slice(CURSOR_TAG.length + 1);
+  const separator = rest.indexOf("|");
+  return separator === -1 ? undefined : rest.slice(0, separator);
+}
+
 /**
  * The position `cursor` names within `kind`'s list.
  *
- * @throws RangeError when the cursor is unreadable or belongs to a different list. A
- *         `RangeError` and not an `AffiantError`: the error-code registry names the
- *         reasons the gate refuses a request, and a bad cursor is a caller's
- *         programming error rather than a request the framework declined.
+ * @throws AffiantCallerError of kind `cursor-invalid` when the cursor is unreadable or
+ *         belongs to a different list, with `details.list` naming the list it was fed
+ *         to and `details.mintedFor` the list it came from where the string says. A
+ *         caller error (a `RangeError` subclass) and not an `AffiantError`: the
+ *         error-code registry names the reasons the gate refuses a request, and a bad
+ *         cursor is a caller's programming error rather than a request the framework
+ *         declined.
  */
 export function decodeCursor(cursor: string, kind: CursorKind): string {
   let decoded: string;
   try {
     decoded = atob(cursor);
   } catch {
-    throw new RangeError("cursor is not a cursor this store minted");
+    throw new AffiantCallerError("cursor-invalid", "cursor is not a cursor this store minted", {
+      list: kind,
+    });
   }
   const tag = `${CURSOR_TAG}|${kind}|`;
   if (!decoded.startsWith(tag)) {
-    throw new RangeError(`cursor does not belong to the ${kind} list`);
+    const from = mintedFor(decoded);
+    throw new AffiantCallerError("cursor-invalid", `cursor does not belong to the ${kind} list`, {
+      list: kind,
+      ...(from === undefined ? {} : { mintedFor: from }),
+    });
   }
   return decoded.slice(tag.length);
 }
@@ -54,17 +73,37 @@ export function decodeCursor(cursor: string, kind: CursorKind): string {
  * `bigint`, and a value past 2^53 read through a JavaScript number would silently
  * start skipping rows.
  *
- * @throws RangeError when the cursor is not one this list minted, or names no position.
+ * @throws AffiantCallerError of kind `cursor-invalid` when the cursor is not one this
+ *         list minted, or names no position.
  */
 export function decodePosition(cursor: string | null | undefined, kind: CursorKind): string {
   if (cursor === undefined || cursor === null) return "0";
-  return requirePosition(decodeCursor(cursor, kind));
+  return requirePosition(decodeCursor(cursor, kind), kind);
 }
 
-/** `position` if it is a non-negative whole number written in digits. */
-export function requirePosition(position: string): string {
-  if (!/^\d+$/.test(position)) {
-    throw new RangeError("cursor does not name a position in this list");
+/**
+ * The largest `bigint` Postgres holds, which is the largest position this store's
+ * identity column can ever mint. Compared as a `BigInt`, never as a number: 2^63-1
+ * does not survive a `Number`.
+ */
+const MAX_POSITION = 9223372036854775807n;
+
+/**
+ * `position` if it is a non-negative whole number written in digits **and within the
+ * range this store's own positions live in** (S-10).
+ *
+ * Digits alone are not the shape the store mints: a 30-digit position is one no
+ * identity column could ever have handed out, and before this check it was bound into
+ * a statement as a `::bigint` parameter and came back as a raw `PostgresError` 22003 —
+ * a database error for a caller's bad cursor, which DK-3 asks be a caller error.
+ *
+ * @param list The list the cursor was fed to, for the caller error's `details`.
+ */
+export function requirePosition(position: string, list: string): string {
+  if (!/^\d+$/.test(position) || BigInt(position) > MAX_POSITION) {
+    throw new AffiantCallerError("cursor-invalid", "cursor does not name a position in this list", {
+      list,
+    });
   }
   return position;
 }

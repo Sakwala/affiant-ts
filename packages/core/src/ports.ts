@@ -276,6 +276,11 @@ export const defaultClock: Clock = {
  * union: `external-ref` (a system of record) and `computation-ref` (a named,
  * re-runnable rule). The other three kinds all point at something a *person* did,
  * and PV-3 forbids a machine from minting those.
+ *
+ * The restriction holds at run time as well as in the type (S-9): a host that does
+ * not compile against these declarations gets an `AffiantCallerError` of kind
+ * `binding-invalid` when an interceptor returns any other kind, checked as that
+ * interceptor returns, with nothing filed.
  */
 
 /** One field a {@link FieldInterceptor} resolved. */
