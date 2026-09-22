@@ -11,8 +11,11 @@ numbered invariants in
 [`INVARIANTS.md`](https://github.com/Sakwala/affiant-protocol/blob/main/INVARIANTS.md),
 cited throughout below.
 
-- **Status:** `0.1.0-alpha.0`, on npm under the `alpha` dist-tag since 2026-09-16:
-  `npm i @affiant/adapter-ai-sdk@alpha`.
+- **Status:** `@affiant/adapter-ai-sdk` is `0.1.0-alpha.0` in this repository. Releases
+  are published under the `alpha` dist-tag with a provenance attestation through this
+  repository's publish workflow (`.github/workflows/publish.yml`), which moves the
+  `alpha` dist-tag and no other; `npm view @affiant/adapter-ai-sdk dist-tags` shows what
+  the registry currently serves.
 - **Peers:** `ai` `^7.0.0` and `@affiant/core` `>=0.1.0-alpha.1`. No provider package is
   a dependency — the host passes whatever `LanguageModel` it already has.
 

@@ -50,8 +50,10 @@
  * parametrised store contract every `DocketStore` and `SessionStore` implementation is
  * measured by, the same assertions the in-memory reference passes.
  *
- * **On npm at `0.1.0-alpha.4`**, under the `alpha` dist-tag and with a provenance
- * attestation, since 2026-09-19; `alpha` points at it. The version
+ * `@affiant/core` is `0.1.0-alpha.4` in this repository. Releases are published under
+ * the `alpha` dist-tag with a provenance attestation through this repository's publish
+ * workflow, which moves the `alpha` dist-tag and no other; `npm view @affiant/core
+ * dist-tags` shows what the registry currently serves. The version
  * above is what a conformance driver pins. Publishing is a separate, deliberate step — a workflow a maintainer dispatches
  * by hand, which defaults to a dry run, and a `prepack` guard that refuses to pack at
  * all until an override is set. See the package README.
@@ -59,7 +61,7 @@
  * @packageDocumentation
  */
 
-/** The version of this package, and the version of it that is on npm. */
+/** The version of this package, as built. */
 export const CORE_VERSION = "0.1.0-alpha.4";
 
 /**
