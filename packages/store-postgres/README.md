@@ -201,9 +201,11 @@ deployment proves it.
 
 ## Status
 
-`0.1.0-alpha.1`, not yet published: `npm i @affiant/store-postgres@alpha` installs
-`0.1.0-alpha.0`, which has been on npm under that dist-tag since 2026-09-16, until the
-next release is dispatched. Peer dependencies: `@affiant/core`
+`@affiant/store-postgres` is `0.1.0-alpha.2` in this repository. Releases are published
+under the `alpha` dist-tag with a provenance attestation through this repository's
+publish workflow (`.github/workflows/publish.yml`), which moves the `alpha` dist-tag and
+no other; `npm view @affiant/store-postgres dist-tags` shows what the registry currently
+serves. Peer dependencies: `@affiant/core`
 (`>=0.1.0-alpha.1`) and `postgres` (`>=3.4.0`). Apache-2.0.
 
 Source: [`Sakwala/affiant-ts`](https://github.com/Sakwala/affiant-ts).

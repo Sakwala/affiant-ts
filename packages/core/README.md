@@ -14,10 +14,11 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> **On npm at `0.1.0-alpha.3`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-18: `npm i @affiant/core@alpha`. The publish workflow moves
-> the `alpha` dist-tag and no other, so a bare `npm i @affiant/core` — which follows
-> `latest` — does not reach this release. The condition for publishing was exact: a **public parity
+> `@affiant/core` is `0.1.0-alpha.4` in this repository. Releases are published under the
+> `alpha` dist-tag with a provenance attestation through this repository's publish
+> workflow ([`.github/workflows/publish.yml`](../../.github/workflows/publish.yml)),
+> which moves the `alpha` dist-tag and no other; `npm view @affiant/core dist-tags` shows
+> what the registry currently serves. The condition for publishing was exact: a **public parity
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's
