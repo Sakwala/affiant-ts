@@ -188,6 +188,118 @@ carrying a stable `blocked.reason` code an operator can alert on.
    threshold fires iff `score <= threshold`, using **your** scorer. A threshold with no
    scorer is refused at wire-up, never a silent non-fire.
 
+### What the gate checks about a binding
+
+The gate checks the shape of every binding that enters from host code — an
+interceptor's result, and each tag of a prepared field's provenance chain — against the
+protocol's own `binding.schema.json`: the five kinds, each kind's required keys and
+types, and no undeclared key at the binding itself, `ref`, `ref.relay` or
+`ref.constant`. A malformed one throws `AffiantCallerError` of kind `binding-invalid` as
+the interceptor returns, before any later interceptor or port runs, with `details`
+naming `field`, `source` (`"interceptor"` with `interceptor`, `"prepared-field"`, or
+`"stored-row"` with `entryId`) and `reason`; nothing is filed. An interceptor may mint
+only `external-ref` and `computation-ref` — the other three kinds point at something a
+person did, and are refused the same way — while a prepared field keeps all five kinds,
+since a relayed capture legitimately carries what a person typed.
+
+**What it does not do.** This is a check of shape, not of truth: a well-formed
+`external-ref` naming a record that does not exist files. Rows already stored are not
+re-checked on a read — `cardFor`, `decisionResultOf`, `get` and `rehydrate` all read the
+row as it stands. And a stored row holding a malformed binding cannot be resubmitted:
+`gate.resubmit` checks the bindings it copies off the superseded row exactly as a first
+filing's are checked, and the refusal names `"stored-row"` and the entry id — so file a
+fresh proposal instead.
+
+```ts
+import { createGate, isCallerError } from "@affiant/core";
+import type { FieldInterceptor } from "@affiant/core";
+import { InMemoryDocketStore, InMemorySessionStore } from "@affiant/core/store-memory";
+
+const store = new InMemoryDocketStore();
+
+// An interceptor that mints a malformed binding — an `external-ref` carrying a key
+// the protocol's binding schema does not declare.
+const crm: FieldInterceptor = {
+  name: "crm",
+  resolve: () => ({
+    status: {
+      value: "Active",
+      source: "External",
+      binding: {
+        kind: "external-ref",
+        ref: { system: "crm", recordId: "42", extra: true },
+      },
+      confidence: 0.95,
+      evidence: "the crm system says Active",
+    },
+  }),
+};
+
+const gate = createGate({
+  store,
+  sessions: new InMemorySessionStore(store),
+  inference: { infer: async () => ({ fields: {} }) },
+  projection: { previousValues: async () => null },
+  authorization: { mayDecide: async () => true },
+  policies: [],
+  interceptors: [crm],
+  defaultTtlMs: 30 * 60 * 1000,
+});
+
+const tool = {
+  name: "update_invoice",
+  description: "Update an invoice",
+  inputSchema: {
+    entityType: "Invoice",
+    fields: [
+      {
+        name: "status",
+        kind: "enum" as const,
+        description: "The invoice status",
+        required: true,
+        allowedValues: ["Draft", "Active", "Retired"],
+        pattern: null,
+      },
+    ],
+  },
+  writeCapable: true as const,
+  execute: (_args: Record<string, unknown>) => {
+    throw new Error("the gate called a write tool's own execute");
+  },
+  operation: (args: Record<string, unknown>) => ({
+    kind: "update" as const,
+    entityType: "Invoice",
+    entityId: "invoice-1",
+    fields: Object.keys(args),
+  }),
+};
+
+const ctx = {
+  conversationId: "conv-1",
+  tenantId: "acme",
+  channel: "chat",
+  principal: { kind: "member" as const, id: "ana" },
+  turn: {
+    utterance: "Set invoice INV-2 to Active",
+    messageId: "msg-1",
+    at: "2026-09-04T09:00:00.000Z",
+  },
+};
+
+try {
+  await gate.wrap(tool, ctx).execute({ status: "Active" });
+} catch (error) {
+  if (isCallerError(error) && error.kind === "binding-invalid") {
+    // `error.details.field` is "status"; `error.details.source` is "interceptor"
+    // with `error.details.interceptor === "crm"`; `error.details.reason` names the
+    // undeclared key. Nothing was filed.
+    console.log(error.details);
+  } else {
+    throw error;
+  }
+}
+```
+
 ## The ports you supply
 
 `createGate` refuses a wiring it can tell is wrong — a missing port, a deadline that is

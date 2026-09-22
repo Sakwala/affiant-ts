@@ -135,6 +135,59 @@ await sql.begin("isolation level repeatable read", async (tx) => {
 });
 ```
 
+## A cursor the store did not issue
+
+Such a cursor — undecodable, truncated, not the shape this store mints, minted for
+another list, or a position no store could have minted — throws `AffiantCallerError` of
+kind `cursor-invalid`, with `details.list` naming the list it was fed to and, where the
+cursor's own string names its list, `details.mintedFor`, and it does so before any SQL
+is built. The in-memory store in `@affiant/core` does the same, and
+`runDocketStoreContract` holds any third store to it.
+
+A cursor is opaque, not authenticated: this store holds no secret to sign it with, so a
+cursor altered into a well-formed position for the same list is served as that
+position. That is safe because every list is read inside the tenant scope the call
+passes, and no cursor reads outside it.
+
+```ts
+import postgres from "postgres";
+import { applyMigrations, createPostgresDocketStore } from "@affiant/store-postgres";
+import { isCallerError } from "@affiant/core";
+import type { DocketEntry, PageResult, Scope } from "@affiant/core";
+
+declare const connectionString: string;
+declare const scope: Scope;
+
+class InvalidPageRequest extends Error {
+  constructor(readonly list: string) {
+    super(`the cursor handed to ${list} was not one this store issued`);
+  }
+}
+
+async function nextPage(
+  connectionString: string,
+  scope: Scope,
+  cursor: string,
+): Promise<PageResult<DocketEntry>> {
+  const sql = postgres(connectionString, { prepare: false });
+  await applyMigrations(sql);
+  const store = createPostgresDocketStore({ sql });
+  try {
+    return await store.listPending(scope, { cursor, limit: 10 });
+  } catch (error) {
+    if (isCallerError(error) && error.kind === "cursor-invalid") {
+      // `error.details.list` names the list the cursor was fed to ("pending" here);
+      // `error.details.mintedFor` names the list it actually came from, where the
+      // cursor's own string says so.
+      throw new InvalidPageRequest(String(error.details.list));
+    }
+    throw error;
+  } finally {
+    await sql.end();
+  }
+}
+```
+
 ## Runtimes
 
 Node 22, **workerd** — the runtime a Cloudflare Worker runs on — and Bun all run this
