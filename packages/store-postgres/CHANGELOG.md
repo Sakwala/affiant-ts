@@ -8,6 +8,32 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [0.1.0-alpha.2] — 2026-09-22
+
+### Changed
+
+- **Every cursor failure a caller can cause is `AffiantCallerError` of kind
+  `cursor-invalid`, raised before any SQL is built.** Undecodable, truncated, not the
+  shape this store mints, minted for a different list, or a position above the largest
+  `bigint` Postgres holds — each now carries `details.list` naming the list the cursor
+  was fed to and, where the string says, `details.mintedFor` (DK-3). The rehydrate
+  cursor's inner position goes through the same check. Previously a bare `RangeError`
+  for the other cases, and for a too-large position a raw `PostgresError` 22003 off the
+  driver.
+
+- **A cursor is opaque, not authenticated.** This store holds no secret to sign a
+  cursor with, so a cursor altered into one that still decodes to a well-formed
+  position for the same list is served as that position — safe because every list is
+  read inside the tenant scope the call passes, never the scope the cursor came out
+  of. A new row-level-security case proves a forged cursor minted in one tenant reads
+  no row of another under a non-superuser role with row-level security forced.
+
+- **The peer range on `@affiant/core` is `>=0.1.0-alpha.4`.** This store now throws a
+  `CallerErrorKind` only that version's `isCallerError` recognises.
+
+- **The packed-consumer suite proves `isCallerError` from the packed core recognises
+  `cursor-invalid` thrown by the packed store**, against a real database.
+
 ## [0.1.0-alpha.1] — 2026-09-16
 
 Two defects the first host to wire this package up ran into, both in the seam between

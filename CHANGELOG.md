@@ -29,6 +29,38 @@ was made against.
   naming the entry and the field, instead of reaching the driver as an error that names
   neither (DK-2).
 
+## [0.1.0-alpha.4 / store-postgres 0.1.0-alpha.2] — 2026-09-22
+
+Two packages move: `@affiant/core` to `0.1.0-alpha.4` and `@affiant/store-postgres` to
+`0.1.0-alpha.2`. Built against the rulebook's
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, the same
+tag `packages/contract/protocol/PIN` already pins; no wire type, no vendored schema and
+no fixture changed, so the parity manifest is regenerated from a run at this tree without
+a rulebook move — **80 of 80**, recorded in
+[`conformance/results/typescript-0.1.0-alpha.4.json`](packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.4.json).
+`@affiant/adapter-ai-sdk`, `@affiant/contract` and `@affiant/evidence-card` are
+unchanged.
+
+### Added
+
+- **`@affiant/core`: the gate checks every host-written binding's shape** against the
+  rulebook's `binding.schema.json` before anything is done with it, and an interceptor's
+  binding is held to the two kinds that do not point at a person's act, both refused as
+  the new `AffiantCallerError` kind `binding-invalid` (PV-2, PV-3, SR-3). See the
+  [package changelog](packages/core/CHANGELOG.md).
+
+- **`@affiant/core` and `@affiant/store-postgres`: a bad Docket cursor is now
+  `AffiantCallerError` of kind `cursor-invalid`**, with a list name and, where known,
+  the list the cursor was minted for, in place of a bare `RangeError` or (in
+  `store-postgres`) a raw driver error for a too-large position (DK-3). See the
+  [core](packages/core/CHANGELOG.md) and
+  [store-postgres](packages/store-postgres/CHANGELOG.md) changelogs.
+
+### Changed
+
+- **`@affiant/store-postgres`'s peer range on `@affiant/core` is `>=0.1.0-alpha.4`**,
+  the first version whose `isCallerError` recognises `cursor-invalid`.
+
 ## [0.1.0-alpha.3] — 2026-09-18
 
 One package moves: `@affiant/core` to `0.1.0-alpha.3`, with the read-side producers a

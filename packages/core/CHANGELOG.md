@@ -10,6 +10,63 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.4] — 2026-09-22
+
+The one part of an Affidavit a host writes freehand — the binding — is now checked
+against the protocol's own `binding.schema.json` wherever it enters from host code,
+and a Docket cursor a host mangles is now a typed caller error instead of a bare
+`RangeError`. Built against the rulebook's
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag; no
+wire shape, no schema and no vector changed.
+
+### Added
+
+- **The gate checks the shape of every binding that enters from host-written
+  input — an interceptor's result, and each tag of a prepared field's provenance
+  chain — against the rulebook's `binding.schema.json`: the five kinds, each kind's
+  required keys and types, and no undeclared key at the binding itself, `ref`,
+  `ref.relay` or `ref.constant` (PV-2, SR-3, SR-4). A malformed binding is
+  `AffiantCallerError` of the new kind `binding-invalid`, with `details` naming the
+  field, the source (`"interceptor"` with the interceptor's name, `"prepared-field"`,
+  or `"stored-row"` with the entry id a resubmission copied it from) and the reason;
+  nothing is filed. An interceptor's binding is checked as that interceptor returns,
+  before any later interceptor or port runs; a prepared field's chain is checked
+  before the deterministic interceptors and the inference port, beside the turn
+  context check.
+
+- **An interceptor's binding must be `external-ref` or `computation-ref`, at run time
+  and not only by type.** The other three kinds point at something a person did and
+  are refused as `binding-invalid` (PV-2, PV-3). Prepared fields keep all five kinds:
+  a relayed capture legitimately carries what a person typed.
+
+- **`cursor-invalid`.** The in-memory store throws `AffiantCallerError` of this kind
+  for a cursor that does not decode, is not the shape the store mints (digits only, at
+  most `Number.MAX_SAFE_INTEGER`), or was minted for another list, with `details.list`
+  naming the list the cursor was fed to and, where the string says, `details.mintedFor`.
+  `runDocketStoreContract` and the rehydration contract in `@affiant/core/testing` gain
+  the new cases, including a well-formed forged cursor across tenants that reads no row
+  of another tenant (DK-3).
+
+- **A Node-side suite holds the binding checker equal to the vendored schema** over a
+  corpus of valid and invalid bindings, comparing both verdicts on the JSON round trip
+  of each one.
+
+### Changed
+
+- **A resubmission is a filing.** `gate.resubmit` checks the bindings it copies off the
+  superseded row exactly as a first filing's are checked, so a row already holding a
+  malformed binding cannot be resubmitted — refused as `binding-invalid` with
+  `details.source = "stored-row"` naming that row's entry id. Rows are never re-checked
+  on a read (`cardFor`, `decisionResultOf`, `get`, `rehydrate`).
+
+- **The in-memory cursor decoder is digits-only and range-bounded.** No cursor any
+  `0.1.0-alpha.3` build minted is refused by the new check.
+
+- **The packed-consumer suite exercises `binding-invalid`** from the packed tarball, by
+  wiring a gate whose interceptor returns a malformed `external-ref`.
+
+- `CORE_VERSION` reads `0.1.0-alpha.4`.
+
 ## [0.1.0-alpha.3] — 2026-09-18
 
 The read side. A review queue lists Docket entries long after they were filed, and until
