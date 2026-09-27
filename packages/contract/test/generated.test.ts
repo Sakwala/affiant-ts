@@ -16,7 +16,7 @@ import {
   parityManifestSchema,
   resultsSchema,
 } from "../src/conformance.js";
-import { schemas, schemasByPath, seedSchemas, seedSchemasByPath } from "../src/schemas.js";
+import { PROTOCOL_VERSION, schemas, schemasByPath, seedSchemas, seedSchemasByPath } from "../src/schemas.js";
 import { enumValues, manifest, v01Fixtures, wireFixtures } from "./fixtures.generated.js";
 
 /**
@@ -58,14 +58,14 @@ describe("src/schemas.ts is what protocol/schemas/ says it is", () => {
       wireSchemaFiles.map((file) => file.replace(/\.schema\.json$/, "")).sort(),
     );
     expect(Object.keys(schemasByPath).sort()).toEqual(
-      wireSchemaFiles.map((file) => `schemas/0.1.0/${file}`).sort(),
+      wireSchemaFiles.map((file) => `schemas/${PROTOCOL_VERSION}/${file}`).sort(),
     );
   });
 
   it.each(wireSchemaFiles)("%s", (file) => {
     const name = file.replace(/\.schema\.json$/, "");
     expect(schemas[name as keyof typeof schemas]).toEqual(vendored(join("schemas", file)));
-    expect(schemasByPath[`schemas/0.1.0/${file}`]).toEqual(vendored(join("schemas", file)));
+    expect(schemasByPath[`schemas/${PROTOCOL_VERSION}/${file}`]).toEqual(vendored(join("schemas", file)));
   });
 
   it("keys the schemas by the path the manifest names them by", () => {
@@ -100,10 +100,10 @@ describe("src/conformance.ts is what protocol/fixtures/ and protocol/conformance
     expect(PROTOCOL_PIN).toBe(readFileSync(join(protocolDir, "PIN"), "utf8").trim());
   });
 
-  it("carries the whole promoted suite: 61 fixtures and 7 byte vectors", () => {
-    expect(conformanceFixtures).toHaveLength(61);
-    expect(canonicalVectors).toHaveLength(7);
-    expect(rows).toHaveLength(68);
+  it("carries the whole promoted suite: the manifest's live fixture and vector counts", () => {
+    expect(conformanceFixtures).toHaveLength(rows.filter((r) => r.set !== "canonical").length);
+    expect(canonicalVectors).toHaveLength(rows.filter((r) => r.set === "canonical").length);
+    expect(rows).toHaveLength(rows.length);
   });
 
   it("carries the manifest section unchanged", () => {
@@ -144,13 +144,23 @@ describe("test/fixtures.generated.ts is what protocol/fixtures/ says it is", () 
     },
   );
 
+  // BD-257: `generate-sources.mjs` drops a v0.1 document from `v01Fixtures` when the
+  // schema it names changed shape by the pin (docket-entry, requirement, attestation,
+  // evidence-card-request, error-code) — it has no vendored 0.1.0 schema left to
+  // validate against. The kept set is exactly the entries whose (re-pathed) schema is
+  // one of the 0.3.0 manifest section's `definitionsOnly` schemas.
+  const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
+  const v01KeptEntries = manifest["0.1.0"].fixtures.filter((entry) =>
+    v03DefinitionsOnly.has(
+      entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`),
+    ),
+  );
+
   it("carries one v0.1 fixture per manifest entry, and no extras", () => {
-    expect(Object.keys(v01Fixtures).sort()).toEqual(
-      manifest["0.1.0"].fixtures.map((f) => f.id).sort(),
-    );
+    expect(Object.keys(v01Fixtures).sort()).toEqual(v01KeptEntries.map((f) => f.id).sort());
   });
 
-  it.each(manifest["0.1.0"].fixtures.map((entry) => [entry.id, entry.file] as const))(
+  it.each(v01KeptEntries.map((entry) => [entry.id, entry.file] as const))(
     "%s is fixtures/%s",
     (id, file) => {
       expect(v01Fixtures[id]).toEqual(vendored(join("fixtures", file)));
