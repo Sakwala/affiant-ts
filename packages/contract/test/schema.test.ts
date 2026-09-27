@@ -6,9 +6,10 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { EvidenceCardRequest } from "../src/index.js";
 import { presentationNamesUnknownFields } from "../src/index.js";
 import { allSchemas, allSeedSchemas, schemasByPath, seedSchemasByPath } from "../src/schemas.js";
-import { manifest, v01Fixtures, wireFixtures } from "./fixtures.generated.js";
+import { manifest, v01Fixtures, v03Fixtures, wireFixtures } from "./fixtures.generated.js";
 
 type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
+type V03ManifestFixture = (typeof manifest)["0.3.0"]["fixtures"][number];
 type SeedManifestFixture = (typeof manifest.fixtures)[number];
 
 /**
@@ -36,6 +37,13 @@ const schemaNegatives = negatives.filter(
   (entry) => (entry as { check?: string }).check === undefined,
 );
 
+// BD-256: the 0.3.0 section runs the same way the 0.1.0 section above does — no
+// fixture in it carries a "check" (a cross-object relation no JSON Schema states),
+// so there is no v0.3 counterpart to `crossObject`.
+const v03 = manifest["0.3.0"].fixtures as readonly V03ManifestFixture[];
+const v03Positives = v03.filter((entry) => entry.kind === "positive");
+const v03Negatives = v03.filter((entry) => entry.kind === "negative");
+
 const seedSchemaRelevant = manifest.fixtures.filter(
   (entry): entry is SeedManifestFixture & { schema: string } => entry.schemaRelevant,
 );
@@ -62,6 +70,13 @@ function validatorFor(schemaPath: string): ValidateFunction {
 function documentFor(id: string): unknown {
   const fixture = v01Fixtures[id];
   if (fixture === undefined) throw new Error(`no v0.1 fixture ${id}`);
+  return JSON.parse(JSON.stringify(fixture));
+}
+
+/** The v0.3 counterpart to {@link documentFor}. */
+function v03DocumentFor(id: string): unknown {
+  const fixture = v03Fixtures[id];
+  if (fixture === undefined) throw new Error(`no v0.3 fixture ${id}`);
   return JSON.parse(JSON.stringify(fixture));
 }
 
@@ -129,6 +144,32 @@ describe("every negative v0.1 fixture is refused", () => {
       // as JSON Schema can say. What it names is the fact no schema can check.
       expect(validate(document)).toBe(true);
       expect(presentationNamesUnknownFields(document)).toEqual(["dueDate"]);
+    },
+  );
+});
+
+describe("every positive v0.3 fixture validates against the schema the manifest assigns it (BD-256)", () => {
+  it.each(v03Positives.map((entry) => [entry.id, entry.schema] as const))(
+    "%s against %s",
+    (id, schemaPath) => {
+      const validate = validatorFor(schemaPath);
+
+      const valid = validate(v03DocumentFor(id));
+
+      expect(validate.errors ?? []).toEqual([]);
+      expect(valid).toBe(true);
+    },
+  );
+});
+
+describe("every negative v0.3 fixture is refused (BD-256)", () => {
+  it.each(v03Negatives.map((entry) => [entry.id, entry.schema] as const))(
+    "%s is refused by %s",
+    (id, schemaPath) => {
+      const validate = validatorFor(schemaPath);
+
+      expect(validate(v03DocumentFor(id))).toBe(false);
+      expect((validate.errors ?? []).length).toBeGreaterThan(0);
     },
   );
 });
