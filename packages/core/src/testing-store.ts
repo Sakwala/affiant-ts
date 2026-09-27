@@ -2441,7 +2441,8 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
         },
         {
           id: "rehydration/round-trips-the-compositeRef",
-          title: "reads compositeRef back on get, on rehydrate's page and on the pending list (AZ-4)",
+          title:
+            "reads compositeRef back on get, on rehydrate's page and on the pending list (AZ-4)",
           async run({ store, expect, scope, entry }) {
             await store.file(entry("has-a-composite-ref", { compositeRef: "pi-1" }));
             await store.file(entry("has-no-composite-ref"));
@@ -2453,8 +2454,7 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
 
             const rehydrated = await store.rehydrate(scope, { limit: 10 });
             expect(
-              rehydrated.items.find((item) => item.entryId === "has-a-composite-ref")
-                ?.compositeRef,
+              rehydrated.items.find((item) => item.entryId === "has-a-composite-ref")?.compositeRef,
             ).toBe("pi-1");
             expect(
               rehydrated.items.find((item) => item.entryId === "has-no-composite-ref")
