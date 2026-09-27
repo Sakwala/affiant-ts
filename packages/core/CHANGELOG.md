@@ -10,6 +10,57 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.5] — unreleased
+
+Native `MultiParty` semantics stay reserved; this release is the package's part of what
+AZ-4 already asks a host to do without them — compose multi-party approval as N Docket
+entries sharing a host-chosen composite. Built against the rulebook's
+[`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag; no wire
+shape, no schema and no vector changed.
+
+### Added
+
+- **`compositeRef` on `gate.file`.** `WriteProposal.compositeRef?: string` names the
+  composite this entry is one constituent of; `gate.wrap`'s agent path has no composite
+  to carry and always files `null` (AZ-4).
+
+- **`composite-ref-invalid`.** `gate.file` throws `AffiantCallerError` of this kind when
+  `compositeRef` is supplied but is not the schema's identifier — a non-empty string —
+  before any port runs; nothing is filed (AZ-4).
+
+- **`composite-ref-mismatch`.** A filing that replays an existing row (GT-4) while
+  naming a different `compositeRef` than the one the row records throws
+  `AffiantCallerError` of this kind, with `details` naming `entryId`, `stored` and
+  `proposed`; the store has already answered and nothing new is written. This is a
+  second constituent filed with the first one's material, not a retry of the same
+  proposal (AZ-4).
+
+- **A resubmission copies `compositeRef` verbatim off the superseded row.**
+  `gate.resubmit` takes only an entry id; the successor stays a constituent of the
+  composite the row it replaces named (AZ-4, DK-1).
+
+- **The AZ-4 sentence in `warnings`, at filing and from `cardFor`.** When a row's
+  `compositeRef` is non-null, both card-building paths append `AZ-4: this entry is one
+  constituent of composite "<compositeRef>"; its approval alone does not reach the
+  executor.` — the host's own "one of N" sentence is appended beside it (AZ-4, SR-1).
+
+- **The store contract's new case.** `runDocketStoreContract` gains
+  `rehydration/round-trips-the-compositeRef`, checked against the in-memory store: `get`,
+  `rehydrate`'s page and `listPending` all read `compositeRef` back as filed, and `null`
+  for an entry that named none (AZ-4, DK-5).
+
+- **A declarative fixture, `decide/composite-constituents-independent`, in the core's own
+  suite — not promoted to the rulebook.** Two constituents share a `compositeRef`; a
+  decision on one leaves the other untouched, both keep their `compositeRef`, and the
+  approved one reads `unexecuted` (AZ-4, R-10 of the design record).
+
+- **The fixture runner accepts `compositeRef` on a `file` step and an `EntryExpectation`
+  can assert it.** `FixtureStep`'s `file` variant and `STEP_KEYS.file` both gain
+  `compositeRef`; `EntryExpectation` and `FIXTURE_KEYS.entry` gain the same key, checked
+  by `checkEntry` (AZ-4).
+
+The rulebook is unchanged at `v0.2.0`; no wire shape, schema or vector moved.
+
 ## [0.1.0-alpha.4] — 2026-09-22
 
 The one part of an Affidavit a host writes freehand — the binding — is now checked
