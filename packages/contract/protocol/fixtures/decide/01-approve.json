@@ -95,7 +95,8 @@
       "amendments": null,
       "decision": {
         "kind": "approve",
-        "reason": "checked against the purchase order"
+        "reason": "checked against the purchase order",
+        "by": "ana"
       },
       "affidavit": {
         "aggregateConfidence": 0.9,

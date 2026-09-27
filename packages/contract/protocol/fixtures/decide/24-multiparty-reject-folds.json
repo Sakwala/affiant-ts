@@ -1,0 +1,128 @@
+{
+  "id": "decide/multiparty-reject-folds",
+  "rules": ["AZ-4", "DK-1"],
+  "title": "The first reject folds a MultiParty entry rejected in the same guarded transition that records it, naming the approver whose record folded it; the entry gains no multi-party attestation, because a rejection is not an agreement to attest to.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": ["amount", "payee"]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      },
+      {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-28T09:02:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "bo"
+      },
+      "decision": {
+        "kind": "reject",
+        "reason": "not this payee"
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "rejected",
+      "execution": null,
+      "approvals": [
+        {
+          "approver": "ana",
+          "decision": "approve",
+          "reason": null,
+          "attestation": {
+            "kind": "member",
+            "id": "ana"
+          }
+        },
+        {
+          "approver": "bo",
+          "decision": "reject",
+          "reason": "not this payee",
+          "attestation": {
+            "kind": "member",
+            "id": "bo"
+          }
+        }
+      ],
+      "decision": {
+        "kind": "reject",
+        "reason": "not this payee",
+        "by": "bo"
+      },
+      "attestation": null
+    }
+  }
+}

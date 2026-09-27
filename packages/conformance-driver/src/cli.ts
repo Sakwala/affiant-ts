@@ -40,6 +40,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 import { adapterRunDocument, mergeRuns, runAdapterSection } from "./adapter.js";
 import { aiSdkAdapter } from "./adapters/ai-sdk.js";
 import { compareToManifest, describeVerdict, parityManifest } from "./parity.js";
@@ -152,7 +154,15 @@ if (write) {
 }
 
 if (flag("write-manifest") !== undefined) {
-  const file = join(packageRoot, "conformance", "parity", "typescript-v0.2.json");
+  // BD-256: the parity file name is the pinned protocol's major.minor, read from
+  // @affiant/contract's PROTOCOL_VERSION rather than hand-typed here.
+  const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
+  const file = join(
+    packageRoot,
+    "conformance",
+    "parity",
+    `typescript-v${protocolMajor}.${protocolMinor}.json`,
+  );
   writeFileSync(file, `${JSON.stringify(parityManifest, null, 2)}\n`);
   console.log(`parity manifest: ${file} (regenerated — commit it in a pull request a person read)`);
 }

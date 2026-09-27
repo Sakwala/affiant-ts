@@ -1,0 +1,67 @@
+{
+  "protocolVersion": "0.3.0",
+  "docketId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+  "affidavit": {
+    "protocolVersion": "0.3.0",
+    "operationType": "update",
+    "entityType": "Payment",
+    "entityId": "payment-1",
+    "fields": [
+      {
+        "name": "amount",
+        "kind": "text",
+        "value": "250",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: amount",
+            "at": "2026-09-28T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      },
+      {
+        "name": "payee",
+        "kind": "text",
+        "value": "Acme",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: payee",
+            "at": "2026-09-28T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      }
+    ],
+    "aggregateConfidence": 0.9,
+    "populatedConfidence": 0.9,
+    "emptyFieldCount": 0,
+    "conversationTurn": null,
+    "createdAt": "2026-09-28T09:00:00.000Z"
+  },
+  "requiredBy": "2026-09-28T09:30:00.000Z",
+  "priorAmendments": null,
+  "populatedConfidence": 0.9,
+  "emptyFieldCount": 0,
+  "blocked": null,
+  "requiresConfirmation": true,
+  "multiParty": {
+    "approvers": [
+      { "id": "ana", "decided": null },
+      { "id": "bo", "decided": null },
+      { "id": "cy", "decided": null }
+    ],
+    "required": 3
+  }
+}

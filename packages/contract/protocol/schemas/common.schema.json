@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.1.0/common.schema.json",
+  "$id": "https://affiant.dev/schemas/0.3.0/common.schema.json",
   "title": "Common definitions",
-  "description": "The primitives every other v0.1 schema refers to, defined once. Nothing here is a payload on its own; each $def is reached by $ref from the schemas in this directory.",
+  "description": "The primitives every other 0.3.0 schema refers to, defined once. Nothing here is a payload on its own; each $def is reached by $ref from the schemas in this directory.",
   "$defs": {
     "isoInstant": {
       "title": "IsoInstant",
@@ -24,7 +24,7 @@
     },
     "protocolVersion": {
       "title": "ProtocolVersion",
-      "description": "The protocol version an envelope conforms to, as a semantic version with no leading \"v\" (INVARIANTS.md SR-4). It is a version of the PROTOCOL, not of any implementation: while the major is 0 a schema-breaking change bumps the minor. A consumer refuses a payload whose major differs from the one it targets and MAY warn on a newer minor. \"0.1.0\" for this directory; the fixture-set-level string \"0.0.1-seed\" is what the seed carried instead, since the seed predates the field.",
+      "description": "The protocol version an envelope conforms to, as a semantic version with no leading \"v\" (INVARIANTS.md SR-4). It is a version of the PROTOCOL, not of any implementation: while the major is 0 a schema-breaking change bumps the minor. A consumer refuses a payload whose major differs from the one it targets and MAY warn on a newer minor. \"0.3.0\" for this directory; the fixture-set-level string \"0.0.1-seed\" is what the seed carried instead, since the seed predates the field.",
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
     },

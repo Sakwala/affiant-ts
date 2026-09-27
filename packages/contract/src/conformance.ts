@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.2.0.
+// copy of Sakwala/affiant-protocol at 018b4f24b74ab7c1cca284a25579b1ddf2dda772.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.2.0" as const;
+export const PROTOCOL_PIN = "018b4f24b74ab7c1cca284a25579b1ddf2dda772" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -217,20 +217,6 @@ export const conformanceManifest = {
       "oracle": null
     },
     {
-      "id": "gate/multiparty-blocked",
-      "file": "gate/11-multiparty-blocked.json",
-      "rules": [
-        "AZ-4"
-      ],
-      "set": "gate",
-      "oracle": {
-        "mustFailOn": [
-          "dotnet@1.0.0-beta.1"
-        ],
-        "defect": "A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement"
-      }
-    },
-    {
       "id": "gate/referral-blocked",
       "file": "gate/12-referral-blocked.json",
       "rules": [
@@ -385,6 +371,80 @@ export const conformanceManifest = {
       ],
       "set": "gate",
       "oracle": null
+    },
+    {
+      "id": "gate/multiparty-files-one-entry",
+      "file": "gate/23-multiparty-files-one-entry.json",
+      "rules": [
+        "AZ-4"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "gate/multiparty-verdict-too-few-approvers",
+      "file": "gate/24-multiparty-verdict-too-few-approvers.json",
+      "rules": [
+        "AZ-4",
+        "CV-1"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+      }
+    },
+    {
+      "id": "gate/multiparty-verdict-required-out-of-range",
+      "file": "gate/25-multiparty-verdict-required-out-of-range.json",
+      "rules": [
+        "AZ-4",
+        "CV-1"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+      }
+    },
+    {
+      "id": "gate/multiparty-verdict-duplicate-approvers",
+      "file": "gate/26-multiparty-verdict-duplicate-approvers.json",
+      "rules": [
+        "AZ-4",
+        "CV-1"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+      }
+    },
+    {
+      "id": "gate/multiparty-verdict-required-zero",
+      "file": "gate/27-multiparty-verdict-required-zero.json",
+      "rules": [
+        "AZ-4",
+        "CV-1"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+      }
     },
     {
       "id": "decide/approve",
@@ -607,6 +667,230 @@ export const conformanceManifest = {
       ],
       "set": "decide",
       "oracle": null
+    },
+    {
+      "id": "decide/multiparty-partial-stays-pending",
+      "file": "decide/20-multiparty-partial-stays-pending.json",
+      "rules": [
+        "AZ-4",
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-all-approve",
+      "file": "decide/21-multiparty-all-approve.json",
+      "rules": [
+        "AZ-4",
+        "DK-1",
+        "AZ-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-executed-with-typed-detail",
+      "file": "decide/22-multiparty-executed-with-typed-detail.json",
+      "rules": [
+        "DK-1",
+        "AZ-5"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/execution-detail-typed",
+      "file": "decide/23-execution-detail-typed.json",
+      "rules": [
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "`executionDetail` is typed as a string, never `{ code, … }`"
+      }
+    },
+    {
+      "id": "decide/multiparty-reject-folds",
+      "file": "decide/24-multiparty-reject-folds.json",
+      "rules": [
+        "AZ-4",
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-non-approver-refused",
+      "file": "decide/25-multiparty-non-approver-refused.json",
+      "rules": [
+        "AZ-4",
+        "AZ-2"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-approver-twice-refused",
+      "file": "decide/26-multiparty-approver-twice-refused.json",
+      "rules": [
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-amendment-refused",
+      "file": "decide/27-multiparty-amendment-refused.json",
+      "rules": [
+        "AZ-4",
+        "DK-2"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-after-fold-refused",
+      "file": "decide/28-multiparty-after-fold-refused.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-expired-then-resubmit",
+      "file": "decide/29-multiparty-expired-then-resubmit.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-approve-via-relay",
+      "file": "decide/30-multiparty-approve-via-relay.json",
+      "rules": [
+        "AZ-4",
+        "AZ-3"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-late-amendments-not-preserved",
+      "file": "decide/31-multiparty-late-amendments-not-preserved.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-approvals-in-record-order",
+      "file": "decide/32-multiparty-approvals-in-record-order.json",
+      "rules": [
+        "AZ-4",
+        "AZ-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-wrong-tenant-not-found",
+      "file": "decide/33-multiparty-wrong-tenant-not-found.json",
+      "rules": [
+        "AZ-2",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
+    },
+    {
+      "id": "decide/multiparty-refile-replays",
+      "file": "decide/34-multiparty-refile-replays.json",
+      "rules": [
+        "AZ-4",
+        "GT-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+      }
     },
     {
       "id": "sequence-a/approve-round-trip",
@@ -932,11 +1216,22 @@ export const conformanceManifest = {
       "oracle": null,
       "acceptedOnReview": true
     }
+  ],
+  "retired": [
+    {
+      "id": "gate/multiparty-blocked",
+      "file": "gate/11-multiparty-blocked.json",
+      "retiredAt": "0.3.0",
+      "rules": [
+        "AZ-4"
+      ],
+      "reason": "Stated that a MultiParty verdict files blocked, which is false from 0.3.0; gate/referral-blocked keeps AZ-4's blocked path covered. Published runs made at earlier tags still report it."
+    }
   ]
 } as const;
 
 /**
- * The 61 declarative fixtures, in manifest order. Promoted
+ * The 80 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -1694,89 +1989,6 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "version": "1.0.0"
         },
         "toolName": "relay_capture"
-      }
-    }
-  },
-  {
-    "id": "gate/multiparty-blocked",
-    "rules": [
-      "AZ-4"
-    ],
-    "title": "A requirement level this version does not run is recorded verbatim and filed blocked; it is never degraded to the single-approver branch, which is what the shipped .NET gate does.",
-    "given": {
-      "clock": "2026-09-04T09:00:00.000Z",
-      "store": "memory",
-      "gate": {
-        "defaultTtlMs": 1800000,
-        "authorization": {
-          "allow": [
-            "*"
-          ]
-        },
-        "policies": [
-          {
-            "id": "policy-1",
-            "version": "1.0.0",
-            "declaredInputs": [],
-            "verdict": {
-              "requirement": "MultiParty"
-            }
-          }
-        ]
-      },
-      "ctx": {
-        "tenantId": "tenant-a",
-        "conversationId": "conv-1",
-        "channel": "chat",
-        "principal": {
-          "kind": "member",
-          "id": "member-1"
-        },
-        "utterance": "Set the invoice status to Active",
-        "messageId": "msg-1"
-      },
-      "prior": [],
-      "step": {
-        "kind": "file",
-        "toolName": "relay_capture",
-        "operation": {
-          "kind": "update",
-          "entityType": "Invoice",
-          "entityId": "invoice-1",
-          "fields": [
-            "status"
-          ]
-        },
-        "preparedFields": [
-          {
-            "name": "status",
-            "kind": "text",
-            "value": "Active",
-            "provenance": {
-              "source": "Conversation",
-              "confidence": 0.9
-            }
-          }
-        ]
-      }
-    },
-    "expect": {
-      "entry": {
-        "status": "pending",
-        "requirement": "MultiParty",
-        "execution": null,
-        "blocked": {
-          "code": "requirement-not-implemented",
-          "level": "MultiParty"
-        },
-        "expiresAtOffsetMs": 1800000,
-        "attestation": null,
-        "toolName": "relay_capture"
-      },
-      "card": {
-        "warningsContain": [
-          "not implemented in this version"
-        ]
       }
     }
   },
@@ -2826,6 +3038,493 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
     }
   },
   {
+    "id": "gate/multiparty-files-one-entry",
+    "rules": [
+      "AZ-4"
+    ],
+    "title": "A MultiParty policy files one Docket entry with the requirement recorded as an object and an empty approvals list naming no decisions yet, never three separate entries for three approvers.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": {
+          "kind": "MultiParty",
+          "approvers": [
+            "ana",
+            "bo",
+            "cy"
+          ],
+          "required": 3
+        },
+        "blocked": null,
+        "execution": null,
+        "attestation": null,
+        "approvals": [],
+        "expiresAtOffsetMs": 1800000,
+        "toolName": "propose_payment"
+      },
+      "card": {
+        "requiresConfirmation": true,
+        "blocked": null,
+        "multiParty": {
+          "approvers": [
+            {
+              "id": "ana",
+              "decided": null
+            },
+            {
+              "id": "bo",
+              "decided": null
+            },
+            {
+              "id": "cy",
+              "decided": null
+            }
+          ],
+          "required": 3
+        }
+      },
+      "store": {
+        "count": 1,
+        "pending": 1
+      }
+    }
+  },
+  {
+    "id": "gate/multiparty-verdict-too-few-approvers",
+    "rules": [
+      "AZ-4",
+      "CV-1"
+    ],
+    "title": "A MultiParty verdict naming fewer than two distinct approvers fails the requirement object's own validation and is refused at evaluation, wireup-invalid, before anything is filed.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana"
+                ],
+                "required": 1
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "wireup-invalid"
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/multiparty-verdict-required-out-of-range",
+    "rules": [
+      "AZ-4",
+      "CV-1"
+    ],
+    "title": "A MultiParty verdict whose required count exceeds its own approvers list fails the requirement object's own validation and is refused at evaluation, wireup-invalid, before anything is filed.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "wireup-invalid"
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/multiparty-verdict-duplicate-approvers",
+    "rules": [
+      "AZ-4",
+      "CV-1"
+    ],
+    "title": "A MultiParty verdict whose approvers are not distinct fails the requirement object's own validation and is refused at evaluation, wireup-invalid, before anything is filed.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "ana"
+                ],
+                "required": 2
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "wireup-invalid"
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/multiparty-verdict-required-zero",
+    "rules": [
+      "AZ-4",
+      "CV-1"
+    ],
+    "title": "A MultiParty verdict whose required count is zero fails the requirement object's own validation and is refused at evaluation, wireup-invalid, before anything is filed.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo"
+                ],
+                "required": 0
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "wireup-invalid"
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
     "id": "decide/approve",
     "rules": [
       "DK-1",
@@ -2932,7 +3631,8 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "amendments": null,
         "decision": {
           "kind": "approve",
-          "reason": "checked against the purchase order"
+          "reason": "checked against the purchase order",
+          "by": "ana"
         },
         "affidavit": {
           "aggregateConfidence": 0.9,
@@ -3071,7 +3771,8 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "amendments": null,
         "decision": {
           "kind": "reject",
-          "reason": "the amount is an order of magnitude out"
+          "reason": "the amount is an order of magnitude out",
+          "by": "ana"
         },
         "affidavit": {
           "aggregateConfidence": 0.9,
@@ -3410,7 +4111,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       "AZ-4",
       "DK-1"
     ],
-    "title": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run, which is the shipped .NET behaviour of routing MultiParty to the single-card branch.",
+    "title": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run.",
     "given": {
       "clock": "2026-09-04T09:00:00.000Z",
       "store": "memory",
@@ -3423,11 +4124,11 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         },
         "policies": [
           {
-            "id": "joint-sign-off",
+            "id": "referral-required",
             "version": "1.0.0",
             "declaredInputs": [],
             "verdict": {
-              "requirement": "MultiParty"
+              "requirement": "ReferralRequired"
             }
           }
         ]
@@ -3513,10 +4214,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       "entry": {
         "status": "pending",
         "execution": null,
-        "requirement": "MultiParty",
+        "requirement": "ReferralRequired",
         "blocked": {
           "code": "requirement-not-implemented",
-          "level": "MultiParty"
+          "level": "ReferralRequired"
         },
         "attestation": null,
         "amendments": null,
@@ -4523,7 +5224,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "id": "ana"
         },
         "outcome": "executed",
-        "detail": "invoice row 41"
+        "detail": {
+          "code": "invoice-row-written",
+          "note": "invoice row 41"
+        }
       }
     },
     "expect": {
@@ -4671,7 +5375,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "id": "ana"
         },
         "outcome": "failed",
-        "detail": "unique constraint on invoice_no"
+        "detail": {
+          "code": "unique-constraint-violation",
+          "note": "unique constraint on invoice_no"
+        }
       }
     },
     "expect": {
@@ -5424,7 +6131,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
             "id": "ana"
           },
           "outcome": "executed",
-          "detail": "invoice row 41",
+          "detail": {
+            "code": "invoice-row-written",
+            "note": "invoice row 41"
+          },
           "refusal": null
         }
       ],
@@ -5436,7 +6146,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "id": "ana"
         },
         "outcome": "failed",
-        "detail": "actually it blew up"
+        "detail": {
+          "code": "write-failed",
+          "note": "actually it blew up"
+        }
       }
     },
     "expect": {
@@ -5447,7 +6160,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       "entry": {
         "status": "approved",
         "execution": "executed",
-        "executionDetail": "invoice row 41",
+        "executionDetail": {
+          "code": "invoice-row-written",
+          "note": "invoice row 41"
+        },
         "requirement": "ReviewerConfirmation",
         "blocked": null,
         "attestation": {
@@ -5595,7 +6311,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
             "id": "ana"
           },
           "outcome": "failed",
-          "detail": "unique constraint on invoice_no",
+          "detail": {
+            "code": "unique-constraint-violation",
+            "note": "unique constraint on invoice_no"
+          },
           "refusal": null
         }
       ],
@@ -5607,7 +6326,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "id": "ana"
         },
         "outcome": "executed",
-        "detail": "retried and it worked"
+        "detail": {
+          "code": "write-retried",
+          "note": "retried and it worked"
+        }
       }
     },
     "expect": {
@@ -5618,7 +6340,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       "entry": {
         "status": "approved",
         "execution": "failed",
-        "executionDetail": "unique constraint on invoice_no",
+        "executionDetail": {
+          "code": "unique-constraint-violation",
+          "note": "unique constraint on invoice_no"
+        },
         "requirement": "ReviewerConfirmation",
         "blocked": null,
         "attestation": {
@@ -5663,6 +6388,2028 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       "store": {
         "count": 1,
         "approvedUnexecuted": 0
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-partial-stays-pending",
+    "rules": [
+      "AZ-4",
+      "DK-1"
+    ],
+    "title": "One approval on a MultiParty entry short of the required count is recorded as an approval record, and the entry stays pending: the fold has not yet happened.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          }
+        ],
+        "attestation": null,
+        "decision": null,
+        "execution": null
+      },
+      "store": {
+        "pending": 1
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-all-approve",
+    "rules": [
+      "AZ-4",
+      "DK-1",
+      "AZ-1"
+    ],
+    "title": "The required-th approve folds a MultiParty entry approved in the same guarded transition that records it, with an entry-level multi-party attestation composed of the approvers who folded it, in record order.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:02:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "bo"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:03:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "cy"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "approved",
+        "execution": "unexecuted",
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          },
+          {
+            "approver": "bo",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "bo"
+            }
+          },
+          {
+            "approver": "cy",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "cy"
+            }
+          }
+        ],
+        "attestation": {
+          "kind": "multi-party",
+          "approvers": [
+            {
+              "kind": "member",
+              "id": "ana"
+            },
+            {
+              "kind": "member",
+              "id": "bo"
+            },
+            {
+              "kind": "member",
+              "id": "cy"
+            }
+          ]
+        },
+        "decision": {
+          "kind": "approve",
+          "reason": null,
+          "by": "cy"
+        },
+        "amendments": null
+      },
+      "store": {
+        "approvedUnexecuted": 1
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-executed-with-typed-detail",
+    "rules": [
+      "DK-1",
+      "AZ-5"
+    ],
+    "title": "The host's executor reports a MultiParty entry executed. The status stays approved and the typed detail is kept beside the execution outcome, naming the host's own vocabulary for what happened.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:02:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "bo"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:03:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "cy"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "markExecuted",
+        "at": "2026-09-28T09:05:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "outcome": "executed",
+        "detail": {
+          "code": "payment-sent",
+          "reference": "tx-0001"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "approved",
+        "execution": "executed",
+        "executionDetail": {
+          "code": "payment-sent",
+          "reference": "tx-0001"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/execution-detail-typed",
+    "rules": [
+      "DK-1"
+    ],
+    "title": "The host's executor reports that the approved write happened. The status stays approved and only the execution outcome moves, so the approval is not re-litigated by the report; the typed detail the executor gave is kept beside it.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          },
+          "refusal": null
+        }
+      ],
+      "step": {
+        "kind": "markExecuted",
+        "at": "2026-09-04T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "outcome": "executed",
+        "detail": {
+          "code": "row-written",
+          "rows": 1
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "approved",
+        "execution": "executed",
+        "requirement": "ReviewerConfirmation",
+        "blocked": null,
+        "attestation": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "amendments": null,
+        "decision": {
+          "kind": "approve",
+          "reason": null
+        },
+        "affidavit": {
+          "aggregateConfidence": 0.9,
+          "populatedConfidence": 0.9,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": false
+            },
+            {
+              "name": "amount",
+              "value": "40",
+              "source": "Conversation",
+              "bound": false
+            },
+            {
+              "name": "note",
+              "value": "kept",
+              "source": "Conversation",
+              "bound": false
+            }
+          ]
+        },
+        "lineage": {
+          "supersededBy": null
+        },
+        "executionDetail": {
+          "code": "row-written",
+          "rows": 1
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-reject-folds",
+    "rules": [
+      "AZ-4",
+      "DK-1"
+    ],
+    "title": "The first reject folds a MultiParty entry rejected in the same guarded transition that records it, naming the approver whose record folded it; the entry gains no multi-party attestation, because a rejection is not an agreement to attest to.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:02:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "bo"
+        },
+        "decision": {
+          "kind": "reject",
+          "reason": "not this payee"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "rejected",
+        "execution": null,
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          },
+          {
+            "approver": "bo",
+            "decision": "reject",
+            "reason": "not this payee",
+            "attestation": {
+              "kind": "member",
+              "id": "bo"
+            }
+          }
+        ],
+        "decision": {
+          "kind": "reject",
+          "reason": "not this payee",
+          "by": "bo"
+        },
+        "attestation": null
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-non-approver-refused",
+    "rules": [
+      "AZ-4",
+      "AZ-2"
+    ],
+    "title": "A principal who is not one of the requirement's own approvers cannot decide the entry; the row stays pending with no approval recorded, exactly as if the attempt had never happened.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "dee"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "approver-not-listed"
+      },
+      "entry": {
+        "status": "pending",
+        "approvals": []
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-approver-twice-refused",
+    "rules": [
+      "AZ-4"
+    ],
+    "title": "An approver who has already decided cannot decide again, in either direction; the row keeps the one record that approver made and refuses the second attempt outright.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:02:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "reject",
+          "reason": "changed my mind"
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "approver-already-decided"
+      },
+      "entry": {
+        "status": "pending",
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-amendment-refused",
+    "rules": [
+      "AZ-4",
+      "DK-2"
+    ],
+    "title": "An amendment map on a MultiParty decision is refused outright and nothing is recorded: a joint requirement is agreement to the proposal as filed, not a seat to edit it from.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve",
+          "amendments": {
+            "amount": "260"
+          }
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-amendable"
+      },
+      "entry": {
+        "status": "pending",
+        "approvals": [],
+        "amendedAffidavit": null
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-after-fold-refused",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "A listed approver who has not decided, deciding after the fold, is refused decision-not-pending: the row keeps the records that folded it and gains no more.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:02:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "bo"
+          },
+          "decision": {
+            "kind": "reject",
+            "reason": "not this payee"
+          }
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:03:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "cy"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-pending"
+      },
+      "entry": {
+        "status": "rejected",
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          },
+          {
+            "approver": "bo",
+            "decision": "reject",
+            "reason": "not this payee",
+            "attestation": {
+              "kind": "member",
+              "id": "bo"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-expired-then-resubmit",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "Resubmitting an expired MultiParty entry under an unchanged policy files a successor with the same requirement object and no approval records: the approvals a superseded row carried are its own history, not a head start for the row that replaces it.",
+    "given": {
+      "clock": "2026-09-28T09:31:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-28T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "resubmit",
+        "at": "2026-09-28T09:31:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "approvals": [],
+        "requirement": {
+          "kind": "MultiParty",
+          "approvers": [
+            "ana",
+            "bo",
+            "cy"
+          ],
+          "required": 3
+        },
+        "lineage": {
+          "supersedes": "@some"
+        }
+      },
+      "superseded": {
+        "status": "expired",
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          }
+        ],
+        "lineage": {
+          "supersededBy": "@some"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-approve-via-relay",
+    "rules": [
+      "AZ-4",
+      "AZ-3"
+    ],
+    "title": "An approver decides through a trusted relay: the approval record names the person the relay asserted, never the relay's own identity, and its attestation is member-via-relay.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "whatsapp-relay",
+          "assertedMember": "bo",
+          "relay": {
+            "channelIdentity": "+94770000000",
+            "messageId": "wamid-42"
+          }
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "execution": null,
+        "attestation": null,
+        "decision": null,
+        "approvals": [
+          {
+            "approver": "bo",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member-via-relay",
+              "memberId": "bo",
+              "relay": {
+                "principal": "whatsapp-relay",
+                "channelIdentity": "+94770000000",
+                "messageId": "wamid-42"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-late-amendments-not-preserved",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "An amendment map arriving after a MultiParty entry has expired is not preserved: MultiParty accepts no amendment ever, so there is nothing for the expiry check to carry forward to a resubmission.",
+    "given": {
+      "clock": "2026-09-28T09:31:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-28T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:31:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve",
+          "amendments": {
+            "amount": "260"
+          }
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-expired"
+      },
+      "entry": {
+        "status": "expired",
+        "approvals": [],
+        "preservedAmendments": null
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-approvals-in-record-order",
+    "rules": [
+      "AZ-4",
+      "AZ-1"
+    ],
+    "title": "The approvals list and the fold's multi-party attestation are ordered by when each approver decided, never by the requirement's own listing of the approvers.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "cy"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:02:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:03:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "bo"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "approved",
+        "execution": "unexecuted",
+        "approvals": [
+          {
+            "approver": "cy",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "cy"
+            }
+          },
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          },
+          {
+            "approver": "bo",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "bo"
+            }
+          }
+        ],
+        "attestation": {
+          "kind": "multi-party",
+          "approvers": [
+            {
+              "kind": "member",
+              "id": "cy"
+            },
+            {
+              "kind": "member",
+              "id": "ana"
+            },
+            {
+              "kind": "member",
+              "id": "bo"
+            }
+          ]
+        },
+        "decision": {
+          "kind": "approve",
+          "reason": null,
+          "by": "bo"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-wrong-tenant-not-found",
+    "rules": [
+      "AZ-2",
+      "AZ-4"
+    ],
+    "title": "A decision on a MultiParty entry made from another tenant is reported as entry not found, exactly as an id that never existed: the approver check never runs, because the tenant boundary is checked first.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "tenantId": "tenant-b",
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "entry-not-found"
+      },
+      "entry": {
+        "status": "pending",
+        "approvals": []
+      }
+    }
+  },
+  {
+    "id": "decide/multiparty-refile-replays",
+    "rules": [
+      "AZ-4",
+      "GT-4"
+    ],
+    "title": "Refiling the same MultiParty proposal is the same entry, not a second one: the id derives as any other filing's does, so a retry replays the existing row with its approvals untouched.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-28T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "at": "2026-09-28T09:10:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "approvals": []
+      },
+      "store": {
+        "count": 1
       }
     }
   },
@@ -5762,7 +8509,10 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
           "id": "executor-1"
         },
         "outcome": "executed",
-        "detail": "1 row updated"
+        "detail": {
+          "code": "row-updated",
+          "note": "1 row updated"
+        }
       }
     },
     "expect": {
@@ -8887,57 +11637,76 @@ export const conformanceById: Readonly<
   "gate/standing-order-threshold-over": conformanceFixtures[7]!,
   "gate/standing-order-unbound-input": conformanceFixtures[8]!,
   "gate/standing-order-bound-input": conformanceFixtures[9]!,
-  "gate/multiparty-blocked": conformanceFixtures[10]!,
-  "gate/referral-blocked": conformanceFixtures[11]!,
-  "gate/coverage-refused-declared": conformanceFixtures[12]!,
-  "gate/update-previous-values": conformanceFixtures[13]!,
-  "gate/create-null-previous-values": conformanceFixtures[14]!,
-  "gate/inference-conversation-and-inferred": conformanceFixtures[15]!,
-  "gate/threshold-without-scorer": conformanceFixtures[16]!,
-  "gate/inference-presence-computed-from-the-utterance": conformanceFixtures[17]!,
-  "gate/inference-port-literal-unconfirmed": conformanceFixtures[18]!,
-  "gate/inference-port-span-fails-the-boundary": conformanceFixtures[19]!,
-  "gate/inference-case-folds-and-the-digest-is-the-utterances": conformanceFixtures[20]!,
-  "gate/inference-empty-value-is-nothing-reported": conformanceFixtures[21]!,
-  "decide/approve": conformanceFixtures[22]!,
-  "decide/reject": conformanceFixtures[23]!,
-  "decide/second-decision-refused": conformanceFixtures[24]!,
-  "decide/expired-amendments-preserved": conformanceFixtures[25]!,
-  "decide/blocked-refused": conformanceFixtures[26]!,
-  "decide/amend-recompute": conformanceFixtures[27]!,
-  "decide/unresolved-identity": conformanceFixtures[28]!,
-  "decide/wrong-tenant": conformanceFixtures[29]!,
-  "decide/authorization-declined": conformanceFixtures[30]!,
-  "decide/relay-member-via-relay": conformanceFixtures[31]!,
-  "decide/relay-without-assertion-refused": conformanceFixtures[32]!,
-  "decide/execution-executed": conformanceFixtures[33]!,
-  "decide/execution-failed": conformanceFixtures[34]!,
-  "decide/execution-on-pending-refused": conformanceFixtures[35]!,
-  "decide/resubmit-prefills": conformanceFixtures[36]!,
-  "decide/executed-only-through-a-report": conformanceFixtures[37]!,
-  "decide/authorization-throws": conformanceFixtures[38]!,
-  "decide/execution-recorded-once": conformanceFixtures[39]!,
-  "decide/execution-second-report-refused": conformanceFixtures[40]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[41]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[42]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[43]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[44]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[45]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[46]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[47]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[48]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[49]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[50]!,
-  "sequence-a/sweep-pages": conformanceFixtures[51]!,
-  "sequence-a/rehydration-order": conformanceFixtures[52]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[53]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[54]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[55]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[56]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[57]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[58]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[59]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[60]!,
+  "gate/referral-blocked": conformanceFixtures[10]!,
+  "gate/coverage-refused-declared": conformanceFixtures[11]!,
+  "gate/update-previous-values": conformanceFixtures[12]!,
+  "gate/create-null-previous-values": conformanceFixtures[13]!,
+  "gate/inference-conversation-and-inferred": conformanceFixtures[14]!,
+  "gate/threshold-without-scorer": conformanceFixtures[15]!,
+  "gate/inference-presence-computed-from-the-utterance": conformanceFixtures[16]!,
+  "gate/inference-port-literal-unconfirmed": conformanceFixtures[17]!,
+  "gate/inference-port-span-fails-the-boundary": conformanceFixtures[18]!,
+  "gate/inference-case-folds-and-the-digest-is-the-utterances": conformanceFixtures[19]!,
+  "gate/inference-empty-value-is-nothing-reported": conformanceFixtures[20]!,
+  "gate/multiparty-files-one-entry": conformanceFixtures[21]!,
+  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[22]!,
+  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[23]!,
+  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[24]!,
+  "gate/multiparty-verdict-required-zero": conformanceFixtures[25]!,
+  "decide/approve": conformanceFixtures[26]!,
+  "decide/reject": conformanceFixtures[27]!,
+  "decide/second-decision-refused": conformanceFixtures[28]!,
+  "decide/expired-amendments-preserved": conformanceFixtures[29]!,
+  "decide/blocked-refused": conformanceFixtures[30]!,
+  "decide/amend-recompute": conformanceFixtures[31]!,
+  "decide/unresolved-identity": conformanceFixtures[32]!,
+  "decide/wrong-tenant": conformanceFixtures[33]!,
+  "decide/authorization-declined": conformanceFixtures[34]!,
+  "decide/relay-member-via-relay": conformanceFixtures[35]!,
+  "decide/relay-without-assertion-refused": conformanceFixtures[36]!,
+  "decide/execution-executed": conformanceFixtures[37]!,
+  "decide/execution-failed": conformanceFixtures[38]!,
+  "decide/execution-on-pending-refused": conformanceFixtures[39]!,
+  "decide/resubmit-prefills": conformanceFixtures[40]!,
+  "decide/executed-only-through-a-report": conformanceFixtures[41]!,
+  "decide/authorization-throws": conformanceFixtures[42]!,
+  "decide/execution-recorded-once": conformanceFixtures[43]!,
+  "decide/execution-second-report-refused": conformanceFixtures[44]!,
+  "decide/multiparty-partial-stays-pending": conformanceFixtures[45]!,
+  "decide/multiparty-all-approve": conformanceFixtures[46]!,
+  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[47]!,
+  "decide/execution-detail-typed": conformanceFixtures[48]!,
+  "decide/multiparty-reject-folds": conformanceFixtures[49]!,
+  "decide/multiparty-non-approver-refused": conformanceFixtures[50]!,
+  "decide/multiparty-approver-twice-refused": conformanceFixtures[51]!,
+  "decide/multiparty-amendment-refused": conformanceFixtures[52]!,
+  "decide/multiparty-after-fold-refused": conformanceFixtures[53]!,
+  "decide/multiparty-expired-then-resubmit": conformanceFixtures[54]!,
+  "decide/multiparty-approve-via-relay": conformanceFixtures[55]!,
+  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[56]!,
+  "decide/multiparty-approvals-in-record-order": conformanceFixtures[57]!,
+  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[58]!,
+  "decide/multiparty-refile-replays": conformanceFixtures[59]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[60]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[61]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[62]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[63]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[64]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[65]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[66]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[67]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[68]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[69]!,
+  "sequence-a/sweep-pages": conformanceFixtures[70]!,
+  "sequence-a/rehydration-order": conformanceFixtures[71]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[72]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[73]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[74]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[75]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[76]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[77]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[78]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[79]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -10714,7 +13483,15 @@ export const fixtureSchema: JsonSchemaDocument = {
               ],
               "properties": {
                 "requirement": {
-                  "$ref": "#/$defs/requirementKind"
+                  "description": "A kind name, or — from 0.3.0, and the only way to state MultiParty — the requirement object: the host policy's own `approvers` and `required`, which the fixture states exactly because the gate validates them and never invents either (AZ-4).",
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/requirementKind"
+                    },
+                    {
+                      "$ref": "#/$defs/requirementGiven"
+                    }
+                  ]
                 },
                 "ttlMs": {
                   "type": "integer",
@@ -11500,10 +14277,7 @@ export const fixtureSchema: JsonSchemaDocument = {
               ]
             },
             "detail": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "$ref": "#/$defs/executionDetailGiven"
             }
           }
         },
@@ -12011,16 +14785,36 @@ export const fixtureSchema: JsonSchemaDocument = {
           ]
         },
         "executionDetail": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "description": "From 0.3.0, a partial matcher over the typed executionDetail: `code`, when stated, is compared exactly; the row's other properties are the host's own and this clause says nothing about them unless it states one. `null` asserts the row carries no detail.",
+          "$ref": "#/$defs/executionDetailMatcher"
         },
         "requirement": {
-          "$ref": "#/$defs/requirementKind"
+          "description": "A kind name, or — from 0.3.0 — a partial matcher over the requirement object: `kind`, `approvers` and `required` are each checked only when stated, but a stated `approvers` is the whole list, in order, the same convention `approvals` uses.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/requirementKind"
+            },
+            {
+              "$ref": "#/$defs/requirementPartialMatcher"
+            }
+          ]
         },
         "blocked": {
           "$ref": "#/$defs/blocked"
+        },
+        "approvals": {
+          "description": "From 0.3.0, the WHOLE list of approval records, in record order: `null` exactly when `requirement.kind` is not MultiParty; `[]` at filing; one entry per decision folded onto the row so far, each `{ approver, decision, reason?, attestation? }`.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/approvalRecordMatcher"
+              }
+            }
+          ]
         },
         "toolName": {
           "type": "string"
@@ -12060,6 +14854,10 @@ export const fixtureSchema: JsonSchemaDocument = {
                     "string",
                     "null"
                   ]
+                },
+                "by": {
+                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind.",
+                  "type": "string"
                 }
               }
             },
@@ -12212,7 +15010,223 @@ export const fixtureSchema: JsonSchemaDocument = {
           }
         },
         {
+          "title": "multi-party",
+          "description": "From 0.3.0: the fold's own attestation, composed of the approvers of the records that folded the row, in record order — never a Standing Order's, and never any attestor but a person's own.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "approvers"
+          ],
+          "properties": {
+            "kind": {
+              "const": "multi-party"
+            },
+            "approvers": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/memberOrRelayAttestor"
+              }
+            }
+          }
+        },
+        {
           "type": "null"
+        }
+      ]
+    },
+    "memberOrRelayAttestor": {
+      "description": "The two attestor kinds an approval record may carry (AZ-3): a MultiParty decision is always a person's, member or member-via-relay, never a Standing Order's.",
+      "oneOf": [
+        {
+          "title": "member",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "member"
+            },
+            "id": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "title": "member-via-relay",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "memberId",
+            "relay"
+          ],
+          "properties": {
+            "kind": {
+              "const": "member-via-relay"
+            },
+            "memberId": {
+              "type": "string"
+            },
+            "relay": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "requirementGiven": {
+      "description": "The requirement as an object on the given side, the only way a fixture can state MultiParty from 0.3.0. Permissive by design: a fixture describes what the host's policy verdict returned, and the gate is what validates it, so this shape states no lower bound on `approvers` and no bound on `required` — a fixture that demonstrates the gate refusing an invalid verdict (fewer than two approvers, `required` out of range) must be able to state that invalid verdict in the first place. `kind` is one of the four; `approvers` is an array of strings with no `minItems`/`uniqueItems`; `required` is an integer with no `minimum`.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "StandingOrder"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "ReviewerConfirmation"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "ReferralRequired"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "approvers",
+            "required"
+          ],
+          "properties": {
+            "kind": {
+              "const": "MultiParty"
+            },
+            "approvers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "required": {
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "requirementPartialMatcher": {
+      "description": "A partial matcher over the 0.3.0 requirement object: a fixture states only the facts its rule is about. A stated `approvers` is the whole list, in order — the same convention `approvals` uses.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/requirementKind"
+        },
+        "approvers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "approvalRecordMatcher": {
+      "description": "A closed matcher over one approval record: the approver and the decision are required; `reason` and `attestation` are checked only when the fixture states them. `expect.entry.approvals` states the whole list of these, in record order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approver",
+        "decision"
+      ],
+      "properties": {
+        "approver": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "reject"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attestation": {
+          "$ref": "#/$defs/attestor"
+        }
+      }
+    },
+    "executionDetailGiven": {
+      "description": "What the host's executor reports about a write. From 0.3.0 an object naming the host's own `code`, never a string a reader must parse; `null` for no detail. The string form left the format at 0.3.0: every fixture that carried one is amended to the typed shape.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "code"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "executionDetailMatcher": {
+      "description": "A partial matcher over the executionDetail on the row. From 0.3.0, an object whose `code`, when stated, is compared exactly and whose other properties are the host's own and unconstrained; `null` asserts the row carries no detail. The string form left the format at 0.3.0: every fixture that carried one is amended to the typed shape.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "code": {
+              "type": "string"
+            }
+          }
         }
       ]
     },
@@ -12396,8 +15410,61 @@ export const fixtureSchema: JsonSchemaDocument = {
           "items": {
             "$ref": "#/$defs/cardPresentationMatcher"
           }
+        },
+        "multiParty": {
+          "description": "From 0.3.0, the card's MultiParty facts, stated whole: `null` for a card not built from a MultiParty row, otherwise the approvers list — each naming whether that approver has decided — and the required count.",
+          "$ref": "#/$defs/cardMultiPartyMatcher"
         }
       }
+    },
+    "cardMultiPartyMatcher": {
+      "description": "The card's MultiParty facts, stated whole rather than partially: a card carrying an approver a fixture did not expect is a fact the same clause exists to catch.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approvers",
+            "required"
+          ],
+          "properties": {
+            "approvers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "decided"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "decided": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "approve",
+                      "reject",
+                      null
+                    ]
+                  }
+                }
+              }
+            },
+            "required": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
     },
     "cardFieldMatcher": {
       "description": "The reviewer-facing shape of one SWORN field on the card, in order: its kind and its value. The closed value set and the input mask are not here: from v0.1 they are presentation and live on the card envelope, which cardPresentationMatcher states.",

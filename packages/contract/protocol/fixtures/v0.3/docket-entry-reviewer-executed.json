@@ -1,0 +1,54 @@
+{
+  "protocolVersion": "0.3.0",
+  "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+  "tenantId": "tenant-a",
+  "conversationId": "conv-1",
+  "channel": "chat",
+  "toolName": "update_invoice",
+  "affidavit": {
+    "protocolVersion": "0.3.0",
+    "operationType": "update",
+    "entityType": "Invoice",
+    "entityId": "invoice-1",
+    "fields": [
+      {
+        "name": "status",
+        "kind": "text",
+        "value": "Active",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: status",
+            "at": "2026-09-04T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      }
+    ],
+    "aggregateConfidence": 0.9,
+    "populatedConfidence": 0.9,
+    "emptyFieldCount": 0,
+    "conversationTurn": null,
+    "createdAt": "2026-09-04T09:00:00.000Z"
+  },
+  "amendedAffidavit": null,
+  "requirement": { "kind": "ReviewerConfirmation" },
+  "status": "approved",
+  "execution": "executed",
+  "blocked": null,
+  "approvals": null,
+  "attestation": { "by": { "kind": "member", "id": "ana" }, "at": "2026-09-04T09:00:00.000Z", "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0" },
+  "amendments": null,
+  "preservedAmendments": null,
+  "decision": { "kind": "approve", "reason": null, "at": "2026-09-04T09:00:00.000Z", "by": "ana" },
+  "lineage": { "supersedes": null, "supersededBy": null },
+  "filedAt": "2026-09-04T09:00:00.000Z",
+  "expiresAt": "2026-09-04T09:30:00.000Z",
+  "decidedAt": "2026-09-04T09:00:00.000Z",
+  "executionDetail": { "code": "row-written", "rows": 1 }
+}

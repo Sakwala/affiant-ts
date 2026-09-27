@@ -38,8 +38,12 @@
  * **protocol**, not of this package: while the major is `0` a schema-breaking
  * change bumps the minor. A consumer refuses a payload whose major differs from
  * this and MAY warn on a newer minor it does not know.
+ *
+ * Generated (BD-256): defined once in `./schemas.js` from `protocol/PIN`'s optional
+ * `schemas=<version>` line, or `"0.1.0"` when that line is absent. Re-exported here
+ * so a consumer importing the package's root need not know it moved.
  */
-export const PROTOCOL_VERSION = "0.1.0" as const;
+export { PROTOCOL_VERSION } from "./schemas.js";
 
 /**
  * Any value JSON can carry — and nothing else.
@@ -795,12 +799,6 @@ export interface DocketEntry {
   execution: ExecutionOutcome | null;
   /** Why this entry cannot be decided, or `null` when it can (AZ-4). */
   blocked: BlockedMarker | null;
-  /**
-   * The composite approval this entry is one constituent of, or `null`. Until
-   * `MultiParty` semantics land at protocol v0.2, a host composes multi-party
-   * approval **above** the gate (AZ-4).
-   */
-  compositeRef: string | null;
   /** Who agreed, or `null` while nobody has (AZ-1). */
   attestation: Attestation | null;
   /**

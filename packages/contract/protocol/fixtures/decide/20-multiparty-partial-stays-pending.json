@@ -1,0 +1,106 @@
+{
+  "id": "decide/multiparty-partial-stays-pending",
+  "rules": ["AZ-4", "DK-1"],
+  "title": "One approval on a MultiParty entry short of the required count is recorded as an approval record, and the entry stays pending: the fold has not yet happened.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": ["amount", "payee"]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-28T09:01:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "approvals": [
+        {
+          "approver": "ana",
+          "decision": "approve",
+          "reason": null,
+          "attestation": {
+            "kind": "member",
+            "id": "ana"
+          }
+        }
+      ],
+      "attestation": null,
+      "decision": null,
+      "execution": null
+    },
+    "store": {
+      "pending": 1
+    }
+  }
+}

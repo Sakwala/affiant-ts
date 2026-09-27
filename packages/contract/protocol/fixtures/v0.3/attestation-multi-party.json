@@ -1,0 +1,12 @@
+{
+  "by": {
+    "kind": "multi-party",
+    "approvers": [
+      { "kind": "member", "id": "ana" },
+      { "kind": "member", "id": "bo" },
+      { "kind": "member", "id": "cy" }
+    ]
+  },
+  "at": "2026-09-28T09:03:00.000Z",
+  "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+}

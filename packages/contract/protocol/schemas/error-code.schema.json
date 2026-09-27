@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.1.0/error-code.schema.json",
+  "$id": "https://affiant.dev/schemas/0.3.0/error-code.schema.json",
   "title": "ErrorCode",
-  "description": "The registry of reasons the gate refuses a request (INVARIANTS.md, \"Refusal codes (v0.1)\"). A refusal carries its code and a human-readable reason; the CODE is the contract and the message is for a human reading a log, so a host that branches on the message is doing it wrong. An implementation MAY add codes but MUST NOT reuse these names for other meanings. The registry names GATE REFUSALS only: a caller's programming error — an amendment naming a field the Affidavit does not propose, a verdict naming a requirement outside the four — is a language-level error, not a refusal code. Three names are PROVISIONAL until this registry is first tagged, marked in their own descriptions; the other seven are fixed by the rulebook's v0.1 text. The order below only ever grows at the end: a code is added by appending, never by inserting among the codes that already shipped, because a reordering looks like a rename to a host's exhaustiveness check and to a parity manifest.",
+  "description": "The registry of reasons the gate refuses a request (INVARIANTS.md, \"Refusal codes (v0.1)\"). A refusal carries its code and a human-readable reason; the CODE is the contract and the message is for a human reading a log, so a host that branches on the message is doing it wrong. An implementation MAY add codes but MUST NOT reuse these names for other meanings. The registry names GATE REFUSALS only: a caller's programming error — an amendment naming a field the Affidavit does not propose, a verdict naming a requirement outside the four — is a language-level error, not a refusal code. Three names are PROVISIONAL until this registry is first tagged, marked in their own descriptions; the other ten are fixed by the rulebook's v0.1 text. The order below only ever grows at the end: a code is added by appending, never by inserting among the codes that already shipped, because a reordering looks like a rename to a host's exhaustiveness check and to a parity manifest.",
   "type": "string",
   "oneOf": [
     {
       "const": "requirement-not-implemented",
-      "description": "PROVISIONAL. A requirement level this implementation recognises but does not run — a MultiParty approval, a ReferralRequired referral — reached the pipeline. The entry is filed pending and marked blocked; every decision on it is refused, and it is never degraded to a weaker requirement (AZ-4)."
+      "description": "PROVISIONAL. A requirement level this implementation recognises but does not run — a ReferralRequired referral, or a MultiParty approval in an implementation that has not reached 0.3.0 — reached the pipeline. The entry is filed pending and marked blocked; every decision on it is refused, and it is never degraded to a weaker requirement (AZ-4)."
     },
     {
       "const": "coverage-refused",
@@ -35,7 +35,7 @@
     },
     {
       "const": "wireup-invalid",
-      "description": "The gate was built wrong in a way it can detect: no store, no inference port, no projection port, no authorization port, no default time-to-live or an invalid one, a policy declaring a risk threshold with no scorer wired. Raised at wire-up, not on the first request; two policy faults that cannot be seen at wire-up — a verdict carrying an invalid time-to-live, and an evaluate that throws — are refused at evaluation with the same code, nothing filed. No option turns the gate off for a tool it covers (CV-1)."
+      "description": "The gate was built wrong in a way it can detect: no store, no inference port, no projection port, no authorization port, no default time-to-live or an invalid one, a policy declaring a risk threshold with no scorer wired. Raised at wire-up, not on the first request; three policy faults that cannot be seen at wire-up — a verdict carrying an invalid time-to-live, an evaluate that throws, and a MultiParty verdict that fails AZ-4's validation (fewer than two distinct approvers, or required outside 1…approvers.length) — are refused at evaluation with the same code, nothing filed. No option turns the gate off for a tool it covers (CV-1)."
     },
     {
       "const": "entry-not-found",
@@ -44,6 +44,18 @@
     {
       "const": "execution-already-recorded",
       "description": "PROVISIONAL. An execution outcome was reported against a row that already carries one. The first report stands and the row is untouched: a host that retries a write reports ONCE, when it knows the outcome, because an outbox is a retry of an already-attested write and not a second fact about what happened (DK-1, DK-4, AZ-5)."
+    },
+    {
+      "const": "approver-not-listed",
+      "description": "A decision arrived on a MultiParty entry from a principal who is not one of its requirement.approvers. Checked after AZ-2/AZ-3's authorization checks and before any record is written; nothing is recorded (AZ-4)."
+    },
+    {
+      "const": "approver-already-decided",
+      "description": "A decision arrived on a MultiParty entry from an approver who already has an approval record on it. Approvers decide once; a second decision from the same approver is refused and the existing record is untouched (AZ-4)."
+    },
+    {
+      "const": "decision-not-amendable",
+      "description": "An amendment map arrived on a MultiParty decision. A MultiParty approval or rejection is a vote, not a correction to the proposal, so amendments are refused whole and nothing is recorded (AZ-4)."
     }
   ],
   "enum": [
@@ -56,6 +68,9 @@
     "decision-lost-race",
     "wireup-invalid",
     "entry-not-found",
-    "execution-already-recorded"
+    "execution-already-recorded",
+    "approver-not-listed",
+    "approver-already-decided",
+    "decision-not-amendable"
   ]
 }
