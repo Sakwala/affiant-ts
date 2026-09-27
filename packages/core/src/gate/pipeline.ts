@@ -293,7 +293,7 @@ export interface PipelineProposal {
    *
    * Set by `Gate.file` only; `wrap`'s agent path always supplies `null`, and
    * `resubmit` copies the superseded row's value verbatim (R-4) rather than
-   * accepting one on the call.
+   * accepting one on the call. An absent value is read as `null`.
    */
   readonly compositeRef: string | null;
 }
@@ -508,6 +508,19 @@ export async function runPipeline(
   requireTurnIdentifier(ctx.conversationId, "conversationId");
   requireTurnIdentifier(ctx.tenantId, "tenantId");
   requireTurnIdentifier(ctx.channel, "channel");
+
+  // AZ-4: normalised once, so a caller of this exported function who omits the field
+  // (or passes null) is filing a standalone entry, not a mismatched one.
+  const compositeRef = proposal.compositeRef ?? null;
+  if (compositeRef !== null && (typeof compositeRef !== "string" || compositeRef.length === 0)) {
+    throw new AffiantCallerError(
+      "composite-ref-invalid",
+      `AZ-4: compositeRef must be a non-empty string identifying the composite this ` +
+        `entry is one constituent of; ${JSON.stringify(compositeRef)} was supplied. ` +
+        `Nothing is filed.`,
+      { compositeRef },
+    );
+  }
 
   // Beside it, and for the same reason: a prepared field's provenance is written by
   // the host, so a binding the protocol's schema refuses is refused here — before the
@@ -758,7 +771,7 @@ export async function runPipeline(
     ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
     // AZ-4: the composite this entry is one constituent of, host-chosen and opaque; the
     // row type defaults it to null, so it is written only when the host named one.
-    ...(proposal.compositeRef === null ? {} : { compositeRef: proposal.compositeRef }),
+    ...(compositeRef === null ? {} : { compositeRef }),
     // A Standing Order writes status, execution outcome and attestation in the same
     // operation as the filing (AZ-1) — never a file followed by an approve, which
     // would leave a window in which an approved write had no attestation.
@@ -774,14 +787,14 @@ export async function runPipeline(
   // not a retry — it is a second constituent with material identical to the first, and
   // it would otherwise collapse to one row for N reviewers. The store has already
   // answered and written nothing new; this only refuses the caller's own filing.
-  if (!created && entry.compositeRef !== proposal.compositeRef) {
+  if (!created && (entry.compositeRef ?? null) !== compositeRef) {
     throw new AffiantCallerError(
       "composite-ref-mismatch",
       `AZ-4: Docket entry ${entry.entryId} replays an existing row that records composite ` +
-        `${JSON.stringify(entry.compositeRef)}, but this filing names ${JSON.stringify(proposal.compositeRef)}; ` +
+        `${JSON.stringify(entry.compositeRef)}, but this filing names ${JSON.stringify(compositeRef)}; ` +
         `a second constituent must differ in its material (GT-4), not only in its compositeRef. ` +
         `Nothing new is written.`,
-      { entryId: entry.entryId, stored: entry.compositeRef, proposed: proposal.compositeRef },
+      { entryId: entry.entryId, stored: entry.compositeRef, proposed: compositeRef },
     );
   }
 
