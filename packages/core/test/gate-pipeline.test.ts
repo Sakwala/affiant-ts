@@ -772,6 +772,32 @@ describe("compositeRef on filing, the wrap path, and the replay guard (AZ-4)", (
     expect(pending.items).toHaveLength(2);
     expect(pending.items.every((item) => item.compositeRef === "pi-1")).toBe(true);
   });
+
+  it("leaves the sibling untouched after a decision on one constituent (AZ-4, DK-1)", async () => {
+    const { gate, store } = harness();
+    const base = proposal();
+
+    const aliceFiled = await gate.file(
+      { ...base, args: { approver: "alice" }, compositeRef: "pi-1" },
+      turnContext(),
+    );
+    const bobFiled = await gate.file(
+      { ...base, args: { approver: "bob" }, compositeRef: "pi-1" },
+      turnContext(),
+    );
+
+    await gate.decide(aliceFiled.entry.entryId, { kind: "approve" }, turnContext());
+
+    const bobRow = await store.get(bobFiled.entry.entryId, { tenantId: "tenant-a" });
+    expect(bobRow?.status).toBe("pending");
+    expect(bobRow?.compositeRef).toBe("pi-1");
+    expect(bobRow?.blocked).toBeNull();
+
+    const aliceRow = await store.get(aliceFiled.entry.entryId, { tenantId: "tenant-a" });
+    expect(aliceRow?.status).toBe("approved");
+    expect(aliceRow?.execution).toBe("unexecuted");
+    expect(aliceRow?.compositeRef).toBe("pi-1");
+  });
 });
 
 describe("the Evidence Card (SR-4)", () => {
