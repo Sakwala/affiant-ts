@@ -54,12 +54,18 @@ const schemaNegatives = negatives.filter(
   (entry) => (entry as { check?: string }).check === undefined,
 );
 
-// BD-256: the 0.3.0 section runs the same way the 0.1.0 section above does — no
-// fixture in it carries a "check" (a cross-object relation no JSON Schema states),
-// so there is no v0.3 counterpart to `crossObject`.
+// BD-256: the 0.3.0 section carries one cross-object negative
+// (`v0.3/evidence-card-request/93-presentation-names-unknown-field`, the same
+// relation as the v0.1 counterpart above) which the schema itself cannot refuse.
 const v03 = manifest["0.3.0"].fixtures as readonly V03ManifestFixture[];
 const v03Positives = v03.filter((entry) => entry.kind === "positive");
-const v03Negatives = v03.filter((entry) => entry.kind === "negative");
+const v03AllNegatives = v03.filter((entry) => entry.kind === "negative");
+const v03CrossObject = v03AllNegatives.filter(
+  (entry) => (entry as { check?: string }).check === "cross-object",
+);
+const v03Negatives = v03AllNegatives.filter(
+  (entry) => (entry as { check?: string }).check === undefined,
+);
 
 const seedSchemaRelevant = manifest.fixtures.filter(
   (entry): entry is SeedManifestFixture & { schema: string } => entry.schemaRelevant,
@@ -133,10 +139,14 @@ describe("the v0.1 fixture set", () => {
     // consistency (every 0.1.0 schema has a fixture), not what BD-257 lets validate
     // against the pinned flat directory — that is the describe blocks below.
     const v01Raw = manifest["0.1.0"].fixtures as readonly V01ManifestFixture[];
-    const cited = new Set<string>(v01Raw.map((entry) => entry.schema));
-    const definitionsOnly = new Set<string>(manifest["0.1.0"].definitionsOnly);
+    const cited = new Set<string>(
+      v01Raw.map((entry) => entry.schema.replace(/^schemas\/0\.1\.0\//, "schemas/0.3.0/")),
+    );
+    for (const entry of v03) {
+      cited.add(entry.schema);
+    }
     const uncovered = Object.keys(schemasByPath).filter(
-      (path) => !cited.has(path) && !definitionsOnly.has(path),
+      (path) => !cited.has(path) && !v03DefinitionsOnly.has(path),
     );
 
     expect(uncovered).toEqual([]);
@@ -210,14 +220,14 @@ describe("every negative v0.3 fixture is refused (BD-256)", () => {
 
 describe("the cross-object check is not vacuous", () => {
   it("passes every positive card fixture, hints and all", () => {
-    const cards = positives.filter(
-      (entry) => entry.schema === "schemas/0.1.0/evidence-card-request.schema.json",
+    const cards = v03Positives.filter(
+      (entry) => entry.schema === "schemas/0.3.0/evidence-card-request.schema.json",
     );
 
     expect(cards.length).toBeGreaterThanOrEqual(4);
     for (const entry of cards) {
       expect(
-        presentationNamesUnknownFields(documentFor(entry.id) as EvidenceCardRequest),
+        presentationNamesUnknownFields(v03DocumentFor(entry.id) as EvidenceCardRequest),
         entry.id,
       ).toEqual([]);
     }
@@ -228,6 +238,17 @@ describe("the cross-object check is not vacuous", () => {
 
     expect(presentationNamesUnknownFields(card)).toEqual([]);
   });
+
+  it.each(v03CrossObject.map((entry) => [entry.id, entry.schema] as const))(
+    "%s passes %s and is refused by the cross-object check instead (BD-256)",
+    (id, schemaPath) => {
+      const validate = validatorFor(schemaPath);
+      const document = v03DocumentFor(id) as EvidenceCardRequest;
+
+      expect(validate(document)).toBe(true);
+      expect(presentationNamesUnknownFields(document)).toEqual(["dueDate"]);
+    },
+  );
 });
 
 describe("the v0.1 schemas refuse the mutations a rule is about", () => {
@@ -259,9 +280,9 @@ describe("the v0.1 schemas refuse the mutations a rule is about", () => {
     expect((validate.errors ?? []).map((error) => error.keyword)).toContain("maximum");
   });
 
-  it("rejects a card envelope whose docketId key has been renamed", () => {
-    const validate = validatorFor("schemas/0.1.0/evidence-card-request.schema.json");
-    const mutated = documentFor("v0.1/evidence-card-request/01-first-filing") as Record<
+  it("rejects a card envelope whose docketId key has been renamed (BD-256/BD-257)", () => {
+    const validate = validatorFor("schemas/0.3.0/evidence-card-request.schema.json");
+    const mutated = v03DocumentFor("v0.3/evidence-card-request/01-first-filing") as Record<
       string,
       unknown
     >;
