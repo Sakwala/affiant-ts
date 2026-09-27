@@ -2439,6 +2439,37 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
             await expect(store.rehydrate(scope, { limit: 0 })).rejects.toThrow(RangeError);
           },
         },
+        {
+          id: "rehydration/round-trips-the-compositeRef",
+          title: "reads compositeRef back on get, on rehydrate's page and on the pending list (AZ-4)",
+          async run({ store, expect, scope, entry }) {
+            await store.file(entry("has-a-composite-ref", { compositeRef: "pi-1" }));
+            await store.file(entry("has-no-composite-ref"));
+
+            const got = await store.get("has-a-composite-ref", scope);
+            expect(got?.compositeRef).toBe("pi-1");
+            const gotBare = await store.get("has-no-composite-ref", scope);
+            expect(gotBare?.compositeRef).toBeNull();
+
+            const rehydrated = await store.rehydrate(scope, { limit: 10 });
+            expect(
+              rehydrated.items.find((item) => item.entryId === "has-a-composite-ref")
+                ?.compositeRef,
+            ).toBe("pi-1");
+            expect(
+              rehydrated.items.find((item) => item.entryId === "has-no-composite-ref")
+                ?.compositeRef,
+            ).toBeNull();
+
+            const pending = await store.listPending(scope, { limit: 10 });
+            expect(
+              pending.items.find((item) => item.entryId === "has-a-composite-ref")?.compositeRef,
+            ).toBe("pi-1");
+            expect(
+              pending.items.find((item) => item.entryId === "has-no-composite-ref")?.compositeRef,
+            ).toBeNull();
+          },
+        },
       ],
     },
   ];
