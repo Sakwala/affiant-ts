@@ -669,6 +669,121 @@
       }
     ]
   },
+  "0.3.0": {
+    "protocolVersion": "0.3.0",
+    "schemas": "schemas/0.3.0",
+    "$note": "The pre-release set written to the native MultiParty design (INVARIANTS.md AZ-4; https://github.com/Sakwala/affiant-protocol/issues/41). Documents live under conformance/fixtures/v0.3/, authored only for the schemas that changed: requirement.schema.json (new), docket-entry.schema.json (approvals, decision.by, typed executionDetail, compositeRef removed), attestation.schema.json (the multi-party attestor), evidence-card-request.schema.json (card.multiParty) and error-code.schema.json (three appended codes). Every other 0.3.0 schema is byte-identical in shape to its 0.1.0 counterpart but for its $id and version string, so the 0.1.0 documents under conformance/fixtures/v0.1/ validate against it unchanged (common.schema.json's protocolVersion is a semver pattern, not a fixed value) and are not duplicated here; those schemas are listed in definitionsOnly with a note rather than re-authoring sixty-nine documents for a shape that did not change. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it, each a single deliberate mutation of a named positive, in the same convention as 0.1.0.",
+    "derivedFrom": {
+      "reference": "authored here ahead of @affiant/core's pre-release; the core's emitted documents replace these at v0.3.0",
+      "values": "Same tenant, ids and approvers as the conformance fixtures (gate/multiparty-files-one-entry, decide/multiparty-all-approve), so the schema documents and the behaviour fixtures tell one story.",
+      "date": "2026-09-28"
+    },
+    "definitionsOnly": [
+      "schemas/0.3.0/common.schema.json",
+      "schemas/0.3.0/affidavit.schema.json",
+      "schemas/0.3.0/affidavit-field.schema.json",
+      "schemas/0.3.0/amendments.schema.json",
+      "schemas/0.3.0/binding.schema.json",
+      "schemas/0.3.0/blocked.schema.json",
+      "schemas/0.3.0/decision-result.schema.json",
+      "schemas/0.3.0/entity-ref.schema.json",
+      "schemas/0.3.0/money.schema.json",
+      "schemas/0.3.0/notification.schema.json",
+      "schemas/0.3.0/operation.schema.json",
+      "schemas/0.3.0/outside-gate.schema.json",
+      "schemas/0.3.0/provenance-chain.schema.json",
+      "schemas/0.3.0/provenance-source.schema.json",
+      "schemas/0.3.0/provenance-tag.schema.json",
+      "schemas/0.3.0/telemetry-key.schema.json",
+      "schemas/0.3.0/tool-result.schema.json"
+    ],
+    "fixtures": [
+      {
+        "id": "v0.3/requirement-multiparty",
+        "file": "v0.3/requirement-multiparty.json",
+        "schema": "schemas/0.3.0/requirement.schema.json",
+        "kind": "positive",
+        "notes": "The MultiParty branch of the requirement object: three distinct approvers, required 3 — the values gate/multiparty-files-one-entry uses."
+      },
+      {
+        "id": "v0.3/requirement-one-approver",
+        "file": "v0.3/requirement-one-approver.json",
+        "schema": "schemas/0.3.0/requirement.schema.json",
+        "kind": "negative",
+        "notes": "One approver. minItems: 2 refuses it — one approver is ReviewerConfirmation, not MultiParty."
+      },
+      {
+        "id": "v0.3/requirement-duplicate-approvers",
+        "file": "v0.3/requirement-duplicate-approvers.json",
+        "schema": "schemas/0.3.0/requirement.schema.json",
+        "kind": "negative",
+        "notes": "\"ana\" listed twice. uniqueItems refuses it: an approver who could decide twice is not what the host policy names."
+      },
+      {
+        "id": "v0.3/attestation-multi-party",
+        "file": "v0.3/attestation-multi-party.json",
+        "schema": "schemas/0.3.0/attestation.schema.json",
+        "kind": "positive",
+        "notes": "The fold's entry-level attestation: kind multi-party, composed of the three approvers' own member attestors in record order — the values decide/multiparty-all-approve uses."
+      },
+      {
+        "id": "v0.3/error-code-approver-not-listed",
+        "file": "v0.3/error-code-approver-not-listed.json",
+        "schema": "schemas/0.3.0/error-code.schema.json",
+        "kind": "positive",
+        "notes": "One of the three codes appended at the end of the registry."
+      },
+      {
+        "id": "v0.3/docket-entry-multiparty-pending",
+        "file": "v0.3/docket-entry-multiparty-pending.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "A first filing under MultiParty: the requirement recorded as an object, approvals [], decision null, executionDetail null, no compositeRef. Same tenant, tool and fields as gate/multiparty-files-one-entry."
+      },
+      {
+        "id": "v0.3/docket-entry-multiparty-approved",
+        "file": "v0.3/docket-entry-multiparty-approved.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "The same row after the required-th approve: three approval records each with its own member attestation, the entry-level multi-party attestation, decision.by naming the approver who folded it, execution unexecuted. Same values as decide/multiparty-all-approve."
+      },
+      {
+        "id": "v0.3/docket-entry-reviewer-executed",
+        "file": "v0.3/docket-entry-reviewer-executed.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "A ReviewerConfirmation row, executed, with a typed executionDetail ({ code, rows }) and decision.by — the typed-detail correlation applies to every requirement kind, not only MultiParty."
+      },
+      {
+        "id": "v0.3/docket-entry-composite-ref-present",
+        "file": "v0.3/docket-entry-composite-ref-present.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "negative",
+        "notes": "compositeRef is gone from 0.3.0; additionalProperties: false refuses a row still carrying it."
+      },
+      {
+        "id": "v0.3/docket-entry-requirement-string",
+        "file": "v0.3/docket-entry-requirement-string.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "negative",
+        "notes": "requirement as the bare v0.1 string \"ReviewerConfirmation\" rather than the 0.3.0 object — refused."
+      },
+      {
+        "id": "v0.3/docket-entry-execution-detail-string",
+        "file": "v0.3/docket-entry-execution-detail-string.json",
+        "schema": "schemas/0.3.0/docket-entry.schema.json",
+        "kind": "negative",
+        "notes": "executionDetail as a bare string — a string is no longer a legal value at 0.3.0 — refused."
+      },
+      {
+        "id": "v0.3/evidence-card-request-multiparty",
+        "file": "v0.3/evidence-card-request-multiparty.json",
+        "schema": "schemas/0.3.0/evidence-card-request.schema.json",
+        "kind": "positive",
+        "notes": "The card for the same filing as gate/multiparty-files-one-entry: multiParty set, all three approvers undecided, required 3."
+      }
+    ]
+  },
   "conformance": {
     "protocolVersion": "0.1.0",
     "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted \u2014 gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
@@ -807,20 +922,6 @@
         ],
         "set": "gate",
         "oracle": null
-      },
-      {
-        "id": "gate/multiparty-blocked",
-        "file": "gate/11-multiparty-blocked.json",
-        "rules": [
-          "AZ-4"
-        ],
-        "set": "gate",
-        "oracle": {
-          "mustFailOn": [
-            "dotnet@1.0.0-beta.1"
-          ],
-          "defect": "A `MultiParty` requirement is routed to the single-card branch — one approval satisfies a joint requirement"
-        }
       },
       {
         "id": "gate/referral-blocked",
@@ -977,6 +1078,80 @@
         ],
         "set": "gate",
         "oracle": null
+      },
+      {
+        "id": "gate/multiparty-files-one-entry",
+        "file": "gate/23-multiparty-files-one-entry.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "gate/multiparty-verdict-too-few-approvers",
+        "file": "gate/24-multiparty-verdict-too-few-approvers.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
+        "id": "gate/multiparty-verdict-required-out-of-range",
+        "file": "gate/25-multiparty-verdict-required-out-of-range.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
+        "id": "gate/multiparty-verdict-duplicate-approvers",
+        "file": "gate/26-multiparty-verdict-duplicate-approvers.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
+        "id": "gate/multiparty-verdict-required-zero",
+        "file": "gate/27-multiparty-verdict-required-zero.json",
+        "rules": [
+          "AZ-4",
+          "CV-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
       },
       {
         "id": "decide/approve",
@@ -1199,6 +1374,230 @@
         ],
         "set": "decide",
         "oracle": null
+      },
+      {
+        "id": "decide/multiparty-partial-stays-pending",
+        "file": "decide/20-multiparty-partial-stays-pending.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-all-approve",
+        "file": "decide/21-multiparty-all-approve.json",
+        "rules": [
+          "AZ-4",
+          "DK-1",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-executed-with-typed-detail",
+        "file": "decide/22-multiparty-executed-with-typed-detail.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/execution-detail-typed",
+        "file": "decide/23-execution-detail-typed.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "`executionDetail` is typed as a string, never `{ code, … }`"
+        }
+      },
+      {
+        "id": "decide/multiparty-reject-folds",
+        "file": "decide/24-multiparty-reject-folds.json",
+        "rules": [
+          "AZ-4",
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-non-approver-refused",
+        "file": "decide/25-multiparty-non-approver-refused.json",
+        "rules": [
+          "AZ-4",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-approver-twice-refused",
+        "file": "decide/26-multiparty-approver-twice-refused.json",
+        "rules": [
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-amendment-refused",
+        "file": "decide/27-multiparty-amendment-refused.json",
+        "rules": [
+          "AZ-4",
+          "DK-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-after-fold-refused",
+        "file": "decide/28-multiparty-after-fold-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-expired-then-resubmit",
+        "file": "decide/29-multiparty-expired-then-resubmit.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-approve-via-relay",
+        "file": "decide/30-multiparty-approve-via-relay.json",
+        "rules": [
+          "AZ-4",
+          "AZ-3"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-late-amendments-not-preserved",
+        "file": "decide/31-multiparty-late-amendments-not-preserved.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-approvals-in-record-order",
+        "file": "decide/32-multiparty-approvals-in-record-order.json",
+        "rules": [
+          "AZ-4",
+          "AZ-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-wrong-tenant-not-found",
+        "file": "decide/33-multiparty-wrong-tenant-not-found.json",
+        "rules": [
+          "AZ-2",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/multiparty-refile-replays",
+        "file": "decide/34-multiparty-refile-replays.json",
+        "rules": [
+          "AZ-4",
+          "GT-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
       },
       {
         "id": "sequence-a/approve-round-trip",
@@ -1523,6 +1922,15 @@
         "set": "canonical",
         "oracle": null,
         "acceptedOnReview": true
+      }
+    ],
+    "retired": [
+      {
+        "id": "gate/multiparty-blocked",
+        "file": "gate/11-multiparty-blocked.json",
+        "retiredAt": "0.3.0",
+        "rules": ["AZ-4"],
+        "reason": "Stated that a MultiParty verdict files blocked, which is false from 0.3.0; gate/referral-blocked keeps AZ-4's blocked path covered. Published runs made at earlier tags still report it."
       }
     ]
   },

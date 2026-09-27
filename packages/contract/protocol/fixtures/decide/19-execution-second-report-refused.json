@@ -88,7 +88,10 @@
           "id": "ana"
         },
         "outcome": "failed",
-        "detail": "unique constraint on invoice_no",
+        "detail": {
+          "code": "unique-constraint-violation",
+          "note": "unique constraint on invoice_no"
+        },
         "refusal": null
       }
     ],
@@ -100,7 +103,10 @@
         "id": "ana"
       },
       "outcome": "executed",
-      "detail": "retried and it worked"
+      "detail": {
+        "code": "write-retried",
+        "note": "retried and it worked"
+      }
     }
   },
   "expect": {
@@ -111,7 +117,10 @@
     "entry": {
       "status": "approved",
       "execution": "failed",
-      "executionDetail": "unique constraint on invoice_no",
+      "executionDetail": {
+        "code": "unique-constraint-violation",
+        "note": "unique constraint on invoice_no"
+      },
       "requirement": "ReviewerConfirmation",
       "blocked": null,
       "attestation": {

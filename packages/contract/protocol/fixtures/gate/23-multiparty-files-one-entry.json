@@ -1,0 +1,104 @@
+{
+  "id": "gate/multiparty-files-one-entry",
+  "rules": ["AZ-4"],
+  "title": "A MultiParty policy files one Docket entry with the requirement recorded as an object and an empty approvals list naming no decisions yet, never three separate entries for three approvers.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [],
+    "step": {
+      "kind": "file",
+      "as": "filed",
+      "toolName": "propose_payment",
+      "operation": {
+        "kind": "update",
+        "entityType": "Payment",
+        "entityId": "payment-1",
+        "fields": ["amount", "payee"]
+      },
+      "preparedFields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "value": "Acme",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ]
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "requirement": {
+        "kind": "MultiParty",
+        "approvers": ["ana", "bo", "cy"],
+        "required": 3
+      },
+      "blocked": null,
+      "execution": null,
+      "attestation": null,
+      "approvals": [],
+      "expiresAtOffsetMs": 1800000,
+      "toolName": "propose_payment"
+    },
+    "card": {
+      "requiresConfirmation": true,
+      "blocked": null,
+      "multiParty": {
+        "approvers": [
+          { "id": "ana", "decided": null },
+          { "id": "bo", "decided": null },
+          { "id": "cy", "decided": null }
+        ],
+        "required": 3
+      }
+    },
+    "store": {
+      "count": 1,
+      "pending": 1
+    }
+  }
+}

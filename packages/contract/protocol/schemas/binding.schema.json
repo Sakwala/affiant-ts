@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.1.0/binding.schema.json",
+  "$id": "https://affiant.dev/schemas/0.3.0/binding.schema.json",
   "title": "Binding",
   "description": "What to look at to check a value (INVARIANTS.md PV-2). A provenance tag says where a value came from; a binding points at the artifact an auditor can go and check years later. The five kinds are a fixed set — a binding kind nobody can enumerate is a binding nobody can audit — and a binding whose source cannot be re-fetched or re-verified is not a binding. A tag with no binding is not a lie, it is a weaker claim, and the framework's job is to keep the difference visible rather than to average it away: a tag graded above Conversation with no binding is recorded as claimed but a person-free verdict may not rest on it (PV-4, PV-5).",
   "type": "object",
@@ -27,11 +27,11 @@
           "properties": {
             "offset": {
               "description": "Character offset into the utterance, from 0.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/nonNegativeInteger"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/nonNegativeInteger"
             },
             "length": {
               "description": "Length of the span in characters.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/nonNegativeInteger"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/nonNegativeInteger"
             },
             "hash": {
               "description": "Digest of the spanned substring, so the span can be checked after the fact.",
@@ -57,11 +57,11 @@
           "properties": {
             "entryId": {
               "description": "The Docket entry the decision was made on.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/uuid"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/uuid"
             },
             "decisionAt": {
               "description": "When the decision was made.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/isoInstant"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/isoInstant"
             }
           }
         }
@@ -82,7 +82,7 @@
           "properties": {
             "field": {
               "description": "The form field's name.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
             }
           }
         }
@@ -103,15 +103,15 @@
           "properties": {
             "system": {
               "description": "The source system, named the way the host names it.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
             },
             "recordId": {
               "description": "The record within that system. A canonical URL where the system is a page with no API.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
             },
             "fetchedAt": {
               "description": "When the value was read. Optional: present where the source is re-read rather than addressed by a stable record id.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/isoInstant"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/isoInstant"
             },
             "contentHash": {
               "description": "Digest of what the source said when it was read. Optional, and the companion of fetchedAt.",
@@ -141,12 +141,12 @@
           "properties": {
             "rule": {
               "description": "The rule's name — re-runnable, not a description.",
-              "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
             },
             "inputs": {
               "description": "The field names the rule consumed, in the order it consumed them. Never null — an empty array is what no inputs looks like.",
               "type": "array",
-              "items": { "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier" }
+              "items": { "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier" }
             },
             "constant": {
               "description": "An externally published constant the rule depends on. Optional, and present whenever there is one: when a value was checked is a different fact from when the tag was written — a rate table verified in March and used in September is a September tag resting on a March fact, and a reviewer is entitled to see both.",
@@ -179,15 +179,15 @@
       "properties": {
         "principal": {
           "description": "The relay's own principal id.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
         },
         "channelIdentity": {
           "description": "How the person is addressed on that channel.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
         },
         "messageId": {
           "description": "The message the capture arrived in.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
         }
       }
     }

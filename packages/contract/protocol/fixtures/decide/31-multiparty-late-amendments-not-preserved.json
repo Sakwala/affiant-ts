@@ -1,0 +1,102 @@
+{
+  "id": "decide/multiparty-late-amendments-not-preserved",
+  "rules": ["DK-1", "AZ-4"],
+  "title": "An amendment map arriving after a MultiParty entry has expired is not preserved: MultiParty accepts no amendment ever, so there is nothing for the expiry check to carry forward to a resubmission.",
+  "given": {
+    "clock": "2026-09-28T09:31:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "at": "2026-09-28T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": ["amount", "payee"]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-28T09:31:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve",
+        "amendments": {
+          "amount": "260"
+        }
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "decision-expired"
+    },
+    "entry": {
+      "status": "expired",
+      "approvals": [],
+      "preservedAmendments": null
+    }
+  }
+}

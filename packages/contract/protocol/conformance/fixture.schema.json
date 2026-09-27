@@ -318,7 +318,13 @@
               "additionalProperties": false,
               "required": ["requirement"],
               "properties": {
-                "requirement": { "$ref": "#/$defs/requirementKind" },
+                "requirement": {
+                  "description": "A kind name, or — from 0.3.0, and the only way to state MultiParty — the requirement object: the host policy's own `approvers` and `required`, which the fixture states exactly because the gate validates them and never invents either (AZ-4).",
+                  "oneOf": [
+                    { "$ref": "#/$defs/requirementKind" },
+                    { "$ref": "#/$defs/requirementGiven" }
+                  ]
+                },
                 "ttlMs": { "type": "integer", "minimum": 1 },
                 "threshold": { "description": "The risk ceiling, on a StandingOrder verdict only (GT-5).", "type": "number" },
                 "reason": { "type": "string" }
@@ -677,7 +683,7 @@
           "properties": {
             "kind": { "const": "markExecuted" },
             "outcome": { "type": "string", "enum": ["executed", "failed"] },
-            "detail": { "type": ["string", "null"] }
+            "detail": { "$ref": "#/$defs/executionDetailGiven" }
           }
         },
         {
@@ -947,9 +953,25 @@
       "properties": {
         "status": { "type": "string", "enum": ["pending", "approved", "rejected", "expired"] },
         "execution": { "type": ["string", "null"], "enum": ["unexecuted", "executed", "failed", null] },
-        "executionDetail": { "type": ["string", "null"] },
-        "requirement": { "$ref": "#/$defs/requirementKind" },
+        "executionDetail": {
+          "description": "From 0.3.0, a partial matcher over the typed executionDetail: `code`, when stated, is compared exactly; the row's other properties are the host's own and this clause says nothing about them unless it states one. `null` asserts the row carries no detail.",
+          "$ref": "#/$defs/executionDetailMatcher"
+        },
+        "requirement": {
+          "description": "A kind name, or — from 0.3.0 — a partial matcher over the requirement object: `kind`, `approvers` and `required` are each checked only when stated, but a stated `approvers` is the whole list, in order, the same convention `approvals` uses.",
+          "oneOf": [
+            { "$ref": "#/$defs/requirementKind" },
+            { "$ref": "#/$defs/requirementPartialMatcher" }
+          ]
+        },
         "blocked": { "$ref": "#/$defs/blocked" },
+        "approvals": {
+          "description": "From 0.3.0, the WHOLE list of approval records, in record order: `null` exactly when `requirement.kind` is not MultiParty; `[]` at filing; one entry per decision folded onto the row so far, each `{ approver, decision, reason?, attestation? }`.",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "array", "items": { "$ref": "#/$defs/approvalRecordMatcher" } }
+          ]
+        },
         "toolName": { "type": "string" },
         "channel": { "type": "string" },
         "tenantId": { "type": "string" },
@@ -966,7 +988,11 @@
               "required": ["kind", "reason"],
               "properties": {
                 "kind": { "type": "string", "enum": ["approve", "reject"] },
-                "reason": { "type": ["string", "null"] }
+                "reason": { "type": ["string", "null"] },
+                "by": {
+                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind.",
+                  "type": "string"
+                }
               }
             },
             { "type": "null" }
@@ -1049,7 +1075,128 @@
             "version": { "type": "string" }
           }
         },
+        {
+          "title": "multi-party",
+          "description": "From 0.3.0: the fold's own attestation, composed of the approvers of the records that folded the row, in record order — never a Standing Order's, and never any attestor but a person's own.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "approvers"],
+          "properties": {
+            "kind": { "const": "multi-party" },
+            "approvers": { "type": "array", "items": { "$ref": "#/$defs/memberOrRelayAttestor" } }
+          }
+        },
         { "type": "null" }
+      ]
+    },
+
+    "memberOrRelayAttestor": {
+      "description": "The two attestor kinds an approval record may carry (AZ-3): a MultiParty decision is always a person's, member or member-via-relay, never a Standing Order's.",
+      "oneOf": [
+        {
+          "title": "member",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": { "const": "member" },
+            "id": { "type": "string" }
+          }
+        },
+        {
+          "title": "member-via-relay",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "memberId", "relay"],
+          "properties": {
+            "kind": { "const": "member-via-relay" },
+            "memberId": { "type": "string" },
+            "relay": { "type": "object" }
+          }
+        }
+      ]
+    },
+
+    "requirementGiven": {
+      "description": "The requirement as an object on the given side, the only way a fixture can state MultiParty from 0.3.0. Permissive by design: a fixture describes what the host's policy verdict returned, and the gate is what validates it, so this shape states no lower bound on `approvers` and no bound on `required` — a fixture that demonstrates the gate refusing an invalid verdict (fewer than two approvers, `required` out of range) must be able to state that invalid verdict in the first place. `kind` is one of the four; `approvers` is an array of strings with no `minItems`/`uniqueItems`; `required` is an integer with no `minimum`.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "StandingOrder" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "ReviewerConfirmation" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "ReferralRequired" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "approvers", "required"],
+          "properties": {
+            "kind": { "const": "MultiParty" },
+            "approvers": { "type": "array", "items": { "type": "string" } },
+            "required": { "type": "integer" }
+          }
+        }
+      ]
+    },
+
+    "requirementPartialMatcher": {
+      "description": "A partial matcher over the 0.3.0 requirement object: a fixture states only the facts its rule is about. A stated `approvers` is the whole list, in order — the same convention `approvals` uses.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "$ref": "#/$defs/requirementKind" },
+        "approvers": { "type": "array", "items": { "type": "string" } },
+        "required": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "approvalRecordMatcher": {
+      "description": "A closed matcher over one approval record: the approver and the decision are required; `reason` and `attestation` are checked only when the fixture states them. `expect.entry.approvals` states the whole list of these, in record order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approver", "decision"],
+      "properties": {
+        "approver": { "type": "string" },
+        "decision": { "type": "string", "enum": ["approve", "reject"] },
+        "reason": { "type": ["string", "null"] },
+        "attestation": { "$ref": "#/$defs/attestor" }
+      }
+    },
+
+    "executionDetailGiven": {
+      "description": "What the host's executor reports about a write. From 0.3.0 an object naming the host's own `code`, never a string a reader must parse; `null` for no detail. The string form left the format at 0.3.0: every fixture that carried one is amended to the typed shape.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["code"],
+          "properties": { "code": { "type": "string", "minLength": 1 } }
+        }
+      ]
+    },
+
+    "executionDetailMatcher": {
+      "description": "A partial matcher over the executionDetail on the row. From 0.3.0, an object whose `code`, when stated, is compared exactly and whose other properties are the host's own and unconstrained; `null` asserts the row carries no detail. The string form left the format at 0.3.0: every fixture that carried one is amended to the typed shape.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": { "code": { "type": "string" } }
+        }
       ]
     },
 
@@ -1116,8 +1263,39 @@
         "populatedConfidence": { "oneOf": [{ "$ref": "#/$defs/unitInterval" }, { "type": "null" }] },
         "emptyFieldCount": { "type": "integer", "minimum": 0 },
         "fields": { "type": "array", "items": { "$ref": "#/$defs/cardFieldMatcher" } },
-        "presentation": { "type": "array", "items": { "$ref": "#/$defs/cardPresentationMatcher" } }
+        "presentation": { "type": "array", "items": { "$ref": "#/$defs/cardPresentationMatcher" } },
+        "multiParty": {
+          "description": "From 0.3.0, the card's MultiParty facts, stated whole: `null` for a card not built from a MultiParty row, otherwise the approvers list — each naming whether that approver has decided — and the required count.",
+          "$ref": "#/$defs/cardMultiPartyMatcher"
+        }
       }
+    },
+
+    "cardMultiPartyMatcher": {
+      "description": "The card's MultiParty facts, stated whole rather than partially: a card carrying an approver a fixture did not expect is a fact the same clause exists to catch.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["approvers", "required"],
+          "properties": {
+            "approvers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "decided"],
+                "properties": {
+                  "id": { "type": "string" },
+                  "decided": { "type": ["string", "null"], "enum": ["approve", "reject", null] }
+                }
+              }
+            },
+            "required": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
     },
 
     "cardFieldMatcher": {
