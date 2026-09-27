@@ -31,6 +31,16 @@ also be a full commit, which is what it holds while a version's text is on the
 rulebook's default branch and its tag has not been cut: a commit is as immutable as
 a tag and, unlike a tag, cannot be moved under a running build.
 
+`protocol/PIN` may carry a second line, `schemas=<version>`, naming which of the
+rulebook's versioned schema directories (`schemas/<version>/`) the ref's vendoring
+means — needed only while the rulebook publishes more than one live versioned
+schema directory at once (a frozen version kept as history beside a pre-release
+under active change). `scripts/sync-protocol.mjs` vendors only that directory's
+files onto `protocol/schemas/` when the line is present, and
+`scripts/generate-sources.mjs` reads it to label those schemas' paths correctly in
+`src/schemas.ts`. Absent, both scripts keep vendoring the one live directory they
+find, exactly as before this line existed.
+
 Everything under `protocol/` is a byte-for-byte copy at that ref — 195 documents:
 
 | Path                                                     | What it is                                                                                                                         |

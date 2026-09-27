@@ -18,6 +18,18 @@
  * branch and its tag has not been cut: a commit is as immutable as a tag and,
  * unlike a tag, cannot be moved under a running build.
  *
+ * `protocol/PIN` may carry a second line, `schemas=<version>`, naming which of
+ * the rulebook's versioned schema directories (`schemas/<version>/`) this ref's
+ * vendoring means. That line exists for the window in which the rulebook
+ * publishes more than one live versioned schema directory at the same ref (a
+ * frozen version kept as history beside a pre-release under active change,
+ * e.g. `schemas/0.1.0/` and `schemas/0.3.0/`) — without it, `localPathFor`
+ * below cannot tell which directory's `<file>.schema.json` should land at
+ * `protocol/schemas/<file>.schema.json`, since both map there. When the
+ * second line is absent, the script keeps vendoring the one live directory it
+ * finds, exactly as before this line existed, and still refuses a ref that
+ * turns out to carry two.
+ *
  * It also writes `protocol/SHA256SUMS` — the sha256 of every vendored file, one
  * per line, sorted by path, in the format `sha256sum` prints. That file is what
  * lets `test/protocol-pin.test.ts` catch a hand-edit to a vendored copy with no
@@ -37,29 +49,49 @@ const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const protocolDir = join(packageRoot, "protocol");
 const check = process.argv.includes("--check");
 
-const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
+const pinFile = readFileSync(join(protocolDir, "PIN"), "utf8");
 
 /**
- * `protocol/PIN` must be a version tag or a full 40-character commit (see the
- * doc comment above for why a commit is allowed) — never a branch or a short
- * SHA, both of which the GitHub API and raw.githubusercontent.com would also
- * happily resolve today, silently, to whatever they currently point at.
- * `test/protocol-pin.test.ts` enforces this identical rule on the same file,
- * with the same message, so a malformed pin is rejected the same way whichever
- * tool reads it first.
+ * `protocol/PIN`'s first line must be a version tag or a full 40-character
+ * commit (see the doc comment above for why a commit is allowed) — never a
+ * branch or a short SHA, both of which the GitHub API and
+ * raw.githubusercontent.com would also happily resolve today, silently, to
+ * whatever they currently point at. Its optional second line, `schemas=
+ * <version>`, is the doc comment above's version qualifier. `test/protocol-
+ * pin.test.ts` enforces the ref rule on the same file, with the same message,
+ * so a malformed ref is rejected the same way whichever tool reads it first.
  */
-function assertValidPin(candidate) {
-  const isTag = /^v\d+\.\d+\.(0|[1-9]\d*)$/.test(candidate);
-  const isCommit = /^[0-9a-f]{40}$/.test(candidate);
+function assertValidPin(rawContents) {
+  const lines = rawContents
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const ref = lines[0];
+  const isTag = ref !== undefined && /^v\d+\.\d+\.(0|[1-9]\d*)$/.test(ref);
+  const isCommit = ref !== undefined && /^[0-9a-f]{40}$/.test(ref);
   if (!isTag && !isCommit) {
     throw new Error(
-      `protocol/PIN must be a version tag (v<major>.<minor>.<patch>) or a full ` +
-        `40-character commit, not "${candidate}"`,
+      `protocol/PIN's first line must be a version tag (v<major>.<minor>.<patch>) or a full ` +
+        `40-character commit, not "${String(ref)}"`,
     );
   }
+  if (lines.length > 2) {
+    throw new Error(
+      `protocol/PIN must be at most two lines (the ref, then optionally "schemas=<version>"), ` +
+        `not ${String(lines.length)}`,
+    );
+  }
+  if (lines.length === 2 && !/^schemas=\d+\.\d+\.\d+$/.test(lines[1])) {
+    throw new Error(`protocol/PIN's second line must be "schemas=<version>", not "${lines[1]}"`);
+  }
+  return lines;
 }
 
-assertValidPin(pin);
+const pinLines = assertValidPin(pinFile);
+const pin = pinLines[0];
+const schemaVersionLine = pinLines[1];
+const targetSchemaVersion =
+  schemaVersionLine === undefined ? null : /^schemas=(\d+\.\d+\.\d+)$/.exec(schemaVersionLine)[1];
 
 /**
  * Which upstream paths are vendored, and where each lands locally.
@@ -95,6 +127,13 @@ assertValidPin(pin);
 function localPathFor(upstreamPath) {
   const wireVersion = /^schemas\/(\d+\.\d+\.\d+)\/([^/]+\.schema\.json)$/.exec(upstreamPath);
   if (wireVersion !== null) {
+    // When PIN names which versioned directory it means, every other versioned
+    // directory at this ref is not vendored at all (returning null here, rather
+    // than reaching the duplicate-path guard below) — the whole point of the
+    // second line is to settle this without the guard ever firing.
+    if (targetSchemaVersion !== null && wireVersion[1] !== targetSchemaVersion) {
+      return null;
+    }
     return `schemas/${wireVersion[2]}`;
   }
   if (/^schemas\/[^/]+\.schema\.json$/.test(upstreamPath)) {
