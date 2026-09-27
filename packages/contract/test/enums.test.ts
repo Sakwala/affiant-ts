@@ -26,6 +26,7 @@ import {
   errorCodeSchema,
   operationSchema,
   provenanceSourceSchema,
+  requirementSchema,
 } from "../src/schemas.js";
 import { enumValues } from "./fixtures.generated.js";
 
@@ -74,10 +75,13 @@ describe("the exported value sets match the schemas they come from", () => {
     expect(at(docketEntrySchema, "$defs", "execution", "enum")).toEqual([...EXECUTION_OUTCOMES]);
   });
 
-  it("requirement kinds, including the two v0.1 records and does not run", () => {
-    expect(at(docketEntrySchema, "$defs", "requirementKind", "enum")).toEqual([
-      ...REQUIREMENT_KINDS,
-    ]);
+  it("requirement kinds, one per arm of the requirement union (native from 0.3.0)", () => {
+    const defs = requirementSchema["$defs"] as Record<string, unknown>;
+    const kinds = (requirementSchema["oneOf"] as { $ref: string }[])
+      .map((arm) => arm.$ref.replace("#/$defs/", ""))
+      .map((name) => at(defs[name], "properties", "kind", "const"));
+
+    expect(kinds).toEqual([...REQUIREMENT_KINDS]);
   });
 
   it("coverage categories, from the blocked marker's coverage arm", () => {
