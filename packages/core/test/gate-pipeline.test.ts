@@ -742,6 +742,25 @@ describe("compositeRef on filing, the wrap path, and the replay guard (AZ-4)", (
     expect(second.created).toBe(false);
   });
 
+  it("accepts an explicit null compositeRef the same as leaving it out (AZ-4)", async () => {
+    const { gate } = harness();
+
+    const filed = await gate.file({ ...proposal(), compositeRef: null }, turnContext());
+
+    expect(filed.entry.compositeRef).toBeNull();
+    expect(filed.created).toBe(true);
+  });
+
+  it("treats a replay that spells 'none' as null instead of omitted as still a retry (AZ-4)", async () => {
+    const { gate } = harness();
+
+    const first = await gate.file(proposal(), turnContext());
+    const second = await gate.file({ ...proposal(), compositeRef: null }, turnContext());
+
+    expect(first.created).toBe(true);
+    expect(second.created).toBe(false);
+  });
+
   it("gives two different constituents of the same composite two different rows", async () => {
     const { gate, store } = harness();
     const base = proposal();
