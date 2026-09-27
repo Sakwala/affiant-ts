@@ -706,10 +706,7 @@ describe("compositeRef on filing, the wrap path, and the replay guard (AZ-4)", (
     const { gate, store } = harness();
 
     const thrown = await thrownBy(() =>
-      gate.file(
-        { ...proposal(), compositeRef: 42 as unknown as string },
-        turnContext(),
-      ),
+      gate.file({ ...proposal(), compositeRef: 42 as unknown as string }, turnContext()),
     );
 
     expect(isCallerError(thrown) ? thrown.kind : null).toBe("composite-ref-invalid");
@@ -749,14 +746,8 @@ describe("compositeRef on filing, the wrap path, and the replay guard (AZ-4)", (
     const { gate, store } = harness();
     const base = proposal();
 
-    await gate.file(
-      { ...base, args: { approver: "alice" }, compositeRef: "pi-1" },
-      turnContext(),
-    );
-    await gate.file(
-      { ...base, args: { approver: "bob" }, compositeRef: "pi-1" },
-      turnContext(),
-    );
+    await gate.file({ ...base, args: { approver: "alice" }, compositeRef: "pi-1" }, turnContext());
+    await gate.file({ ...base, args: { approver: "bob" }, compositeRef: "pi-1" }, turnContext());
 
     const pending = await store.listPending({ tenantId: "tenant-a" }, { limit: 10 });
     expect(pending.items).toHaveLength(2);

@@ -155,9 +155,7 @@ describe("cardFor rebuilds the card the filing returned (SR-1)", () => {
 
     const rebuilt = cardFor(entry, { now: AT, schema: SCHEMA, operationLabel: "Reprice" });
 
-    expect(card.warnings?.some((warning) => warning.includes("constituent")) ?? false).toBe(
-      false,
-    );
+    expect(card.warnings?.some((warning) => warning.includes("constituent")) ?? false).toBe(false);
     expect(rebuilt.warnings?.some((warning) => warning.includes("constituent")) ?? false).toBe(
       false,
     );
