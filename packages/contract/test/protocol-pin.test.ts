@@ -32,10 +32,34 @@ import { extractTarGz, fetchWithRetry } from "./support/tar-archive.js";
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const protocolDir = join(packageRoot, "protocol");
 
-const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
+/**
+ * `protocol/PIN` carries the ref as its first line; a second line, when present,
+ * pins the vendored schema directory's version (`schemas=<version>`) — added when
+ * the pinned ref carries more than one versioned `schemas/` directory, so
+ * `sync-protocol.mjs`'s `localPathFor()` knows which one to vendor as the flat
+ * `schemas/` this package targets. Only the first line is the ref.
+ */
+const pinLines = readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n");
+const pin = pinLines[0].trim();
+const schemasLine = pinLines[1]?.trim();
 
 const TAG_PATTERN = /^v\d+\.\d+\.(0|[1-9]\d*)$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
+const SCHEMAS_LINE_PATTERN = /^schemas=(\d+\.\d+\.\d+)$/;
+
+if (schemasLine !== undefined) {
+  const match = SCHEMAS_LINE_PATTERN.exec(schemasLine);
+  if (match === null) {
+    throw new Error(
+      `protocol/PIN's second line must be "schemas=<version>", not "${schemasLine}"`,
+    );
+  }
+  if (match[1] !== PROTOCOL_VERSION) {
+    throw new Error(
+      `protocol/PIN pins schemas=${match[1]}, but PROTOCOL_VERSION is "${PROTOCOL_VERSION}"`,
+    );
+  }
+}
 
 /**
  * `protocol/PIN` must be a version tag or a full 40-character commit — the same
