@@ -471,7 +471,7 @@ export type AmendmentMap = { readonly [fieldName: string]: JsonValue };
  * grows at the end: a reordering looks like a rename to a host's exhaustiveness
  * check and to a parity manifest.
  *
- * Schema: `schemas/0.1.0/error-code.schema.json`.
+ * Schema: `schemas/0.3.0/error-code.schema.json`.
  */
 export type ErrorCode =
   | "requirement-not-implemented"
@@ -483,7 +483,10 @@ export type ErrorCode =
   | "decision-lost-race"
   | "wireup-invalid"
   | "entry-not-found"
-  | "execution-already-recorded";
+  | "execution-already-recorded"
+  | "approver-not-listed"
+  | "approver-already-decided"
+  | "decision-not-amendable";
 
 /** Every {@link ErrorCode}, in registry order. */
 export const ERROR_CODES = [
@@ -497,6 +500,9 @@ export const ERROR_CODES = [
   "wireup-invalid",
   "entry-not-found",
   "execution-already-recorded",
+  "approver-not-listed",
+  "approver-already-decided",
+  "decision-not-amendable",
 ] as const satisfies readonly ErrorCode[];
 
 /** Narrows an arbitrary value to a registered {@link ErrorCode}. */
