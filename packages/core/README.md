@@ -367,6 +367,14 @@ The core does not know how many constituents make up your composite, so "one of 
 is your sentence to add — append it to the same `warnings` array before you hand the
 card to a person.
 
+The core's sentence is written for the record, in the rulebook's words: the rule id
+first, as every sentence the core puts in `warnings` carries it, and the composite
+named by the `compositeRef` you minted — the only name the core has for it. What a
+person reads is yours to render. Mint a `compositeRef` a reader would recognise, or
+let your own sentence say what the composite is in your domain's words; you may
+translate or replace the core's sentence on your surface, as long as the card still
+says, on its face, that the entry is one of N approvals for a named composite (AZ-4).
+
 Who may decide each constituent is your `AuthorizationPort`'s call, per entry, the
 same as any other decision (AZ-2); the gate does not know N and places no constraint
 on which principal decides which constituent, so binding approver `k` to constituent
