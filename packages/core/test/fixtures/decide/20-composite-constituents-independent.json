@@ -1,0 +1,146 @@
+{
+  "id": "decide/composite-constituents-independent",
+  "rules": ["AZ-4", "DK-1"],
+  "title": "A host composing multi-party approval above the gate files one entry per approver, sharing a compositeRef. A decision on one constituent closes that row alone: the sibling stays pending, both keep their composite, and the approved one waits unexecuted for the executor bound to the composite.",
+  "given": {
+    "clock": "2026-09-04T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "alice",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
+        },
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ],
+        "args": { "instructionId": "instr-1", "approver": "alice" },
+        "compositeRef": "pi-1"
+      },
+      {
+        "kind": "file",
+        "as": "bob",
+        "at": "2026-09-04T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
+        },
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ],
+        "args": { "instructionId": "instr-1", "approver": "bob" },
+        "compositeRef": "pi-1"
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "entry": "alice",
+      "at": "2026-09-04T09:00:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "approved",
+      "execution": "unexecuted",
+      "compositeRef": "pi-1"
+    },
+    "store": {
+      "count": 2,
+      "pending": 1,
+      "approvedUnexecuted": 1
+    }
+  }
+}
