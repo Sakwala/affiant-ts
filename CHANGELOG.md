@@ -29,6 +29,15 @@ was made against.
   naming the entry and the field, instead of reaching the driver as an error that names
   neither (DK-2).
 
+## [0.1.0-alpha.5] — 2026-09-27
+
+One package moves: `@affiant/core` to `0.1.0-alpha.5`, for `compositeRef` on `gate.file`
+and the caller error it can now throw (AZ-4). See the
+[package changelog](packages/core/CHANGELOG.md#010-alpha5--2026-09-27) for the full
+entry. `@affiant/store-postgres` stays at `0.1.0-alpha.2`; its peer range
+`>=0.1.0-alpha.4` is satisfied by `0.1.0-alpha.5`, and neither it nor
+`@affiant/adapter-ai-sdk` is republished.
+
 ## [0.1.0-alpha.4 / store-postgres 0.1.0-alpha.2] — 2026-09-22
 
 Two packages move: `@affiant/core` to `0.1.0-alpha.4` and `@affiant/store-postgres` to

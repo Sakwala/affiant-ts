@@ -18,7 +18,7 @@
  * supplies (see `ports.ts`), which is what lets one gate sit in front of any model,
  * any database and any approval surface.
  *
- * **What is here at `0.1.0-alpha.4`:** the turn context (GT-2), the port
+ * **What is here at `0.1.0-alpha.5`:** the turn context (GT-2), the port
  * interfaces, the error-code registry (CV-1), the telemetry-key registry (TL-1) and
  * the Affidavit model — the provenance ladder with its bindings and merge rule
  * (PV-1..PV-3, PV-5), the Affidavit and its three confidence numbers (AF-1..AF-3),
@@ -50,7 +50,7 @@
  * parametrised store contract every `DocketStore` and `SessionStore` implementation is
  * measured by, the same assertions the in-memory reference passes.
  *
- * `@affiant/core` is `0.1.0-alpha.4` in this repository. Releases are published under
+ * `@affiant/core` is `0.1.0-alpha.5` in this repository. Releases are published under
  * the `alpha` dist-tag with a provenance attestation through this repository's publish
  * workflow, which moves the `alpha` dist-tag and no other; `npm view @affiant/core
  * dist-tags` shows what the registry currently serves. The version
@@ -62,7 +62,7 @@
  */
 
 /** The version of this package, as built. */
-export const CORE_VERSION = "0.1.0-alpha.4";
+export const CORE_VERSION = "0.1.0-alpha.5";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from

@@ -10,7 +10,7 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
-## [0.1.0-alpha.5] — unreleased
+## [0.1.0-alpha.5] — 2026-09-27
 
 Native `MultiParty` semantics stay reserved; this release is the package's part of what
 AZ-4 already asks a host to do without them — compose multi-party approval as N Docket
