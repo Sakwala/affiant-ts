@@ -32,7 +32,7 @@
 import type { TurnContext } from "../context.js";
 import type { DocketEntry } from "../docket/entry.js";
 import type { DocketStore, Page, PageResult, Scope, SessionStore } from "../docket/store.js";
-import { AffiantCallerError, AffiantError } from "../errors.js";
+import { AffiantError } from "../errors.js";
 import type { JsonValue } from "../model/affidavit.js";
 import type {
   Clock,
@@ -140,9 +140,10 @@ export interface WriteProposal {
    * composite and carries it on every constituent's proposal here; `gate.wrap`'s
    * agent path has no composite to carry and files `null`. Must be a non-empty
    * string when supplied, or `gate.file` throws {@link AffiantCallerError} kind
-   * `composite-ref-invalid` and files nothing.
+   * `composite-ref-invalid` and files nothing. `null` means none, the same as
+   * leaving it out.
    */
-  readonly compositeRef?: string;
+  readonly compositeRef?: string | null;
 }
 
 /** The gate a host builds once and calls from every seam (CV-2). */
@@ -344,18 +345,6 @@ export function createGate(options: GateOptions): Gate {
             `already settled (Sequence C), or \`schema\` to run the inference step against the ` +
             `turn. With neither there is nothing to swear to.`,
           { toolName: proposal.toolName },
-        );
-      }
-      if (
-        proposal.compositeRef !== undefined &&
-        (typeof proposal.compositeRef !== "string" || proposal.compositeRef.length === 0)
-      ) {
-        throw new AffiantCallerError(
-          "composite-ref-invalid",
-          `AZ-4: compositeRef must be a non-empty string identifying the composite this ` +
-            `entry is one constituent of; ${JSON.stringify(proposal.compositeRef)} was supplied. ` +
-            `Nothing is filed.`,
-          { compositeRef: proposal.compositeRef },
         );
       }
       return runPipeline(
