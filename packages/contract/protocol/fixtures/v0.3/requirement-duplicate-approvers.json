@@ -1,0 +1,5 @@
+{
+  "kind": "MultiParty",
+  "approvers": ["ana", "ana", "bo"],
+  "required": 2
+}

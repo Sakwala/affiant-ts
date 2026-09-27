@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.1.0/tool-result.schema.json",
+  "$id": "https://affiant.dev/schemas/0.3.0/tool-result.schema.json",
   "title": "ToolResult",
   "description": "What a tool call returns once the gate stands in front of it: one discriminated union of three kinds, carried on a single `kind` property (INVARIANTS.md AF-5). A consumer switches on the discriminator, NEVER on the presence of fields. A gated write tool's result is always the write kind — a PROPOSAL, never a completed write (GT-6): a model reading it learns that the write is pending or that a Standing Order approved it, never that it happened, because the gate does not execute (AZ-7). A refusal the gate raises is the error kind carrying its code. Spelled `$type` in the 0.0.1-seed wire and the shipped .NET envelope; `kind` from v0.1.",
   "type": "object",
@@ -20,15 +20,15 @@
         "kind": { "const": "write" },
         "entryId": {
           "description": "The Docket entry the proposal was filed under.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/uuid"
         },
         "status": {
           "description": "What the row reads at — \"pending\" unless a Standing Order fired.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/docket-entry.schema.json#/$defs/status"
+          "$ref": "https://affiant.dev/schemas/0.3.0/docket-entry.schema.json#/$defs/status"
         },
         "card": {
           "description": "The Evidence Card the host delivers to a reviewer.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/evidence-card-request.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.3.0/evidence-card-request.schema.json"
         }
       }
     },
@@ -42,7 +42,7 @@
         "kind": { "const": "read" },
         "result": {
           "description": "Whatever the tool returned. Any JSON value — the protocol says nothing about a host's read shapes.",
-          "$ref": "https://affiant.dev/schemas/0.1.0/common.schema.json#/$defs/jsonValue"
+          "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/jsonValue"
         }
       }
     },
@@ -57,7 +57,7 @@
         "code": {
           "description": "The refusal's code from the registry, or \"tool-error\" when a READ tool's own body threw — which is not a gate refusal and is deliberately not in the registry.",
           "oneOf": [
-            { "$ref": "https://affiant.dev/schemas/0.1.0/error-code.schema.json" },
+            { "$ref": "https://affiant.dev/schemas/0.3.0/error-code.schema.json" },
             { "const": "tool-error", "description": "A read tool's own body threw." }
           ]
         },

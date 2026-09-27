@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.3.0/requirement.schema.json",
+  "title": "Requirement",
+  "description": "How much agreement a write needs before it may execute — the policy chain's verdict, recorded verbatim on the Docket row (AZ-4). `StandingOrder`, `ReviewerConfirmation` and `ReferralRequired` carry no data beyond their kind; `MultiParty` also carries the host policy's `approvers` and `required`. This schema cannot state the correlation `required <= approvers.length` — the rule text and every implementation enforce it, and a verdict that fails it is a policy fault refused at evaluation (`wireup-invalid`), nothing filed (CV-1). Both `approvers` and `required` are the host policy's values: an implementation validates them and never invents either (AZ-4).",
+  "oneOf": [
+    { "$ref": "#/$defs/standingOrder" },
+    { "$ref": "#/$defs/reviewerConfirmation" },
+    { "$ref": "#/$defs/referralRequired" },
+    { "$ref": "#/$defs/multiParty" }
+  ],
+  "$defs": {
+    "standingOrder": {
+      "title": "StandingOrderRequirement",
+      "description": "Approves with no person present.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "StandingOrder" }
+      }
+    },
+    "reviewerConfirmation": {
+      "title": "ReviewerConfirmationRequirement",
+      "description": "Asks one person.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "ReviewerConfirmation" }
+      }
+    },
+    "referralRequired": {
+      "title": "ReferralRequiredRequirement",
+      "description": "Hands the entry to a different reviewer. Reserved: no implementation runs this at 0.3.0, so a verdict carrying it files the entry pending with a blocked marker (AZ-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "ReferralRequired" }
+      }
+    },
+    "multiParty": {
+      "title": "MultiPartyRequirement",
+      "description": "Requires several named approvers to decide, natively from 0.3.0 (AZ-4): one Docket entry whose `approvals` records fold its status. `approvers` is the host policy's list of at least two distinct principal identifiers; `required` is the host policy's integer, at least 1, naming how many approvals fold the entry `approved` — the upper bound `required <= approvers.length` is the rule text's, not this schema's. An implementation that has not reached 0.3.0 files this pending with a blocked marker instead of running it (AZ-4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "approvers", "required"],
+      "properties": {
+        "kind": { "const": "MultiParty" },
+        "approvers": {
+          "description": "The host policy's list of who may decide this entry, each a distinct principal identifier. At least two: one approver is ReviewerConfirmation, not MultiParty.",
+          "type": "array",
+          "items": { "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier" },
+          "minItems": 2,
+          "uniqueItems": true
+        },
+        "required": {
+          "description": "The host policy's threshold: how many approvals fold the entry approved. At least 1; never validated against approvers.length by this schema, but the rule text requires required <= approvers.length and an implementation that receives a verdict violating it refuses the write at evaluation, filing nothing (wireup-invalid, CV-1).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

@@ -89,7 +89,10 @@
         "id": "ana"
       },
       "outcome": "failed",
-      "detail": "unique constraint on invoice_no"
+      "detail": {
+        "code": "unique-constraint-violation",
+        "note": "unique constraint on invoice_no"
+      }
     }
   },
   "expect": {

@@ -1,0 +1,117 @@
+{
+  "protocolVersion": "0.3.0",
+  "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+  "tenantId": "tenant-a",
+  "conversationId": "conv-1",
+  "channel": "chat",
+  "toolName": "propose_payment",
+  "affidavit": {
+    "protocolVersion": "0.3.0",
+    "operationType": "update",
+    "entityType": "Payment",
+    "entityId": "payment-1",
+    "fields": [
+      {
+        "name": "amount",
+        "kind": "text",
+        "value": "250",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: amount",
+            "at": "2026-09-28T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      },
+      {
+        "name": "payee",
+        "kind": "text",
+        "value": "Acme",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: payee",
+            "at": "2026-09-28T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      }
+    ],
+    "aggregateConfidence": 0.9,
+    "populatedConfidence": 0.9,
+    "emptyFieldCount": 0,
+    "conversationTurn": null,
+    "createdAt": "2026-09-28T09:00:00.000Z"
+  },
+  "amendedAffidavit": null,
+  "requirement": {
+    "kind": "MultiParty",
+    "approvers": ["ana", "bo", "cy"],
+    "required": 3
+  },
+  "status": "approved",
+  "execution": "unexecuted",
+  "blocked": null,
+  "approvals": [
+    {
+      "approver": "ana",
+      "decision": "approve",
+      "reason": null,
+      "at": "2026-09-28T09:01:00.000Z",
+      "attestation": { "by": { "kind": "member", "id": "ana" }, "at": "2026-09-28T09:01:00.000Z", "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b" }
+    },
+    {
+      "approver": "bo",
+      "decision": "approve",
+      "reason": null,
+      "at": "2026-09-28T09:02:00.000Z",
+      "attestation": { "by": { "kind": "member", "id": "bo" }, "at": "2026-09-28T09:02:00.000Z", "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b" }
+    },
+    {
+      "approver": "cy",
+      "decision": "approve",
+      "reason": null,
+      "at": "2026-09-28T09:03:00.000Z",
+      "attestation": { "by": { "kind": "member", "id": "cy" }, "at": "2026-09-28T09:03:00.000Z", "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b" }
+    }
+  ],
+  "attestation": {
+    "by": {
+      "kind": "multi-party",
+      "approvers": [
+        { "kind": "member", "id": "ana" },
+        { "kind": "member", "id": "bo" },
+        { "kind": "member", "id": "cy" }
+      ]
+    },
+    "at": "2026-09-28T09:03:00.000Z",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+  },
+  "amendments": null,
+  "preservedAmendments": null,
+  "decision": {
+    "kind": "approve",
+    "reason": null,
+    "at": "2026-09-28T09:03:00.000Z",
+    "by": "cy"
+  },
+  "lineage": {
+    "supersedes": null,
+    "supersededBy": null
+  },
+  "filedAt": "2026-09-28T09:00:00.000Z",
+  "expiresAt": "2026-09-28T09:30:00.000Z",
+  "decidedAt": "2026-09-28T09:03:00.000Z",
+  "executionDetail": null
+}

@@ -1,7 +1,7 @@
 {
   "id": "decide/blocked-refused",
   "rules": ["AZ-4", "DK-1"],
-  "title": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run, which is the shipped .NET behaviour of routing MultiParty to the single-card branch.",
+  "title": "A requirement level this version does not run files the entry pending with the level recorded verbatim and a blocked marker, and every decision on it is refused. It is never degraded to the weaker requirement the implementation does know how to run.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",
@@ -12,11 +12,11 @@
       },
       "policies": [
         {
-          "id": "joint-sign-off",
+          "id": "referral-required",
           "version": "1.0.0",
           "declaredInputs": [],
           "verdict": {
-            "requirement": "MultiParty"
+            "requirement": "ReferralRequired"
           }
         }
       ]
@@ -98,10 +98,10 @@
     "entry": {
       "status": "pending",
       "execution": null,
-      "requirement": "MultiParty",
+      "requirement": "ReferralRequired",
       "blocked": {
         "code": "requirement-not-implemented",
-        "level": "MultiParty"
+        "level": "ReferralRequired"
       },
       "attestation": null,
       "amendments": null,

@@ -1,0 +1,94 @@
+{
+  "id": "decide/multiparty-wrong-tenant-not-found",
+  "rules": ["AZ-2", "AZ-4"],
+  "title": "A decision on a MultiParty entry made from another tenant is reported as entry not found, exactly as an id that never existed: the approver check never runs, because the tenant boundary is checked first.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": ["amount", "payee"]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-28T09:01:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "tenantId": "tenant-b",
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "entry-not-found"
+    },
+    "entry": {
+      "status": "pending",
+      "approvals": []
+    }
+  }
+}

@@ -81,7 +81,10 @@
         "id": "executor-1"
       },
       "outcome": "executed",
-      "detail": "1 row updated"
+      "detail": {
+        "code": "row-updated",
+        "note": "1 row updated"
+      }
     }
   },
   "expect": {
