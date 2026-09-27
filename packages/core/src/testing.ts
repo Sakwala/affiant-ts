@@ -321,6 +321,8 @@ export type FixtureStep =
       readonly preparedFields?: readonly FixturePreparedField[] | null;
       readonly args?: JsonValue;
       readonly operationLabel?: string | null;
+      /** The composite this constituent belongs to (AZ-4); host-chosen. */
+      readonly compositeRef?: string;
     })
   | (StepCommon & {
       /** Approve, amend or reject (DK-1, AZ-1, AZ-2). */
@@ -427,6 +429,8 @@ export interface EntryExpectation {
   readonly channel?: string;
   readonly tenantId?: string;
   readonly conversationId?: string;
+  /** The composite this entry is one constituent of (AZ-4), or `null` for none. */
+  readonly compositeRef?: string | null;
   /** The attestor as it must read (AZ-1, AZ-3), or `null` for no attestation. */
   readonly attestation?: Attestor | null;
   readonly decision?: { readonly kind: string; readonly reason: string | null } | null;
@@ -627,6 +631,7 @@ const FIXTURE_KEYS = {
     "channel",
     "tenantId",
     "conversationId",
+    "compositeRef",
     "attestation",
     "decision",
     "amendments",
@@ -682,7 +687,15 @@ const FIXTURE_KEYS = {
 /** The keys each kind of step adds to {@link FIXTURE_KEYS.step}. */
 const STEP_KEYS = {
   "wrap-execute": ["tool", "args"],
-  file: ["toolName", "operation", "schema", "preparedFields", "args", "operationLabel"],
+  file: [
+    "toolName",
+    "operation",
+    "schema",
+    "preparedFields",
+    "args",
+    "operationLabel",
+    "compositeRef",
+  ],
   decide: ["decision"],
   resubmit: [],
   markExecuted: ["outcome", "detail"],
@@ -1681,6 +1694,7 @@ async function performStep(
           ...(step.operationLabel === undefined || step.operationLabel === null
             ? {}
             : { operationLabel: step.operationLabel }),
+          ...(step.compositeRef === undefined ? {} : { compositeRef: step.compositeRef }),
         };
         const filed = await deps.gate.file(proposal, ctx);
         return { ...NOTHING, filed, entryId: filed.entry.entryId };
@@ -1818,6 +1832,7 @@ async function checkEntry(
   compare(`${at}.channel`, expected.channel, entry.channel, failures);
   compare(`${at}.tenantId`, expected.tenantId, entry.tenantId, failures);
   compare(`${at}.conversationId`, expected.conversationId, entry.conversationId, failures);
+  compare(`${at}.compositeRef`, expected.compositeRef, entry.compositeRef, failures);
   compare(`${at}.amendments`, expected.amendments, entry.amendments, failures);
   compare(
     `${at}.preservedAmendments`,
