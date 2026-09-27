@@ -2444,8 +2444,19 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
           title:
             "reads compositeRef back on get, on rehydrate's page and on the pending list (AZ-4)",
           async run({ store, expect, scope, entry }) {
-            await store.file(entry("has-a-composite-ref", { compositeRef: "pi-1" }));
-            await store.file(entry("has-no-composite-ref"));
+            const withRef = entry("has-a-composite-ref", { compositeRef: "pi-1" });
+            const withoutRef = entry("has-no-composite-ref");
+
+            await store.file(withRef);
+            await store.file(withoutRef);
+
+            const refiledWithRef = await store.file(withRef);
+            expect(refiledWithRef.created).toBe(false);
+            expect(refiledWithRef.entry.compositeRef).toBe("pi-1");
+
+            const refiledWithoutRef = await store.file(withoutRef);
+            expect(refiledWithoutRef.created).toBe(false);
+            expect(refiledWithoutRef.entry.compositeRef).toBeNull();
 
             const got = await store.get("has-a-composite-ref", scope);
             expect(got?.compositeRef).toBe("pi-1");
