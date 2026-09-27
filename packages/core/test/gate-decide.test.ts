@@ -1076,6 +1076,35 @@ describe("resubmission (DK-1, PV-2)", () => {
     expect(filed.card.priorAmendments).toEqual({ amount: "4000" });
   });
 
+  it("keeps its composite through a resubmission (AZ-4)", async () => {
+    const h = harness({ defaultTtlMs: 60_000 });
+    const proposal = {
+      operation: {
+        kind: "update" as const,
+        entityType: "Invoice",
+        entityId: "invoice-1",
+        fields: [...FIELDS],
+      },
+      toolName: "update_invoice",
+      fields: [prepared("status", "Active"), prepared("amount", "40"), prepared("note", "kept")],
+      args: null,
+    };
+    const filed = await h.gate.file({ ...proposal, compositeRef: "pi-1" }, turnContext());
+    const original = filed.entry;
+    h.clock.set(plus(AT, 90_000));
+    await codeOf(() =>
+      h.gate.decide(
+        original.entryId,
+        { kind: "approve", amendments: { amount: "4000", note: null } },
+        turnContext(),
+      ),
+    );
+
+    const resubmitted2 = await h.gate.resubmit(original.entryId, turnContext());
+
+    expect(resubmitted2.entry.compositeRef).toBe("pi-1");
+  });
+
   it("stamps a fresh deadline from the policy chain, run again (GT-4)", async () => {
     const { h, fresh } = await resubmitted();
 
