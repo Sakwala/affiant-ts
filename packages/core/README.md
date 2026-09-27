@@ -300,6 +300,107 @@ try {
 }
 ```
 
+## Composing multi-party approval above the gate (AZ-4)
+
+Native `MultiParty` semantics are reserved for a later protocol version. Today, a
+policy that returns `MultiParty` files one row nobody can decide — `requirement:
+"MultiParty"`, `blocked: "requirement-not-implemented"` — and stays that way. Rule
+AZ-4 names the shape a host builds instead: one Docket entry per approver, each
+carrying the same `compositeRef`, the executor bound to the composite and never to a
+single constituent's approval. `compositeRef` is a host-chosen, opaque identifier —
+the protocol never parses one — and `gate.file` is the only entry point that can set
+it; `gate.wrap`'s tool-call path is the agent's one proposal, with nothing to
+compose, and always files `null`.
+
+**The constituents' requirement is still the policy chain's verdict, not an argument
+you pass.** `gate.file` names no requirement; the first non-null verdict from your
+policies wins, and no verdict at all reads as `ReviewerConfirmation`. Since a person
+must decide each constituent, the policy your chain runs for these proposals has to
+return `ReviewerConfirmation` (or nothing) — a policy that answers `MultiParty` files
+a single blocked row, not N decidable ones. Composing "N constituents, one composite"
+is a host-side decision about how many entries to file and who may decide each; it is
+not a level the gate is told to run.
+
+**The identity landmine.** A Docket entry's id is derived from the tenant, the
+conversation, the tool, the operation and `args` — `compositeRef` plays no part in
+it. Two filings whose `args` are otherwise identical derive the *same* id, so a second
+`gate.file` call for a second approver, with everything but the composite the same,
+replays the first reviewer's row instead of adding a second one. Make each
+constituent's `args` distinct — the natural way is to carry the designated approver
+in it (`{ instructionId, approver }`), which also states "one entry per approver" in
+the id itself, not in a convention you have to remember elsewhere. Check
+`created === true` on every constituent filing: `false` means this call landed on an
+existing row, and that is your own defect to fix, not something the gate can catch
+for you.
+
+**The two ways a filing can go wrong here are caller errors, not refusals on the
+wire.** A `compositeRef` that is not a non-empty string throws `AffiantCallerError`
+kind `composite-ref-invalid` before any port runs; nothing is filed. A replay — a
+filing whose derived id already exists — that names a *different* `compositeRef` than
+the stored row throws kind `composite-ref-mismatch`, naming the entry id and both
+values, after the store has already answered and after nothing new was written: this
+is not the retry-is-never-an-error case, because the material is a second
+constituent's, not a second attempt at the first one's.
+
+A resubmission keeps the superseded row's composite. `gate.resubmit` takes only an
+entry id; it copies `toolName`, `operation`, `args` and `compositeRef` off the row it
+replaces, so a successor stays a constituent of the same composite the row it
+supersedes named — nothing you pass on the call.
+
+Every constituent's card carries, in `warnings`, the sentence the row itself commits
+to — at filing and from `cardFor` alike, so it reads the same whether a queue renders
+it now or an hour later:
+
+```
+AZ-4: this entry is one constituent of composite "<compositeRef>"; its approval alone
+does not reach the executor.
+```
+
+The core does not know how many constituents make up your composite, so "one of N"
+is your sentence to add — append it to the same `warnings` array before you hand the
+card to a person.
+
+Who may decide each constituent is your `AuthorizationPort`'s call, per entry, the
+same as any other decision (AZ-2); the gate does not know N and places no constraint
+on which principal decides which constituent, so binding approver `k` to constituent
+`k` is entirely your policy.
+
+Execution is reported per constituent: when the composite is ready to run, call
+`markExecuted` on each of the N entries yourself — there is no composite-level
+execution call. If one constituent is rejected or expires before the composite ever
+runs, the approved siblings keep reading `approved` / `unexecuted` — the rulebook
+names no composite outcome and no "abandoned" state — until you either leave them (a
+rehydrating queue keeps paging them as approved-and-unexecuted) or report `failed`
+with a detail naming the constituent that refused.
+
+```ts
+import { isCallerError } from "@affiant/core";
+
+const compositeRef = "pi-42"; // your payment-intent id, or any opaque identifier
+
+const first = await gate.file(
+  { toolName: "post_payment", operation, args: { instructionId, approver: "ana" }, compositeRef },
+  ctx,
+);
+if (!first.created) throw new Error(`unexpected replay of ${first.entry.entryId}`);
+
+try {
+  const second = await gate.file(
+    { toolName: "post_payment", operation, args: { instructionId, approver: "ben" }, compositeRef },
+    ctx,
+  );
+  if (!second.created) throw new Error(`unexpected replay of ${second.entry.entryId}`);
+} catch (error) {
+  if (isCallerError(error) && error.kind === "composite-ref-mismatch") {
+    // A second constituent replayed the first reviewer's row instead of adding one —
+    // `args` for the two approvers was not distinct enough. Fix the proposal's
+    // material; nothing new was written.
+  } else {
+    throw error;
+  }
+}
+```
+
 ## The ports you supply
 
 `createGate` refuses a wiring it can tell is wrong — a missing port, a deadline that is
