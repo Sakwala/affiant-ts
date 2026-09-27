@@ -304,7 +304,8 @@ try {
 
 Native `MultiParty` semantics are reserved for a later protocol version. Today, a
 policy that returns `MultiParty` files one row nobody can decide — `requirement:
-"MultiParty"`, `blocked: "requirement-not-implemented"` — and stays that way. Rule
+"MultiParty"`, `blocked: { code: "requirement-not-implemented", level: "MultiParty" }` —
+and stays that way. Rule
 AZ-4 names the shape a host builds instead: one Docket entry per approver, each
 carrying the same `compositeRef`, the executor bound to the composite and never to a
 single constituent's approval. `compositeRef` is a host-chosen, opaque identifier —
@@ -322,8 +323,9 @@ is a host-side decision about how many entries to file and who may decide each; 
 not a level the gate is told to run.
 
 **The identity landmine.** A Docket entry's id is derived from the tenant, the
-conversation, the tool, the operation and `args` — `compositeRef` plays no part in
-it. Two filings whose `args` are otherwise identical derive the *same* id, so a second
+conversation, the tool, the operation, `args` and, for a resubmission, the entry it
+supersedes (GT-4) — `compositeRef` plays no part in it. Two filings whose material is
+otherwise identical derive the _same_ id, so a second
 `gate.file` call for a second approver, with everything but the composite the same,
 replays the first reviewer's row instead of adding a second one. Make each
 constituent's `args` distinct — the natural way is to carry the designated approver
@@ -336,7 +338,7 @@ for you.
 **The two ways a filing can go wrong here are caller errors, not refusals on the
 wire.** A `compositeRef` that is not a non-empty string throws `AffiantCallerError`
 kind `composite-ref-invalid` before any port runs; nothing is filed. A replay — a
-filing whose derived id already exists — that names a *different* `compositeRef` than
+filing whose derived id already exists — that names a _different_ `compositeRef` than
 the stored row throws kind `composite-ref-mismatch`, naming the entry id and both
 values, after the store has already answered and after nothing new was written: this
 is not the retry-is-never-an-error case, because the material is a second
@@ -377,16 +379,31 @@ with a detail naming the constituent that refused.
 import { isCallerError } from "@affiant/core";
 
 const compositeRef = "pi-42"; // your payment-intent id, or any opaque identifier
+// `operation` and `fields` are the same for every constituent: the write being
+// proposed and the prepared fields your host assembled for it (`PreparedField[]`).
+// Only `args` and, later, the decision differ per approver.
 
 const first = await gate.file(
-  { toolName: "post_payment", operation, args: { instructionId, approver: "ana" }, compositeRef },
+  {
+    toolName: "post_payment",
+    operation,
+    fields,
+    args: { instructionId, approver: "ana" },
+    compositeRef,
+  },
   ctx,
 );
 if (!first.created) throw new Error(`unexpected replay of ${first.entry.entryId}`);
 
 try {
   const second = await gate.file(
-    { toolName: "post_payment", operation, args: { instructionId, approver: "ben" }, compositeRef },
+    {
+      toolName: "post_payment",
+      operation,
+      fields,
+      args: { instructionId, approver: "ben" },
+      compositeRef,
+    },
     ctx,
   );
   if (!second.created) throw new Error(`unexpected replay of ${second.entry.entryId}`);

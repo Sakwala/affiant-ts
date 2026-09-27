@@ -45,14 +45,14 @@ shape, no schema and no vector changed.
   executor.` — the host's own "one of N" sentence is appended beside it (AZ-4, SR-1).
 
 - **The store contract's new case.** `runDocketStoreContract` gains
-  `rehydration/round-trips-the-compositeRef`, checked against the in-memory store: `get`,
+  `rehydration/round-trips-the-compositeRef`, run by both shipped stores: `get`,
   `rehydrate`'s page and `listPending` all read `compositeRef` back as filed, and `null`
   for an entry that named none (AZ-4, DK-5).
 
 - **A declarative fixture, `decide/composite-constituents-independent`, in the core's own
   suite — not promoted to the rulebook.** Two constituents share a `compositeRef`; a
   decision on one leaves the other untouched, both keep their `compositeRef`, and the
-  approved one reads `unexecuted` (AZ-4, R-10 of the design record).
+  approved one reads `unexecuted` (AZ-4, DK-1).
 
 - **The fixture runner accepts `compositeRef` on a `file` step and an `EntryExpectation`
   can assert it.** `FixtureStep`'s `file` variant and `STEP_KEYS.file` both gain
