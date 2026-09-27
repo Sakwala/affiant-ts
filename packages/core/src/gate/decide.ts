@@ -528,6 +528,9 @@ function resubmissionProposal(entry: DocketEntry): PipelineProposal {
     toolName: entry.toolName,
     schema: null,
     args: null,
+    // The successor stays a constituent of the composite the superseded row named
+    // (AZ-4, R-4): a resubmission is a filing built off the row, never off the call.
+    compositeRef: entry.compositeRef,
     preparedFields,
     operationLabel: null,
     supersedes: entry.entryId,

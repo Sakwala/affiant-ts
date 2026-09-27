@@ -219,6 +219,9 @@ export function wrapTool<TArgs, TResult>(
             operationLabel,
             supersedes: null,
             priorAmendments: null,
+            // The agent's one proposal is never a host's composition above the gate
+            // (R-2): only `gate.file` can carry a compositeRef.
+            compositeRef: null,
           },
           turn,
           deps,

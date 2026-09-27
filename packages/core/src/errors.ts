@@ -213,6 +213,13 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
  *   issue: it does not decode, is not the shape the store mints, or was minted for a
  *   different list (DK-3).
+ * - `composite-ref-invalid` — `gate.file` was given a `compositeRef` that is not the
+ *   schema's identifier (a non-empty string). Nothing is filed (AZ-4).
+ * - `composite-ref-mismatch` — a filing replayed an existing row (GT-4) while naming a
+ *   different composite than the row records: not a retry of the same proposal but a
+ *   second constituent filed with the first one's material, which would hand N
+ *   reviewers one row (AZ-4). `details` carries `entryId`, `stored` and `proposed`.
+ *   Nothing new is written.
  */
 export type CallerErrorKind =
   | "amendment-unknown-field"
@@ -220,7 +227,9 @@ export type CallerErrorKind =
   | "superseded-entry-mismatch"
   | "entry-not-decided"
   | "binding-invalid"
-  | "cursor-invalid";
+  | "cursor-invalid"
+  | "composite-ref-invalid"
+  | "composite-ref-mismatch";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -230,6 +239,8 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "entry-not-decided",
   "binding-invalid",
   "cursor-invalid",
+  "composite-ref-invalid",
+  "composite-ref-mismatch",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */

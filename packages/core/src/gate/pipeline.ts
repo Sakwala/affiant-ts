@@ -287,6 +287,15 @@ export interface PipelineProposal {
    * a first filing.
    */
   readonly priorAmendments: AmendmentMap | null;
+  /**
+   * The composite this entry is one constituent of (AZ-4), or `null` for a
+   * standalone entry — host-chosen, opaque, set at filing only.
+   *
+   * Set by `Gate.file` only; `wrap`'s agent path always supplies `null`, and
+   * `resubmit` copies the superseded row's value verbatim (R-4) rather than
+   * accepting one on the call.
+   */
+  readonly compositeRef: string | null;
 }
 
 /** Everything the pipeline needs from the host, assembled once by `createGate`. */
@@ -747,6 +756,9 @@ export async function runPipeline(
     // DK-1: a resubmission names what it replaces on the way in. The successor link
     // is written on the *other* row, by `resubmit`, after this filing succeeds.
     ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
+    // AZ-4: the composite this entry is one constituent of, host-chosen and opaque; the
+    // row type defaults it to null, so it is written only when the host named one.
+    ...(proposal.compositeRef === null ? {} : { compositeRef: proposal.compositeRef }),
     // A Standing Order writes status, execution outcome and attestation in the same
     // operation as the filing (AZ-1) — never a file followed by an approve, which
     // would leave a window in which an approved write had no attestation.
