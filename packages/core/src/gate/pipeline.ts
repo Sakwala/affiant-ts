@@ -770,6 +770,21 @@ export async function runPipeline(
 
   const { entry, created } = await deps.store.file(newEntry(init));
 
+  // AZ-4: a replay whose proposal names a different composite than the stored row is
+  // not a retry — it is a second constituent with material identical to the first, and
+  // it would otherwise collapse to one row for N reviewers. The store has already
+  // answered and written nothing new; this only refuses the caller's own filing.
+  if (!created && entry.compositeRef !== proposal.compositeRef) {
+    throw new AffiantCallerError(
+      "composite-ref-mismatch",
+      `AZ-4: Docket entry ${entry.entryId} replays an existing row that records composite ` +
+        `${JSON.stringify(entry.compositeRef)}, but this filing names ${JSON.stringify(proposal.compositeRef)}; ` +
+        `a second constituent must differ in its material (GT-4), not only in its compositeRef. ` +
+        `Nothing new is written.`,
+      { entryId: entry.entryId, stored: entry.compositeRef, proposed: proposal.compositeRef },
+    );
+  }
+
   if (fires && outcome.policy !== null) {
     deps.telemetry.emit({
       key: "standing-order.fired",
