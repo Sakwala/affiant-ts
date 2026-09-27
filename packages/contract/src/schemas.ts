@@ -16,8 +16,13 @@ export interface JsonSchemaDocument {
   readonly [keyword: string]: unknown;
 }
 
-/** The protocol version these schemas were vendored from. Defined once in `./index.js`. */
-export { PROTOCOL_VERSION } from "./index.js";
+/**
+ * The protocol version these schemas were vendored from (BD-256): `protocol/PIN`'s
+ * optional `schemas=<version>` second line, or `"0.1.0"` when that line is absent —
+ * what `protocol/schemas/` held before the line existed. Generated so a version
+ * bump is a vendoring change, never a hand edit; `./index.js` re-exports this.
+ */
+export const PROTOCOL_VERSION = "0.3.0" as const;
 
 /** The name of each schema, without the `.schema.json` suffix. */
 export type SchemaName =

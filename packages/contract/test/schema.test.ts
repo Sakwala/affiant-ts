@@ -22,7 +22,24 @@ type AddFormats = (ajv: Ajv2020) => Ajv2020;
 const imported = ajvFormats as unknown as AddFormats | { default: AddFormats };
 const addFormats: AddFormats = typeof imported === "function" ? imported : imported.default;
 
-const v01 = manifest["0.1.0"].fixtures as readonly V01ManifestFixture[];
+/**
+ * BD-257: a document validates against the schema version it was written for.
+ * `protocol/schemas/` is a single flat directory holding only the pinned schema
+ * shapes, so a 0.1.0 document only still validates if the schema it names did not
+ * change shape between 0.1.0 and the pin — the schemas the 0.3.0 section's
+ * `definitionsOnly` lists (unchanged since 0.1.0). `v01Fixtures` (generated) already
+ * excludes the rest (docket-entry, requirement, attestation, evidence-card-request,
+ * error-code); this local `v01`/`positives`/`negatives` mirror that exclusion so
+ * every entry iterated here has a document in `v01Fixtures` to validate, re-pathed
+ * onto the flat vendored directory the same way the generator re-paths it.
+ */
+const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly as readonly string[]);
+const v01 = (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[])
+  .map((entry) => ({
+    ...entry,
+    schema: entry.schema.replace(/^schemas\/0\.1\.0\//, "schemas/0.3.0/") as typeof entry.schema,
+  }))
+  .filter((entry) => v03DefinitionsOnly.has(entry.schema));
 const positives = v01.filter((entry) => entry.kind === "positive");
 const negatives = v01.filter((entry) => entry.kind === "negative");
 /**
@@ -51,7 +68,16 @@ const seedSchemaRelevant = manifest.fixtures.filter(
 let ajv: Ajv2020;
 
 function validatorFor(schemaPath: string): ValidateFunction {
-  const schema = schemasByPath[schemaPath] ?? seedSchemasByPath[schemaPath];
+  // BD-257: `protocol/schemas/` is a flat directory holding only the pinned
+  // (0.3.0) shapes; a caller naming a `schemas/0.1.0/...` path for a schema that
+  // did not change shape (this file has several literal ones) still resolves, onto
+  // the pinned copy of the same file.
+  const repathed = schemaPath.replace(/^schemas\/0\.1\.0\//, "schemas/0.3.0/");
+  const schema =
+    schemasByPath[repathed] ??
+    seedSchemasByPath[repathed] ??
+    schemasByPath[schemaPath] ??
+    seedSchemasByPath[schemaPath];
   if (schema === undefined) {
     throw new Error(`the manifest names ${schemaPath}, which is not vendored`);
   }
@@ -91,15 +117,23 @@ beforeAll(() => {
 });
 
 describe("the v0.1 fixture set", () => {
-  it("is the 46 positives and 23 negatives the rulebook promoted", () => {
-    expect(positives).toHaveLength(46);
-    expect(negatives).toHaveLength(23);
-    expect(schemaNegatives).toHaveLength(22);
-    expect(crossObject).toHaveLength(1);
+  it("is the 46 positives and 23 negatives the rulebook promoted, minus BD-257's exclusions", () => {
+    // BD-257: docket-entry, requirement, attestation, evidence-card-request and
+    // error-code changed shape at the pin, so their 0.1.0 documents (the 1
+    // cross-object negative among them) are excluded from this filtered set —
+    // v03Fixtures / the v0.3 describe blocks below cover those schemas instead.
+    expect(positives).toHaveLength(28);
+    expect(negatives).toHaveLength(16);
+    expect(schemaNegatives).toHaveLength(16);
+    expect(crossObject).toHaveLength(0);
   });
 
   it("covers every schema that carries a payload of its own", () => {
-    const cited = new Set<string>(v01.map((entry) => entry.schema));
+    // Unfiltered here on purpose: this checks the 0.1.0 manifest's own internal
+    // consistency (every 0.1.0 schema has a fixture), not what BD-257 lets validate
+    // against the pinned flat directory — that is the describe blocks below.
+    const v01Raw = manifest["0.1.0"].fixtures as readonly V01ManifestFixture[];
+    const cited = new Set<string>(v01Raw.map((entry) => entry.schema));
     const definitionsOnly = new Set<string>(manifest["0.1.0"].definitionsOnly);
     const uncovered = Object.keys(schemasByPath).filter(
       (path) => !cited.has(path) && !definitionsOnly.has(path),

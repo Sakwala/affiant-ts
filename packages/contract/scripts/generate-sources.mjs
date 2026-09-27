@@ -380,25 +380,44 @@ const wireEntries = manifest.fixtures.map((entry) => ({
   json: readJson(join(protocolDir, "fixtures", entry.file)),
 }));
 
-const v01 = manifest["0.1.0"];
-const v01Entries = v01.fixtures.map((entry) => ({
-  id: entry.id,
-  kind: entry.kind,
-  schema: entry.schema,
-  json: readJson(join(protocolDir, "fixtures", entry.file)),
-}));
-
 // BD-256: every versioned manifest section's schema documents are emitted, not just
-// 0.1.0's — additively, so v01Entries/v01Fixtures (nine call sites elsewhere) are
-// untouched. A pin whose manifest carries no "0.3.0" section (older than this ruling)
+// 0.1.0's. A pin whose manifest carries no "0.3.0" section (older than this ruling)
 // gets an empty v03Entries/v03Fixtures rather than a missing export.
-const v03 = manifest["0.3.0"] ?? { fixtures: [] };
+const v03 = manifest["0.3.0"] ?? { fixtures: [], definitionsOnly: [] };
 const v03Entries = v03.fixtures.map((entry) => ({
   id: entry.id,
   kind: entry.kind,
   schema: entry.schema,
   json: readJson(join(protocolDir, "fixtures", entry.file)),
 }));
+
+/**
+ * BD-257: a document validates against the schema version it was written for.
+ * `protocol/schemas/` is a single flat directory holding only the pinned
+ * (`wireSchemaVersion`) schema shapes, so a 0.1.0 document can only still validate if
+ * the schema it names did not change shape between 0.1.0 and the pin — exactly the
+ * schemas the 0.3.0 manifest section lists under `definitionsOnly` (common,
+ * affidavit, and so on: unchanged since 0.1.0). A 0.1.0 document for a schema that
+ * did change (docket-entry, requirement, attestation, evidence-card-request,
+ * error-code) has no vendored 0.1.0 schema left to validate against, so it is
+ * dropped here rather than emitted to fail every run; `v03Fixtures` above is its
+ * replacement. The kept documents are re-pathed onto the flat directory the pin
+ * actually vendors (`schemas/0.1.0/<name>` -> `schemas/${wireSchemaVersion}/<name>`).
+ */
+const v03DefinitionsOnly = new Set(v03.definitionsOnly ?? []);
+const v01 = manifest["0.1.0"];
+const v01Entries = v01.fixtures
+  .map((entry) => ({
+    ...entry,
+    schema: entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${wireSchemaVersion}/`),
+  }))
+  .filter((entry) => v03DefinitionsOnly.has(entry.schema))
+  .map((entry) => ({
+    id: entry.id,
+    kind: entry.kind,
+    schema: entry.schema,
+    json: readJson(join(protocolDir, "fixtures", entry.file)),
+  }));
 
 const fixturesTs = `${banner("Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/")}
 ${wireEntries

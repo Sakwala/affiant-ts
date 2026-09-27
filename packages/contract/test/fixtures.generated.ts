@@ -502,44 +502,6 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
       "Active"
     ]
   ],
-  "v0.1/attestation/01-member": {
-    "by": {
-      "kind": "member",
-      "id": "ana"
-    },
-    "at": "2026-09-04T09:00:00.000Z",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-  },
-  "v0.1/attestation/02-standing-order": {
-    "by": {
-      "kind": "standing-order",
-      "policyId": "auto-approve",
-      "version": "2.1.0"
-    },
-    "at": "2026-09-04T09:00:00.000Z",
-    "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241"
-  },
-  "v0.1/attestation/03-member-via-relay": {
-    "by": {
-      "kind": "member-via-relay",
-      "memberId": "ana",
-      "relay": {
-        "principal": "whatsapp-relay",
-        "channelIdentity": "+94770000000",
-        "messageId": "wamid-42"
-      }
-    },
-    "at": "2026-09-04T09:00:00.000Z",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-  },
-  "v0.1/attestation/90-service-attestor": {
-    "by": {
-      "kind": "service",
-      "id": "relay-1"
-    },
-    "at": "2026-09-04T09:00:00.000Z",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-  },
   "v0.1/binding/01-external-ref": {
     "kind": "external-ref",
     "ref": {
@@ -608,1838 +570,12 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
     "outcome": "approved",
     "execution": "unexecuted"
   },
-  "v0.1/docket-entry/01-pending-reviewer-confirmation": {
-    "protocolVersion": "0.1.0",
-    "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "pending",
-    "execution": null,
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": null,
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": null,
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": null,
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/02-approved-unexecuted": {
-    "protocolVersion": "0.1.0",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "approved",
-    "execution": "unexecuted",
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": {
-      "by": {
-        "kind": "member",
-        "id": "ana"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-    },
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": {
-      "kind": "approve",
-      "reason": "checked against the purchase order",
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": "2026-09-04T09:00:00.000Z",
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/03-amended-on-approval": {
-    "protocolVersion": "0.1.0",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "4000",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "UserStated",
-              "confidence": 1,
-              "note": "Amended by ana on Docket entry 4f3f031b-a7c4-867c-9b1f-be0de416040d",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": {
-                "kind": "reviewer-act",
-                "ref": {
-                  "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-                  "decisionAt": "2026-09-04T09:00:00.000Z"
-                }
-              }
-            },
-            "prior": [
-              {
-                "source": "Conversation",
-                "confidence": 0.9,
-                "note": null,
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": null
-              }
-            ]
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requirement": "ReviewerConfirmation",
-    "status": "approved",
-    "execution": "unexecuted",
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": {
-      "by": {
-        "kind": "member",
-        "id": "ana"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-    },
-    "amendments": {
-      "amount": "4000",
-      "note": null
-    },
-    "preservedAmendments": null,
-    "decision": {
-      "kind": "approve",
-      "reason": null,
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": "2026-09-04T09:00:00.000Z",
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/04-standing-order-approved": {
-    "protocolVersion": "0.1.0",
-    "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "relay_capture",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "StandingOrder",
-    "status": "approved",
-    "execution": "unexecuted",
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": {
-      "by": {
-        "kind": "standing-order",
-        "policyId": "auto-approve",
-        "version": "2.1.0"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241"
-    },
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": null,
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": "2026-09-04T09:00:00.000Z",
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/05-blocked-coverage-refused": {
-    "protocolVersion": "0.1.0",
-    "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "relay_capture",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "StandingOrder",
-    "status": "pending",
-    "execution": null,
-    "blocked": {
-      "code": "coverage-refused",
-      "category": "provider-executed",
-      "toolName": "relay_capture"
-    },
-    "compositeRef": null,
-    "attestation": null,
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": null,
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": null,
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/06-executed": {
-    "protocolVersion": "0.1.0",
-    "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "amount",
-          "kind": "text",
-          "value": "40",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "kept",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "approved",
-    "execution": "executed",
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": {
-      "by": {
-        "kind": "member",
-        "id": "ana"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-    },
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": {
-      "kind": "approve",
-      "reason": null,
-      "at": "2026-09-04T09:00:00.000Z"
-    },
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": "2026-09-04T09:00:00.000Z",
-    "executionDetail": "invoice row 41"
-  },
-  "v0.1/docket-entry/07-expired-amendments-preserved": {
-    "protocolVersion": "0.1.0",
-    "entryId": "80358c14-961a-875e-b20a-0a70a89e4592",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": {
-                "kind": "utterance-span",
-                "ref": {
-                  "offset": 21,
-                  "length": 6,
-                  "hash": "92340695899bd2d86223e4a007620e0d6502fc0e08809773634c7e0743764a9c"
-                }
-              }
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "expired",
-    "execution": null,
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": null,
-    "amendments": null,
-    "preservedAmendments": {
-      "amendments": {
-        "status": "Retired"
-      },
-      "at": "2026-09-04T09:45:00.000Z",
-      "by": "ana"
-    },
-    "decision": null,
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f"
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": "2026-09-04T09:30:00.000Z",
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/08-resubmitted": {
-    "protocolVersion": "0.1.0",
-    "entryId": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Retired",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "UserStated",
-              "confidence": 1,
-              "note": "Prefilled from the amendment ana carried on Docket entry 80358c14-961a-875e-b20a-0a70a89e4592",
-              "at": "2026-09-04T09:45:00.000Z",
-              "conversationTurn": null,
-              "binding": {
-                "kind": "reviewer-act",
-                "ref": {
-                  "entryId": "80358c14-961a-875e-b20a-0a70a89e4592",
-                  "decisionAt": "2026-09-04T09:45:00.000Z"
-                }
-              }
-            },
-            "prior": [
-              {
-                "source": "Conversation",
-                "confidence": 0.9,
-                "note": "Literally present in the turn: status",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": {
-                  "kind": "utterance-span",
-                  "ref": {
-                    "offset": 21,
-                    "length": 6,
-                    "hash": "92340695899bd2d86223e4a007620e0d6502fc0e08809773634c7e0743764a9c"
-                  }
-                }
-              }
-            ]
-          },
-          "isMandatory": true
-        }
-      ],
-      "aggregateConfidence": 1,
-      "populatedConfidence": 1,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:46:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "pending",
-    "execution": null,
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": null,
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": null,
-    "lineage": {
-      "supersedes": "80358c14-961a-875e-b20a-0a70a89e4592",
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:46:00.000Z",
-    "expiresAt": "2026-09-04T10:16:00.000Z",
-    "decidedAt": null,
-    "executionDetail": null
-  },
-  "v0.1/docket-entry/90-deferred-status": {
-    "protocolVersion": "0.1.0",
-    "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "tenantId": "tenant-a",
-    "conversationId": "conv-1",
-    "channel": "chat",
-    "toolName": "update_invoice",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "amendedAffidavit": null,
-    "requirement": "ReviewerConfirmation",
-    "status": "deferred",
-    "execution": null,
-    "blocked": null,
-    "compositeRef": null,
-    "attestation": null,
-    "amendments": null,
-    "preservedAmendments": null,
-    "decision": null,
-    "lineage": {
-      "supersedes": null,
-      "supersededBy": null
-    },
-    "filedAt": "2026-09-04T09:00:00.000Z",
-    "expiresAt": "2026-09-04T09:30:00.000Z",
-    "decidedAt": null,
-    "executionDetail": null
-  },
   "v0.1/entity-ref/01-update": {
     "entityType": "Invoice",
     "entityId": "invoice-1"
   },
   "v0.1/entity-ref/90-missing-entity-id": {
     "entityType": "Invoice"
-  },
-  "v0.1/error-code/01-substance-refused": "substance-refused",
-  "v0.1/error-code/90-unregistered-code": "decision-refused",
-  "v0.1/evidence-card-request/01-first-filing": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/02-blocked": {
-    "protocolVersion": "0.1.0",
-    "docketId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.9,
-    "emptyFieldCount": 0,
-    "blocked": {
-      "code": "coverage-refused",
-      "category": "provider-executed",
-      "toolName": "relay_capture"
-    },
-    "requiresConfirmation": false
-  },
-  "v0.1/evidence-card-request/03-resubmission": {
-    "protocolVersion": "0.1.0",
-    "docketId": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Retired",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "UserStated",
-              "confidence": 1,
-              "note": "Prefilled from the amendment ana carried on Docket entry 80358c14-961a-875e-b20a-0a70a89e4592",
-              "at": "2026-09-04T09:45:00.000Z",
-              "conversationTurn": null,
-              "binding": {
-                "kind": "reviewer-act",
-                "ref": {
-                  "entryId": "80358c14-961a-875e-b20a-0a70a89e4592",
-                  "decisionAt": "2026-09-04T09:45:00.000Z"
-                }
-              }
-            },
-            "prior": [
-              {
-                "source": "Conversation",
-                "confidence": 0.9,
-                "note": "Literally present in the turn: status",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": {
-                  "kind": "utterance-span",
-                  "ref": {
-                    "offset": 21,
-                    "length": 6,
-                    "hash": "92340695899bd2d86223e4a007620e0d6502fc0e08809773634c7e0743764a9c"
-                  }
-                }
-              }
-            ]
-          },
-          "isMandatory": true
-        }
-      ],
-      "aggregateConfidence": 1,
-      "populatedConfidence": 1,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:46:00.000Z"
-    },
-    "requiredBy": "2026-09-04T10:16:00.000Z",
-    "priorAmendments": {
-      "status": "Retired"
-    },
-    "populatedConfidence": 1,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/04-presentation-hints": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "presentation": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "allowedValues": [
-          "Draft",
-          "Active",
-          "Retired"
-        ]
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "pattern": "^\\d+(\\.\\d{1,2})?$"
-      },
-      {
-        "name": "dueOn",
-        "kind": "date"
-      },
-      {
-        "name": "note",
-        "kind": "text"
-      }
-    ],
-    "warnings": [],
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/05-blocked-with-warnings": {
-    "protocolVersion": "0.1.0",
-    "docketId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "text",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.9,
-      "populatedConfidence": 0.9,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.9,
-    "emptyFieldCount": 0,
-    "blocked": {
-      "code": "coverage-refused",
-      "category": "provider-executed",
-      "toolName": "relay_capture"
-    },
-    "warnings": [
-      "CV-4: \"relay_capture\" is declared uncovered (provider-executed); this proposal is on the record and cannot be approved through the gate."
-    ],
-    "requiresConfirmation": false
-  },
-  "v0.1/evidence-card-request/06-host-operation": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "presentation": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "allowedValues": [
-          "Draft",
-          "Active",
-          "Retired"
-        ]
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "pattern": "^\\d+(\\.\\d{1,2})?$"
-      },
-      {
-        "name": "dueOn",
-        "kind": "date"
-      },
-      {
-        "name": "note",
-        "kind": "text"
-      }
-    ],
-    "warnings": [],
-    "hostOperation": "WriteUpdate",
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/90-missing-protocol-version": {
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/91-presentation-unknown-key": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "presentation": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "allowedValues": [
-          "Draft",
-          "Active",
-          "Retired"
-        ],
-        "required": true
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "pattern": "^\\d+(\\.\\d{1,2})?$"
-      },
-      {
-        "name": "dueOn",
-        "kind": "date"
-      },
-      {
-        "name": "note",
-        "kind": "text"
-      }
-    ],
-    "warnings": [],
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/92-warnings-not-an-array": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "presentation": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "allowedValues": [
-          "Draft",
-          "Active",
-          "Retired"
-        ]
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "pattern": "^\\d+(\\.\\d{1,2})?$"
-      },
-      {
-        "name": "dueOn",
-        "kind": "date"
-      },
-      {
-        "name": "note",
-        "kind": "text"
-      }
-    ],
-    "warnings": "The total changed by more than 10x.",
-    "requiresConfirmation": true
-  },
-  "v0.1/evidence-card-request/93-presentation-names-unknown-field": {
-    "protocolVersion": "0.1.0",
-    "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "affidavit": {
-      "protocolVersion": "0.1.0",
-      "operationType": "update",
-      "entityType": "Invoice",
-      "entityId": "invoice-1",
-      "fields": [
-        {
-          "name": "status",
-          "kind": "enum",
-          "value": "Active",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": "Literally present in the turn: status",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "amount",
-          "kind": "number",
-          "value": 40,
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Conversation",
-              "confidence": 0.8,
-              "note": "Literally present in the turn: amount",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": true
-        },
-        {
-          "name": "dueOn",
-          "kind": "date",
-          "value": "2026-10-01",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.6,
-              "note": "Inferred from the turn: dueOn",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        },
-        {
-          "name": "note",
-          "kind": "text",
-          "value": "raised in chat",
-          "previousValue": null,
-          "provenance": {
-            "current": {
-              "source": "Inferred",
-              "confidence": 0.7,
-              "note": "Inferred from the turn: note",
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            },
-            "prior": []
-          },
-          "isMandatory": false
-        }
-      ],
-      "aggregateConfidence": 0.6,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "conversationTurn": null,
-      "createdAt": "2026-09-04T09:00:00.000Z"
-    },
-    "requiredBy": "2026-09-04T09:30:00.000Z",
-    "priorAmendments": null,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "blocked": null,
-    "presentation": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "allowedValues": [
-          "Draft",
-          "Active",
-          "Retired"
-        ]
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "pattern": "^\\d+(\\.\\d{1,2})?$"
-      },
-      {
-        "name": "dueDate",
-        "kind": "date"
-      },
-      {
-        "name": "note",
-        "kind": "text"
-      }
-    ],
-    "warnings": [],
-    "requiresConfirmation": true
   },
   "v0.1/money/01-decimal-string": {
     "amount": "4000.10",
@@ -2811,6 +947,634 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
     "kind": "error",
     "code": "gate-refused",
     "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
+  },
+};
+
+/**
+ * Every v0.3 fixture, keyed by its manifest id (BD-256): the `MultiParty`
+ * requirement, attestor and docket-entry shapes the 0.3.0 schemas describe. Left as
+ * `unknown` for the same reason `v01Fixtures` is: a negative fixture is not
+ * assignable to the type its schema describes.
+ */
+export const v03Fixtures: Readonly<Record<string, unknown>> = {
+  "v0.3/requirement-multiparty": {
+    "kind": "MultiParty",
+    "approvers": [
+      "ana",
+      "bo",
+      "cy"
+    ],
+    "required": 3
+  },
+  "v0.3/requirement-one-approver": {
+    "kind": "MultiParty",
+    "approvers": [
+      "ana"
+    ],
+    "required": 1
+  },
+  "v0.3/requirement-duplicate-approvers": {
+    "kind": "MultiParty",
+    "approvers": [
+      "ana",
+      "ana",
+      "bo"
+    ],
+    "required": 2
+  },
+  "v0.3/attestation-multi-party": {
+    "by": {
+      "kind": "multi-party",
+      "approvers": [
+        {
+          "kind": "member",
+          "id": "ana"
+        },
+        {
+          "kind": "member",
+          "id": "bo"
+        },
+        {
+          "kind": "member",
+          "id": "cy"
+        }
+      ]
+    },
+    "at": "2026-09-28T09:03:00.000Z",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+  },
+  "v0.3/error-code-approver-not-listed": "approver-not-listed",
+  "v0.3/docket-entry-multiparty-pending": {
+    "protocolVersion": "0.3.0",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "propose_payment",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Payment",
+      "entityId": "payment-1",
+      "fields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "value": "Acme",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: payee",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-28T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": {
+      "kind": "MultiParty",
+      "approvers": [
+        "ana",
+        "bo",
+        "cy"
+      ],
+      "required": 3
+    },
+    "status": "pending",
+    "execution": null,
+    "blocked": null,
+    "approvals": [],
+    "attestation": null,
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": null,
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-28T09:00:00.000Z",
+    "expiresAt": "2026-09-28T09:30:00.000Z",
+    "decidedAt": null,
+    "executionDetail": null
+  },
+  "v0.3/docket-entry-multiparty-approved": {
+    "protocolVersion": "0.3.0",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "propose_payment",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Payment",
+      "entityId": "payment-1",
+      "fields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "value": "Acme",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: payee",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-28T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": {
+      "kind": "MultiParty",
+      "approvers": [
+        "ana",
+        "bo",
+        "cy"
+      ],
+      "required": 3
+    },
+    "status": "approved",
+    "execution": "unexecuted",
+    "blocked": null,
+    "approvals": [
+      {
+        "approver": "ana",
+        "decision": "approve",
+        "reason": null,
+        "at": "2026-09-28T09:01:00.000Z",
+        "attestation": {
+          "by": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "at": "2026-09-28T09:01:00.000Z",
+          "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+        }
+      },
+      {
+        "approver": "bo",
+        "decision": "approve",
+        "reason": null,
+        "at": "2026-09-28T09:02:00.000Z",
+        "attestation": {
+          "by": {
+            "kind": "member",
+            "id": "bo"
+          },
+          "at": "2026-09-28T09:02:00.000Z",
+          "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+        }
+      },
+      {
+        "approver": "cy",
+        "decision": "approve",
+        "reason": null,
+        "at": "2026-09-28T09:03:00.000Z",
+        "attestation": {
+          "by": {
+            "kind": "member",
+            "id": "cy"
+          },
+          "at": "2026-09-28T09:03:00.000Z",
+          "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+        }
+      }
+    ],
+    "attestation": {
+      "by": {
+        "kind": "multi-party",
+        "approvers": [
+          {
+            "kind": "member",
+            "id": "ana"
+          },
+          {
+            "kind": "member",
+            "id": "bo"
+          },
+          {
+            "kind": "member",
+            "id": "cy"
+          }
+        ]
+      },
+      "at": "2026-09-28T09:03:00.000Z",
+      "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b"
+    },
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": {
+      "kind": "approve",
+      "reason": null,
+      "at": "2026-09-28T09:03:00.000Z",
+      "by": "cy"
+    },
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-28T09:00:00.000Z",
+    "expiresAt": "2026-09-28T09:30:00.000Z",
+    "decidedAt": "2026-09-28T09:03:00.000Z",
+    "executionDetail": null
+  },
+  "v0.3/docket-entry-reviewer-executed": {
+    "protocolVersion": "0.3.0",
+    "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "update_invoice",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: status",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-04T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": {
+      "kind": "ReviewerConfirmation"
+    },
+    "status": "approved",
+    "execution": "executed",
+    "blocked": null,
+    "approvals": null,
+    "attestation": {
+      "by": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "at": "2026-09-04T09:00:00.000Z",
+      "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+    },
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": {
+      "kind": "approve",
+      "reason": null,
+      "at": "2026-09-04T09:00:00.000Z",
+      "by": "ana"
+    },
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-04T09:00:00.000Z",
+    "expiresAt": "2026-09-04T09:30:00.000Z",
+    "decidedAt": "2026-09-04T09:00:00.000Z",
+    "executionDetail": {
+      "code": "row-written",
+      "rows": 1
+    }
+  },
+  "v0.3/docket-entry-composite-ref-present": {
+    "protocolVersion": "0.3.0",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "propose_payment",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Payment",
+      "entityId": "payment-1",
+      "fields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-28T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": {
+      "kind": "ReviewerConfirmation"
+    },
+    "status": "pending",
+    "execution": null,
+    "blocked": null,
+    "approvals": null,
+    "compositeRef": "composite-1",
+    "attestation": null,
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": null,
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-28T09:00:00.000Z",
+    "expiresAt": "2026-09-28T09:30:00.000Z",
+    "decidedAt": null,
+    "executionDetail": null
+  },
+  "v0.3/docket-entry-requirement-string": {
+    "protocolVersion": "0.3.0",
+    "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "propose_payment",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Payment",
+      "entityId": "payment-1",
+      "fields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-28T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": "ReviewerConfirmation",
+    "status": "pending",
+    "execution": null,
+    "blocked": null,
+    "approvals": null,
+    "attestation": null,
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": null,
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-28T09:00:00.000Z",
+    "expiresAt": "2026-09-28T09:30:00.000Z",
+    "decidedAt": null,
+    "executionDetail": null
+  },
+  "v0.3/docket-entry-execution-detail-string": {
+    "protocolVersion": "0.3.0",
+    "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "channel": "chat",
+    "toolName": "update_invoice",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Invoice",
+      "entityId": "invoice-1",
+      "fields": [
+        {
+          "name": "status",
+          "kind": "text",
+          "value": "Active",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: status",
+              "at": "2026-09-04T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-04T09:00:00.000Z"
+    },
+    "amendedAffidavit": null,
+    "requirement": {
+      "kind": "ReviewerConfirmation"
+    },
+    "status": "approved",
+    "execution": "executed",
+    "blocked": null,
+    "approvals": null,
+    "attestation": {
+      "by": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "at": "2026-09-04T09:00:00.000Z",
+      "entryId": "6a1c2d3e-4f50-6172-8394-a5b6c7d8e9f0"
+    },
+    "amendments": null,
+    "preservedAmendments": null,
+    "decision": {
+      "kind": "approve",
+      "reason": null,
+      "at": "2026-09-04T09:00:00.000Z",
+      "by": "ana"
+    },
+    "lineage": {
+      "supersedes": null,
+      "supersededBy": null
+    },
+    "filedAt": "2026-09-04T09:00:00.000Z",
+    "expiresAt": "2026-09-04T09:30:00.000Z",
+    "decidedAt": "2026-09-04T09:00:00.000Z",
+    "executionDetail": "invoice row 41"
+  },
+  "v0.3/evidence-card-request-multiparty": {
+    "protocolVersion": "0.3.0",
+    "docketId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
+    "affidavit": {
+      "protocolVersion": "0.3.0",
+      "operationType": "update",
+      "entityType": "Payment",
+      "entityId": "payment-1",
+      "fields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: amount",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "value": "Acme",
+          "previousValue": null,
+          "provenance": {
+            "current": {
+              "source": "Conversation",
+              "confidence": 0.9,
+              "note": "Literally present in the turn: payee",
+              "at": "2026-09-28T09:00:00.000Z",
+              "conversationTurn": null,
+              "binding": null
+            },
+            "prior": []
+          },
+          "isMandatory": true
+        }
+      ],
+      "aggregateConfidence": 0.9,
+      "populatedConfidence": 0.9,
+      "emptyFieldCount": 0,
+      "conversationTurn": null,
+      "createdAt": "2026-09-28T09:00:00.000Z"
+    },
+    "requiredBy": "2026-09-28T09:30:00.000Z",
+    "priorAmendments": null,
+    "populatedConfidence": 0.9,
+    "emptyFieldCount": 0,
+    "blocked": null,
+    "requiresConfirmation": true,
+    "multiParty": {
+      "approvers": [
+        {
+          "id": "ana",
+          "decided": null
+        },
+        {
+          "id": "bo",
+          "decided": null
+        },
+        {
+          "id": "cy",
+          "decided": null
+        }
+      ],
+      "required": 3
+    }
   },
 };
 
