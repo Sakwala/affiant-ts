@@ -29,7 +29,23 @@ import { fileURLToPath } from "node:url";
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const protocolDir = join(packageRoot, "protocol");
 
-const pin = readFileSync(join(protocolDir, "PIN"), "utf8").trim();
+/**
+ * `protocol/PIN`'s first line is the ref; its optional second line,
+ * `schemas=<version>`, names which of the rulebook's versioned schema
+ * directories that ref's vendoring means (see `sync-protocol.mjs`'s doc
+ * comment). `pin` below is the ref alone — what `PROTOCOL_PIN` below
+ * carries — and `wireSchemaVersion` is that second line's version, or
+ * `"0.1.0"` when the line is absent, which is what `protocol/schemas/`
+ * held before this line existed.
+ */
+const pinLines = readFileSync(join(protocolDir, "PIN"), "utf8")
+  .split("\n")
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0);
+const pin = pinLines[0];
+const schemaVersionMatch =
+  pinLines[1] === undefined ? null : /^schemas=(\d+\.\d+\.\d+)$/.exec(pinLines[1]);
+const wireSchemaVersion = schemaVersionMatch === null ? "0.1.0" : schemaVersionMatch[1];
 
 /** `affidavit-field` -> `affidavitField` */
 function camel(kebab) {
@@ -80,7 +96,7 @@ function schemaSet(localDir, upstreamPrefix, suffix) {
     });
 }
 
-const wireSchemas = schemaSet("schemas", "schemas/0.1.0", "Schema");
+const wireSchemas = schemaSet("schemas", `schemas/${wireSchemaVersion}`, "Schema");
 const seedSchemaEntries = schemaSet("schemas/seed", "schemas", "SeedSchema");
 
 /** The `export const` block plus the four lookup tables for one schema set. */
