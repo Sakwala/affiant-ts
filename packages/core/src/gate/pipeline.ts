@@ -1004,6 +1004,14 @@ function wireCarry(entry: DocketEntry, build: CardBuild): WireCarry {
         `entry is blocked and no decision on it will be accepted.`,
     );
   }
+  // AZ-4: read off the row, so this sentence appears whether the card is built at
+  // filing or later by `cardFor` — a constituent's card says so on its face either way.
+  if (entry.compositeRef !== null) {
+    warnings.push(
+      `AZ-4: this entry is one constituent of composite ${JSON.stringify(entry.compositeRef)}; ` +
+        `its approval alone does not reach the executor.`,
+    );
+  }
 
   // One entry per field the host declared something about, naming a field the
   // Affidavit carries — a hint for a field the record does not carry would render
