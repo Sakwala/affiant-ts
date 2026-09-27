@@ -25,15 +25,22 @@ shape, no schema and no vector changed.
   to carry and always files `null` (AZ-4).
 
 - **`composite-ref-invalid`.** `gate.file` throws `AffiantCallerError` of this kind when
-  `compositeRef` is supplied but is not the schema's identifier — a non-empty string —
-  before any port runs; nothing is filed (AZ-4).
+  `compositeRef` is supplied but is neither the schema's identifier — a non-empty string —
+  nor `null`, which means none, the same as leaving it out; the check runs inside
+  `runPipeline`, before any port, so a caller of that exported function gets the same
+  answer; nothing is filed (AZ-4).
+
+- **`PipelineProposal.compositeRef: string | null` is a new required member** of the
+  exported interface; `runPipeline` reads an omitted value as `null`, so a caller typed
+  against alpha.4 files standalone entries and is not refused on a retry (AZ-4, GT-4).
 
 - **`composite-ref-mismatch`.** A filing that replays an existing row (GT-4) while
   naming a different `compositeRef` than the one the row records throws
   `AffiantCallerError` of this kind, with `details` naming `entryId`, `stored` and
   `proposed`; the store has already answered and nothing new is written. This is a
   second constituent filed with the first one's material, not a retry of the same
-  proposal (AZ-4).
+  proposal. The comparison reads the stored value as `null` when a store returns no
+  key for it (AZ-4).
 
 - **A resubmission copies `compositeRef` verbatim off the superseded row.**
   `gate.resubmit` takes only an entry id; the successor stays a constituent of the

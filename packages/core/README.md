@@ -320,7 +320,10 @@ must decide each constituent, the policy your chain runs for these proposals has
 return `ReviewerConfirmation` (or nothing) — a policy that answers `MultiParty` files
 a single blocked row, not N decidable ones. Composing "N constituents, one composite"
 is a host-side decision about how many entries to file and who may decide each; it is
-not a level the gate is told to run.
+not a level the gate is told to run. The gate does not police that decision from the
+other side either: a policy that answers `StandingOrder` for a constituent files it
+`approved` with nobody deciding, and the card still says it is one constituent — keep
+Standing Orders out of the chain your constituents run through.
 
 **The identity landmine.** A Docket entry's id is derived from the tenant, the
 conversation, the tool, the operation, `args` and, for a resubmission, the entry it
@@ -337,7 +340,9 @@ for you.
 
 **The two ways a filing can go wrong here are caller errors, not refusals on the
 wire.** A `compositeRef` that is not a non-empty string throws `AffiantCallerError`
-kind `composite-ref-invalid` before any port runs; nothing is filed. A replay — a
+kind `composite-ref-invalid` before any port runs; nothing is filed. `null` is not an
+error: it means "no composite", the same as leaving the property out, and a retry that
+spells "none" the other way is still a retry. A replay — a
 filing whose derived id already exists — that names a _different_ `compositeRef` than
 the stored row throws kind `composite-ref-mismatch`, naming the entry id and both
 values, after the store has already answered and after nothing new was written: this
