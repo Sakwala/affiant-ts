@@ -427,7 +427,7 @@ export type RequirementExpectation =
  * A partial matcher over the typed execution detail: `code` is compared
  * exactly, every other property is the host's own and unconstrained (0.3.0).
  */
-export type ExecutionDetailExpectation = { readonly code?: string };
+export type ExecutionDetailExpectation = { readonly code?: string; readonly [key: string]: unknown };
 
 /**
  * A partial matcher over one `MultiParty` approval record (0.3.0). `attestation`

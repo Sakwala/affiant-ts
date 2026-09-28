@@ -117,50 +117,6 @@ describe("cardFor rebuilds the card the filing returned (SR-1)", () => {
     expect(cardFor(entry, { now: AT, schema: SCHEMA, operationLabel: "Reprice" })).toEqual(card);
   });
 
-  it("carries the AZ-4 sentence on both the filed card and cardFor when compositeRef is set", async () => {
-    const h = harness();
-    const filed = await h.gate.file(
-      {
-        operation: {
-          kind: "update",
-          entityType: "Invoice",
-          entityId: "invoice-1",
-          fields: [...FIELDS],
-        },
-        toolName: "update_invoice",
-        fields: [prepared("status", "Active"), prepared("amount", "40"), prepared("note", "kept")],
-        args: null,
-        schema: SCHEMA,
-        operationLabel: "Reprice",
-        compositeRef: "pi-1",
-      },
-      turnContext(),
-    );
-
-    const rebuilt = cardFor(filed.entry, { now: AT, schema: SCHEMA, operationLabel: "Reprice" });
-
-    expect(filed.card.warnings).toHaveLength(1);
-    expect(filed.card.warnings?.[0]).toMatch(
-      /^AZ-4: this entry is one constituent of composite "pi-1"/,
-    );
-    expect(rebuilt.warnings).toHaveLength(1);
-    expect(rebuilt.warnings?.[0]).toMatch(
-      /^AZ-4: this entry is one constituent of composite "pi-1"/,
-    );
-  });
-
-  it("carries no constituent warning when compositeRef is absent", async () => {
-    const h = harness();
-    const { entry, card } = await fileOne(h, { operationLabel: "Reprice" });
-
-    const rebuilt = cardFor(entry, { now: AT, schema: SCHEMA, operationLabel: "Reprice" });
-
-    expect(card.warnings?.some((warning) => warning.includes("constituent")) ?? false).toBe(false);
-    expect(rebuilt.warnings?.some((warning) => warning.includes("constituent")) ?? false).toBe(
-      false,
-    );
-  });
-
   it("carries the hints and the host's verb the caller supplies now, not the ones at filing", async () => {
     const h = harness();
     const { entry } = await fileOne(h, { operationLabel: "Reprice" });

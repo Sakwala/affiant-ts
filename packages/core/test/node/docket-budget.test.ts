@@ -60,14 +60,14 @@ describe("the per-request path stays inside its budget (RT-2)", () => {
           channel: "chat",
           toolName: "update_invoice",
           affidavit: sworn,
-          requirement: "ReviewerConfirmation",
+          requirement: { kind: "ReviewerConfirmation" },
           filedAt: NOON,
           expiresAt: "2026-09-04T09:30:00.000Z",
         }),
       );
       await store.transition(entryId, TENANT, "pending", {
         status: "approved",
-        decision: { kind: "approve", reason: null, at: NOON },
+        decision: { kind: "approve", reason: null, at: NOON, by: "person-7" },
         attestation: { by: { kind: "member", id: "person-7" }, at: NOON, entryId },
       });
     }
@@ -93,7 +93,7 @@ describe("the per-request path stays inside its budget (RT-2)", () => {
             channel: "chat",
             toolName: "update_invoice",
             affidavit: sworn,
-            requirement: "ReviewerConfirmation",
+            requirement: { kind: "ReviewerConfirmation" },
             filedAt: NOON,
             expiresAt: "2026-09-04T09:30:00.000Z",
           }),
