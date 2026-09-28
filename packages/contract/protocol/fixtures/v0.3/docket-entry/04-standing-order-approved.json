@@ -1,12 +1,12 @@
 {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.3.0",
   "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
   "tenantId": "tenant-a",
   "conversationId": "conv-1",
   "channel": "chat",
   "toolName": "relay_capture",
   "affidavit": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "operationType": "update",
     "entityType": "Invoice",
     "entityId": "invoice-1",

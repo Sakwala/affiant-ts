@@ -1,12 +1,12 @@
 {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.3.0",
   "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
   "tenantId": "tenant-a",
   "conversationId": "conv-1",
   "channel": "chat",
   "toolName": "update_invoice",
   "affidavit": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "operationType": "update",
     "entityType": "Invoice",
     "entityId": "invoice-1",
