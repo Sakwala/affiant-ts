@@ -31,7 +31,7 @@ export type { StubClock } from "../src/testing-store.js";
  * named would be a set of assertions that quietly stopped running.
  */
 export const DOCKET_CONTRACT_SPLIT = {
-  "docket-store": ["filing", "transition", "deadline", "execution", "lineage"],
+  "docket-store": ["filing", "transition", "approval", "deadline", "execution", "lineage"],
   "docket-sweep": ["sweep", "paging"],
   "docket-retention": ["retention", "purge", "export", "tenancy"],
 } as const satisfies Record<string, readonly DocketContractSection[]>;
