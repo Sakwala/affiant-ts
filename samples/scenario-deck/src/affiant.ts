@@ -476,7 +476,7 @@ export interface RowView {
   /** What the host's executor reported, or `null` while the row is not approved. */
   readonly execution: ExecutionOutcome | null;
   /** The attestation's kind — the mode itself, with no separate field to drift (AZ-1). */
-  readonly attestationKind: "member" | "member-via-relay" | "standing-order" | null;
+  readonly attestationKind: "member" | "member-via-relay" | "standing-order" | "multi-party" | null;
   /** Who or what the attestation names. */
   readonly attestationBy: string | null;
   /** The reviewer's corrections, as the decision carried them (DK-2). */
@@ -586,6 +586,8 @@ function attestationSubject(entry: DocketEntry): string | null {
       return `${by.memberId} via ${by.relay.principal}`;
     case "standing-order":
       return `${by.policyId}@${by.version}`;
+    case "multi-party":
+      return "several people";
   }
 }
 
