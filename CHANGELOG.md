@@ -10,6 +10,24 @@ was made against.
 
 ## [Unreleased]
 
+### Changed
+
+- **`@affiant/core` `0.1.0-alpha.6` and `@affiant/store-postgres` `0.1.0-alpha.3`: native `MultiParty`,
+  built against [`Sakwala/affiant-protocol`](https://github.com/Sakwala/affiant-protocol) `v0.3-pre` at
+  `247948c` ([#47](https://github.com/Sakwala/affiant-ts/pull/47)), tagged `v0.3.0-pre.1` by the owner.**
+  A requirement is recorded as an object (`{ kind, … }`; `MultiParty` carries the host policy's
+  `approvers` and `required`) rather than a bare string. A `MultiParty` write is one Docket entry whose
+  decisions are approval records (`approvals[]`, one per approver, each with its own attestation), from
+  which the entry's status folds; the fold writes a new `multi-party` attestation composed of the
+  approval records' own attestations, and the decided row names the approver whose record folded it
+  (`decision.by`). `executionDetail` is an object with a `code` from the host's vocabulary, never a
+  string a reader must parse. `compositeRef` is removed from `gate.file` and from the row — the v0.2
+  composition above the gate is withdrawn. The evidence card's `multiParty` reports each approver's
+  outstanding decision. `@affiant/store-postgres` gains two tables, `docket_approvers` and
+  `docket_approvals`, holding the approval records; the restricted role needs `select, insert` on both,
+  with no separate `delete` grant (a purge deletes the `docket_entries` row and the `on delete cascade`
+  foreign keys remove both).
+
 ### Fixed
 
 - **`@affiant/store-postgres` `0.1.0-alpha.1`: the two defects its first consumer found,
