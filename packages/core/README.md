@@ -47,7 +47,7 @@ that fails when this package stops obeying it.
 
 ```ts
 import { createGate } from "@affiant/core";
-import type { ApprovalPolicy, Operation, TurnContext } from "@affiant/core";
+import type { ApprovalPolicy, JsonValue, Operation, StructuredResult, TurnContext } from "@affiant/core";
 import { InMemoryDocketStore, InMemorySessionStore } from "@affiant/core/store-memory";
 
 // The pieces of a host this snippet leaves as prose: your model call, your entity
@@ -57,12 +57,9 @@ interface UpdateArgs {
   status: string;
 }
 declare function now(): string;
-declare function extract(
-  turn: unknown,
-  schema: unknown,
-): Promise<{ fields: Record<string, unknown> }>;
+declare function extract(turn: unknown, schema: unknown): Promise<StructuredResult>;
 declare const db: {
-  read: (entityType: string, entityId: string) => Promise<unknown>;
+  read: (entityType: string, entityId: string) => Promise<Record<string, JsonValue> | null>;
   write: (entry: unknown) => Promise<void>;
   updateInvoice: (args: UpdateArgs) => Promise<unknown>;
 };
@@ -654,6 +651,9 @@ implementation in another language can be handed the same file and told to make 
 
 ```ts
 import { runFixture, runFixtureDir, scriptedInference, fixedClock } from "@affiant/core/testing";
+import type { Fixture } from "@affiant/core/testing";
+
+declare const myFixture: Fixture;
 
 const result = await runFixture(myFixture);
 // { id, rules, title, pass, failures: [{ at, expected, actual }] }
