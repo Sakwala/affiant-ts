@@ -23,6 +23,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
+const contractRoot = join(workspaceRoot, "packages", "contract");
 
 /** Run a command, returning its output, or `null` with nothing when it failed. */
 function run(command: string, args: readonly string[], cwd: string): string | null {
@@ -90,8 +91,9 @@ describe.skipIf(!online)("the README's fenced ts blocks", () => {
       expect(blocks.length).toBeGreaterThan(0);
 
       const packs = join(scratch, "packs");
+      const contractPacks = join(scratch, "contract-packs");
       const project = join(scratch, "project");
-      for (const directory of [packs, project]) {
+      for (const directory of [packs, contractPacks, project]) {
         mkdirSync(directory, { recursive: true });
       }
 
@@ -99,6 +101,14 @@ describe.skipIf(!online)("the README's fenced ts blocks", () => {
       expect(packed, "pnpm pack failed for the core").not.toBeNull();
       const coreTarball = tarballIn(packs);
       expect(coreTarball).not.toBeNull();
+
+      // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+      // has not published — a workspace dependency, so it is packed alongside the core
+      // and installed from its own tarball, rather than pulled from the registry (BD-310).
+      const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+      expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
+      const contractTarball = tarballIn(contractPacks);
+      expect(contractTarball).not.toBeNull();
 
       writeFileSync(
         join(project, "package.json"),
@@ -138,7 +148,16 @@ describe.skipIf(!online)("the README's fenced ts blocks", () => {
 
       const installed = run(
         "npm",
-        ["install", "--no-audit", "--no-fund", "--loglevel", "error", coreTarball as string, "@types/node@22"],
+        [
+          "install",
+          "--no-audit",
+          "--no-fund",
+          "--loglevel",
+          "error",
+          coreTarball as string,
+          contractTarball as string,
+          "@types/node@22",
+        ],
         project,
       );
       if (installed === null) {
