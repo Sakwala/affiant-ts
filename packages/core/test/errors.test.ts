@@ -41,7 +41,13 @@ describe("ErrorCode (CV-1)", () => {
   });
 
   /** The registry as it stands. Grows at the end; the prefix above never moves. */
-  const current = [...shipped, "execution-already-recorded"];
+  const current = [
+    ...shipped,
+    "execution-already-recorded",
+    "approver-not-listed",
+    "approver-already-decided",
+    "decision-not-amendable",
+  ];
 
   it("pins the registry order, and only ever appends", () => {
     // A code may be added. Inserting one among the codes that already shipped, or
