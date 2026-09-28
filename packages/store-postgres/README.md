@@ -103,7 +103,8 @@ created is in exactly that position.
 
 ## Migrations
 
-`migrations/0001_affiant_docket.sql` is plain forward-only SQL. Two ways to run it:
+`migrations/0001_affiant_docket.sql`, `0002_native_multiparty.sql` and
+`0003_multiparty_migration_guard.sql` are plain forward-only SQL. Two ways to run them:
 
 - **`applyMigrations(sql, { schema })`** applies what has not been applied yet, records
   each name with the SHA-256 of the text it ran in `schema_migrations`, and is a no-op
@@ -122,6 +123,18 @@ you chose.
 
 The schema is created with `create schema if not exists`, so a schema you pre-create is
 left as it is.
+
+**Run migrations as a superuser or a role with `BYPASSRLS`.** `0003` guards this
+directly: it raises before doing anything unless `current_user` can bypass row level
+security, because `0001` and `0002`'s row-level-security statements over
+`docket_entries` were only ever effective under that role, and `0002`'s
+blocked-`MultiParty` refusal and `filed_row` rewrite otherwise see zero rows and
+succeed silently. Where the guard passes, `0003` also repairs what a silent `0002` run
+under an ordinary role left behind — re-applying `0002`'s refusal and rewrite over rows
+still in the pre-0.3.0 shape, leaving a row `0002` already converted byte-identical. The
+application role stays ordinary; only the migrator needs the elevated role. A host that
+vendors the SQL instead of calling `applyMigrations` asserts the same role requirement
+in its own forward-only sequence.
 
 ## Export is a walk, not a snapshot
 
