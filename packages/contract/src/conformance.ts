@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 28f0753df2f8c2ac3df82c0be54283d0fcb4cb51.
+// copy of Sakwala/affiant-protocol at 52e1a3dd636c85a5f83755f4efb4a05391c30bd4.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "28f0753df2f8c2ac3df82c0be54283d0fcb4cb51" as const;
+export const PROTOCOL_PIN = "52e1a3dd636c85a5f83755f4efb4a05391c30bd4" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -86,7 +86,7 @@ export const conformanceManifest = {
     "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
     "date": "2026-09-04",
     "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 — see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
-    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why.",
+    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why. v0.4.0-pre re-derived two `canonicalHash` values in place — decide/amend-recompute and sequence-a/approve-round-trip — at the 0.4.0 stamp: each expects the hash of a document the implementation produces, the canonical form carries `protocolVersion` (SR-1, SR-4), so a produced document's hash moves with this section's `protocolVersion` and is re-derived from the reference implementation whenever that version moves (2026-09-28).",
     "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value — src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text — and so passes it.",
     "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
   },
@@ -4572,7 +4572,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true
       },
-      "canonicalHash": "80d8f098596c2201d27d21a82297c83c1afe7e3c1a8cb3a1c627465a4b89e24f"
+      "canonicalHash": "71cfd5229f5567a05df48f6cce7569d242fc8cf85dd4dd0c59047190ad3df578"
     }
   },
   {
@@ -9879,7 +9879,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "pending": 0,
         "approvedUnexecuted": 0
       },
-      "canonicalHash": "a79213196c6eb0a10ff75c1864ee6066f1550ea6aade3dcc97b6f713d12e826f"
+      "canonicalHash": "1d71b3f7187fcfb5c32095668b68904e94c36c3f046ce4e52985047f90f594dd"
     }
   },
   {

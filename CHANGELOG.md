@@ -15,8 +15,9 @@ was made against.
 - **`@affiant/contract` `0.1.0-alpha.4`, `@affiant/core` `0.1.0-alpha.8` and `@affiant/store-postgres`
   `0.1.0-alpha.6`: the withdrawal transition, pinned at the `v0.4.0-pre.1` pre-release.**
   `packages/contract/protocol/PIN` now names commit
-  [`28f0753`](https://github.com/Sakwala/affiant-protocol/commit/28f0753df2f8c2ac3df82c0be54283d0fcb4cb51)
-  (the `v0.4.0-pre.1` pre-release). DK-1 adds `Gate.withdraw(entryId, { reason }, ctx)`, closing a
+  [`52e1a3d`](https://github.com/Sakwala/affiant-protocol/commit/52e1a3dd636c85a5f83755f4efb4a05391c30bd4)
+  (the `v0.4.0-pre.1` pre-release with its two `canonicalHash` values re-derived at `0.4.0`, rulebook pull
+  request #52). DK-1 adds `Gate.withdraw(entryId, { reason }, ctx)`, closing a
   `pending` entry the host has abandoned, in the order tenant scope, expiry, pending; `withdrawn` joins
   the docket's terminal states and the `withdraw` decision kind and fixture step (DK-1). The store needs no migration; its
   `transition` now takes the per-entry advisory lock `recordApproval` took, so a refused approval

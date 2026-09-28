@@ -301,26 +301,9 @@ export const parityManifest: ParityManifest = {
   // (conformance/PARITY.md): "When the run happened." A literal because this module runs
   // inside workerd and cannot read the file; `published-claims.test.ts` holds it to that
   // file, so a regenerated run and a stale literal cannot both be committed.
-  producedAt: "2026-09-28T16:22:41.561Z",
+  producedAt: "2026-09-28T17:45:07.545Z",
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.8.json",
-  failing: [
-    {
-      id: "decide/amend-recompute",
-      rules: ["AF-1", "AF-4", "DK-2", "DK-4", "PV-2", "SR-1"],
-      disposition: "ignored",
-      detail:
-        "canonicalHash does not match the fixture's expected value; the mismatch is a rulebook " +
-        "defect under repair upstream (Sakwala/affiant-protocol pull request #52), not a defect in this implementation's canonicalization.",
-    },
-    {
-      id: "sequence-a/approve-round-trip",
-      rules: ["GT-1", "GT-6", "DK-1", "AZ-1", "AZ-5", "SR-1"],
-      disposition: "ignored",
-      detail:
-        "canonicalHash does not match the fixture's expected value; the mismatch is a rulebook " +
-        "defect under repair upstream (Sakwala/affiant-protocol pull request #52), not a defect in this implementation's canonicalization.",
-    },
-  ],
+  failing: [],
   adapters: [
     {
       package: "@affiant/adapter-ai-sdk",

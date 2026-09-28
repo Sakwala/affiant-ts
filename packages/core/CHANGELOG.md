@@ -37,7 +37,8 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ### Changed
 
-- Pinned to the rulebook's `v0.4.0-pre.1` pre-release (commit `28f0753`),
+- Pinned to the rulebook's `v0.4.0-pre.1` pre-release (commit `52e1a3d`: the tag's tree with its two
+  `canonicalHash` values re-derived at `0.4.0`, rulebook pull request #52),
   `schemas/0.4.0`.
 
 ## [0.1.0-alpha.7] — 2026-09-28
