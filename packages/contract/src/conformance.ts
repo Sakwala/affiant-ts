@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at cd4f859c0a944b895543a71d995666677c8df794.
+// copy of Sakwala/affiant-protocol at f0cb10b8fc4e4710de0243bca7ea8d1609e42ebf.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "cd4f859c0a944b895543a71d995666677c8df794" as const;
+export const PROTOCOL_PIN = "f0cb10b8fc4e4710de0243bca7ea8d1609e42ebf" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -76,7 +76,7 @@ export interface CanonicalVectorDocument {
  * exists to prevent.
  */
 export const conformanceManifest = {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.3.0",
   "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
   "promotedFrom": {
     "repository": "Sakwala/affiant-ts",
