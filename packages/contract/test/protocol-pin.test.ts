@@ -95,7 +95,15 @@ const archiveUrl = `https://codeload.github.com/Sakwala/affiant-protocol/tar.gz/
 function upstreamPathFor(localRelativePath: string): string {
   const posix = localRelativePath.split(sep).join("/");
   if (posix.startsWith("schemas/seed/")) return `schemas/${posix.slice("schemas/seed/".length)}`;
-  if (posix.startsWith("schemas/")) return `schemas/0.1.0/${posix.slice("schemas/".length)}`;
+  if (posix.startsWith("schemas/")) {
+    // Mirrors sync-protocol.mjs's localPathFor: the pin's second line, when
+    // present, names which versioned upstream directory was flattened into
+    // protocol/schemas/ (BD-261); absent it, the wire version this package
+    // targets is the only versioned directory the pin could have meant.
+    const schemasVersion =
+      schemasLine !== undefined ? SCHEMAS_LINE_PATTERN.exec(schemasLine)![1] : PROTOCOL_VERSION;
+    return `schemas/${schemasVersion}/${posix.slice("schemas/".length)}`;
+  }
   if (posix.startsWith("fixtures/")) return `conformance/${posix}`;
   if (posix.startsWith("conformance/")) return posix;
   throw new Error(`unmapped vendored path: ${posix}`);
@@ -176,14 +184,11 @@ describe("the pinned protocol ref", () => {
   });
 
   it("vendors every schema, every fixture and every format a driver needs", () => {
-    // 181 at protocol v0.1.3, plus the twelve documents of the adapter fixture section
-    // (conformance/fixtures/adapter/), the adapter claims lint
-    // (conformance/lint/adapter-claims.mjs) and the one file it reads its allowed feature
-    // names out of (conformance/ADAPTER-CLAIMS.md). ADAPTER-RUNNER.md, which states the
-    // format those twelve documents are in, is NOT vendored: the driver implements that
-    // contract in code rather than reading it, and localPathFor in
-    // scripts/sync-protocol.mjs takes only the prose file the lint parses.
-    expect(trackedFiles.length).toBe(195);
+    // Every vendored file is in `protocol/SHA256SUMS`, one line per file (BD-261):
+    // that line count is read live rather than fixed here, so a re-vendor that adds
+    // or drops a file (a new versioned schemas/ directory, another fixture section)
+    // is caught by the two counts disagreeing, not by editing a literal by hand.
+    expect(trackedFiles.length).toBe(expectedSums.size);
   });
 
   it("vendors the adapter fixture section beside the conformance one", () => {
@@ -210,9 +215,17 @@ describe("the pinned protocol ref", () => {
     expect(posix.has("conformance/ADAPTER-CLAIMS.md")).toBe(true);
   });
 
-  it("vendors both wire versions: v0.1 at schemas/, the superseded seed beside it", () => {
+  it(`vendors both wire versions: ${PROTOCOL_VERSION} at schemas/, the superseded seed beside it`, () => {
     const posix = trackedFiles.map((path) => path.split(sep).join("/"));
-    expect(posix.filter((path) => /^schemas\/[^/]+\.schema\.json$/.test(path))).toHaveLength(21);
+    // The wire-schema count is read off the vendored directory itself (BD-261)
+    // rather than fixed here, so a re-vendor that adds or drops a schema at the
+    // pinned wire version is caught by the two counts disagreeing.
+    const wireSchemaCount = readdirSync(join(protocolDir, "schemas"), { withFileTypes: true }).filter(
+      (entry) => entry.isFile() && entry.name.endsWith(".schema.json"),
+    ).length;
+    expect(posix.filter((path) => /^schemas\/[^/]+\.schema\.json$/.test(path))).toHaveLength(
+      wireSchemaCount,
+    );
     expect(posix.filter((path) => path.startsWith("schemas/seed/"))).toHaveLength(8);
   });
 
