@@ -86,7 +86,11 @@ function buildAlpha2FiledRow(fields: {
   readonly execution: string | null;
   readonly executionDetail: string | null;
   readonly decidedAt: string | null;
-  readonly decision: { readonly kind: string; readonly reason: string | null; readonly at: string } | null;
+  readonly decision: {
+    readonly kind: string;
+    readonly reason: string | null;
+    readonly at: string;
+  } | null;
   readonly attestation: {
     readonly by: { readonly kind: string; readonly id: string };
     readonly at: string;
@@ -215,9 +219,17 @@ describe("0003_multiparty_migration_guard", () => {
       executionDetail: "wrote invoice 42",
       decidedAt,
       decision: { kind: "approve", reason: null, at: decidedAt },
-      attestation: { by: { kind: "member", id: "person-7" }, at: decidedAt, entryId: "stranded-alpha2" },
+      attestation: {
+        by: { kind: "member", id: "person-7" },
+        at: decidedAt,
+        entryId: "stranded-alpha2",
+      },
     });
-    const insertFields = { tenantId: "tenant-a", entryId: "stranded-alpha2", requirement: "ReviewerConfirmation" };
+    const insertFields = {
+      tenantId: "tenant-a",
+      entryId: "stranded-alpha2",
+      requirement: "ReviewerConfirmation",
+    };
 
     // Simulates the silent run (BD-324 F-2): this row is inserted into a database
     // where `0002` is already recorded — the `requirement` column already widened to
@@ -242,7 +254,12 @@ describe("0003_multiparty_migration_guard", () => {
     const store = createPostgresDocketStore({ sql: database.sql });
     const entry = await store.get("stranded-alpha2", { tenantId: "tenant-a" });
     expect(entry?.requirement).toEqual({ kind: "ReviewerConfirmation" });
-    expect(entry?.decision).toEqual({ kind: "approve", reason: null, at: decidedAt, by: "person-7" });
+    expect(entry?.decision).toEqual({
+      kind: "approve",
+      reason: null,
+      at: decidedAt,
+      by: "person-7",
+    });
     expect(entry?.executionDetail).toEqual({ code: "legacy", note: "wrote invoice 42" });
   }, 120_000);
 
@@ -258,7 +275,11 @@ describe("0003_multiparty_migration_guard", () => {
       executionDetail: "wrote invoice 42",
       decidedAt,
       decision: { kind: "approve", reason: null, at: decidedAt },
-      attestation: { by: { kind: "member", id: "person-7" }, at: decidedAt, entryId: "twice-alpha2" },
+      attestation: {
+        by: { kind: "member", id: "person-7" },
+        at: decidedAt,
+        entryId: "twice-alpha2",
+      },
     });
     await insertAlpha2Row(database.sql, filedRow, {
       tenantId: "tenant-a",
