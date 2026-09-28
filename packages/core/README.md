@@ -317,11 +317,25 @@ decide again (GT-4 governs a resubmission the same as any other requirement). Th
 `approved`, `approvals` carries every approver who decided and how, `attestation.by`
 is `{ kind: "multi-party", ... }` — never a single principal's, because no single
 principal approved alone — and `decision.by` names whoever cast the deciding vote,
-the same field a `ReviewerConfirmation` entry carries.
+the same field a `ReviewerConfirmation` entry carries. The first `reject` folds the
+entry `rejected` at once, naming the approver who rejected, whatever the count.
 
 ```ts
+import { createGate } from "@affiant/core";
+import { InMemoryDocketStore, InMemorySessionStore } from "@affiant/core/store-memory";
+import type { TurnContext, WriteProposal } from "@affiant/core";
+
+declare const proposal: WriteProposal;
+declare const ctx: TurnContext;
+
+const store = new InMemoryDocketStore();
+
 const gate = createGate({
-  /* ... */
+  store,
+  sessions: new InMemorySessionStore(store),
+  inference: { infer: async () => ({ fields: {} }) },
+  projection: { previousValues: async () => null },
+  authorization: { mayDecide: async () => true },
   policies: [
     {
       id: "multi-party-policy",
@@ -332,6 +346,8 @@ const gate = createGate({
       }),
     },
   ],
+  interceptors: [],
+  defaultTtlMs: 30 * 60 * 1000,
 });
 
 const filed = await gate.file(proposal, ctx);
@@ -406,11 +422,12 @@ non-conformant, not because it has not been written yet.
   the tenant rather than the conversation, deliberately — a reviewer opens a queue or
   follows a link, and the entry they are deciding was filed in some other conversation
   of the same tenant.
-- **Three attestation kinds, and no fourth** (AZ-1). `member` — a human-verified
-  session decided. `member-via-relay` — a person decided _through_ a trusted machine
-  caller, naming both the person and the relay. `standing-order` — a policy approved
-  with nobody present, naming the policy and its version. The kind _is_ the mode; there
-  is no separate field to drift from it.
+- **Four attestation kinds** (AZ-1). `member` — a human-verified session decided.
+  `member-via-relay` — a person decided _through_ a trusted machine caller, naming
+  both the person and the relay. `standing-order` — a policy approved with nobody
+  present, naming the policy and its version. `multi-party` — composed from the
+  approval records of the approvers named in a `MultiParty` requirement, when the
+  entry folds. The kind _is_ the mode; there is no separate field to drift from it.
 - **A machine caller can never attest a person** (AZ-3). A relay asserts an identity;
   it does not authenticate one. So a decision arriving with a `service` principal that
   names a person attests `member-via-relay`, never `member`, and the record shows the
