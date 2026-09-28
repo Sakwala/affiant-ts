@@ -33,7 +33,6 @@ describe("newEntry defaults (DK-1)", () => {
     expect(entry.attestation).toBeNull();
     expect(entry.amendments).toBeNull();
     expect(entry.blocked).toBeNull();
-    expect(entry.compositeRef).toBeNull();
     expect(entry.executionDetail).toBeNull();
     expect(entry.lineage).toEqual({ supersedes: null, supersededBy: null });
   });
@@ -46,7 +45,7 @@ describe("newEntry defaults (DK-1)", () => {
 
   it("files a Standing Order approved and unexecuted in one write (AZ-1)", () => {
     const entry = anEntry("entry-1", {
-      requirement: "StandingOrder",
+      requirement: { kind: "StandingOrder" },
       status: "approved",
       attestation: {
         by: { kind: "standing-order", policyId: "policy-7", version: "3" },
@@ -67,16 +66,19 @@ describe("newEntry defaults (DK-1)", () => {
   });
 
   it("files an unimplemented requirement pending and blocked, never degraded (AZ-4)", () => {
+    // MultiParty is native from 0.3.0 (AZ-4); ReferralRequired is the level this
+    // implementation still does not run, so it is the one that still blocks.
     const entry = anEntry("entry-1", {
-      requirement: "MultiParty",
-      blocked: { code: "requirement-not-implemented", level: "MultiParty" },
-      compositeRef: "composite-4",
+      requirement: { kind: "ReferralRequired" },
+      blocked: { code: "requirement-not-implemented", level: "ReferralRequired" },
     });
 
-    expect(entry.requirement).toBe("MultiParty");
+    expect(entry.requirement).toEqual({ kind: "ReferralRequired" });
     expect(entry.status).toBe("pending");
-    expect(entry.blocked).toEqual({ code: "requirement-not-implemented", level: "MultiParty" });
-    expect(entry.compositeRef).toBe("composite-4");
+    expect(entry.blocked).toEqual({
+      code: "requirement-not-implemented",
+      level: "ReferralRequired",
+    });
   });
 
   it("refuses a status and an execution outcome that contradict each other", () => {
