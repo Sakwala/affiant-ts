@@ -160,7 +160,7 @@ describe("cardFor rebuilds the card the filing returned (SR-1)", () => {
   it("leaves out the policy chain's sentence, and keeps every other field", async () => {
     const h = harness({
       policies: [
-        policyReturning({ requirement: "ReviewerConfirmation", reason: "over the day's limit" }),
+        policyReturning({ requirement: { kind: "ReviewerConfirmation" }, reason: "over the day's limit" }),
       ],
     });
     const { entry, card } = await fileOne(h);
@@ -295,7 +295,7 @@ describe("requiresConfirmation (DK-1, DK-5, AZ-4)", () => {
 
   it("is false on a Standing Order's approval, filed with nobody present (AZ-1)", async () => {
     const h = harness({
-      policies: [policyReturning({ requirement: "StandingOrder" })],
+      policies: [policyReturning({ requirement: { kind: "StandingOrder" } })],
     });
     const { entry, card } = await fileOne(h);
 
