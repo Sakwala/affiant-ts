@@ -38,6 +38,7 @@ import { afterAll, describe, expect, it } from "vitest";
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
 const coreRoot = join(workspaceRoot, "packages", "core");
+const contractRoot = join(workspaceRoot, "packages", "contract");
 
 /** The `ai` version this package is pinned to for development, which the consumer installs. */
 const pinnedAi = (
@@ -105,7 +106,8 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     const packs = join(scratch, "packs");
     const project = join(scratch, "project");
     const corePacks = join(scratch, "core-packs");
-    for (const directory of [packs, corePacks, project]) {
+    const contractPacks = join(scratch, "contract-packs");
+    for (const directory of [packs, corePacks, contractPacks, project]) {
       mkdirSync(directory, { recursive: true });
     }
 
@@ -121,6 +123,14 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     expect(packedCore, "pnpm pack failed for the core").not.toBeNull();
     const coreTarball = tarballIn(corePacks);
     expect(coreTarball).not.toBeNull();
+
+    // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+    // has not published — a workspace dependency, so it is packed alongside the core
+    // and installed from its own tarball, rather than pulled from the registry (BD-310).
+    const packedContract = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+    expect(packedContract, "pnpm pack failed for the contract").not.toBeNull();
+    const contractTarball = tarballIn(contractPacks);
+    expect(contractTarball).not.toBeNull();
 
     writeFileSync(
       join(project, "package.json"),
@@ -200,6 +210,7 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
         "error",
         adapterTarball as string,
         coreTarball as string,
+        contractTarball as string,
         `ai@${pinnedAi}`,
         // What a consumer of the AI SDK already has. Without them the SDK's own
         // declarations do not compile under a full library check: `@ai-sdk/provider`
