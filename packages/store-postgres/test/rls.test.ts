@@ -38,7 +38,14 @@ beforeAll(async () => {
   await sql.unsafe(`create role "${role}" nosuperuser`);
   await sql.unsafe(`grant usage on schema affiant to "${role}"`);
   await sql.unsafe(
-    `grant select, insert, delete on affiant.docket_entries, affiant.docket_events, affiant.docket_approvers, affiant.docket_approvals to "${role}"`,
+    `grant select, insert, delete on affiant.docket_entries, affiant.docket_events to "${role}"`,
+  );
+  // The measured minimum (R-6): an approval is recorded once per approver and read
+  // back with the entry, and a purge deletes the `docket_entries` row and lets the
+  // `on delete cascade` foreign keys remove these two without a delete grant of
+  // their own.
+  await sql.unsafe(
+    `grant select, insert on affiant.docket_approvers, affiant.docket_approvals to "${role}"`,
   );
   await sql.unsafe(`grant select on affiant.docket_current to "${role}"`);
 
@@ -124,6 +131,58 @@ describe("row-level security over the tenant setting (AZ-2)", () => {
     // A tenant with nothing in it is a miss, and it is a miss twice over: the
     // statement filters by tenant and the policy would have hidden the row anyway.
     expect(read.value.missed).toBeNull();
+  });
+
+  it("folds a MultiParty entry recorded under the restricted role (R-4)", async () => {
+    // No `UPDATE` grant on `docket_entries` anywhere in this file — `recordApproval`
+    // serialises with `pg_advisory_xact_lock` instead of `select … for update`, and
+    // this is the case that would fail with `permission denied for table
+    // docket_entries` if it still took the row lock.
+    const entryId = "multi-role-1";
+    const at = "2026-09-04T09:10:00.000Z";
+    const entry = sampleEntry(entryId, {
+      tenantId: "tenant-a",
+      requirement: { kind: "MultiParty", approvers: ["ana", "bo"], required: 2 },
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
+
+    const outcome = await database.sql.begin(async (tx) => {
+      await tx.unsafe(`set local role "${role}"`);
+      const store = createPostgresDocketStore({ sql: database.sql }).within(tx);
+      await store.file(entry);
+
+      const first = await store.recordApproval(
+        entryId,
+        { tenantId: "tenant-a" },
+        {
+          approver: "ana",
+          decision: "approve",
+          reason: null,
+          at,
+          attestation: { by: { kind: "member", id: "ana" }, at, entryId },
+        },
+        { required: 2 },
+      );
+      const second = await store.recordApproval(
+        entryId,
+        { tenantId: "tenant-a" },
+        {
+          approver: "bo",
+          decision: "approve",
+          reason: null,
+          at,
+          attestation: { by: { kind: "member", id: "bo" }, at, entryId },
+        },
+        { required: 2 },
+      );
+      return { value: { first, second } };
+    });
+
+    expect(outcome.value.first).toMatchObject({ outcome: "recorded" });
+    expect(outcome.value.second).toMatchObject({ outcome: "folded" });
+    if (typeof outcome.value.second !== "string" && outcome.value.second.outcome === "folded") {
+      expect(outcome.value.second.entry.status).toBe("approved");
+    }
   });
 
   it("reads no other tenant's row through a cursor minted in that tenant", async () => {
@@ -278,7 +337,10 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
 
     await sql.unsafe(`grant usage on schema affiant to "${application}"`);
     await sql.unsafe(
-      `grant select, insert, delete on affiant.docket_entries, affiant.docket_events, affiant.docket_approvers, affiant.docket_approvals to "${application}"`,
+      `grant select, insert, delete on affiant.docket_entries, affiant.docket_events to "${application}"`,
+    );
+    await sql.unsafe(
+      `grant select, insert on affiant.docket_approvers, affiant.docket_approvals to "${application}"`,
     );
     await sql.unsafe(`grant select on affiant.docket_current to "${application}"`);
   }, 120_000);

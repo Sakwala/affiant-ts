@@ -85,7 +85,7 @@ export interface FoldRow {
   readonly preserved_payload: PreservedPayload | null;
   readonly expiry_payload: ExpiryPayload | null;
   /**
-   * The entry's approval records, joined ordered by `decided_at, approver` (N-7) —
+   * The entry's approval records, joined ordered by `seq` (AZ-4: record order) —
    * `null` when the view's aggregate found no rows, which the fold below tells apart
    * from "not a MultiParty row" only by `requirement.kind`, never by this column
    * alone.
@@ -156,7 +156,7 @@ export function foldEntry(row: FoldRow): DocketEntry {
     };
   }
 
-  // The filing's own `approvals` is always `[]` for a fresh MultiParty row (N-2);
+  // The filing's own `approvals` is always `[]` for a fresh MultiParty row (AZ-4);
   // what is actually recorded lives in `docket_approvals` and reaches here through
   // the view's join, never through a second derivation of the filing. A non-
   // MultiParty row's `null` is the filed row's own, unchanged — there is no table
