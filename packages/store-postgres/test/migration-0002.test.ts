@@ -44,8 +44,16 @@ async function insertAlpha2Row(
     readonly execution: string | null;
     readonly executionDetail: string | null;
     readonly decidedAt: string | null;
-    readonly decision: { readonly kind: string; readonly reason: string | null; readonly at: string } | null;
-    readonly attestation: { readonly by: { readonly kind: string; readonly id: string }; readonly at: string; readonly entryId: string } | null;
+    readonly decision: {
+      readonly kind: string;
+      readonly reason: string | null;
+      readonly at: string;
+    } | null;
+    readonly attestation: {
+      readonly by: { readonly kind: string; readonly id: string };
+      readonly at: string;
+      readonly entryId: string;
+    } | null;
   },
 ): Promise<void> {
   const affidavit = sampleAffidavit();
@@ -108,7 +116,11 @@ describe("0002_native_multiparty on a row filed at alpha.2", () => {
       executionDetail: "wrote invoice 42",
       decidedAt,
       decision: { kind: "approve", reason: null, at: decidedAt },
-      attestation: { by: { kind: "member", id: "person-7" }, at: decidedAt, entryId: "alpha2-decided" },
+      attestation: {
+        by: { kind: "member", id: "person-7" },
+        at: decidedAt,
+        entryId: "alpha2-decided",
+      },
     });
 
     await sql.unsafe(renderMigration(MIGRATIONS[1]!, DEFAULT_SCHEMA));

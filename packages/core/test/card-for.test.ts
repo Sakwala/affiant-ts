@@ -160,7 +160,10 @@ describe("cardFor rebuilds the card the filing returned (SR-1)", () => {
   it("leaves out the policy chain's sentence, and keeps every other field", async () => {
     const h = harness({
       policies: [
-        policyReturning({ requirement: { kind: "ReviewerConfirmation" }, reason: "over the day's limit" }),
+        policyReturning({
+          requirement: { kind: "ReviewerConfirmation" },
+          reason: "over the day's limit",
+        }),
       ],
     });
     const { entry, card } = await fileOne(h);
@@ -339,7 +342,9 @@ describe("a blocked entry's card says so and asks for no confirmation (AZ-4, CV-
   });
 
   it("asks for no confirmation on a blocked entry even before its deadline", async () => {
-    const h = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
+    const h = harness({
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
+    });
     const { entry } = await fileOne(h);
 
     expect(entry.status).toBe("pending");

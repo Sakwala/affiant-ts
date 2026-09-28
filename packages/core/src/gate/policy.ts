@@ -495,7 +495,11 @@ export function normaliseRequirement(requirement: RequirementKind | Requirement)
  * CV-1) — a code a host can branch on, and that `wrap` hands back as
  * `{ kind: "error" }`, is the answer; a bare `RangeError` out of the tool seam is not.
  */
-function checkVerdict(deps: PolicyChainDeps, policy: ApprovalPolicy, verdict: Verdict): Requirement {
+function checkVerdict(
+  deps: PolicyChainDeps,
+  policy: ApprovalPolicy,
+  verdict: Verdict,
+): Requirement {
   const requirement = normaliseRequirement(verdict.requirement);
   if (!(REQUIREMENT_KINDS as readonly string[]).includes(requirement.kind)) {
     throw new RangeError(

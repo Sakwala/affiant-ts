@@ -513,7 +513,12 @@ class Store implements DocketStore, SessionStore {
         status: record.decision === "reject" ? "rejected" : "approved",
         execution: record.decision === "reject" ? null : "unexecuted",
         decidedAt: record.at,
-        decision: { kind: record.decision, reason: record.reason, at: record.at, by: record.approver },
+        decision: {
+          kind: record.decision,
+          reason: record.reason,
+          at: record.at,
+          by: record.approver,
+        },
         amendments: null,
         amendedAffidavit: null,
         attestation,
@@ -1051,7 +1056,9 @@ function unstorable(entryId: string, field: string, index: number, what: string)
  * `postgres.js` throws it in, checked by code rather than by message text.
  */
 function isUniqueViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505";
+  return (
+    typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505"
+  );
 }
 
 /** A slice as the contract's page shape, with a cursor only when another page exists. */

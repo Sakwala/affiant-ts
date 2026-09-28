@@ -47,8 +47,11 @@ type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
  * one of the 0.3.0 manifest section's `definitionsOnly` schemas.
  */
 const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
-const v01KeptEntries = (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).filter((entry) =>
-  v03DefinitionsOnly.has(entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`)),
+const v01KeptEntries = (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).filter(
+  (entry) =>
+    v03DefinitionsOnly.has(
+      entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`),
+    ),
 );
 
 /**
@@ -80,7 +83,9 @@ function v03Positive<T>(id: string): T {
 
 const v01Affidavit = positive<Affidavit>("v0.1/affidavit/01-update-shaped");
 const v01Field = positive<AffidavitField>("v0.1/affidavit-field/02-external-bound");
-const v03Card = v03Positive<EvidenceCardRequest>("v0.3/evidence-card-request/04-presentation-hints");
+const v03Card = v03Positive<EvidenceCardRequest>(
+  "v0.3/evidence-card-request/04-presentation-hints",
+);
 const v03Row = v03Positive<DocketEntry>("v0.3/docket-entry/03-amended-on-approval");
 const v01Tag = positive<ProvenanceTag>("v0.1/provenance-tag/02-user-stated-reviewer-act");
 const v01Chain = positive<ProvenanceChain>("v0.1/provenance-chain/02-superseded");
@@ -117,11 +122,12 @@ describe("the vendored v0.1 fixtures", () => {
   it.each(v01KeptEntries.map((entry) => [entry.id, entry.kind] as const))(
     "%s (%s) survives a JSON round trip unchanged",
     (id) => {
-    const fixture = v01Fixtures[id];
+      const fixture = v01Fixtures[id];
 
-    expect(fixture).toBeDefined();
-    expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
-  });
+      expect(fixture).toBeDefined();
+      expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
+    },
+  );
 });
 
 describe("every envelope carries the protocol version (SR-4)", () => {

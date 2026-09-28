@@ -575,9 +575,14 @@ describe("the review outcome (DK-1)", () => {
   });
 
   it("refuses every decision on a blocked entry, and never degrades it (AZ-4)", async () => {
-    const h = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
+    const h = harness({
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
+    });
     const entry = await fileOne(h, turnContext());
-    expect(entry.blocked).toEqual({ code: "requirement-not-implemented", level: "ReferralRequired" });
+    expect(entry.blocked).toEqual({
+      code: "requirement-not-implemented",
+      level: "ReferralRequired",
+    });
 
     let thrown: unknown;
     try {
@@ -824,7 +829,10 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
 
     expect(reported.status).toBe("approved");
     expect(reported.execution).toBe("failed");
-    expect(reported.executionDetail).toEqual({ code: "unique-constraint", note: "unique constraint" });
+    expect(reported.executionDetail).toEqual({
+      code: "unique-constraint",
+      note: "unique constraint",
+    });
   });
 
   it("refuses an execution report on a pending row", async () => {
@@ -849,7 +857,12 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
   it("refuses a second report, so a committed row never later reads failed", async () => {
     const h = harness();
     const entry = await approved(h);
-    await h.gate.markExecuted(entry.entryId, "executed", { code: "row-41", note: "row 41" }, turnContext());
+    await h.gate.markExecuted(
+      entry.entryId,
+      "executed",
+      { code: "row-41", note: "row 41" },
+      turnContext(),
+    );
 
     const code = await codeOf(() =>
       h.gate.markExecuted(
@@ -877,7 +890,12 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     );
 
     const code = await codeOf(() =>
-      h.gate.markExecuted(entry.entryId, "executed", { code: "retried", note: "retried" }, turnContext()),
+      h.gate.markExecuted(
+        entry.entryId,
+        "executed",
+        { code: "retried", note: "retried" },
+        turnContext(),
+      ),
     );
 
     expect(code).toBe("execution-already-recorded");
@@ -907,7 +925,9 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     const entry = await approved(h);
 
     const outcomes = await Promise.all([
-      codeOf(() => h.gate.markExecuted(entry.entryId, "executed", { code: "first" }, turnContext())),
+      codeOf(() =>
+        h.gate.markExecuted(entry.entryId, "executed", { code: "first" }, turnContext()),
+      ),
       codeOf(() => h.gate.markExecuted(entry.entryId, "failed", { code: "second" }, turnContext())),
     ]);
 

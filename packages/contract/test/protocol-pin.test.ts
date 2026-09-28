@@ -50,9 +50,7 @@ const SCHEMAS_LINE_PATTERN = /^schemas=(\d+\.\d+\.\d+)$/;
 if (schemasLine !== undefined) {
   const match = SCHEMAS_LINE_PATTERN.exec(schemasLine);
   if (match === null) {
-    throw new Error(
-      `protocol/PIN's second line must be "schemas=<version>", not "${schemasLine}"`,
-    );
+    throw new Error(`protocol/PIN's second line must be "schemas=<version>", not "${schemasLine}"`);
   }
   if (match[1] !== PROTOCOL_VERSION) {
     throw new Error(
@@ -220,9 +218,9 @@ describe("the pinned protocol ref", () => {
     // The wire-schema count is read off the vendored directory itself (BD-261)
     // rather than fixed here, so a re-vendor that adds or drops a schema at the
     // pinned wire version is caught by the two counts disagreeing.
-    const wireSchemaCount = readdirSync(join(protocolDir, "schemas"), { withFileTypes: true }).filter(
-      (entry) => entry.isFile() && entry.name.endsWith(".schema.json"),
-    ).length;
+    const wireSchemaCount = readdirSync(join(protocolDir, "schemas"), {
+      withFileTypes: true,
+    }).filter((entry) => entry.isFile() && entry.name.endsWith(".schema.json")).length;
     expect(posix.filter((path) => /^schemas\/[^/]+\.schema\.json$/.test(path))).toHaveLength(
       wireSchemaCount,
     );
