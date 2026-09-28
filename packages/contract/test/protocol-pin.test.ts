@@ -40,7 +40,7 @@ const protocolDir = join(packageRoot, "protocol");
  * `schemas/` this package targets. Only the first line is the ref.
  */
 const pinLines = readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n");
-const pin = pinLines[0].trim();
+const pin = (pinLines[0] ?? "").trim();
 const schemasLine = pinLines[1]?.trim();
 
 const TAG_PATTERN = /^v\d+\.\d+\.(0|[1-9]\d*)$/;
