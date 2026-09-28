@@ -89,7 +89,7 @@ describe("the chain picks the first policy with an opinion", () => {
       { now: AT },
     );
 
-    expect(outcome.requirement).toBe("ReferralRequired");
+    expect(outcome.requirement).toEqual({ kind: "ReferralRequired" });
     expect(outcome.policy?.id).toBe("b");
     expect(trace).toEqual(["policy:a", "policy:b"]);
   });
@@ -102,7 +102,7 @@ describe("the chain picks the first policy with an opinion", () => {
       { now: AT },
     );
 
-    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    expect(outcome.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(outcome.policy).toBeNull();
   });
 
@@ -198,7 +198,7 @@ describe("a threshold is compared against the host's score (GT-5)", () => {
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
     expect(filed.status).toBe("pending");
     const entry = await gate.get(filed.entryId, turnContext());
-    expect(entry?.requirement).toBe("ReviewerConfirmation");
+    expect(entry?.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(entry?.attestation).toBeNull();
     expect(telemetry.find("standing-order.blocked")?.attributes["risk.score"]).toBe(0.9);
   });
@@ -276,7 +276,7 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
       turnContext({ channel: "mcp" }),
     );
 
-    expect(filed.entry.requirement).toBe("ReviewerConfirmation");
+    expect(filed.entry.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(filed.entry.status).toBe("pending");
     expect(filed.entry.attestation).toBeNull();
     const blocked = telemetry.find("standing-order.blocked");
@@ -328,7 +328,7 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
       { now: AT },
     );
 
-    expect(outcome.requirement).toBe("StandingOrder");
+    expect(outcome.requirement).toEqual({ kind: "StandingOrder" });
     expect(outcome.degradedFrom).toBeNull();
   });
 
@@ -357,7 +357,7 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
 
     // The degrade changes who decides, not when the window closes: the policy's
     // statement about this write's urgency still stands.
-    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    expect(outcome.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(outcome.ttlMs).toBe(60_000);
   });
 });
@@ -409,7 +409,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
       now: AT,
     });
 
-    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    expect(outcome.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(outcome.degradedFrom).toBe("StandingOrder");
     expect(outcome.emptyMandatoryFields).toEqual(["reference"]);
     // The verdict is not thrown away, so neither is the deadline it named (GT-4).
@@ -426,7 +426,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
       },
     );
 
-    expect(outcome.requirement).toBe("StandingOrder");
+    expect(outcome.requirement).toEqual({ kind: "StandingOrder" });
     expect(outcome.degradedFrom).toBeNull();
     expect(outcome.emptyMandatoryFields).toBeNull();
   });
@@ -459,7 +459,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
       { now: AT, riskScorer: riskScorer(0.1, trace) },
     );
 
-    expect(outcome.requirement).toBe("ReviewerConfirmation");
+    expect(outcome.requirement).toEqual({ kind: "ReviewerConfirmation" });
     // A score of 0.1 is well under the threshold, so the only thing that can have
     // stopped this verdict is the empty required field — and the scorer was never
     // called to find that out.
@@ -494,7 +494,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
     );
 
     expect(filed.entry.status).toBe("pending");
-    expect(filed.entry.requirement).toBe("ReviewerConfirmation");
+    expect(filed.entry.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(filed.entry.attestation).toBeNull();
     expect(telemetry.keys()).not.toContain("standing-order.fired");
     // The person who is asked can see which field is missing, on the card itself.
@@ -647,7 +647,7 @@ describe("a requirement this version does not run is blocked, never weakened (AZ
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
     const entry = await gate.get(filed.entryId, turnContext());
     expect(entry?.status).toBe("pending");
-    expect(entry?.requirement).toBe("MultiParty");
+    expect(entry?.requirement).toEqual({ kind: "MultiParty" });
     expect(entry?.blocked).toEqual({
       code: "requirement-not-implemented",
       level: "MultiParty",
@@ -667,7 +667,7 @@ describe("a requirement this version does not run is blocked, never weakened (AZ
 
     const stored = await gate.get(filed.entry.entryId, turnContext());
     expect(stored?.status).toBe("pending");
-    expect(stored?.requirement).toBe("ReferralRequired");
+    expect(stored?.requirement).toEqual({ kind: "ReferralRequired" });
     expect(stored?.blocked).toEqual({
       code: "requirement-not-implemented",
       level: "ReferralRequired",
