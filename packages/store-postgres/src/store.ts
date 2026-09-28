@@ -446,6 +446,16 @@ class Store implements DocketStore, SessionStore {
       if (stored.approvals === null) return "conflict" as const;
 
       const subject = { entryId };
+      // The once check, under the row lock taken above: a failed statement aborts a
+      // Postgres transaction whatever the callback catches, so the duplicate is found
+      // by a select first and the unique-violation catch below is the belt.
+      const existing = await tx<{ approver: string }[]>`
+        select approver from ${tx(this.#table("docket_approvals"))}
+        where tenant_id = ${text(subject, "tenantId", scope.tenantId)}
+          and entry_id = ${text(subject, "entryId", entryId)}
+          and approver = ${text(subject, "approver", record.approver)}
+        limit 1`;
+      if (existing.length > 0) return "already-recorded" as const;
       try {
         await tx`
           insert into ${tx(this.#table("docket_approvals"))} (

@@ -88,6 +88,9 @@ create policy docket_approvals_tenant on {{schema}}.docket_approvals
 -- touches it. `jsonb_agg` over zero rows is `null`, not `[]`; the fold (`fold.ts`)
 -- tells "no approvals recorded yet" and "not a MultiParty row" apart by
 -- `requirement.kind`, never by which of the two this column happens to read.
+-- The view gains a column; Postgres refuses to add one through create-or-replace, so the view is dropped and made again.
+drop view if exists {{schema}}.docket_current;
+
 create or replace view {{schema}}.docket_current
   with (security_invoker = true)
   as
