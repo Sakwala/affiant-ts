@@ -149,7 +149,7 @@ describe("a declared-uncovered tool's proposals are filed blocked (CV-4, AZ-4)",
     const entry = await gate.get(result.entryId, turnContext());
     // The requirement is recorded verbatim; the row is pending and blocked, and no
     // attestation was written. AZ-4 permits moving toward a person, never away.
-    expect(entry?.requirement).toBe("StandingOrder");
+    expect(entry?.requirement).toEqual({ kind: "StandingOrder" });
     expect(entry?.status).toBe("pending");
     expect(entry?.attestation).toBeNull();
     expect(entry?.blocked?.code).toBe("coverage-refused");
