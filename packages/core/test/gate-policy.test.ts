@@ -81,8 +81,8 @@ describe("the chain picks the first policy with an opinion", () => {
     const outcome = await evaluatePolicies(
       [
         policyReturning(null, { id: "a", trace }),
-        policyReturning({ requirement: "ReferralRequired" }, { id: "b", trace }),
-        policyReturning({ requirement: "StandingOrder" }, { id: "c", trace }),
+        policyReturning({ requirement: { kind: "ReferralRequired" } }, { id: "b", trace }),
+        policyReturning({ requirement: { kind: "StandingOrder" } }, { id: "c", trace }),
       ],
       affidavitWith("Conversation", false),
       turnContext(),
@@ -109,7 +109,7 @@ describe("the chain picks the first policy with an opinion", () => {
   it("refuses a requirement that is not one of the four", async () => {
     await expect(
       evaluatePolicies(
-        [policyReturning({ requirement: "Whatever" as unknown as "StandingOrder" })],
+        [policyReturning({ requirement: { kind: "Whatever" } as unknown as { kind: "StandingOrder" } })],
         affidavitWith("Conversation", false),
         turnContext(),
         { now: AT },
@@ -120,7 +120,7 @@ describe("the chain picks the first policy with an opinion", () => {
   it("refuses a risk threshold on a requirement that asks a person", async () => {
     await expect(
       evaluatePolicies(
-        [policyReturning({ requirement: "ReviewerConfirmation", threshold: 0.5 })],
+        [policyReturning({ requirement: { kind: "ReviewerConfirmation" }, threshold: 0.5 })],
         affidavitWith("Conversation", false),
         turnContext(),
         { now: AT },
@@ -132,7 +132,7 @@ describe("the chain picks the first policy with an opinion", () => {
 describe("a by-the-book Standing Order fires (GT-5, AZ-1)", () => {
   it("files approved and unexecuted with the policy's attestation in the same write", async () => {
     const { gate, telemetry } = harness({
-      policies: [policyReturning({ requirement: "StandingOrder" }, { id: "auto", version: "2.1" })],
+      policies: [policyReturning({ requirement: { kind: "StandingOrder" } }, { id: "auto", version: "2.1" })],
     });
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
@@ -151,7 +151,7 @@ describe("a by-the-book Standing Order fires (GT-5, AZ-1)", () => {
 
   it("does not ask the reviewer surface to confirm what a policy already approved", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "StandingOrder" })],
+      policies: [policyReturning({ requirement: { kind: "StandingOrder" } })],
     });
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
@@ -163,7 +163,7 @@ describe("a by-the-book Standing Order fires (GT-5, AZ-1)", () => {
 
   it("never attests a policy on an entry a person must confirm", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "ReviewerConfirmation" })],
+      policies: [policyReturning({ requirement: { kind: "ReviewerConfirmation" } })],
     });
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
@@ -177,7 +177,7 @@ describe("a by-the-book Standing Order fires (GT-5, AZ-1)", () => {
 
 describe("a threshold is compared against the host's score (GT-5)", () => {
   const withThreshold = policyReturning(
-    { requirement: "StandingOrder", threshold: 0.5 },
+    { requirement: { kind: "StandingOrder" }, threshold: 0.5 },
     { declaresThreshold: true },
   );
 
@@ -214,7 +214,7 @@ describe("a threshold is compared against the host's score (GT-5)", () => {
 
   it("fires on the verdict alone when no threshold is declared", async () => {
     const { gate, trace } = harness({
-      policies: [policyReturning({ requirement: "StandingOrder" })],
+      policies: [policyReturning({ requirement: { kind: "StandingOrder" } })],
       riskScore: 0.9,
     });
 
@@ -238,7 +238,7 @@ describe("a threshold is compared against the host's score (GT-5)", () => {
   it("refuses a verdict that names a threshold with no scorer to compare against", async () => {
     await expect(
       evaluatePolicies(
-        [policyReturning({ requirement: "StandingOrder", threshold: 0.5 })],
+        [policyReturning({ requirement: { kind: "StandingOrder" }, threshold: 0.5 })],
         affidavitWith("Conversation", false),
         turnContext(),
         { now: AT },
@@ -249,7 +249,7 @@ describe("a threshold is compared against the host's score (GT-5)", () => {
 
 describe("a Standing Order never rests on an unbound declared input (PV-4)", () => {
   const external = policyReturning(
-    { requirement: "StandingOrder" },
+    { requirement: { kind: "StandingOrder" } },
     { id: "relay-capture", declaredInputs: ["External"] },
   );
 
@@ -322,7 +322,7 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
 
   it("is unaffected by an unbound tag the policy does not predicate on", async () => {
     const outcome = await evaluatePolicies(
-      [policyReturning({ requirement: "StandingOrder" }, { declaredInputs: ["External"] })],
+      [policyReturning({ requirement: { kind: "StandingOrder" } }, { declaredInputs: ["External"] })],
       affidavitWith("Conversation", false),
       turnContext(),
       { now: AT },
@@ -346,7 +346,7 @@ describe("a Standing Order never rests on an unbound declared input (PV-4)", () 
     const outcome = await evaluatePolicies(
       [
         policyReturning(
-          { requirement: "StandingOrder", ttlMs: 60_000 },
+          { requirement: { kind: "StandingOrder" }, ttlMs: 60_000 },
           { declaredInputs: ["External"] },
         ),
       ],
@@ -394,7 +394,7 @@ function affidavitMissing(mandatory: boolean) {
 
 describe("a Standing Order never fires over an empty required field (GT-5)", () => {
   const standingOrder = policyReturning({
-    requirement: "StandingOrder",
+    requirement: { kind: "StandingOrder" },
     ttlMs: 600_000,
     reason: "invoice status changes are routine",
   });
@@ -450,7 +450,7 @@ describe("a Standing Order never fires over an empty required field (GT-5)", () 
     const outcome = await evaluatePolicies(
       [
         policyReturning(
-          { requirement: "StandingOrder", threshold: 0.9 },
+          { requirement: { kind: "StandingOrder" }, threshold: 0.9 },
           { declaresThreshold: true, trace },
         ),
       ],
@@ -513,7 +513,7 @@ describe("a policy's deadline is held to the same rule as the gate's own (GT-4, 
 
   it.each(unusable)("refuses a verdict whose ttlMs is %s", async (_why, ttlMs) => {
     const { gate, store } = harness({
-      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs }, { id: "urgent" })],
+      policies: [policyReturning({ requirement: { kind: "ReviewerConfirmation" }, ttlMs }, { id: "urgent" })],
     });
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
@@ -547,7 +547,7 @@ describe("a policy's deadline is held to the same rule as the gate's own (GT-4, 
               declaredInputs: [],
               defaultTtlMs: ttlMs,
               async evaluate() {
-                return { requirement: "ReviewerConfirmation" as const };
+                return { requirement: { kind: "ReviewerConfirmation" as const } };
               },
             },
           ],
@@ -561,7 +561,7 @@ describe("a policy's deadline is held to the same rule as the gate's own (GT-4, 
 
   it("accepts one whole millisecond, which is the smallest deadline there is", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs: 1 })],
+      policies: [policyReturning({ requirement: { kind: "ReviewerConfirmation" }, ttlMs: 1 })],
     });
 
     const filed = await gate.file(
@@ -574,7 +574,7 @@ describe("a policy's deadline is held to the same rule as the gate's own (GT-4, 
 
   it("puts the refusal on the telemetry port before it throws", async () => {
     const { gate, telemetry } = harness({
-      policies: [policyReturning({ requirement: "ReviewerConfirmation", ttlMs: 0 })],
+      policies: [policyReturning({ requirement: { kind: "ReviewerConfirmation" }, ttlMs: 0 })],
     });
 
     await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
