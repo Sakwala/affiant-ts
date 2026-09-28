@@ -187,7 +187,7 @@ describe("every discriminated union is told apart by a kind, never by a property
   it.each([
     ["binding", v01Binding.kind],
     ["attestor", v03Attestation.by.kind],
-    ["tool result", v01ToolResult.kind],
+    ["tool result", v03ToolResult.kind],
     ["notification", v03Transition.kind],
   ])("%s", (_what, kind) => {
     expect(kind).toBeTypeOf("string");
