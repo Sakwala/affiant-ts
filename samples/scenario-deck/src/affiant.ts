@@ -61,7 +61,7 @@ import type {
   Operation,
   ProjectionPort,
   ProvenanceSource,
-  RequirementKind,
+  Requirement,
   StructuredField,
   TelemetryEvent,
   TelemetryPort,
@@ -472,7 +472,7 @@ export interface RowView {
   /** What the row reads at *now* — the deadline is applied on every read (DK-1). */
   readonly status: DocketStatus;
   /** What the write needs before it may execute (AZ-4). */
-  readonly requirement: RequirementKind;
+  readonly requirement: Requirement;
   /** What the host's executor reported, or `null` while the row is not approved. */
   readonly execution: ExecutionOutcome | null;
   /** The attestation's kind — the mode itself, with no separate field to drift (AZ-1). */
