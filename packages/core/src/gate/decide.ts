@@ -174,7 +174,11 @@ export async function decide(
   const amendments = decision.kind === "approve" ? (decision.amendments ?? null) : null;
   const reads = readStatus(entry, now);
   if (reads === "expired") {
-    throw await refuseExpired(entryId, scope, entry, amendments, principal, now, deps);
+    // AZ-4: a MultiParty entry accepts no amendment, ever — including a late one
+    // arriving after expiry — so there is nothing here for a resubmission to carry
+    // forward. Every other requirement's amendments are still preserved (DK-1).
+    const forExpiry = entry.requirement.kind === "MultiParty" ? null : amendments;
+    throw await refuseExpired(entryId, scope, entry, forExpiry, principal, now, deps);
   }
   if (reads !== "pending") {
     throw new AffiantError(
