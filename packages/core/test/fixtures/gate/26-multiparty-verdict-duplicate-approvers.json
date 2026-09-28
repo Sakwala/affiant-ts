@@ -1,0 +1,79 @@
+{
+  "id": "gate/multiparty-verdict-duplicate-approvers",
+  "rules": ["AZ-4", "CV-1"],
+  "title": "A MultiParty verdict whose approvers are not distinct fails the requirement object's own validation and is refused at evaluation, wireup-invalid, before anything is filed.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "ana"],
+              "required": 2
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [],
+    "step": {
+      "kind": "file",
+      "toolName": "propose_payment",
+      "operation": {
+        "kind": "update",
+        "entityType": "Payment",
+        "entityId": "payment-1",
+        "fields": ["amount", "payee"]
+      },
+      "preparedFields": [
+        {
+          "name": "amount",
+          "kind": "text",
+          "value": "250",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "value": "Acme",
+          "provenance": {
+            "source": "Conversation",
+            "confidence": 0.9
+          }
+        }
+      ]
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "wireup-invalid"
+    },
+    "store": {
+      "count": 0
+    }
+  }
+}

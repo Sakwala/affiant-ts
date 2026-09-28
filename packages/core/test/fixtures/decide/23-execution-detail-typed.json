@@ -1,7 +1,7 @@
 {
-  "id": "decide/composite-constituents-independent",
-  "rules": ["AZ-4", "DK-1"],
-  "title": "A host composing multi-party approval above the gate files one entry per approver, sharing a compositeRef. A decision on one constituent closes that row alone: the sibling stays pending, both keep their composite, and the approved one waits unexecuted for the executor bound to the composite.",
+  "id": "decide/execution-detail-typed",
+  "rules": ["DK-1"],
+  "title": "The host's executor reports that the approved write happened. The status stays approved and only the execution outcome moves, so the approval is not re-litigated by the report; the typed detail the executor gave is kept beside it.",
   "given": {
     "clock": "2026-09-04T09:00:00.000Z",
     "store": "memory",
@@ -25,7 +25,7 @@
     "prior": [
       {
         "kind": "file",
-        "as": "alice",
+        "as": "filed",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
@@ -66,81 +66,82 @@
               "confidence": 0.9
             }
           }
-        ],
-        "args": { "instructionId": "instr-1", "approver": "alice" },
-        "compositeRef": "pi-1"
+        ]
       },
       {
-        "kind": "file",
-        "as": "bob",
+        "kind": "decide",
         "at": "2026-09-04T09:00:00.000Z",
         "principal": {
           "kind": "member",
-          "id": "filer"
+          "id": "ana"
         },
-        "toolName": "update_invoice",
-        "operation": {
-          "kind": "update",
-          "entityType": "Invoice",
-          "entityId": "invoice-1",
-          "fields": ["status", "amount", "note"]
+        "decision": {
+          "kind": "approve"
         },
-        "preparedFields": [
-          {
-            "name": "status",
-            "kind": "text",
-            "value": "Active",
-            "provenance": {
-              "source": "Conversation",
-              "confidence": 0.9
-            }
-          },
-          {
-            "name": "amount",
-            "kind": "text",
-            "value": "40",
-            "provenance": {
-              "source": "Conversation",
-              "confidence": 0.9
-            }
-          },
-          {
-            "name": "note",
-            "kind": "text",
-            "value": "kept",
-            "provenance": {
-              "source": "Conversation",
-              "confidence": 0.9
-            }
-          }
-        ],
-        "args": { "instructionId": "instr-1", "approver": "bob" },
-        "compositeRef": "pi-1"
+        "refusal": null
       }
     ],
     "step": {
-      "kind": "decide",
-      "entry": "alice",
-      "at": "2026-09-04T09:00:00.000Z",
+      "kind": "markExecuted",
+      "at": "2026-09-04T09:01:00.000Z",
       "principal": {
         "kind": "member",
         "id": "ana"
       },
-      "decision": {
-        "kind": "approve"
+      "outcome": "executed",
+      "detail": {
+        "code": "row-written",
+        "rows": 1
       }
     }
   },
   "expect": {
     "entry": {
       "status": "approved",
-      "execution": "unexecuted",
-      "compositeRef": "pi-1"
-    },
-    "store": {
-      "count": 2,
-      "pending": 1,
-      "approvedUnexecuted": 1
+      "execution": "executed",
+      "requirement": "ReviewerConfirmation",
+      "blocked": null,
+      "attestation": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "amendments": null,
+      "decision": {
+        "kind": "approve",
+        "reason": null
+      },
+      "affidavit": {
+        "aggregateConfidence": 0.9,
+        "populatedConfidence": 0.9,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "status",
+            "value": "Active",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "amount",
+            "value": "40",
+            "source": "Conversation",
+            "bound": false
+          },
+          {
+            "name": "note",
+            "value": "kept",
+            "source": "Conversation",
+            "bound": false
+          }
+        ]
+      },
+      "lineage": {
+        "supersededBy": null
+      },
+      "executionDetail": {
+        "code": "row-written",
+        "rows": 1
+      }
     }
   }
 }

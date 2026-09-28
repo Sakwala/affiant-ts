@@ -1,0 +1,154 @@
+{
+  "id": "decide/multiparty-approvals-in-record-order",
+  "rules": ["AZ-4", "AZ-1"],
+  "title": "The approvals list and the fold's multi-party attestation are ordered by when each approver decided, never by the requirement's own listing of the approvers.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      },
+      "policies": [
+        {
+          "id": "policy-mp",
+          "version": "1.0.0",
+          "declaredInputs": [],
+          "verdict": {
+            "requirement": {
+              "kind": "MultiParty",
+              "approvers": ["ana", "bo", "cy"],
+              "required": 3
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Pay 250 to Acme for the September invoice",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": ["amount", "payee"]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      },
+      {
+        "kind": "decide",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "cy"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      },
+      {
+        "kind": "decide",
+        "at": "2026-09-28T09:02:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve"
+        }
+      }
+    ],
+    "step": {
+      "kind": "decide",
+      "at": "2026-09-28T09:03:00.000Z",
+      "principal": {
+        "kind": "member",
+        "id": "bo"
+      },
+      "decision": {
+        "kind": "approve"
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "approved",
+      "execution": "unexecuted",
+      "approvals": [
+        {
+          "approver": "cy",
+          "decision": "approve",
+          "reason": null,
+          "attestation": {
+            "kind": "member",
+            "id": "cy"
+          }
+        },
+        {
+          "approver": "ana",
+          "decision": "approve",
+          "reason": null,
+          "attestation": {
+            "kind": "member",
+            "id": "ana"
+          }
+        },
+        {
+          "approver": "bo",
+          "decision": "approve",
+          "reason": null,
+          "attestation": {
+            "kind": "member",
+            "id": "bo"
+          }
+        }
+      ],
+      "attestation": {
+        "kind": "multi-party",
+        "approvers": [
+          { "kind": "member", "id": "cy" },
+          { "kind": "member", "id": "ana" },
+          { "kind": "member", "id": "bo" }
+        ]
+      },
+      "decision": {
+        "kind": "approve",
+        "reason": null,
+        "by": "bo"
+      }
+    }
+  }
+}
