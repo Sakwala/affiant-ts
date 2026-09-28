@@ -352,7 +352,7 @@ describe("Gate.withdraw", () => {
     }
   });
 
-  it("resubmit of a withdrawn entry is a caller error and files nothing", async () => {
+  it("resubmit of a withdrawn entry is refused as a rejected entry's is and files nothing", async () => {
     const h = harness();
     const withdrawnSource = await fileOne(h, turnContext());
     await h.gate.withdraw(

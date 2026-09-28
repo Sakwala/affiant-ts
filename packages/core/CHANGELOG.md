@@ -10,6 +10,16 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.10] — 2026-09-29
+
+### Changed
+
+- Pinned to the rulebook's `v0.4.1` tag (text only: DK-1 amended from the first host's run of the withdrawal
+  transition; a resubmit of a non-`expired` entry is stated to be refused `decision-not-pending`; `decision.by` is
+  stated to be an identifier); no schema or fixture change from `v0.4.0`. The withdrawn-resubmit test is renamed
+  to the rulebook's suite title, `resubmit of a withdrawn entry is refused as a rejected entry's is and files
+  nothing` (its assertion was already a refusal). No code change. `CORE_VERSION` now reads `0.1.0-alpha.10` — it had read `0.1.0-alpha.5` since that release.
+
 ## [0.1.0-alpha.9] — 2026-09-29
 
 ### Changed

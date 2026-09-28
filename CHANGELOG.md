@@ -12,6 +12,15 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.6`, `@affiant/core` `0.1.0-alpha.10` and `@affiant/store-postgres`
+  `0.1.0-alpha.8`: the protocol pin moves to the `v0.4.1` tag.** `packages/contract/protocol/PIN` now
+  names [`v0.4.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.1) rather than
+  [`v0.4.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.0) — a text-only patch: DK-1
+  amended from the first host's run of the withdrawal transition (a resubmit of a non-`expired` entry is
+  refused `decision-not-pending`; `decision.by` is an identifier; the withdrawn-resubmit suite case titled as
+  a refusal); no schema or fixture change from `v0.4.0`. The core renames its test to the rulebook's title.
+  No code change.
+
 - **`@affiant/contract` `0.1.0-alpha.5`, `@affiant/core` `0.1.0-alpha.9` and `@affiant/store-postgres`
   `0.1.0-alpha.7`: the protocol pin moves to the `v0.4.0` tag.** `packages/contract/protocol/PIN` now
   names [`v0.4.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.0) rather than commit
