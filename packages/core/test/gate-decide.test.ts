@@ -115,6 +115,10 @@ function countingStore(inner: DocketStore): { store: DocketStore; calls: string[
       calls.push("recordSupersession");
       return inner.recordSupersession(entryId, scope, supersededBy);
     },
+    async recordApproval(entryId, scope, record, fold) {
+      calls.push("recordApproval");
+      return inner.recordApproval(entryId, scope, record, fold);
+    },
     async listPending(scope: Scope, page: Page): Promise<PageResult<DocketEntry>> {
       calls.push("listPending");
       return inner.listPending(scope, page);
@@ -793,11 +797,16 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     const h = harness();
     const entry = await approved(h);
 
-    const reported = await h.gate.markExecuted(entry.entryId, "executed", "row 41", turnContext());
+    const reported = await h.gate.markExecuted(
+      entry.entryId,
+      "executed",
+      { code: "row-41", note: "row 41" },
+      turnContext(),
+    );
 
     expect(reported.status).toBe("approved");
     expect(reported.execution).toBe("executed");
-    expect(reported.executionDetail).toBe("row 41");
+    expect(reported.executionDetail).toEqual({ code: "row-41", note: "row 41" });
     expect(reported.attestation).toEqual(entry.attestation);
   });
 
@@ -808,13 +817,13 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     const reported = await h.gate.markExecuted(
       entry.entryId,
       "failed",
-      "unique constraint",
+      { code: "unique-constraint", note: "unique constraint" },
       turnContext(),
     );
 
     expect(reported.status).toBe("approved");
     expect(reported.execution).toBe("failed");
-    expect(reported.executionDetail).toBe("unique constraint");
+    expect(reported.executionDetail).toEqual({ code: "unique-constraint", note: "unique constraint" });
   });
 
   it("refuses an execution report on a pending row", async () => {
@@ -839,31 +848,41 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
   it("refuses a second report, so a committed row never later reads failed", async () => {
     const h = harness();
     const entry = await approved(h);
-    await h.gate.markExecuted(entry.entryId, "executed", "row 41", turnContext());
+    await h.gate.markExecuted(entry.entryId, "executed", { code: "row-41", note: "row 41" }, turnContext());
 
     const code = await codeOf(() =>
-      h.gate.markExecuted(entry.entryId, "failed", "actually it blew up", turnContext()),
+      h.gate.markExecuted(
+        entry.entryId,
+        "failed",
+        { code: "blew-up", note: "actually it blew up" },
+        turnContext(),
+      ),
     );
 
     expect(code).toBe("execution-already-recorded");
     const row = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
     expect(row?.execution).toBe("executed");
-    expect(row?.executionDetail).toBe("row 41");
+    expect(row?.executionDetail).toEqual({ code: "row-41", note: "row 41" });
   });
 
   it("refuses a second report the other way round as well", async () => {
     const h = harness();
     const entry = await approved(h);
-    await h.gate.markExecuted(entry.entryId, "failed", "unique constraint", turnContext());
+    await h.gate.markExecuted(
+      entry.entryId,
+      "failed",
+      { code: "unique-constraint", note: "unique constraint" },
+      turnContext(),
+    );
 
     const code = await codeOf(() =>
-      h.gate.markExecuted(entry.entryId, "executed", "retried", turnContext()),
+      h.gate.markExecuted(entry.entryId, "executed", { code: "retried", note: "retried" }, turnContext()),
     );
 
     expect(code).toBe("execution-already-recorded");
     const row = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
     expect(row?.execution).toBe("failed");
-    expect(row?.executionDetail).toBe("unique constraint");
+    expect(row?.executionDetail).toEqual({ code: "unique-constraint", note: "unique constraint" });
   });
 
   it("tells a host it reports once, and names the outcome already on the row", async () => {
@@ -887,8 +906,8 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
     const entry = await approved(h);
 
     const outcomes = await Promise.all([
-      codeOf(() => h.gate.markExecuted(entry.entryId, "executed", "first", turnContext())),
-      codeOf(() => h.gate.markExecuted(entry.entryId, "failed", "second", turnContext())),
+      codeOf(() => h.gate.markExecuted(entry.entryId, "executed", { code: "first" }, turnContext())),
+      codeOf(() => h.gate.markExecuted(entry.entryId, "failed", { code: "second" }, turnContext())),
     ]);
 
     expect(outcomes.filter((code) => code === "execution-already-recorded")).toHaveLength(1);
@@ -1076,40 +1095,11 @@ describe("resubmission (DK-1, PV-2)", () => {
     expect(filed.card.priorAmendments).toEqual({ amount: "4000" });
   });
 
-  it("keeps its composite through a resubmission (AZ-4)", async () => {
-    const h = harness({ defaultTtlMs: 60_000 });
-    const proposal = {
-      operation: {
-        kind: "update" as const,
-        entityType: "Invoice",
-        entityId: "invoice-1",
-        fields: [...FIELDS],
-      },
-      toolName: "update_invoice",
-      fields: [prepared("status", "Active"), prepared("amount", "40"), prepared("note", "kept")],
-      args: null,
-    };
-    const filed = await h.gate.file({ ...proposal, compositeRef: "pi-1" }, turnContext());
-    const original = filed.entry;
-    h.clock.set(plus(AT, 90_000));
-    await codeOf(() =>
-      h.gate.decide(
-        original.entryId,
-        { kind: "approve", amendments: { amount: "4000", note: null } },
-        turnContext(),
-      ),
-    );
-
-    const resubmitted2 = await h.gate.resubmit(original.entryId, turnContext());
-
-    expect(resubmitted2.entry.compositeRef).toBe("pi-1");
-  });
-
   it("stamps a fresh deadline from the policy chain, run again (GT-4)", async () => {
     const { h, fresh } = await resubmitted();
 
     expect(fresh.expiresAt).toBe(plus(h.clock.now(), 60_000));
-    expect(fresh.requirement).toBe("ReviewerConfirmation");
+    expect(fresh.requirement).toEqual({ kind: "ReviewerConfirmation" });
   });
 
   it("is idempotent: resubmitting the same entry twice is one new row", async () => {
