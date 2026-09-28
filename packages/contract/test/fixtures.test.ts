@@ -106,7 +106,7 @@ wireGuideUi satisfies UiGuidance;
 
 describe("the vendored v0.1 fixtures", () => {
   it("pins the same protocol version the package advertises", () => {
-    expect(manifest["0.1.0"].protocolVersion).toBe(PROTOCOL_VERSION);
+    expect(manifest[PROTOCOL_VERSION].protocolVersion).toBe(PROTOCOL_VERSION);
     expect(manifest.conformance.protocolVersion).toBe(PROTOCOL_VERSION);
   });
 
