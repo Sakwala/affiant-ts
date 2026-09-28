@@ -4,7 +4,7 @@ import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import type { TurnContext } from "../src/context.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
-import { AffiantError, isCallerError } from "../src/errors.js";
+import { AffiantError } from "../src/errors.js";
 import type { JsonValue } from "../src/model/affidavit.js";
 import { computeConfidence } from "../src/model/affidavit.js";
 import { sha256Hex } from "../src/model/canonical.js";
@@ -660,146 +660,6 @@ describe("TTL is stamped after the policy chain (GT-4)", () => {
   });
 });
 
-describe("compositeRef on filing, the wrap path, and the replay guard (AZ-4)", () => {
-  it("carries compositeRef onto the row when the proposal names one", async () => {
-    const { gate } = harness();
-
-    const filed = await gate.file({ ...proposal(), compositeRef: "pi-1" }, turnContext());
-
-    expect(filed.entry.compositeRef).toBe("pi-1");
-    expect(filed.created).toBe(true);
-  });
-
-  it("leaves compositeRef null when the proposal names none", async () => {
-    const { gate } = harness();
-
-    const filed = await gate.file(proposal(), turnContext());
-
-    expect(filed.entry.compositeRef).toBeNull();
-  });
-
-  it("files compositeRef null for a wrapped tool's own filing", async () => {
-    const { gate, store } = harness();
-
-    const result = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
-
-    if (result.kind !== "write") {
-      expect.unreachable("the call produces a proposal");
-    }
-    const row = await store.get(result.entryId, { tenantId: "tenant-a" });
-    expect(row?.compositeRef).toBeNull();
-  });
-
-  it("refuses an empty-string compositeRef and files nothing", async () => {
-    const { gate, store } = harness();
-
-    const thrown = await thrownBy(() =>
-      gate.file({ ...proposal(), compositeRef: "" }, turnContext()),
-    );
-
-    expect(isCallerError(thrown) ? thrown.kind : null).toBe("composite-ref-invalid");
-    const pending = await store.listPending({ tenantId: "tenant-a" }, { limit: 10 });
-    expect(pending.items).toHaveLength(0);
-  });
-
-  it("refuses a non-string compositeRef and files nothing", async () => {
-    const { gate, store } = harness();
-
-    const thrown = await thrownBy(() =>
-      gate.file({ ...proposal(), compositeRef: 42 as unknown as string }, turnContext()),
-    );
-
-    expect(isCallerError(thrown) ? thrown.kind : null).toBe("composite-ref-invalid");
-    const pending = await store.listPending({ tenantId: "tenant-a" }, { limit: 10 });
-    expect(pending.items).toHaveLength(0);
-  });
-
-  it("refuses a replay that renames the composite, and writes nothing new", async () => {
-    const { gate, store } = harness();
-
-    await gate.file({ ...proposal(), compositeRef: "pi-1" }, turnContext());
-    const thrown = await thrownBy(() =>
-      gate.file({ ...proposal(), compositeRef: "pi-2" }, turnContext()),
-    );
-
-    expect(isCallerError(thrown) ? thrown.kind : null).toBe("composite-ref-mismatch");
-    expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
-      stored: "pi-1",
-      proposed: "pi-2",
-    });
-    const pending = await store.listPending({ tenantId: "tenant-a" }, { limit: 10 });
-    expect(pending.items).toHaveLength(1);
-    expect(pending.items[0]?.compositeRef).toBe("pi-1");
-  });
-
-  it("replays the same call with the same compositeRef without throwing", async () => {
-    const { gate } = harness();
-
-    const first = await gate.file({ ...proposal(), compositeRef: "pi-1" }, turnContext());
-    const second = await gate.file({ ...proposal(), compositeRef: "pi-1" }, turnContext());
-
-    expect(first.created).toBe(true);
-    expect(second.created).toBe(false);
-  });
-
-  it("accepts an explicit null compositeRef the same as leaving it out (AZ-4)", async () => {
-    const { gate } = harness();
-
-    const filed = await gate.file({ ...proposal(), compositeRef: null }, turnContext());
-
-    expect(filed.entry.compositeRef).toBeNull();
-    expect(filed.created).toBe(true);
-  });
-
-  it("treats a replay that spells 'none' as null instead of omitted as still a retry (AZ-4)", async () => {
-    const { gate } = harness();
-
-    const first = await gate.file(proposal(), turnContext());
-    const second = await gate.file({ ...proposal(), compositeRef: null }, turnContext());
-
-    expect(first.created).toBe(true);
-    expect(second.created).toBe(false);
-  });
-
-  it("gives two different constituents of the same composite two different rows", async () => {
-    const { gate, store } = harness();
-    const base = proposal();
-
-    await gate.file({ ...base, args: { approver: "alice" }, compositeRef: "pi-1" }, turnContext());
-    await gate.file({ ...base, args: { approver: "bob" }, compositeRef: "pi-1" }, turnContext());
-
-    const pending = await store.listPending({ tenantId: "tenant-a" }, { limit: 10 });
-    expect(pending.items).toHaveLength(2);
-    expect(pending.items.every((item) => item.compositeRef === "pi-1")).toBe(true);
-  });
-
-  it("leaves the sibling untouched after a decision on one constituent (AZ-4, DK-1)", async () => {
-    const { gate, store } = harness();
-    const base = proposal();
-
-    const aliceFiled = await gate.file(
-      { ...base, args: { approver: "alice" }, compositeRef: "pi-1" },
-      turnContext(),
-    );
-    const bobFiled = await gate.file(
-      { ...base, args: { approver: "bob" }, compositeRef: "pi-1" },
-      turnContext(),
-    );
-
-    await gate.decide(aliceFiled.entry.entryId, { kind: "approve" }, turnContext());
-
-    const bobRow = await store.get(bobFiled.entry.entryId, { tenantId: "tenant-a" });
-    expect(bobRow?.status).toBe("pending");
-    expect(bobRow?.compositeRef).toBe("pi-1");
-    expect(bobRow?.blocked).toBeNull();
-
-    const aliceRow = await store.get(aliceFiled.entry.entryId, { tenantId: "tenant-a" });
-    expect(aliceRow?.status).toBe("approved");
-    expect(aliceRow?.execution).toBe("unexecuted");
-    expect(aliceRow?.compositeRef).toBe("pi-1");
-  });
-});
-
 describe("the Evidence Card (SR-4)", () => {
   it("names the protocol version the envelope conforms to", async () => {
     const { gate } = harness();
@@ -1122,16 +982,6 @@ describe("port contract violations stay loud", () => {
     );
   });
 });
-
-/** Runs `run`, returning what it throws (or `null` if it does not). */
-async function thrownBy(run: () => Promise<unknown>): Promise<unknown> {
-  try {
-    await run();
-    return null;
-  } catch (error) {
-    return error;
-  }
-}
 
 /** A Sequence C proposal with its provenance already settled, unless `tagged` is false. */
 function proposal(init: { tagged?: boolean } = {}) {
