@@ -25,8 +25,9 @@
 -- converted now and a row `0002` already converted (this file running after a `0002`
 -- that worked) is left byte-identical.
 
--- (a) The guard. `pg_roles.rolbypassrls` is true for a role with `BYPASSRLS` and for a
--- superuser alike (a superuser's `rolbypassrls` reads `true` in `pg_roles`), and
+-- (a) The guard. A superuser bypasses row level security regardless of
+-- `pg_roles.rolbypassrls`, which defaults to `NOBYPASSRLS` and is not implied by
+-- `rolsuper` — so the check reads both columns rather than `rolbypassrls` alone;
 -- `rolsuper` is kept in the check only so the message below can be precise about which
 -- of the two `current_user` lacks; either one alone is sufficient to proceed.
 do $$
