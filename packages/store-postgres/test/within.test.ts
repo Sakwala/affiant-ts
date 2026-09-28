@@ -95,7 +95,7 @@ describe("a store bound to the host's transaction", () => {
         "executed",
         scope,
         "executed",
-        "wrote 1 row",
+        { code: "wrote-1-row", note: "wrote 1 row" },
         "unexecuted",
       );
       expect(typeof recorded).not.toBe("string");

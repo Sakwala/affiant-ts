@@ -32,7 +32,7 @@ const clock = stubClock(NOON);
 function approval(entryId: string): TransitionPatch {
   return {
     status: "approved",
-    decision: { kind: "approve", reason: null, at: NOON },
+    decision: { by: "person-7", kind: "approve", reason: null, at: NOON },
     attestation: { by: { kind: "member", id: "person-7" }, at: NOON, entryId },
   };
 }
