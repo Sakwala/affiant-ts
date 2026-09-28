@@ -685,17 +685,14 @@
       "schemas/0.3.0/amendments.schema.json",
       "schemas/0.3.0/binding.schema.json",
       "schemas/0.3.0/blocked.schema.json",
-      "schemas/0.3.0/decision-result.schema.json",
       "schemas/0.3.0/entity-ref.schema.json",
       "schemas/0.3.0/money.schema.json",
-      "schemas/0.3.0/notification.schema.json",
       "schemas/0.3.0/operation.schema.json",
       "schemas/0.3.0/outside-gate.schema.json",
       "schemas/0.3.0/provenance-chain.schema.json",
       "schemas/0.3.0/provenance-source.schema.json",
       "schemas/0.3.0/provenance-tag.schema.json",
-      "schemas/0.3.0/telemetry-key.schema.json",
-      "schemas/0.3.0/tool-result.schema.json"
+      "schemas/0.3.0/telemetry-key.schema.json"
     ],
     "fixtures": [
       {
@@ -982,12 +979,100 @@
         "kind": "negative",
         "derivedFrom": "Mutation of v0.3/error-code/01-substance-refused.json",
         "notes": "(re-carried at 0.3.0: unchanged) A code that is not in the registry. An implementation MAY add codes, but a payload claiming one of the registry’s meanings has to spell it the registry’s way."
+      },
+      {
+        "id": "v0.3/tool-result/01-write-proposal",
+        "file": "v0.3/tool-result/01-write-proposal.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/typed-inputs-on-the-card (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: the embedded card gains \"multiParty\": null (not a MultiParty filing)) What the model got back from the wrapped tool: a proposal, never a completed write (GT-6). The gate did not call the tool’s own execute — the fixture supplies one that throws if it is ever reached."
+      },
+      {
+        "id": "v0.3/tool-result/02-error-substance-refused",
+        "file": "v0.3/tool-result/02-error-substance-refused.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture gate/substance-hollow-refused (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) A proposal that swore to nothing: a non-empty value sitting under Empty provenance. Refused before the policy chain runs, so no Standing Order ever sees a hollow proposal (GT-3). The refusal is an answer the model can act on."
+      },
+      {
+        "id": "v0.3/tool-result/03-read",
+        "file": "v0.3/tool-result/03-read.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core gate.wrap over a read tool (Sakwala/affiant-ts)",
+        "notes": "(re-carried at 0.3.0: unchanged) A read tool runs and its result is returned untouched. The gate stands in front of writes; there is nothing to file here."
+      },
+      {
+        "id": "v0.3/tool-result/90-unregistered-error-code",
+        "file": "v0.3/tool-result/90-unregistered-error-code.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/tool-result/02-error-substance-refused.json",
+        "notes": "(re-carried at 0.3.0: unchanged) An error arm carrying a code that is neither in the registry nor the read-tool \"tool-error\". A consumer switches on the discriminator and branches on the code; a code outside both sets is one it cannot act on (AF-5)."
+      },
+      {
+        "id": "v0.3/decision-result/01-approved",
+        "file": "v0.3/decision-result/01-approved.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture decide/approve (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) The same decision as a report back to a reviewer surface. A report, never an authorization: the row is the record (AZ-5)."
+      },
+      {
+        "id": "v0.3/decision-result/02-executed",
+        "file": "v0.3/decision-result/02-executed.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture decide/execution-executed (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) The same entry reported after execution: an approved-and-committed write, distinguishable on the record from an approved-but-failed one."
+      },
+      {
+        "id": "v0.3/decision-result/90-missing-attestation",
+        "file": "v0.3/decision-result/90-missing-attestation.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/decision-result/01-approved.json",
+        "notes": "(re-carried at 0.3.0: unchanged) The attestation property removed rather than set to null. No attribution, no execution (AZ-1) — and a report that leaves the slot off cannot say whether nobody agreed or nobody was asked."
+      },
+      {
+        "id": "v0.3/notification/01-docket-expiring",
+        "file": "v0.3/notification/01-docket-expiring.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-3, which no reference implementation emits yet",
+        "notes": "(re-carried at 0.3.0: unchanged) Re-sent on every sweep while the entry stays inside the warning window, so a consumer keys a countdown off expiresAt rather than counting notifications."
+      },
+      {
+        "id": "v0.3/notification/02-docket-expired",
+        "file": "v0.3/notification/02-docket-expired.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-1",
+        "notes": "(re-carried at 0.3.0: unchanged) The lapse notice. A hint, never a fact a consumer may act on alone: an entry past its deadline reads expired whether or not this ever arrived."
+      },
+      {
+        "id": "v0.3/notification/03-docket-transition",
+        "file": "v0.3/notification/03-docket-transition.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-1 and the docket.transition key of TL-1",
+        "notes": "(re-carried at 0.3.0: unchanged) New in v0.1: the state a row left, the state it reached, and the execution outcome an approved row now carries."
+      },
+      {
+        "id": "v0.3/notification/90-expiring-without-deadline",
+        "file": "v0.3/notification/90-expiring-without-deadline.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/notification/01-docket-expiring.json",
+        "notes": "(re-carried at 0.3.0: unchanged) A docket-expiring notification with no deadline. The deadline is the whole payload: a consumer keys a countdown off expiresAt precisely because the notification is re-sent on every sweep (DK-3)."
       }
     ]
   },
   "conformance": {
     "protocolVersion": "0.1.0",
-    "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted \u2014 gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
+    "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
     "promotedFrom": {
       "repository": "Sakwala/affiant-ts",
       "commit": "aa485f2946e4678a357544e0a115dc88536cca44",
@@ -995,8 +1080,10 @@
       "path": "packages/core/test/fixtures",
       "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
       "date": "2026-09-04",
-      "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 \u2014 see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.", "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why.",
-      "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value \u2014 src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text \u2014 and so passes it.", "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
+      "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 — see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
+      "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why.",
+      "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value — src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text — and so passes it.",
+      "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
     },
     "sets": {
       "gate": "the pipeline: substance, provenance, the policy chain, deadlines, filing",
@@ -2130,7 +2217,9 @@
         "id": "gate/multiparty-blocked",
         "file": "gate/11-multiparty-blocked.json",
         "retiredAt": "0.3.0",
-        "rules": ["AZ-4"],
+        "rules": [
+          "AZ-4"
+        ],
         "reason": "Stated that a MultiParty verdict files blocked, which is false from 0.3.0; gate/referral-blocked keeps AZ-4's blocked path covered. Published runs made at earlier tags still report it."
       }
     ]
