@@ -88,7 +88,10 @@
           "id": "ana"
         },
         "outcome": "executed",
-        "detail": "invoice row 41",
+        "detail": {
+          "code": "invoice-row-written",
+          "note": "invoice row 41"
+        },
         "refusal": null
       }
     ],
@@ -100,7 +103,10 @@
         "id": "ana"
       },
       "outcome": "failed",
-      "detail": "actually it blew up"
+      "detail": {
+        "code": "write-failed",
+        "note": "actually it blew up"
+      }
     }
   },
   "expect": {
@@ -111,7 +117,10 @@
     "entry": {
       "status": "approved",
       "execution": "executed",
-      "executionDetail": "invoice row 41",
+      "executionDetail": {
+        "code": "invoice-row-written",
+        "note": "invoice row 41"
+      },
       "requirement": "ReviewerConfirmation",
       "blocked": null,
       "attestation": {

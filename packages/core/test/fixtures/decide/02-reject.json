@@ -95,7 +95,8 @@
       "amendments": null,
       "decision": {
         "kind": "reject",
-        "reason": "the amount is an order of magnitude out"
+        "reason": "the amount is an order of magnitude out",
+        "by": "ana"
       },
       "affidavit": {
         "aggregateConfidence": 0.9,
