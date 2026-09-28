@@ -427,7 +427,10 @@ export type RequirementExpectation =
  * A partial matcher over the typed execution detail: `code` is compared
  * exactly, every other property is the host's own and unconstrained (0.3.0).
  */
-export type ExecutionDetailExpectation = { readonly code?: string; readonly [key: string]: unknown };
+export type ExecutionDetailExpectation = {
+  readonly code?: string;
+  readonly [key: string]: unknown;
+};
 
 /**
  * A partial matcher over one `MultiParty` approval record (0.3.0). `attestation`
@@ -741,14 +744,7 @@ const FIXTURE_KEYS = {
 /** The keys each kind of step adds to {@link FIXTURE_KEYS.step}. */
 const STEP_KEYS = {
   "wrap-execute": ["tool", "args"],
-  file: [
-    "toolName",
-    "operation",
-    "schema",
-    "preparedFields",
-    "args",
-    "operationLabel",
-  ],
+  file: ["toolName", "operation", "schema", "preparedFields", "args", "operationLabel"],
   decide: ["decision"],
   resubmit: [],
   markExecuted: ["outcome", "detail"],
@@ -1903,7 +1899,12 @@ async function checkEntry(
     if (typeof expected.requirement === "string") {
       compare(`${at}.requirement.kind`, expected.requirement, entry.requirement.kind, failures);
     } else {
-      compare(`${at}.requirement.kind`, expected.requirement.kind, entry.requirement.kind, failures);
+      compare(
+        `${at}.requirement.kind`,
+        expected.requirement.kind,
+        entry.requirement.kind,
+        failures,
+      );
       if (expected.requirement.approvers !== undefined) {
         compare(
           `${at}.requirement.approvers`,
@@ -1937,12 +1938,7 @@ async function checkEntry(
       compare(`${at}.approvals`, null, entry.approvals, failures);
     } else {
       const actual = entry.approvals ?? [];
-      compare(
-        `${at}.approvals`,
-        expected.approvals.length,
-        actual.length,
-        failures,
-      );
+      compare(`${at}.approvals`, expected.approvals.length, actual.length, failures);
       for (const [index, wanted] of expected.approvals.entries()) {
         const record = actual[index];
         const path = `${at}.approvals[${String(index)}]`;

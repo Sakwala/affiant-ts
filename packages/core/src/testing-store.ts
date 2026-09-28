@@ -2290,7 +2290,12 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           const outcome = result as Extract<RecordApprovalResult, { outcome: string }>;
           expect(outcome.outcome).toBe("folded");
           expect(outcome.entry.status).toBe("rejected");
-          expect(outcome.entry.decision).toEqual({ kind: "reject", reason: "no", at: NOON, by: "bo" });
+          expect(outcome.entry.decision).toEqual({
+            kind: "reject",
+            reason: "no",
+            at: NOON,
+            by: "bo",
+          });
         },
       },
       {
@@ -2344,9 +2349,10 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
 
           const strings = results.filter((result) => typeof result === "string");
           expect(strings).toEqual(["conflict"]);
-          const folds = results.filter(
-            (result) => typeof result !== "string",
-          ) as Extract<RecordApprovalResult, { outcome: string }>[];
+          const folds = results.filter((result) => typeof result !== "string") as Extract<
+            RecordApprovalResult,
+            { outcome: string }
+          >[];
           expect(folds).toHaveLength(1);
           expect(folds[0]?.outcome).toBe("folded");
 

@@ -16,7 +16,13 @@ import {
   parityManifestSchema,
   resultsSchema,
 } from "../src/conformance.js";
-import { PROTOCOL_VERSION, schemas, schemasByPath, seedSchemas, seedSchemasByPath } from "../src/schemas.js";
+import {
+  PROTOCOL_VERSION,
+  schemas,
+  schemasByPath,
+  seedSchemas,
+  seedSchemasByPath,
+} from "../src/schemas.js";
 import { enumValues, manifest, v01Fixtures, wireFixtures } from "./fixtures.generated.js";
 
 /**
@@ -65,7 +71,9 @@ describe("src/schemas.ts is what protocol/schemas/ says it is", () => {
   it.each(wireSchemaFiles)("%s", (file) => {
     const name = file.replace(/\.schema\.json$/, "");
     expect(schemas[name as keyof typeof schemas]).toEqual(vendored(join("schemas", file)));
-    expect(schemasByPath[`schemas/${PROTOCOL_VERSION}/${file}`]).toEqual(vendored(join("schemas", file)));
+    expect(schemasByPath[`schemas/${PROTOCOL_VERSION}/${file}`]).toEqual(
+      vendored(join("schemas", file)),
+    );
   });
 
   it("keys the schemas by the path the manifest names them by", () => {
@@ -107,7 +115,9 @@ describe("src/conformance.ts is what protocol/fixtures/ and protocol/conformance
     // protocol/PIN's first line is the ref; a second line, when present, pins the
     // vendored schema directory's version (`schemas=<version>`) and is not part of
     // the ref itself (protocol-pin.test.ts's own parse, mirrored here).
-    const pinFirstLine = (readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n")[0] ?? "").trim();
+    const pinFirstLine = (
+      readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n")[0] ?? ""
+    ).trim();
     expect(PROTOCOL_PIN).toBe(pinFirstLine);
   });
 

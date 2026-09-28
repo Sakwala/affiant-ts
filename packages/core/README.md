@@ -47,7 +47,13 @@ that fails when this package stops obeying it.
 
 ```ts
 import { createGate } from "@affiant/core";
-import type { ApprovalPolicy, JsonValue, Operation, StructuredResult, TurnContext } from "@affiant/core";
+import type {
+  ApprovalPolicy,
+  JsonValue,
+  Operation,
+  StructuredResult,
+  TurnContext,
+} from "@affiant/core";
 import { InMemoryDocketStore, InMemorySessionStore } from "@affiant/core/store-memory";
 
 // The pieces of a host this snippet leaves as prose: your model call, your entity
@@ -76,7 +82,8 @@ const gate = createGate({
   inference: { infer: async (turn, schema) => extract(turn, schema) },
   // What the entity holds now, so every field can swear to what it replaces (AF-3).
   projection: {
-    previousValues: async (op) => (op.entityId === null ? null : db.read(op.entityType, op.entityId)),
+    previousValues: async (op) =>
+      op.entityId === null ? null : db.read(op.entityType, op.entityId),
   },
   // Who may decide. Asked before every transition; `false` refuses it (AZ-2).
   authorization: { mayDecide: async (principal) => reviewers.has(principal.id) },
@@ -495,7 +502,13 @@ producers build the envelopes from it — no store, no clock, no port, no networ
 
 ```ts
 import { cardFor, decisionResultOf, isCallerError } from "@affiant/core";
-import type { DocketEntry, EvidenceCardRequest, FieldSchema, Gate, TurnContext } from "@affiant/core";
+import type {
+  DocketEntry,
+  EvidenceCardRequest,
+  FieldSchema,
+  Gate,
+  TurnContext,
+} from "@affiant/core";
 
 declare const row: DocketEntry;
 declare const schema: FieldSchema;

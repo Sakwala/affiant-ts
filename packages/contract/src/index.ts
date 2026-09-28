@@ -631,10 +631,7 @@ export interface MultiPartyAttestor {
 
 /** Who agreed. The **mode** is the kind — there is no separate mode field for it to drift from. */
 export type Attestor =
-  | MemberAttestor
-  | MemberViaRelayAttestor
-  | StandingOrderAttestor
-  | MultiPartyAttestor;
+  MemberAttestor | MemberViaRelayAttestor | StandingOrderAttestor | MultiPartyAttestor;
 
 /**
  * Who agreed to a write, when, and to which entry (AZ-1). Every executed write
