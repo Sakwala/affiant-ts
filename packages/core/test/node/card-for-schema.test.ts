@@ -171,8 +171,12 @@ async function cards(): Promise<{ readonly [name: string]: EvidenceCardRequest }
     schema: SCHEMA,
   });
 
-  const multiParty = harness({ policies: [policyReturning({ requirement: "MultiParty" })] });
-  built["blocked: a requirement this version does not run"] = cardFor(await fileOne(multiParty), {
+  // MultiParty is native from 0.3.0 (AZ-4); ReferralRequired is the level this
+  // implementation still does not run, so it is the one that still blocks (BD-293).
+  const blockedRequirement = harness({
+    policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
+  });
+  built["blocked: a requirement this version does not run"] = cardFor(await fileOne(blockedRequirement), {
     now: AT,
     schema: SCHEMA,
   });
