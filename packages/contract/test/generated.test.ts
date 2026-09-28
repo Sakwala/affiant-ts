@@ -71,9 +71,16 @@ describe("src/schemas.ts is what protocol/schemas/ says it is", () => {
   it("keys the schemas by the path the manifest names them by", () => {
     // The manifest's `0.1.0` section cites `schemas/0.1.0/<name>.schema.json`, and
     // the seed section cites `schemas/<name>.schema.json`. A lookup keyed by
-    // anything else would need a translation table nobody maintains.
+    // anything else would need a translation table nobody maintains. BD-257 dropped
+    // five 0.1.0 documents from having a vendored 0.1.0 schema left to validate
+    // against (docket-entry, requirement, attestation, evidence-card-request,
+    // error-code) — the same filter B-58a8 built as `v01KeptEntries` is repeated
+    // here so this check only looks up entries `schemasByPath` can actually answer.
+    const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
     for (const entry of manifest["0.1.0"].fixtures) {
-      expect(schemasByPath[entry.schema], entry.schema).toBeDefined();
+      const repathed = entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`);
+      if (!v03DefinitionsOnly.has(repathed)) continue;
+      expect(schemasByPath[repathed], entry.schema).toBeDefined();
     }
   });
 });
@@ -97,7 +104,11 @@ describe("src/conformance.ts is what protocol/fixtures/ and protocol/conformance
   const rows = conformanceManifest.fixtures;
 
   it("pins the ref the vendored copies came from", () => {
-    expect(PROTOCOL_PIN).toBe(readFileSync(join(protocolDir, "PIN"), "utf8").trim());
+    // protocol/PIN's first line is the ref; a second line, when present, pins the
+    // vendored schema directory's version (`schemas=<version>`) and is not part of
+    // the ref itself (protocol-pin.test.ts's own parse, mirrored here).
+    const pinFirstLine = readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n")[0].trim();
+    expect(PROTOCOL_PIN).toBe(pinFirstLine);
   });
 
   it("carries the whole promoted suite: the manifest's live fixture and vector counts", () => {
