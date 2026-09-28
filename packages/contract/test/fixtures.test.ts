@@ -27,6 +27,7 @@ import { PROTOCOL_VERSION } from "../src/index.js";
 import {
   manifest,
   v01Fixtures,
+  v03Fixtures,
   wireActionDecisionResult,
   wireEvidenceCardRequest,
   wireEvidenceCardRequestResubmission,
@@ -54,20 +55,31 @@ function positive<T>(id: string): T {
   return fixture as T;
 }
 
+/**
+ * BD-257: `evidence-card-request` is one of the five schemas that changed shape
+ * at the pin, so `v01Fixtures` no longer carries its documents — the card cases
+ * below read the v0.3 re-carried fixtures instead.
+ */
+function v03Positive<T>(id: string): T {
+  const fixture = v03Fixtures[id];
+  if (fixture === undefined) throw new Error(`no v0.3 fixture ${id}`);
+  return fixture as T;
+}
+
 const v01Affidavit = positive<Affidavit>("v0.1/affidavit/01-update-shaped");
 const v01Field = positive<AffidavitField>("v0.1/affidavit-field/02-external-bound");
-const v01Card = positive<EvidenceCardRequest>("v0.1/evidence-card-request/04-presentation-hints");
-const v01Row = positive<DocketEntry>("v0.1/docket-entry/03-amended-on-approval");
+const v03Card = v03Positive<EvidenceCardRequest>("v0.3/evidence-card-request/04-presentation-hints");
+const v03Row = v03Positive<DocketEntry>("v0.3/docket-entry/03-amended-on-approval");
 const v01Tag = positive<ProvenanceTag>("v0.1/provenance-tag/02-user-stated-reviewer-act");
 const v01Chain = positive<ProvenanceChain>("v0.1/provenance-chain/02-superseded");
 const v01Binding = positive<Binding>("v0.1/binding/01-external-ref");
-const v01Attestation = positive<Attestation>("v0.1/attestation/03-member-via-relay");
+const v03Attestation = v03Positive<Attestation>("v0.3/attestation/03-member-via-relay");
 const v01Blocked = positive<BlockedMarker>("v0.1/blocked/01-coverage-refused");
 const v01OutsideGate = positive<OutsideGateMarker>("v0.1/outside-gate/01-migration");
 const v01Money = positive<Money>("v0.1/money/01-decimal-string");
-const v01ToolResult = positive<ToolResult>("v0.1/tool-result/01-write-proposal");
-const v01Decision = positive<DecisionResult>("v0.1/decision-result/02-executed");
-const v01Transition = positive<Notification>("v0.1/notification/03-docket-transition");
+const v03ToolResult = v03Positive<ToolResult>("v0.3/tool-result/01-write-proposal");
+const v03Decision = v03Positive<DecisionResult>("v0.3/decision-result/02-executed");
+const v03Transition = v03Positive<Notification>("v0.3/notification/03-docket-transition");
 const v01Registry = positive<TelemetryKeyRegistry>("v0.1/telemetry-key/01-registry");
 
 // The superseded seed wire, typed by the `Seed*` shapes and by nothing else: a
@@ -107,10 +119,10 @@ describe("the vendored v0.1 fixtures", () => {
 describe("every envelope carries the protocol version (SR-4)", () => {
   it.each([
     ["affidavit", v01Affidavit.protocolVersion],
-    ["evidence card request", v01Card.protocolVersion],
-    ["docket entry", v01Row.protocolVersion],
-    ["decision result", v01Decision.protocolVersion],
-    ["notification", v01Transition.protocolVersion],
+    ["evidence card request", v03Card.protocolVersion],
+    ["docket entry", v03Row.protocolVersion],
+    ["decision result", v03Decision.protocolVersion],
+    ["notification", v03Transition.protocolVersion],
     ["telemetry registry", v01Registry.protocolVersion],
   ])("%s", (_what, version) => {
     expect(version).toBe(PROTOCOL_VERSION);
@@ -125,9 +137,9 @@ describe("the Affidavit carries all three confidence numbers (AF-2)", () => {
   });
 
   it("repeats the two companions on the card envelope for this one version", () => {
-    expect("populatedConfidence" in v01Card).toBe(true);
-    expect(v01Card.populatedConfidence).toBe(v01Card.affidavit.populatedConfidence);
-    expect(v01Card.emptyFieldCount).toBe(v01Card.affidavit.emptyFieldCount);
+    expect("populatedConfidence" in v03Card).toBe(true);
+    expect(v03Card.populatedConfidence).toBe(v03Card.affidavit.populatedConfidence);
+    expect(v03Card.emptyFieldCount).toBe(v03Card.affidavit.emptyFieldCount);
   });
 
   it("swears to the operation's shape, not to the host's verb (AF-3)", () => {
@@ -143,17 +155,17 @@ describe("presentation lives on the card envelope, never on the sworn field", ()
   });
 
   it("names a closed set and a mask on the envelope instead", () => {
-    const hints = v01Card.presentation ?? [];
+    const hints = v03Card.presentation ?? [];
 
     expect(hints.length).toBeGreaterThan(0);
-    const sworn = new Set(v01Card.affidavit.fields.map((field) => field.name));
+    const sworn = new Set(v03Card.affidavit.fields.map((field) => field.name));
     for (const hint of hints) expect(sworn.has(hint.name), hint.name).toBe(true);
     expect(hints.some((hint) => hint.allowedValues !== undefined)).toBe(true);
   });
 
   it("puts the reviewer's sentences on the envelope too", () => {
-    const blocked = positive<EvidenceCardRequest>(
-      "v0.1/evidence-card-request/05-blocked-with-warnings",
+    const blocked = v03Positive<EvidenceCardRequest>(
+      "v0.3/evidence-card-request/05-blocked-with-warnings",
     );
 
     expect(blocked.warnings?.length).toBeGreaterThan(0);
@@ -164,7 +176,7 @@ describe("presentation lives on the card envelope, never on the sworn field", ()
   });
 
   it("omits both slots on a card that has nothing to say", () => {
-    const plain = positive<EvidenceCardRequest>("v0.1/evidence-card-request/01-first-filing");
+    const plain = v03Positive<EvidenceCardRequest>("v0.3/evidence-card-request/01-first-filing");
 
     expect("presentation" in plain).toBe(false);
     expect("warnings" in plain).toBe(false);
@@ -174,7 +186,7 @@ describe("presentation lives on the card envelope, never on the sworn field", ()
 describe("every discriminated union is told apart by a kind, never by a property (AF-5)", () => {
   it.each([
     ["binding", v01Binding.kind],
-    ["attestor", v01Attestation.by.kind],
+    ["attestor", v03Attestation.by.kind],
     ["tool result", v01ToolResult.kind],
     ["notification", v01Transition.kind],
   ])("%s", (_what, kind) => {
