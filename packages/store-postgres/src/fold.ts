@@ -20,10 +20,12 @@ import { instantMs } from "@affiant/core";
 import type {
   Affidavit,
   AmendmentMap,
+  ApprovalRecord,
   Attestation,
   DecisionRecord,
   DocketEntry,
   DocketStatus,
+  ExecutionDetail,
   ExecutionOutcome,
   TransitionPatch,
 } from "@affiant/core";
@@ -45,7 +47,7 @@ export interface DecisionPayload {
   readonly amendments: AmendmentMap | null;
   readonly amendedAffidavit: Affidavit | null;
   readonly attestation: Attestation | null;
-  readonly executionDetail: string | null;
+  readonly executionDetail: ExecutionDetail | null;
   readonly supersededBy: string | null;
 }
 
@@ -59,7 +61,7 @@ export interface ExpiryPayload {
 /** What the executor's one report writes (DK-1). */
 export interface ExecutionPayload {
   readonly execution: Exclude<ExecutionOutcome, "unexecuted">;
-  readonly executionDetail: string | null;
+  readonly executionDetail: ExecutionDetail | null;
 }
 
 /** What a resubmission writes on the row it replaces (DK-1). */
@@ -82,6 +84,13 @@ export interface FoldRow {
   readonly supersession_payload: SupersessionPayload | null;
   readonly preserved_payload: PreservedPayload | null;
   readonly expiry_payload: ExpiryPayload | null;
+  /**
+   * The entry's approval records, joined ordered by `decided_at, approver` (N-7) —
+   * `null` when the view's aggregate found no rows, which the fold below tells apart
+   * from "not a MultiParty row" only by `requirement.kind`, never by this column
+   * alone.
+   */
+  readonly approvals: readonly ApprovalRecord[] | null;
   readonly filing_seq: string;
 }
 
@@ -145,6 +154,15 @@ export function foldEntry(row: FoldRow): DocketEntry {
         by: preserved.by,
       },
     };
+  }
+
+  // The filing's own `approvals` is always `[]` for a fresh MultiParty row (N-2);
+  // what is actually recorded lives in `docket_approvals` and reaches here through
+  // the view's join, never through a second derivation of the filing. A non-
+  // MultiParty row's `null` is the filed row's own, unchanged — there is no table
+  // row for it to join against in the first place.
+  if (entry.requirement.kind === "MultiParty") {
+    entry = { ...entry, approvals: row.approvals ?? [] };
   }
 
   return entry;
