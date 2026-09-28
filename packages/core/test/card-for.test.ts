@@ -311,8 +311,10 @@ describe("requiresConfirmation (DK-1, DK-5, AZ-4)", () => {
 
 describe("a blocked entry's card says so and asks for no confirmation (AZ-4, CV-4)", () => {
   it("rebuilds the card of an entry blocked for a requirement this version does not run", async () => {
-    for (const level of ["MultiParty", "ReferralRequired"] as const) {
-      const h = harness({ policies: [policyReturning({ requirement: level })] });
+    // MultiParty is native from 0.3.0 (AZ-4) and is no longer a level this
+    // version fails to run; ReferralRequired is the only one left (BD-293).
+    for (const level of ["ReferralRequired"] as const) {
+      const h = harness({ policies: [policyReturning({ requirement: { kind: level } })] });
       const { entry, card } = await fileOne(h);
 
       const rebuilt = cardFor(entry, { now: AT, schema: SCHEMA });
@@ -337,7 +339,7 @@ describe("a blocked entry's card says so and asks for no confirmation (AZ-4, CV-
   });
 
   it("asks for no confirmation on a blocked entry even before its deadline", async () => {
-    const h = harness({ policies: [policyReturning({ requirement: "MultiParty" })] });
+    const h = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
     const { entry } = await fileOne(h);
 
     expect(entry.status).toBe("pending");
