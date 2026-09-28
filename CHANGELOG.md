@@ -12,6 +12,13 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.5`, `@affiant/core` `0.1.0-alpha.9` and `@affiant/store-postgres`
+  `0.1.0-alpha.7`: the protocol pin moves to the `v0.4.0` tag.** `packages/contract/protocol/PIN` now
+  names [`v0.4.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.0) rather than commit
+  [`52e1a3d`](https://github.com/Sakwala/affiant-protocol/commit/52e1a3dd636c85a5f83755f4efb4a05391c30bd4)
+  — the text finalised: DK-1's `by` follows AZ-3, and no schema or fixture change from `52e1a3d`. No
+  code change.
+
 - **`@affiant/contract` `0.1.0-alpha.4`, `@affiant/core` `0.1.0-alpha.8` and `@affiant/store-postgres`
   `0.1.0-alpha.6`: the withdrawal transition, pinned at the `v0.4.0-pre.1` pre-release.**
   `packages/contract/protocol/PIN` now names commit

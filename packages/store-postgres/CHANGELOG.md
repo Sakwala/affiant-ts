@@ -10,6 +10,11 @@ the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Pinned to the rulebook's `v0.4.0` tag (the text finalised: DK-1's `by` follows AZ-3; no schema or
+  fixture change from `52e1a3d`); no code change.
+
 ## [0.1.0-alpha.6] — 2026-09-28
 
 ### Fixed
