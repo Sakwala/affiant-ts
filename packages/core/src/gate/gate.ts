@@ -30,7 +30,7 @@
  */
 
 import type { TurnContext } from "../context.js";
-import type { DocketEntry } from "../docket/entry.js";
+import type { DocketEntry, ExecutionDetail } from "../docket/entry.js";
 import type { DocketStore, Page, PageResult, Scope, SessionStore } from "../docket/store.js";
 import { AffiantError } from "../errors.js";
 import type { JsonValue } from "../model/affidavit.js";
@@ -177,7 +177,7 @@ export interface Gate {
   markExecuted(
     entryId: string,
     outcome: ExecutionReport,
-    detail: string | null,
+    detail: ExecutionDetail | null,
     ctx: TurnContext,
   ): Promise<DocketEntry>;
   /**
