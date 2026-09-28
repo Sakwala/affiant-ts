@@ -574,9 +574,9 @@ describe("the review outcome (DK-1)", () => {
   });
 
   it("refuses every decision on a blocked entry, and never degrades it (AZ-4)", async () => {
-    const h = harness({ policies: [policyReturning({ requirement: "MultiParty" })] });
+    const h = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
     const entry = await fileOne(h, turnContext());
-    expect(entry.blocked).toEqual({ code: "requirement-not-implemented", level: "MultiParty" });
+    expect(entry.blocked).toEqual({ code: "requirement-not-implemented", level: "ReferralRequired" });
 
     let thrown: unknown;
     try {
@@ -588,11 +588,11 @@ describe("the review outcome (DK-1)", () => {
     expect((thrown as { code?: string }).code).toBe("decision-not-pending");
     expect((thrown as { details?: Record<string, unknown> }).details).toMatchObject({
       blocked: "requirement-not-implemented",
-      level: "MultiParty",
+      level: "ReferralRequired",
     });
     const after = await h.store.get(entry.entryId, { tenantId: "tenant-a" });
     expect(after?.status).toBe("pending");
-    expect(after?.requirement).toBe("MultiParty");
+    expect(after?.requirement).toEqual({ kind: "ReferralRequired" });
   });
 
   it("emits docket.transition with where the row came from and where it went", async () => {
