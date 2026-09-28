@@ -154,7 +154,7 @@ if (write) {
 }
 
 if (flag("write-manifest") !== undefined) {
-  // BD-256: the parity file name is the pinned protocol's major.minor, read from
+  // The parity file name is the pinned protocol's major.minor, read from
   // @affiant/contract's PROTOCOL_VERSION rather than hand-typed here.
   const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
   const file = join(

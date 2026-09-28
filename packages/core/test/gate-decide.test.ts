@@ -415,6 +415,7 @@ describe("the review outcome (DK-1)", () => {
       kind: "approve",
       reason: "checked against the PO",
       at: AT,
+      by: "member-1",
     });
   });
 
