@@ -241,14 +241,14 @@ class Store implements DocketStore, SessionStore {
         // there is no "on conflict" to word for these rows (AZ-4, DK-1).
         if (entry.requirement.kind === "MultiParty") {
           const approvers = entry.requirement.approvers;
-          await tx`
-            insert into ${tx(this.#table("docket_approvers"))} (tenant_id, entry_id, approver, position)
-            select * from unnest(
-              ${tx.array(approvers.map(() => entry.tenantId))}::text[],
-              ${tx.array(approvers.map(() => entry.entryId))}::text[],
-              ${tx.array(approvers.map((approver) => text(entry, "requirement.approvers", approver)))}::text[],
-              ${tx.array(approvers.map((_, index) => index))}::int[]
-            )`;
+          for (const [position, approver] of approvers.entries()) {
+            await tx`
+              insert into ${tx(this.#table("docket_approvers"))} (tenant_id, entry_id, approver, position)
+              values (
+                ${text(entry, "tenantId", entry.tenantId)}, ${text(entry, "entryId", entry.entryId)},
+                ${text(entry, "requirement.approvers", approver)}, ${position}::int
+              )`;
+          }
         }
         return { entry: this.#read(entry), created: true };
       }
