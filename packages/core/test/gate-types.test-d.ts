@@ -27,10 +27,6 @@ void asWire;
 
 // The same for what a decided entry reports back.
 declare const decidedReport: DecisionResult;
-// @ts-expect-error SR-4: the wire contract's Attestor has not yet grown the
-// `multi-party` arm (0.3.0, native MultiParty) — a separate unit's job — so the
-// core's DecisionResult.attestation, which can now report one, is not yet a
-// strict subtype of the wire envelope's. Every other field still agrees.
 const asWireResult: WireDecisionResult = decidedReport;
 void asWireResult;
 
