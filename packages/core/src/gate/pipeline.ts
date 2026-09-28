@@ -162,6 +162,14 @@ export interface EvidenceCardRequest {
    */
   readonly blocked: BlockedMarker | null;
   /**
+   * The `MultiParty` approvers and whether each has decided, or `null` for every
+   * other requirement kind (AZ-4). Read from the record: one entry per approver,
+   * in the requirement's own order, each `decided` the record's `decision` or
+   * `null` when none has been written yet. No sentence — the approvers and their
+   * decisions are the fact; a reviewer surface renders its own prose from them.
+   */
+  readonly multiParty: { readonly approvers: readonly { readonly id: string; readonly decided: "approve" | "reject" | null }[]; readonly required: number } | null;
+  /**
    * How a reviewer surface should render each field's input: one entry per field
    * the host declared a hint for, naming a field the Affidavit carries. **Absent**
    * when the host declared none — nothing swears to a hint, so a producer with
@@ -953,8 +961,24 @@ export function buildCard(entry: DocketEntry, build: CardBuild): EvidenceCardReq
     populatedConfidence: sworn.populatedConfidence,
     emptyFieldCount: sworn.emptyFieldCount,
     blocked: entry.blocked,
+    multiParty: multiPartyCard(entry),
     ...presentationToWire(carry),
     requiresConfirmation: carry.requiresConfirmation,
+  };
+}
+
+/**
+ * The card's `multiParty` slot (AZ-4): the requirement's approvers, in its own
+ * order, each paired with its decision so far — read off the record, never
+ * recomputed from a decision map elsewhere. `null` for every requirement kind
+ * but `MultiParty`, where `entry.approvals` is likewise never `null`.
+ */
+function multiPartyCard(entry: DocketEntry): EvidenceCardRequest["multiParty"] {
+  if (entry.requirement.kind !== "MultiParty") return null;
+  const decided = new Map((entry.approvals ?? []).map((record) => [record.approver, record.decision]));
+  return {
+    approvers: entry.requirement.approvers.map((id) => ({ id, decided: decided.get(id) ?? null })),
+    required: entry.requirement.required,
   };
 }
 
