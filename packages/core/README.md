@@ -47,8 +47,28 @@ that fails when this package stops obeying it.
 
 ```ts
 import { createGate } from "@affiant/core";
-import type { Operation, TurnContext } from "@affiant/core";
+import type { ApprovalPolicy, Operation, TurnContext } from "@affiant/core";
 import { InMemoryDocketStore, InMemorySessionStore } from "@affiant/core/store-memory";
+
+// The pieces of a host this snippet leaves as prose: your model call, your entity
+// store, your reviewer roster, your own Standing Order and your delivery channel.
+interface UpdateArgs {
+  id: string;
+  status: string;
+}
+declare function now(): string;
+declare function extract(
+  turn: unknown,
+  schema: unknown,
+): Promise<{ fields: Record<string, unknown> }>;
+declare const db: {
+  read: (entityType: string, entityId: string) => Promise<unknown>;
+  write: (entry: unknown) => Promise<void>;
+  updateInvoice: (args: UpdateArgs) => Promise<unknown>;
+};
+declare const reviewers: { has: (id: string) => boolean };
+declare const routineStatusChange: ApprovalPolicy;
+declare function deliver(card: unknown): Promise<void>;
 
 const store = new InMemoryDocketStore();
 
@@ -476,7 +496,12 @@ producers build the envelopes from it — no store, no clock, no port, no networ
 
 ```ts
 import { cardFor, decisionResultOf, isCallerError } from "@affiant/core";
-import type { DocketEntry, EvidenceCardRequest } from "@affiant/core";
+import type { DocketEntry, EvidenceCardRequest, FieldSchema, Gate, TurnContext } from "@affiant/core";
+
+declare const row: DocketEntry;
+declare const schema: FieldSchema;
+declare const gate: Gate;
+declare const ctx: TurnContext;
 
 // A queue item: the row, the host's field schema for the tool that proposed it, and
 // the instant you are rendering at.
