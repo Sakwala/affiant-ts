@@ -334,7 +334,17 @@ const RUNNER = [
   `);`,
   `assert.equal(folded.status, "approved");`,
   `assert.equal(folded.approvals.length, 2);`,
+  `assert.equal(folded.approvals[0].approver, "ana");`,
+  `assert.equal(folded.approvals[0].decision, "approve");`,
+  `assert.equal(folded.approvals[0].attestation.by.kind, "member");`,
+  `assert.equal(folded.approvals[1].approver, "bo");`,
+  `assert.equal(folded.approvals[1].decision, "approve");`,
+  `assert.equal(folded.approvals[1].attestation.by.kind, "member");`,
   `assert.equal(folded.attestation.by.kind, "multi-party");`,
+  `assert.deepEqual(`,
+  `  folded.attestation.by.approvers.map((a) => a.id),`,
+  `  ["ana", "bo"],`,
+  `);`,
   `assert.equal(folded.decision.by, "bo");`,
   ``,
   `console.log("ok");`,
@@ -388,11 +398,15 @@ const CONSUMER = [
   ``,
 ].join("\n");
 
-describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
+describe.skipIf(!online)("a consumer of the packed tarball", () => {
   it(
     "runs the read-side producers and compiles against the published types",
     { timeout: 300_000 },
     () => {
+      // Unlike `!online` (no npm registry to install from — nothing this suite can
+      // fix), `!built` means the build this test depends on was never run: that is
+      // a failure to surface, not a reason to skip silently.
+      expect(built, "dist/index.d.ts is missing — build the package before this test").toBe(true);
       const packs = join(scratch, "packs");
       const project = join(scratch, "project");
       for (const directory of [packs, project]) {
