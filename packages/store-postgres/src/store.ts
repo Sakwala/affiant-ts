@@ -405,25 +405,29 @@ class Store implements DocketStore, SessionStore {
 
   /**
    * Record one approver's act on a `MultiParty` entry, folding the row in the same
-   * transaction when this record completes it (AZ-4, DK-1, N-4, N-7).
+   * transaction when this record completes it (AZ-4, DK-1).
    *
-   * `select … for update` locks the entry row for the rest of this transaction, so
-   * two approvals racing for the same entry serialise on it: the loser's own
-   * `#fold` re-read, once the winner has committed, already shows the row folded
-   * and answers `"conflict"` before this call ever attempts its own insert — the
-   * loser's record is never appended, exactly as the reference store's
-   * synchronous guard behaves. The terminal-once partial index is still the
-   * backstop underneath the lock (a sweep racing the same entry is not blocked by
-   * this lock, since it does not take it): if the decision insert this method
-   * makes loses to one already there, `#appendGuarded` reports `false` and this
-   * method answers `"conflict"` rather than writing a second decision row.
+   * `pg_advisory_xact_lock(hashtext(tenant_id || ':' || entry_id))` is taken first, as
+   * the transaction's own lock rather than a lock on the entry row: two approvals
+   * racing for the same entry still serialise on it, and taking it needs no `UPDATE`
+   * grant on `docket_entries` — a host that granted only `select, insert` there (this
+   * package's own README) would otherwise have every `MultiParty` decision refused
+   * with `permission denied for table docket_entries`. The loser's own `#fold`
+   * re-read, once the winner has committed and released the lock, already shows the
+   * row folded and answers `"conflict"` before this call ever attempts its own
+   * insert — the loser's record is never appended, exactly as the reference store's
+   * synchronous guard behaves. The terminal-once partial index is still the backstop
+   * underneath the lock (a sweep racing the same entry is not blocked by this lock,
+   * since it does not take it): if the decision insert this method makes loses to one
+   * already there, `#appendGuarded` reports `false` and this method answers
+   * `"conflict"` rather than writing a second decision row.
    *
    * The *listing* check (is `record.approver` one of `requirement.approvers`?) is
-   * the gate's, not this method's (N-4). The database still refuses an approver
-   * with no `docket_approvers` row: the foreign key on `docket_approvals` has
-   * nothing to reference and the insert fails closed — belt short of the gate's
-   * own check, and not reachable through it, so it is left to throw rather than
-   * mapped onto a result arm.
+   * the gate's, not this method's. The database still refuses an approver with no
+   * `docket_approvers` row: the foreign key on `docket_approvals` has nothing to
+   * reference and the insert fails closed — belt short of the gate's own check, and
+   * not reachable through it, so it is left to throw rather than mapped onto a
+   * result arm.
    */
   async recordApproval(
     entryId: string,
@@ -432,11 +436,10 @@ class Store implements DocketStore, SessionStore {
     fold: { readonly required: number },
   ) {
     return this.#run(scope.tenantId, async (tx) => {
-      const locked = await tx`
-        select 1 from ${tx(this.#table("docket_entries"))}
-        where tenant_id = ${scope.tenantId}::text and entry_id = ${entryId}::text
-        for update`;
-      if (locked.length === 0) return "not-found" as const;
+      // The transaction's own lock, taken before the row is even read: it needs no
+      // privilege on any table, and it excludes every other transaction that would
+      // record an approval for this same entry until this one commits or rolls back.
+      await tx`select pg_advisory_xact_lock(hashtext(${scope.tenantId}::text || ':' || ${entryId}::text)::bigint)`;
 
       const stored = await this.#fold(tx, entryId, scope);
       if (stored === null) return "not-found" as const;
@@ -488,11 +491,15 @@ class Store implements DocketStore, SessionStore {
         return { outcome: "recorded" as const, entry: this.#read(after) };
       }
 
-      // The order these approvals joined in above (`decided_at, approver`, N-7) is
-      // what {@link multiPartyAttestorOf} composes from; appending this record to
-      // the list `#fold` already read (before this insert) reproduces that order
-      // without a second query, the same way the memory store appends to its own
-      // in-hand array rather than re-reading it.
+      // The order these approvals joined in above is `seq` order — the insert order
+      // under the advisory lock taken at the top of this transaction, which is
+      // record order (AZ-4) — and that is what {@link multiPartyAttestorOf} composes
+      // from. Appending this record to the list `#fold` already read (before this
+      // insert) reproduces that order without a second query: the lock excludes
+      // every other transaction that would insert an approval for this entry, so no
+      // row can gain a lower `seq` than this one between that read and the insert
+      // below, the same way the memory store appends to its own in-hand array
+      // rather than re-reading it.
       const attestation =
         record.decision === "reject"
           ? null
