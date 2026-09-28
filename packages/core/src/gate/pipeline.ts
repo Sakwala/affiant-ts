@@ -64,7 +64,7 @@ import type {
   BlockedMarker,
   DocketEntry,
   NewEntryInit,
-  RequirementKind,
+  Requirement,
 } from "../docket/entry.js";
 import { newEntry } from "../docket/entry.js";
 import { instantMs } from "../docket/expiry.js";
@@ -704,7 +704,7 @@ export async function runPipeline(
   // not run is filed `pending` and refuses every decision, and CV-4 says the same of a
   // tool the host cannot cover. Both are a move *toward* a person, which is the
   // direction AZ-4 permits.
-  const fires = outcome.requirement === "StandingOrder" && blocked === null;
+  const fires = outcome.requirement.kind === "StandingOrder" && blocked === null;
   const entryId = await deriveEntryId(ctx, proposal);
 
   if (uncovered !== null) {
@@ -742,6 +742,9 @@ export async function runPipeline(
     toolName: proposal.toolName,
     affidavit,
     requirement: outcome.requirement,
+    // AZ-4: a MultiParty entry's approvals start empty and are appended one per
+    // approver as the gate decides them; every other kind's row carries none.
+    approvals: outcome.requirement.kind === "MultiParty" ? [] : null,
     filedAt: now,
     expiresAt,
     // DK-1: a resubmission names what it replaces on the way in. The successor link
@@ -778,7 +781,7 @@ export async function runPipeline(
       "gen_ai.tool.name": proposal.toolName,
       "gen_ai.conversation.id": ctx.conversationId,
       "entry.id": entry.entryId,
-      "docket.requirement": entry.requirement,
+      "docket.requirement": entry.requirement.kind,
       "docket.status": entry.status,
       "affidavit.field_count": entry.affidavit.fields.length,
       created,
@@ -875,13 +878,15 @@ function isEmptyValue(value: JsonValue): boolean {
 function blockedMarker(
   toolName: string,
   uncovered: ReturnType<CoverageRegistry["lookup"]>,
-  requirement: RequirementKind,
+  requirement: Requirement,
 ): BlockedMarker | null {
   if (uncovered !== null) return coverageRefusedMarker(toolName, uncovered);
-  if (requirement === "MultiParty" || requirement === "ReferralRequired") {
+  if (requirement.kind === "ReferralRequired") {
     // Recorded verbatim (AZ-4): the row says what was asked for, and no code path
     // turns it into the weaker requirement this version does know how to run.
-    return { code: "requirement-not-implemented", level: requirement };
+    // `MultiParty` is native from 0.3.0 (AZ-4) and is no longer a level this
+    // version fails to run — only `ReferralRequired` still is.
+    return { code: "requirement-not-implemented", level: requirement.kind };
   }
   return null;
 }
