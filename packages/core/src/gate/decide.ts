@@ -231,6 +231,10 @@ export async function decide(
   // Expiry, pending and AZ-2/AZ-3 (steps (i)-(v) above) all precede these checks;
   // the order below is the order AZ-4 states them in: amendable, listed, once.
   if (entry.requirement.kind === "MultiParty") {
+    // DK-2: an amendment map's absence is "no amendment map"; `{}` carries the same
+    // meaning as `undefined` (matching the single-reviewer path's own convention
+    // below), so an approve that names no correction at all is not refused here —
+    // only a map that actually names a field is.
     if (amendments !== null && Object.keys(amendments).length > 0) {
       throw new AffiantError(
         "decision-not-amendable",
@@ -252,12 +256,22 @@ export async function decide(
         { entryId, approver },
       );
     }
+    // `attestorOf` only ever returns `member` or `member-via-relay` (never
+    // `standing-order`/`multi-party`), but its return type is the general
+    // `Attestor`; narrow so an `ApprovalRecord` — a `PersonAttestation` — can only
+    // ever be built from a person (AZ-4).
+    if (attestor.kind !== "member" && attestor.kind !== "member-via-relay") {
+      throw new RangeError(
+        `AZ-4: a MultiParty decision's attestor must be member or member-via-relay, ` +
+          `got ${JSON.stringify(attestor.kind)}`,
+      );
+    }
     const record: ApprovalRecord = {
       approver,
       decision: decision.kind,
       reason: decision.reason ?? null,
       at: now,
-      attestation,
+      attestation: { by: attestor, at: now, entryId },
     };
     const result = await deps.store.recordApproval(entryId, scope, record, {
       required: entry.requirement.required,
@@ -291,23 +305,25 @@ export async function decide(
       );
     }
 
-    deps.telemetry.emit({
-      key: "docket.transition",
-      at: now,
-      attributes: {
-        "entry.id": entryId,
-        "gen_ai.conversation.id": ctx.conversationId,
-        from: "pending",
-        to: result.entry.status,
-        execution: result.entry.execution,
-        // Emitted only on the fold, exactly as the single-reviewer path emits them
-        // only on a transition out of pending (a "recorded" outcome leaves the row
-        // pending, so there is no decision or attestation to report yet).
-        "decision.kind": result.outcome === "folded" ? decision.kind : null,
-        "attestation.kind": result.outcome === "folded" ? (result.entry.attestation?.by.kind ?? null) : null,
-        amended: false,
-      },
-    });
+    // Emitted only on the fold, exactly as the single-reviewer path emits
+    // `docket.transition` only on a transition out of pending (N-5): a "recorded"
+    // outcome leaves the row pending, so there is no transition to report yet.
+    if (result.outcome === "folded") {
+      deps.telemetry.emit({
+        key: "docket.transition",
+        at: now,
+        attributes: {
+          "entry.id": entryId,
+          "gen_ai.conversation.id": ctx.conversationId,
+          from: "pending",
+          to: result.entry.status,
+          execution: result.entry.execution,
+          "decision.kind": decision.kind,
+          "attestation.kind": result.entry.attestation?.by.kind ?? null,
+          amended: false,
+        },
+      });
+    }
 
     return result.entry;
   }
