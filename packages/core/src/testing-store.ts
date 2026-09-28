@@ -49,11 +49,12 @@
 
 import { PROTOCOL_VERSION } from "@affiant/contract";
 
-import type { Attestation, DocketEntry, NewEntryInit } from "./docket/entry.js";
-import { newEntry } from "./docket/entry.js";
+import type { ApprovalRecord, Attestation, DocketEntry, NewEntryInit } from "./docket/entry.js";
+import { multiPartyAttestorOf, newEntry } from "./docket/entry.js";
 import type {
   DocketStore,
   Page,
+  RecordApprovalResult,
   Scope,
   SessionStore,
   TransitionPatch,
@@ -464,7 +465,8 @@ export type DocketContractSection =
   | "retention"
   | "purge"
   | "export"
-  | "tenancy";
+  | "tenancy"
+  | "approval";
 
 const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSection>[] = [
   {
@@ -2093,6 +2095,233 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
       },
     ],
   },
+  {
+    id: "approval",
+    title: "one approver's act on a MultiParty entry (AZ-4)",
+    cases: [
+      {
+        id: "approval/records-once",
+        title: "records one approver's decision and leaves the row pending",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 3 },
+            }),
+          );
+
+          const record: ApprovalRecord = {
+            approver: "ana",
+            decision: "approve",
+            reason: null,
+            at: NOON,
+            attestation: attestedBy("ana", "entry-1"),
+          };
+          const result = await store.recordApproval("entry-1", scope, record, { required: 3 });
+
+          expect(typeof result).not.toBe("string");
+          const outcome = result as Extract<RecordApprovalResult, { outcome: string }>;
+          expect(outcome.outcome).toBe("recorded");
+          expect(outcome.entry.status).toBe("pending");
+          expect(outcome.entry.approvals).toEqual([record]);
+        },
+      },
+      {
+        id: "approval/second-record-is-already-recorded",
+        title: "refuses a second record from the same approver as already-recorded",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 3 },
+            }),
+          );
+          await store.recordApproval(
+            "entry-1",
+            scope,
+            {
+              approver: "ana",
+              decision: "approve",
+              reason: null,
+              at: NOON,
+              attestation: attestedBy("ana", "entry-1"),
+            },
+            { required: 3 },
+          );
+
+          const second = await store.recordApproval(
+            "entry-1",
+            scope,
+            {
+              approver: "ana",
+              decision: "reject",
+              reason: "changed my mind",
+              at: NOON,
+              attestation: attestedBy("ana", "entry-1"),
+            },
+            { required: 3 },
+          );
+
+          expect(second).toBe("already-recorded");
+          const stored = await store.get("entry-1", scope);
+          expect(stored?.approvals).toHaveLength(1);
+        },
+      },
+      {
+        id: "approval/required-th-approve-folds-with-a-multi-party-attestation",
+        title: "folds approved with a multi-party attestation on the required-th approve",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 3 },
+            }),
+          );
+
+          const records: ApprovalRecord[] = ["ana", "bo", "cy"].map((approver) => ({
+            approver,
+            decision: "approve",
+            reason: null,
+            at: NOON,
+            attestation: attestedBy(approver, "entry-1"),
+          }));
+          let last: RecordApprovalResult | undefined;
+          for (const record of records) {
+            last = await store.recordApproval("entry-1", scope, record, { required: 3 });
+          }
+
+          expect(typeof last).not.toBe("string");
+          const outcome = last as Extract<RecordApprovalResult, { outcome: string }>;
+          expect(outcome.outcome).toBe("folded");
+          expect(outcome.entry.status).toBe("approved");
+          expect(outcome.entry.execution).toBe("unexecuted");
+          expect(outcome.entry.decision).toEqual({
+            kind: "approve",
+            reason: null,
+            at: NOON,
+            by: "cy",
+          });
+          expect(outcome.entry.attestation).toEqual({
+            by: multiPartyAttestorOf(records),
+            at: NOON,
+            entryId: "entry-1",
+          });
+        },
+      },
+      {
+        id: "approval/first-reject-folds-naming-the-approver",
+        title: "folds rejected on the first reject, naming the approver who rejected",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 3 },
+            }),
+          );
+          await store.recordApproval(
+            "entry-1",
+            scope,
+            {
+              approver: "ana",
+              decision: "approve",
+              reason: null,
+              at: NOON,
+              attestation: attestedBy("ana", "entry-1"),
+            },
+            { required: 3 },
+          );
+
+          const result = await store.recordApproval(
+            "entry-1",
+            scope,
+            {
+              approver: "bo",
+              decision: "reject",
+              reason: "no",
+              at: NOON,
+              attestation: attestedBy("bo", "entry-1"),
+            },
+            { required: 3 },
+          );
+
+          expect(typeof result).not.toBe("string");
+          const outcome = result as Extract<RecordApprovalResult, { outcome: string }>;
+          expect(outcome.outcome).toBe("folded");
+          expect(outcome.entry.status).toBe("rejected");
+          expect(outcome.entry.decision).toEqual({ kind: "reject", reason: "no", at: NOON, by: "bo" });
+        },
+      },
+      {
+        id: "approval/two-racing-for-the-required-th-place-fold-once",
+        title: "lets exactly one of two racing approvers fold the required-th place",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 2 },
+            }),
+          );
+          await store.recordApproval(
+            "entry-1",
+            scope,
+            {
+              approver: "ana",
+              decision: "approve",
+              reason: null,
+              at: NOON,
+              attestation: attestedBy("ana", "entry-1"),
+            },
+            { required: 2 },
+          );
+
+          const results = await Promise.all([
+            store.recordApproval(
+              "entry-1",
+              scope,
+              {
+                approver: "bo",
+                decision: "approve",
+                reason: null,
+                at: NOON,
+                attestation: attestedBy("bo", "entry-1"),
+              },
+              { required: 2 },
+            ),
+            store.recordApproval(
+              "entry-1",
+              scope,
+              {
+                approver: "cy",
+                decision: "approve",
+                reason: null,
+                at: NOON,
+                attestation: attestedBy("cy", "entry-1"),
+              },
+              { required: 2 },
+            ),
+          ]);
+
+          const strings = results.filter((result) => typeof result === "string");
+          expect(strings).toEqual(["conflict"]);
+          const folds = results.filter(
+            (result) => typeof result !== "string",
+          ) as Extract<RecordApprovalResult, { outcome: string }>[];
+          expect(folds).toHaveLength(1);
+          expect(folds[0]?.outcome).toBe("folded");
+
+          const stored = await store.get("entry-1", scope);
+          expect(stored?.status).not.toBe("pending");
+          expect(stored?.approvals).toHaveLength(3);
+        },
+      },
+      {
+        id: "approval/a-non-multiparty-row-carries-null",
+        title: "carries approvals: null on a row that is not MultiParty",
+        async run({ store, expect, scope, entry }) {
+          await store.file(entry("entry-1"));
+
+          const stored = await store.get("entry-1", scope);
+
+          expect(stored?.approvals).toBeNull();
+        },
+      },
+    ],
+  },
 ];
 
 /** How a case builds an entry in its own tenant. */
@@ -2461,6 +2690,30 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
             );
             // A page size is not a cursor: an unbounded page stays a bare RangeError.
             await expect(store.rehydrate(scope, { limit: 0 })).rejects.toThrow(RangeError);
+          },
+        },
+        {
+          id: "rehydration/rehydrates-with-its-approvals",
+          title: "rehydrates a pending MultiParty entry with its recorded approvals",
+          async run({ store, expect, scope, entry }) {
+            await store.file(
+              entry("pending-mp", {
+                requirement: { kind: "MultiParty", approvers: ["ana", "bo", "cy"], required: 3 },
+              }),
+            );
+            const record: ApprovalRecord = {
+              approver: "ana",
+              decision: "approve",
+              reason: null,
+              at: NOON,
+              attestation: attestedBy("ana", "pending-mp"),
+            };
+            await store.recordApproval("pending-mp", scope, record, { required: 3 });
+
+            const page = await store.rehydrate(scope, { limit: 10 });
+
+            const stored = page.items.find((item) => item.entryId === "pending-mp");
+            expect(stored?.approvals).toEqual([record]);
           },
         },
       ],
