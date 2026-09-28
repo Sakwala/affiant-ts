@@ -132,6 +132,7 @@ describe("runtime envelope (RT-1)", () => {
       "unboundDeclaredInput",
       "wireCarryOf",
       "withConfidence",
+      "withdraw",
       "wrapTool",
     ]);
   });

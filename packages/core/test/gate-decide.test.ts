@@ -1000,6 +1000,7 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
       "markExecuted",
       "rehydrate",
       "resubmit",
+      "withdraw",
       "wrap",
     ]);
   });

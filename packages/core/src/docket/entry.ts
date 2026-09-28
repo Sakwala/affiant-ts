@@ -48,7 +48,7 @@ import { isDue, requireInstant } from "./expiry.js";
  * those transitions, so naming them here would invite a host to depend on
  * semantics nobody has fixed.
  */
-export type DocketStatus = "pending" | "approved" | "rejected" | "expired";
+export type DocketStatus = "pending" | "approved" | "rejected" | "expired" | "withdrawn";
 
 /** Every {@link DocketStatus}, pinned as data so a runtime check and a fixture read the same list. */
 export const DOCKET_STATUSES = [
@@ -56,6 +56,7 @@ export const DOCKET_STATUSES = [
   "approved",
   "rejected",
   "expired",
+  "withdrawn",
 ] as const satisfies readonly DocketStatus[];
 
 /**
@@ -361,15 +362,20 @@ export interface ExecutionDetail {
  * person chose anything.
  */
 export interface DecisionRecord {
-  /** Approve or reject. Amending is approving with an {@link DocketEntry.amendments} map. */
-  readonly kind: "approve" | "reject";
-  /** The reviewer's stated reason, or `null` when they gave none. */
+  /**
+   * Approve or reject. Amending is approving with an {@link DocketEntry.amendments}
+   * map. `"withdraw"` is the host's own act, not a reviewer's decision — it cancels a
+   * `pending` entry whose subject the host has abandoned (DK-1).
+   */
+  readonly kind: "approve" | "reject" | "withdraw";
+  /** The reviewer's stated reason, or `null` when they gave none. Required for a withdrawal. */
   readonly reason: string | null;
   /** When the decision was made, as an ISO 8601 instant in UTC. */
   readonly at: string;
   /**
    * The principal whose act folded the row — the reviewer for a single-reviewer
-   * decision, or the approver whose record was the fold (AZ-4).
+   * decision, the approver whose record was the fold (AZ-4), or the host principal
+   * that withdrew the entry.
    */
   readonly by: string;
 }

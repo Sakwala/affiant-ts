@@ -471,6 +471,17 @@ non-conformant, not because it has not been written yet.
   Overwriting would let an approved-and-committed row later read `failed`: an edit in
   place of a recorded fact (DK-4), and the loss of exactly the distinction DK-1
   requires the row to keep.
+- **`gate.withdraw(entryId, { reason }, ctx)` closes a `pending` entry the host has
+  abandoned, returning the row as the transition leaves it.** It checks in DK-1's
+  order — the tenant scope first (a miss is `entry-not-found`), then the deadline
+  (`decision-expired`, nothing preserved), then that the row still reads `pending`
+  (`decision-not-pending`; the row is left as it stands) — and does not consult the
+  authorization port: the host is authorising its own act, as it does a filing, not a
+  reviewer's decision. The row records `decision: { kind: "withdraw", reason, at, by }`
+  with `attestation` and `execution` both `null` and the `approvals` already recorded
+  left untouched, and a withdrawn entry is never resubmitted — only an expired one is (DK-1).
+  A blank `reason` throws `AffiantCallerError` of kind `withdrawal-reason-missing`
+  before anything is read.
 - **An amendment is an approval with corrections.** The corrected fields are tagged
   `UserStated` bound to the reviewer's act, and the three numbers are recomputed
   (DK-2, AF-4). The row keeps both the Affidavit **as the agent proposed it**, never
@@ -601,6 +612,7 @@ today still catches it — with a stable `kind` and structured `details`:
 | `turn-context-invalid`      | The turn context's `conversationId`, `tenantId` or `channel` is blank. Thrown at the top of the pipeline, before the interceptors and before your model is called (GT-1): nothing is filed and no port runs. |
 | `superseded-entry-mismatch` | `cardFor` was given the wrong superseded row, or none for a row that needs one, or one for a row that supersedes nothing.                                                                                    |
 | `entry-not-decided`         | `decisionResultOf` was given a `pending` row.                                                                                                                                                                |
+| `withdrawal-reason-missing` | `gate.withdraw` was given a blank `reason`, before any read. Nothing is recorded.                                                                                                                            |
 
 - **A `kind` is not an `ErrorCode`.** It is not in the rulebook's refusal registry and it
   never crosses the wire as one. `isCallerError(value)` is the guard, and it answers

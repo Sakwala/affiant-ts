@@ -311,13 +311,14 @@ export type { Gate, GateOptions, WriteProposal } from "./gate/gate.js";
 // with its own assembled dependencies, and so a conformance driver can reach them
 // without building a gate.
 
-export { attestorOf, decide, markExecuted, resubmit } from "./gate/decide.js";
+export { attestorOf, decide, markExecuted, resubmit, withdraw } from "./gate/decide.js";
 export type {
   DecideDeps,
   Decision,
   ExecutionReport,
   MemberAttestation,
   RelayAttestation,
+  Withdrawal,
 } from "./gate/decide.js";
 
 // end decisions

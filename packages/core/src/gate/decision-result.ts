@@ -29,9 +29,10 @@ import { AffiantCallerError } from "../errors.js";
  *
  * `"resubmitted"` is the outcome an expired entry reads once a successor has
  * superseded it; it is never a Docket status, which is why this is its own union
- * and not `DocketStatus`.
+ * and not `DocketStatus`. `"withdrawn"` is shaped as `"rejected"` is: the decision
+ * record is carried, and the attestation reports `null` (DK-1).
  */
-export type DecisionOutcome = "approved" | "rejected" | "expired" | "resubmitted";
+export type DecisionOutcome = "approved" | "rejected" | "expired" | "resubmitted" | "withdrawn";
 
 /**
  * What became of a review, as the producer reports it back.
@@ -92,6 +93,8 @@ function outcomeOf(entry: DocketEntry): DecisionOutcome {
       return "approved";
     case "rejected":
       return "rejected";
+    case "withdrawn":
+      return "withdrawn";
     case "expired":
       // DK-4: the history reads forward, so an expiry that a resubmission replaced
       // reports the replacement rather than the lapse.

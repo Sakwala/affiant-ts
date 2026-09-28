@@ -572,6 +572,46 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "transition/a-withdrawal-racing-the-folding-approval-has-one-winner",
+        title: "lets exactly one of a racing withdrawal and folding approval win",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo"], required: 1 },
+            }),
+          );
+          const record: ApprovalRecord = {
+            approver: "ana",
+            decision: "approve",
+            reason: null,
+            at: NOON,
+            attestation: attestedBy("ana", "entry-1"),
+          };
+          const results = await Promise.all([
+            store.recordApproval("entry-1", scope, record, { required: 1 }),
+            store.transition("entry-1", scope, "pending", {
+              status: "withdrawn",
+              decision: { kind: "withdraw", reason: "gone", at: NOON, by: "host" },
+              execution: null,
+              attestation: null,
+            }),
+          ]);
+          const refusals = results.filter((result) => typeof result === "string");
+          expect(refusals).toHaveLength(1);
+          expect(["conflict", "already-decided"]).toContain(refusals[0]);
+          expect(results.filter((result) => typeof result !== "string")).toHaveLength(1);
+          // Which of the two wins is probabilistic on a store whose insert-then-fold
+          // and its compare-and-set are not serialised against one another; either
+          // outcome satisfies the contract, so both are asserted.
+          const stored = await store.get("entry-1", scope);
+          if (stored?.status === "withdrawn") {
+            expect(stored.approvals).toEqual([]);
+          } else if (stored?.status === "approved") {
+            expect(stored.decision?.kind).toBe("approve");
+          }
+        },
+      },
+      {
         id: "transition/a-burst-has-a-single-winner",
         title: "survives a burst of interleaved decisions with a single winner",
         async run({ store, expect, scope, entry }) {
@@ -1707,6 +1747,30 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           await store.file(entry("never-decided"));
 
           const result = await store.retention({ olderThan: LATE }, scope, 10);
+
+          expect(result).toEqual({ removed: 1, more: false });
+        },
+      },
+      {
+        id: "retention/ages-out-a-withdrawn-row-from-its-withdrawal",
+        title: "ages out an entry from the instant it was withdrawn",
+        async run({ store, clock, expect, scope, entry }) {
+          clock.set(NOON);
+          await store.file(entry("entry-1"));
+          await store.transition("entry-1", scope, "pending", {
+            status: "withdrawn",
+            decision: {
+              kind: "withdraw",
+              reason: "gone",
+              at: "2026-09-04T08:59:59.999Z",
+              by: "host",
+            },
+            decidedAt: "2026-09-04T08:59:59.999Z",
+            execution: null,
+            attestation: null,
+          });
+
+          const result = await store.retention({ olderThan: NOON }, scope, 10);
 
           expect(result).toEqual({ removed: 1, more: false });
         },
