@@ -212,11 +212,13 @@ export {
   DOCKET_STATUSES,
   EXECUTION_OUTCOMES,
   isTerminal,
+  multiPartyAttestorOf,
   newEntry,
   readStatus,
   REQUIREMENT_KINDS,
 } from "./docket/entry.js";
 export type {
+  ApprovalRecord,
   Attestation,
   AttestationRelay,
   Attestor,
@@ -225,10 +227,14 @@ export type {
   DecisionRecord,
   DocketEntry,
   DocketStatus,
+  ExecutionDetail,
   ExecutionOutcome,
   Lineage,
+  MemberAttestor,
+  MemberViaRelayAttestor,
   NewEntryInit,
   PreservedAmendments,
+  Requirement,
   RequirementKind,
 } from "./docket/entry.js";
 
@@ -316,7 +322,12 @@ export type {
 // end decisions
 // ---------------------------------------------------------------------------
 
-export { emptyMandatoryFields, evaluatePolicies, unboundDeclaredInput } from "./gate/policy.js";
+export {
+  emptyMandatoryFields,
+  evaluatePolicies,
+  normaliseRequirement,
+  unboundDeclaredInput,
+} from "./gate/policy.js";
 export type {
   ApprovalPolicy,
   PolicyChainDeps,
