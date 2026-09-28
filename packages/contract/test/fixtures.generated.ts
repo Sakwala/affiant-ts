@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 89f77f64363211ad761894a7f3cfc2b21cdf640e.
+// copy of Sakwala/affiant-protocol at cd4f859c0a944b895543a71d995666677c8df794.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -1399,14 +1399,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     }
   },
   "v0.3/docket-entry/01-pending-reviewer-confirmation": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1512,14 +1512,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/02-approved-unexecuted": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1619,14 +1619,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/03-amended-on-approval": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1693,7 +1693,7 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
       "createdAt": "2026-09-04T09:00:00.000Z"
     },
     "amendedAffidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1792,14 +1792,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/04-standing-order-approved": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "relay_capture",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1859,14 +1859,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/05-blocked-coverage-refused": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "relay_capture",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -1922,14 +1922,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/06-executed": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2032,14 +2032,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     }
   },
   "v0.3/docket-entry/07-expired-amendments-preserved": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "80358c14-961a-875e-b20a-0a70a89e4592",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2104,14 +2104,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/08-resubmitted": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2185,14 +2185,14 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/docket-entry/90-deferred-status": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "tenantId": "tenant-a",
     "conversationId": "conv-1",
     "channel": "chat",
     "toolName": "update_invoice",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2298,10 +2298,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "executionDetail": null
   },
   "v0.3/evidence-card-request/01-first-filing": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2394,10 +2394,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/02-blocked": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2440,10 +2440,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": false
   },
   "v0.3/evidence-card-request/03-resubmission": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2506,10 +2506,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/04-presentation-hints": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2627,10 +2627,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/05-blocked-with-warnings": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "e0c4b14c-dde4-8948-b2d8-b56921b18241",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2676,10 +2676,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": false
   },
   "v0.3/evidence-card-request/06-host-operation": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2800,7 +2800,7 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
   "v0.3/evidence-card-request/90-missing-protocol-version": {
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -2893,10 +2893,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/91-presentation-unknown-key": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -3015,10 +3015,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/92-warnings-not-an-array": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -3136,10 +3136,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "requiresConfirmation": true
   },
   "v0.3/evidence-card-request/93-presentation-names-unknown-field": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "affidavit": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "operationType": "update",
       "entityType": "Invoice",
       "entityId": "invoice-1",
@@ -3301,10 +3301,10 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
     "status": "pending",
     "card": {
-      "protocolVersion": "0.1.0",
+      "protocolVersion": "0.3.0",
       "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
       "affidavit": {
-        "protocolVersion": "0.1.0",
+        "protocolVersion": "0.3.0",
         "operationType": "update",
         "entityType": "Invoice",
         "entityId": "invoice-1",
@@ -3418,7 +3418,7 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
   },
   "v0.3/decision-result/01-approved": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "outcome": "approved",
     "attestation": {
@@ -3432,7 +3432,7 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "execution": "unexecuted"
   },
   "v0.3/decision-result/02-executed": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "outcome": "approved",
     "attestation": {
@@ -3446,24 +3446,24 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "execution": "executed"
   },
   "v0.3/decision-result/90-missing-attestation": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
     "outcome": "approved",
     "execution": "unexecuted"
   },
   "v0.3/notification/01-docket-expiring": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "kind": "docket-expiring",
     "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
     "expiresAt": "2026-09-04T09:30:00.000Z"
   },
   "v0.3/notification/02-docket-expired": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "kind": "docket-expired",
     "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
   },
   "v0.3/notification/03-docket-transition": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "kind": "docket-transition",
     "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
     "from": "pending",
@@ -3471,7 +3471,7 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
     "execution": null
   },
   "v0.3/notification/90-expiring-without-deadline": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "kind": "docket-expiring",
     "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
   },
