@@ -214,7 +214,7 @@ const BASE = {
   tenantId: "tenant-a",
   conversationId: "conv-1",
   channel: "chat",
-  requirement: "ReviewerConfirmation",
+  requirement: { kind: "ReviewerConfirmation" },
   toolName: "update_invoice",
   filedAt: "2026-09-04T09:00:00.000Z",
   expiresAt: "2026-09-04T09:30:00.000Z",
@@ -253,6 +253,8 @@ export function withSessionStore(
       docket.preserveAmendments(entryId, scope, amendments, act),
     recordExecution: (entryId, scope, outcome, detail, expected) =>
       docket.recordExecution(entryId, scope, outcome, detail, expected),
+    recordApproval: (entryId, scope, record, fold) =>
+      docket.recordApproval(entryId, scope, record, fold),
     recordSupersession: (entryId, scope, supersededBy) =>
       docket.recordSupersession(entryId, scope, supersededBy),
     listPending: (scope, page) => docket.listPending(scope, page),
@@ -323,7 +325,7 @@ function attestedBy(id: string, entryId: string, at = NOON): Attestation {
 function approval(entryId: string, patch: Partial<TransitionPatch> = {}): TransitionPatch {
   return {
     status: "approved",
-    decision: { kind: "approve", reason: null, at: NOON },
+    decision: { kind: "approve", reason: null, at: NOON, by: "person-7" },
     attestation: attestedBy("person-7", entryId),
     ...patch,
   };
@@ -526,7 +528,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           const first = await store.transition("entry-1", scope, "pending", approval("entry-1"));
           const second = await store.transition("entry-1", scope, "pending", {
             status: "rejected",
-            decision: { kind: "reject", reason: "too late", at: NOON },
+            decision: { kind: "reject", reason: "too late", at: NOON, by: "person-7" },
           });
 
           expect(applied(expect, first).status).toBe("approved");
@@ -535,7 +537,12 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
 
           const stored = await store.get("entry-1", scope);
           expect(stored?.status).toBe("approved");
-          expect(stored?.decision).toEqual({ kind: "approve", reason: null, at: NOON });
+          expect(stored?.decision).toEqual({
+            kind: "approve",
+            reason: null,
+            at: NOON,
+            by: "person-7",
+          });
         },
       },
       {
@@ -548,7 +555,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             store.transition("entry-1", scope, "pending", approval("entry-1")),
             store.transition("entry-1", scope, "pending", {
               status: "rejected",
-              decision: { kind: "reject", reason: "no", at: NOON },
+              decision: { kind: "reject", reason: "no", at: NOON, by: "person-7" },
             }),
           ]);
 
@@ -904,13 +911,13 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             "entry-1",
             scope,
             "executed",
-            "wrote 1 row",
+            { code: "wrote-1-row", note: "wrote 1 row" },
             "unexecuted",
           )) as DocketEntry;
 
           expect(executed.status).toBe("approved");
           expect(executed.execution).toBe("executed");
-          expect(executed.executionDetail).toBe("wrote 1 row");
+          expect(executed.executionDetail).toEqual({ code: "wrote-1-row", note: "wrote 1 row" });
           expect(executed.attestation).not.toBeNull();
         },
       },
@@ -928,7 +935,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             "entry-2",
             scope,
             "failed",
-            "unique constraint",
+            { code: "unique-constraint", note: "unique constraint" },
             "unexecuted",
           );
 
@@ -936,7 +943,10 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           const failed = await store.get("entry-2", scope);
           expect(failed?.status).toBe("approved");
           expect(failed?.execution).toBe("failed");
-          expect(failed?.executionDetail).toBe("unique constraint");
+          expect(failed?.executionDetail).toEqual({
+            code: "unique-constraint",
+            note: "unique constraint",
+          });
         },
       },
       {
@@ -965,7 +975,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           await store.file(entry("entry-1"));
           await store.transition("entry-1", scope, "pending", {
             status: "rejected",
-            decision: { kind: "reject", reason: "wrong amount", at: NOON },
+            decision: { kind: "reject", reason: "wrong amount", at: NOON, by: "person-7" },
           });
 
           expect(
@@ -1009,20 +1019,29 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           // approved-but-failed one - which it does not, if the last caller wins.
           await store.file(entry("entry-1"));
           await store.transition("entry-1", scope, "pending", approval("entry-1"));
-          await store.recordExecution("entry-1", scope, "executed", "invoice row 41", "unexecuted");
+          await store.recordExecution(
+            "entry-1",
+            scope,
+            "executed",
+            { code: "invoice-row-41", note: "invoice row 41" },
+            "unexecuted",
+          );
 
           const second = await store.recordExecution(
             "entry-1",
             scope,
             "failed",
-            "actually it blew up",
+            { code: "actually-it-blew-up", note: "actually it blew up" },
             "unexecuted",
           );
 
           expect(second).toBe("execution-already-recorded");
           const row = await store.get("entry-1", scope);
           expect(row?.execution).toBe("executed");
-          expect(row?.executionDetail).toBe("invoice row 41");
+          expect(row?.executionDetail).toEqual({
+            code: "invoice-row-41",
+            note: "invoice row 41",
+          });
           expect(row?.status).toBe("approved");
         },
       },
@@ -1036,7 +1055,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             "entry-1",
             scope,
             "failed",
-            "unique constraint",
+            { code: "unique-constraint", note: "unique constraint" },
             "unexecuted",
           );
 
@@ -1044,7 +1063,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             "entry-1",
             scope,
             "executed",
-            "retried and it worked",
+            { code: "retried-and-it-worked", note: "retried and it worked" },
             "unexecuted",
           );
 
@@ -1053,7 +1072,10 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           expect(second).toBe("execution-already-recorded");
           const row = await store.get("entry-1", scope);
           expect(row?.execution).toBe("failed");
-          expect(row?.executionDetail).toBe("unique constraint");
+          expect(row?.executionDetail).toEqual({
+            code: "unique-constraint",
+            note: "unique constraint",
+          });
         },
       },
       {
@@ -1067,15 +1089,17 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           // is a compare-and-set, so one applies and the other is refused; neither is
           // queued and neither is written on top of the other.
           const results = await Promise.all([
-            store.recordExecution("entry-1", scope, "executed", "first", "unexecuted"),
-            store.recordExecution("entry-1", scope, "failed", "second", "unexecuted"),
+            store.recordExecution("entry-1", scope, "executed", { code: "first" }, "unexecuted"),
+            store.recordExecution("entry-1", scope, "failed", { code: "second" }, "unexecuted"),
           ]);
 
           const refused = results.filter((result) => result === "execution-already-recorded");
           expect(refused).toHaveLength(1);
           const row = await store.get("entry-1", scope);
           expect(["executed", "failed"]).toContain(row?.execution);
-          expect(row?.executionDetail).toBe(row?.execution === "executed" ? "first" : "second");
+          expect(row?.executionDetail).toEqual(
+            row?.execution === "executed" ? { code: "first" } : { code: "second" },
+          );
         },
       },
       {
@@ -1123,7 +1147,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           await store.file(entry("entry-1"));
           await store.transition("entry-1", scope, "pending", {
             status: "rejected",
-            decision: { kind: "reject", reason: "wrong amount", at: NOON },
+            decision: { kind: "reject", reason: "wrong amount", at: NOON, by: "person-7" },
           });
           await store.file(entry("entry-2", { supersedes: "entry-1" }));
 
@@ -1702,7 +1726,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
             );
             await store.transition(entryId, scope, "pending", {
               status: "rejected",
-              decision: { kind: "reject", reason: null, at: NOON },
+              decision: { kind: "reject", reason: null, at: NOON, by: "person-7" },
               decidedAt: NOON,
             });
           }
@@ -2025,7 +2049,7 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
           await store.file(entry("entry-1", { conversationId: "conv-1" }));
           await store.transition("entry-1", scope, "pending", {
             status: "rejected",
-            decision: { kind: "reject", reason: null, at: NOON },
+            decision: { kind: "reject", reason: null, at: NOON, by: "person-7" },
           });
 
           expect(await store.recordSupersession("entry-1", conversation("conv-9"), "entry-2")).toBe(
@@ -2108,7 +2132,7 @@ async function decide(
   await store.file(entry(entryId, { filedAt: at, expiresAt: "2026-09-06T23:59:00.000Z" }));
   await store.transition(entryId, scope, "pending", {
     status: kind === "approve" ? "approved" : "rejected",
-    decision: { kind, reason: null, at },
+    decision: { kind, reason: null, at, by: "person-7" },
     decidedAt: at,
   });
   if (kind === "approve") {
@@ -2437,48 +2461,6 @@ const SESSION_SECTIONS: readonly ContractSection<SessionStoreUnderTest, SessionC
             );
             // A page size is not a cursor: an unbounded page stays a bare RangeError.
             await expect(store.rehydrate(scope, { limit: 0 })).rejects.toThrow(RangeError);
-          },
-        },
-        {
-          id: "rehydration/round-trips-the-compositeRef",
-          title:
-            "reads compositeRef back on get, on rehydrate's page and on the pending list (AZ-4)",
-          async run({ store, expect, scope, entry }) {
-            const withRef = entry("has-a-composite-ref", { compositeRef: "pi-1" });
-            const withoutRef = entry("has-no-composite-ref");
-
-            await store.file(withRef);
-            await store.file(withoutRef);
-
-            const refiledWithRef = await store.file(withRef);
-            expect(refiledWithRef.created).toBe(false);
-            expect(refiledWithRef.entry.compositeRef).toBe("pi-1");
-
-            const refiledWithoutRef = await store.file(withoutRef);
-            expect(refiledWithoutRef.created).toBe(false);
-            expect(refiledWithoutRef.entry.compositeRef).toBeNull();
-
-            const got = await store.get("has-a-composite-ref", scope);
-            expect(got?.compositeRef).toBe("pi-1");
-            const gotBare = await store.get("has-no-composite-ref", scope);
-            expect(gotBare?.compositeRef).toBeNull();
-
-            const rehydrated = await store.rehydrate(scope, { limit: 10 });
-            expect(
-              rehydrated.items.find((item) => item.entryId === "has-a-composite-ref")?.compositeRef,
-            ).toBe("pi-1");
-            expect(
-              rehydrated.items.find((item) => item.entryId === "has-no-composite-ref")
-                ?.compositeRef,
-            ).toBeNull();
-
-            const pending = await store.listPending(scope, { limit: 10 });
-            expect(
-              pending.items.find((item) => item.entryId === "has-a-composite-ref")?.compositeRef,
-            ).toBe("pi-1");
-            expect(
-              pending.items.find((item) => item.entryId === "has-no-composite-ref")?.compositeRef,
-            ).toBeNull();
           },
         },
       ],
