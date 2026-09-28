@@ -116,6 +116,27 @@ export const REQUIREMENT_KINDS = [
 ] as const satisfies readonly RequirementKind[];
 
 /**
+ * The requirement as it is recorded on the row, from 0.3.0 (AZ-4).
+ *
+ * `{ kind }` alone for the first three levels; `MultiParty` also carries the host
+ * policy's own `approvers` (at least two distinct identifiers) and `required` (an
+ * integer, `1 ≤ required ≤ approvers.length`). This package validates both and never
+ * invents either — a policy that gets one wrong is refused at evaluation
+ * (`wireup-invalid`), never silently corrected.
+ */
+export type Requirement =
+  | { readonly kind: "StandingOrder" }
+  | { readonly kind: "ReviewerConfirmation" }
+  | { readonly kind: "ReferralRequired" }
+  | {
+      readonly kind: "MultiParty";
+      /** The host policy's list of principal identifiers who may decide this entry. */
+      readonly approvers: readonly string[];
+      /** The host policy's count of `approve` records that folds the entry `approved`. */
+      readonly required: number;
+    };
+
+/**
  * Why an entry cannot be decided even though it sits in `pending`.
  *
  * Both codes are **provisional** until the protocol's `ErrorCode` registry is
@@ -214,7 +235,24 @@ export type Attestor =
       readonly policyId: string;
       /** The version of that policy, so a later reader can tell what it said at the time. */
       readonly version: string;
+    }
+  | {
+      /**
+       * A `MultiParty` requirement folded from its approval records (AZ-4). Composed
+       * of those records' own attestations and nothing else (AZ-1, AZ-3) — there is
+       * no path by which this arm is built from principals directly; see
+       * {@link multiPartyAttestorOf}.
+       */
+      readonly kind: "multi-party";
+      /** The `approve` records' own attestors, in the order they were recorded. */
+      readonly approvers: readonly (MemberAttestor | MemberViaRelayAttestor)[];
     };
+
+/** The `member` arm of {@link Attestor}, named for N-3's own vocabulary. */
+export type MemberAttestor = Extract<Attestor, { kind: "member" }>;
+
+/** The `member-via-relay` arm of {@link Attestor}, named for N-3's own vocabulary. */
+export type MemberViaRelayAttestor = Extract<Attestor, { kind: "member-via-relay" }>;
 
 /**
  * The attestation record AZ-1 requires on every write that reaches an executor: who
@@ -233,9 +271,58 @@ export interface Attestation {
   readonly entryId: string;
 }
 
+/**
+ * Build the fold's `multi-party` attestor (AZ-4) from the approval records that
+ * folded the entry: the `approve` records' own attestors, in record order.
+ *
+ * The only constructor: nothing here takes a bare principal, so the structural
+ * guarantee AZ-3 asks of {@link Attestor} extends to this arm as well — a
+ * `multi-party` attestation can only ever be *composed*, never asserted.
+ */
+export function multiPartyAttestorOf(
+  records: readonly ApprovalRecord[],
+): Extract<Attestor, { kind: "multi-party" }> {
+  return {
+    kind: "multi-party",
+    approvers: records
+      .filter((record) => record.decision === "approve")
+      .map((record) => record.attestation.by as MemberAttestor | MemberViaRelayAttestor),
+  };
+}
+
 // ---------------------------------------------------------------------------
-// The decision record
+// Approval records (AZ-4) and the decision record
 // ---------------------------------------------------------------------------
+
+/**
+ * One approver's act on a `MultiParty` entry (AZ-4): its own attestation, in the
+ * shape a single-reviewer decision writes, appended to the entry's `approvals` in
+ * the order the gate recorded it. The entry's status folds from these, never from
+ * a single one read in isolation.
+ */
+export interface ApprovalRecord {
+  /** The approver — the `member` principal's id, or the member a relay asserted. */
+  readonly approver: string;
+  /** Approve or reject. `MultiParty` never amends (AZ-4: `decision-not-amendable`). */
+  readonly decision: "approve" | "reject";
+  /** The approver's stated reason, or `null` when they gave none. */
+  readonly reason: string | null;
+  /** When this record was made, as an ISO 8601 instant in UTC. */
+  readonly at: string;
+  /** Who attested this act — `member` or `member-via-relay`, never `standing-order`. */
+  readonly attestation: Attestation;
+}
+
+/**
+ * What the executor reported, from 0.3.0 (DK-1). An object whose `code` is an
+ * identifier from the host's own vocabulary — this package reserves none — and
+ * whose other properties are the host's; never a string a reader must parse.
+ */
+export interface ExecutionDetail {
+  /** The host's code for what happened. */
+  readonly code: string;
+  readonly [key: string]: unknown;
+}
 
 /**
  * What a reviewer decided, as it is recorded on the row.
@@ -252,6 +339,11 @@ export interface DecisionRecord {
   readonly reason: string | null;
   /** When the decision was made, as an ISO 8601 instant in UTC. */
   readonly at: string;
+  /**
+   * The principal whose act folded the row — the reviewer for a single-reviewer
+   * decision, or the approver whose record was the fold (AZ-4).
+   */
+  readonly by: string;
 }
 
 /**
@@ -352,7 +444,7 @@ export interface DocketEntry {
    */
   readonly amendedAffidavit: Affidavit | null;
   /** What the policy chain decided this write needs before it may execute (AZ-4). */
-  readonly requirement: RequirementKind;
+  readonly requirement: Requirement;
   /** What the row says. What it *reads* is {@link readStatus}. */
   readonly status: DocketStatus;
   /** What became of the write. Non-`null` exactly when `status` is `"approved"`. */
@@ -360,13 +452,12 @@ export interface DocketEntry {
   /** Why this entry cannot be decided, or `null` when it can (AZ-4). */
   readonly blocked: BlockedMarker | null;
   /**
-   * The composite approval this entry is one constituent of, or `null`.
-   *
-   * Until `MultiParty` is protocol v0.2, a host composes multi-party approval
-   * *above* the gate: one entry per approver, all naming the same composite, and
-   * no constituent's approval alone reaching the executor (AZ-4).
+   * Each approver's act on a `MultiParty` entry, in the order recorded, or `null`
+   * exactly when `requirement.kind` is not `"MultiParty"` (AZ-4). `[]` at filing;
+   * appended once per approver; a resubmission's successor files with `[]` again,
+   * never a copy of the superseded row's records.
    */
-  readonly compositeRef: string | null;
+  readonly approvals: readonly ApprovalRecord[] | null;
   /** Who agreed, or `null` while nobody has (AZ-1). */
   readonly attestation: Attestation | null;
   /**
@@ -404,7 +495,7 @@ export interface DocketEntry {
   /** When the row left `pending`, or `null` while it has not. */
   readonly decidedAt: string | null;
   /** What the executor reported, or `null` when it has not reported or had nothing to say. */
-  readonly executionDetail: string | null;
+  readonly executionDetail: ExecutionDetail | null;
   /** The protocol tag the entry's wire shapes are pinned to. */
   readonly protocolVersion: string;
 }
@@ -438,7 +529,7 @@ export interface NewEntryInit {
   /** The sworn evidence record, as proposed. */
   readonly affidavit: Affidavit;
   /** What the policy chain decided this write needs. */
-  readonly requirement: RequirementKind;
+  readonly requirement: Requirement;
   /** When the entry is being filed, as an ISO 8601 instant in UTC. */
   readonly filedAt: string;
   /** The deadline, as an ISO 8601 instant in UTC (GT-4). */
@@ -454,8 +545,13 @@ export interface NewEntryInit {
   readonly execution?: ExecutionOutcome | null;
   /** The AZ-4 marker, when the entry is filed blocked. */
   readonly blocked?: BlockedMarker | null;
-  /** The composite approval this entry is a constituent of. */
-  readonly compositeRef?: string | null;
+  /**
+   * Each approver's act, when the caller is filing a `MultiParty` entry that already
+   * carries some (a resubmission's own construction path). Defaults to `[]` on a
+   * `MultiParty` requirement and to `null` on every other kind; supplying a non-null
+   * value on another kind is a `RangeError` (AZ-4).
+   */
+  readonly approvals?: readonly ApprovalRecord[] | null;
   /** The attestation a Standing Order writes in the same operation as the filing (AZ-1). */
   readonly attestation?: Attestation | null;
   /** The entry this one resubmits (DK-1). The successor link is written on the *other* row. */
@@ -491,8 +587,13 @@ export function newEntry(init: NewEntryInit): DocketEntry {
   if (!(DOCKET_STATUSES as readonly string[]).includes(status)) {
     throw new RangeError(`unknown docket status: ${String(status)}`);
   }
-  if (!(REQUIREMENT_KINDS as readonly string[]).includes(init.requirement)) {
-    throw new RangeError(`unknown requirement kind: ${String(init.requirement)}`);
+  const requirement = validateRequirement(init.requirement);
+  const approvals = init.approvals ?? (requirement.kind === "MultiParty" ? [] : null);
+  if (requirement.kind !== "MultiParty" && approvals !== null) {
+    throw new RangeError(
+      "AZ-4: approvals is null except on a MultiParty entry, and this one is " +
+        `${JSON.stringify(requirement.kind)}`,
+    );
   }
 
   const execution = init.execution === undefined ? defaultExecution(status) : init.execution;
@@ -524,11 +625,11 @@ export function newEntry(init: NewEntryInit): DocketEntry {
     // A filing records what was proposed and nothing else: an amendment is a later
     // fact, appended by a decision, never present at birth (DK-4).
     amendedAffidavit: null,
-    requirement: init.requirement,
+    requirement,
     status,
     execution,
     blocked: init.blocked ?? null,
-    compositeRef: init.compositeRef ?? null,
+    approvals,
     attestation: init.attestation ?? null,
     amendments: null,
     preservedAmendments: null,
@@ -545,6 +646,40 @@ export function newEntry(init: NewEntryInit): DocketEntry {
 /** The execution outcome a freshly filed entry in `status` carries. */
 function defaultExecution(status: DocketStatus): ExecutionOutcome | null {
   return status === "approved" ? "unexecuted" : null;
+}
+
+/**
+ * Check `requirement` against AZ-4's own correlation and return it unchanged.
+ *
+ * The policy chain (`gate/policy.ts`) is the first line of defence and refuses a
+ * malformed `MultiParty` verdict at evaluation with `wireup-invalid`, nothing filed
+ * (CV-1); this is the last line, for a caller that builds an entry directly.
+ *
+ * @throws RangeError when `requirement.kind` is not one of the four, or a
+ *         `MultiParty` requirement's `approvers` has fewer than two distinct
+ *         identifiers, or `required` is not an integer in `1..approvers.length`.
+ */
+function validateRequirement(requirement: Requirement): Requirement {
+  if (!(REQUIREMENT_KINDS as readonly string[]).includes(requirement.kind)) {
+    throw new RangeError(`unknown requirement kind: ${String(requirement.kind)}`);
+  }
+  if (requirement.kind === "MultiParty") {
+    const { approvers, required } = requirement;
+    const distinct = new Set(approvers);
+    if (approvers.length < 2 || distinct.size !== approvers.length) {
+      throw new RangeError(
+        "AZ-4: a MultiParty requirement's approvers must be at least two distinct " +
+          `identifiers, got ${JSON.stringify(approvers)}`,
+      );
+    }
+    if (!Number.isInteger(required) || required < 1 || required > approvers.length) {
+      throw new RangeError(
+        "AZ-4: a MultiParty requirement's required must be an integer with " +
+          `1 <= required <= approvers.length (${approvers.length}), got ${String(required)}`,
+      );
+    }
+  }
+  return requirement;
 }
 
 // ---------------------------------------------------------------------------
