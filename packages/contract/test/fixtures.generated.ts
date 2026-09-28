@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 76807e657406f12ff6f599da0f8e2c96f0df31e2.
+// copy of Sakwala/affiant-protocol at 89f77f64363211ad761894a7f3cfc2b21cdf640e.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -536,40 +536,6 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
     "code": "coverage-refused",
     "level": "MultiParty"
   },
-  "v0.1/decision-result/01-approved": {
-    "protocolVersion": "0.1.0",
-    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "outcome": "approved",
-    "attestation": {
-      "by": {
-        "kind": "member",
-        "id": "ana"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-    },
-    "execution": "unexecuted"
-  },
-  "v0.1/decision-result/02-executed": {
-    "protocolVersion": "0.1.0",
-    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "outcome": "approved",
-    "attestation": {
-      "by": {
-        "kind": "member",
-        "id": "ana"
-      },
-      "at": "2026-09-04T09:00:00.000Z",
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
-    },
-    "execution": "executed"
-  },
-  "v0.1/decision-result/90-missing-attestation": {
-    "protocolVersion": "0.1.0",
-    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "outcome": "approved",
-    "execution": "unexecuted"
-  },
   "v0.1/entity-ref/01-update": {
     "entityType": "Invoice",
     "entityId": "invoice-1"
@@ -588,30 +554,6 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
   "v0.1/money/90-numeric-amount": {
     "amount": 4000.1,
     "currency": "GBP"
-  },
-  "v0.1/notification/01-docket-expiring": {
-    "protocolVersion": "0.1.0",
-    "kind": "docket-expiring",
-    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
-    "expiresAt": "2026-09-04T09:30:00.000Z"
-  },
-  "v0.1/notification/02-docket-expired": {
-    "protocolVersion": "0.1.0",
-    "kind": "docket-expired",
-    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
-  },
-  "v0.1/notification/03-docket-transition": {
-    "protocolVersion": "0.1.0",
-    "kind": "docket-transition",
-    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
-    "from": "pending",
-    "to": "expired",
-    "execution": null
-  },
-  "v0.1/notification/90-expiring-without-deadline": {
-    "protocolVersion": "0.1.0",
-    "kind": "docket-expiring",
-    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
   },
   "v0.1/operation/01-update": "update",
   "v0.1/operation/90-delete": "delete",
@@ -827,126 +769,6 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
         "description": "An Affidavit was filed as a Docket entry."
       }
     ]
-  },
-  "v0.1/tool-result/01-write-proposal": {
-    "kind": "write",
-    "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-    "status": "pending",
-    "card": {
-      "protocolVersion": "0.1.0",
-      "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
-      "affidavit": {
-        "protocolVersion": "0.1.0",
-        "operationType": "update",
-        "entityType": "Invoice",
-        "entityId": "invoice-1",
-        "fields": [
-          {
-            "name": "status",
-            "kind": "enum",
-            "value": "Active",
-            "previousValue": null,
-            "provenance": {
-              "current": {
-                "source": "Conversation",
-                "confidence": 0.9,
-                "note": "Literally present in the turn: status",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": null
-              },
-              "prior": []
-            },
-            "isMandatory": true
-          },
-          {
-            "name": "amount",
-            "kind": "number",
-            "value": 40,
-            "previousValue": null,
-            "provenance": {
-              "current": {
-                "source": "Conversation",
-                "confidence": 0.8,
-                "note": "Literally present in the turn: amount",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": null
-              },
-              "prior": []
-            },
-            "isMandatory": true
-          },
-          {
-            "name": "dueOn",
-            "kind": "date",
-            "value": "2026-10-01",
-            "previousValue": null,
-            "provenance": {
-              "current": {
-                "source": "Inferred",
-                "confidence": 0.6,
-                "note": "Inferred from the turn: dueOn",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": null
-              },
-              "prior": []
-            },
-            "isMandatory": false
-          },
-          {
-            "name": "note",
-            "kind": "text",
-            "value": "raised in chat",
-            "previousValue": null,
-            "provenance": {
-              "current": {
-                "source": "Inferred",
-                "confidence": 0.7,
-                "note": "Inferred from the turn: note",
-                "at": "2026-09-04T09:00:00.000Z",
-                "conversationTurn": null,
-                "binding": null
-              },
-              "prior": []
-            },
-            "isMandatory": false
-          }
-        ],
-        "aggregateConfidence": 0.6,
-        "populatedConfidence": 0.6,
-        "emptyFieldCount": 0,
-        "conversationTurn": null,
-        "createdAt": "2026-09-04T09:00:00.000Z"
-      },
-      "requiredBy": "2026-09-04T09:30:00.000Z",
-      "priorAmendments": null,
-      "populatedConfidence": 0.6,
-      "emptyFieldCount": 0,
-      "blocked": null,
-      "requiresConfirmation": true
-    }
-  },
-  "v0.1/tool-result/02-error-substance-refused": {
-    "kind": "error",
-    "code": "substance-refused",
-    "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
-  },
-  "v0.1/tool-result/03-read": {
-    "kind": "read",
-    "result": {
-      "id": "invoice-1",
-      "total": {
-        "amount": "4000.10",
-        "currency": "GBP"
-      }
-    }
-  },
-  "v0.1/tool-result/90-unregistered-error-code": {
-    "kind": "error",
-    "code": "gate-refused",
-    "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
   },
 };
 
@@ -3474,6 +3296,185 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
   },
   "v0.3/error-code/01-substance-refused": "substance-refused",
   "v0.3/error-code/90-unregistered-code": "decision-refused",
+  "v0.3/tool-result/01-write-proposal": {
+    "kind": "write",
+    "entryId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
+    "status": "pending",
+    "card": {
+      "protocolVersion": "0.1.0",
+      "docketId": "8369aad4-b5ac-86d4-b6b7-504f90659f87",
+      "affidavit": {
+        "protocolVersion": "0.1.0",
+        "operationType": "update",
+        "entityType": "Invoice",
+        "entityId": "invoice-1",
+        "fields": [
+          {
+            "name": "status",
+            "kind": "enum",
+            "value": "Active",
+            "previousValue": null,
+            "provenance": {
+              "current": {
+                "source": "Conversation",
+                "confidence": 0.9,
+                "note": "Literally present in the turn: status",
+                "at": "2026-09-04T09:00:00.000Z",
+                "conversationTurn": null,
+                "binding": null
+              },
+              "prior": []
+            },
+            "isMandatory": true
+          },
+          {
+            "name": "amount",
+            "kind": "number",
+            "value": 40,
+            "previousValue": null,
+            "provenance": {
+              "current": {
+                "source": "Conversation",
+                "confidence": 0.8,
+                "note": "Literally present in the turn: amount",
+                "at": "2026-09-04T09:00:00.000Z",
+                "conversationTurn": null,
+                "binding": null
+              },
+              "prior": []
+            },
+            "isMandatory": true
+          },
+          {
+            "name": "dueOn",
+            "kind": "date",
+            "value": "2026-10-01",
+            "previousValue": null,
+            "provenance": {
+              "current": {
+                "source": "Inferred",
+                "confidence": 0.6,
+                "note": "Inferred from the turn: dueOn",
+                "at": "2026-09-04T09:00:00.000Z",
+                "conversationTurn": null,
+                "binding": null
+              },
+              "prior": []
+            },
+            "isMandatory": false
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "raised in chat",
+            "previousValue": null,
+            "provenance": {
+              "current": {
+                "source": "Inferred",
+                "confidence": 0.7,
+                "note": "Inferred from the turn: note",
+                "at": "2026-09-04T09:00:00.000Z",
+                "conversationTurn": null,
+                "binding": null
+              },
+              "prior": []
+            },
+            "isMandatory": false
+          }
+        ],
+        "aggregateConfidence": 0.6,
+        "populatedConfidence": 0.6,
+        "emptyFieldCount": 0,
+        "conversationTurn": null,
+        "createdAt": "2026-09-04T09:00:00.000Z"
+      },
+      "requiredBy": "2026-09-04T09:30:00.000Z",
+      "priorAmendments": null,
+      "populatedConfidence": 0.6,
+      "emptyFieldCount": 0,
+      "blocked": null,
+      "multiParty": null,
+      "requiresConfirmation": true
+    }
+  },
+  "v0.3/tool-result/02-error-substance-refused": {
+    "kind": "error",
+    "code": "substance-refused",
+    "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
+  },
+  "v0.3/tool-result/03-read": {
+    "kind": "read",
+    "result": {
+      "id": "invoice-1",
+      "total": {
+        "amount": "4000.10",
+        "currency": "GBP"
+      }
+    }
+  },
+  "v0.3/tool-result/90-unregistered-error-code": {
+    "kind": "error",
+    "code": "gate-refused",
+    "message": "GT-3: this proposal swears to nothing — field \"status\" carries a value with Empty provenance. It is not filed, not counted and not broadcast."
+  },
+  "v0.3/decision-result/01-approved": {
+    "protocolVersion": "0.1.0",
+    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
+    "outcome": "approved",
+    "attestation": {
+      "by": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "at": "2026-09-04T09:00:00.000Z",
+      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
+    },
+    "execution": "unexecuted"
+  },
+  "v0.3/decision-result/02-executed": {
+    "protocolVersion": "0.1.0",
+    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
+    "outcome": "approved",
+    "attestation": {
+      "by": {
+        "kind": "member",
+        "id": "ana"
+      },
+      "at": "2026-09-04T09:00:00.000Z",
+      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d"
+    },
+    "execution": "executed"
+  },
+  "v0.3/decision-result/90-missing-attestation": {
+    "protocolVersion": "0.1.0",
+    "docketId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
+    "outcome": "approved",
+    "execution": "unexecuted"
+  },
+  "v0.3/notification/01-docket-expiring": {
+    "protocolVersion": "0.1.0",
+    "kind": "docket-expiring",
+    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
+    "expiresAt": "2026-09-04T09:30:00.000Z"
+  },
+  "v0.3/notification/02-docket-expired": {
+    "protocolVersion": "0.1.0",
+    "kind": "docket-expired",
+    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
+  },
+  "v0.3/notification/03-docket-transition": {
+    "protocolVersion": "0.1.0",
+    "kind": "docket-transition",
+    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592",
+    "from": "pending",
+    "to": "expired",
+    "execution": null
+  },
+  "v0.3/notification/90-expiring-without-deadline": {
+    "protocolVersion": "0.1.0",
+    "kind": "docket-expiring",
+    "docketId": "80358c14-961a-875e-b20a-0a70a89e4592"
+  },
 };
 
 /** `conformance/fixtures/MANIFEST.json` at the pinned ref. */
@@ -4164,17 +4165,14 @@ export const manifest = {
       "schemas/0.3.0/amendments.schema.json",
       "schemas/0.3.0/binding.schema.json",
       "schemas/0.3.0/blocked.schema.json",
-      "schemas/0.3.0/decision-result.schema.json",
       "schemas/0.3.0/entity-ref.schema.json",
       "schemas/0.3.0/money.schema.json",
-      "schemas/0.3.0/notification.schema.json",
       "schemas/0.3.0/operation.schema.json",
       "schemas/0.3.0/outside-gate.schema.json",
       "schemas/0.3.0/provenance-chain.schema.json",
       "schemas/0.3.0/provenance-source.schema.json",
       "schemas/0.3.0/provenance-tag.schema.json",
-      "schemas/0.3.0/telemetry-key.schema.json",
-      "schemas/0.3.0/tool-result.schema.json"
+      "schemas/0.3.0/telemetry-key.schema.json"
     ],
     "fixtures": [
       {
@@ -4461,6 +4459,94 @@ export const manifest = {
         "kind": "negative",
         "derivedFrom": "Mutation of v0.3/error-code/01-substance-refused.json",
         "notes": "(re-carried at 0.3.0: unchanged) A code that is not in the registry. An implementation MAY add codes, but a payload claiming one of the registry’s meanings has to spell it the registry’s way."
+      },
+      {
+        "id": "v0.3/tool-result/01-write-proposal",
+        "file": "v0.3/tool-result/01-write-proposal.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/typed-inputs-on-the-card (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: the embedded card gains \"multiParty\": null (not a MultiParty filing)) What the model got back from the wrapped tool: a proposal, never a completed write (GT-6). The gate did not call the tool’s own execute — the fixture supplies one that throws if it is ever reached."
+      },
+      {
+        "id": "v0.3/tool-result/02-error-substance-refused",
+        "file": "v0.3/tool-result/02-error-substance-refused.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture gate/substance-hollow-refused (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) A proposal that swore to nothing: a non-empty value sitting under Empty provenance. Refused before the policy chain runs, so no Standing Order ever sees a hollow proposal (GT-3). The refusal is an answer the model can act on."
+      },
+      {
+        "id": "v0.3/tool-result/03-read",
+        "file": "v0.3/tool-result/03-read.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core gate.wrap over a read tool (Sakwala/affiant-ts)",
+        "notes": "(re-carried at 0.3.0: unchanged) A read tool runs and its result is returned untouched. The gate stands in front of writes; there is nothing to file here."
+      },
+      {
+        "id": "v0.3/tool-result/90-unregistered-error-code",
+        "file": "v0.3/tool-result/90-unregistered-error-code.json",
+        "schema": "schemas/0.3.0/tool-result.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/tool-result/02-error-substance-refused.json",
+        "notes": "(re-carried at 0.3.0: unchanged) An error arm carrying a code that is neither in the registry nor the read-tool \"tool-error\". A consumer switches on the discriminator and branches on the code; a code outside both sets is one it cannot act on (AF-5)."
+      },
+      {
+        "id": "v0.3/decision-result/01-approved",
+        "file": "v0.3/decision-result/01-approved.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture decide/approve (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) The same decision as a report back to a reviewer surface. A report, never an authorization: the row is the record (AZ-5)."
+      },
+      {
+        "id": "v0.3/decision-result/02-executed",
+        "file": "v0.3/decision-result/02-executed.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture decide/execution-executed (Sakwala/affiant-ts, packages/core/test/fixtures)",
+        "notes": "(re-carried at 0.3.0: unchanged) The same entry reported after execution: an approved-and-committed write, distinguishable on the record from an approved-but-failed one."
+      },
+      {
+        "id": "v0.3/decision-result/90-missing-attestation",
+        "file": "v0.3/decision-result/90-missing-attestation.json",
+        "schema": "schemas/0.3.0/decision-result.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/decision-result/01-approved.json",
+        "notes": "(re-carried at 0.3.0: unchanged) The attestation property removed rather than set to null. No attribution, no execution (AZ-1) — and a report that leaves the slot off cannot say whether nobody agreed or nobody was asked."
+      },
+      {
+        "id": "v0.3/notification/01-docket-expiring",
+        "file": "v0.3/notification/01-docket-expiring.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-3, which no reference implementation emits yet",
+        "notes": "(re-carried at 0.3.0: unchanged) Re-sent on every sweep while the entry stays inside the warning window, so a consumer keys a countdown off expiresAt rather than counting notifications."
+      },
+      {
+        "id": "v0.3/notification/02-docket-expired",
+        "file": "v0.3/notification/02-docket-expired.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-1",
+        "notes": "(re-carried at 0.3.0: unchanged) The lapse notice. A hint, never a fact a consumer may act on alone: an entry past its deadline reads expired whether or not this ever arrived."
+      },
+      {
+        "id": "v0.3/notification/03-docket-transition",
+        "file": "v0.3/notification/03-docket-transition.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "positive",
+        "derivedFrom": "@affiant/core fixture sequence-a/late-amendments-preserved (Sakwala/affiant-ts, packages/core/test/fixtures) — the entry is real; the envelope is authored to INVARIANTS.md DK-1 and the docket.transition key of TL-1",
+        "notes": "(re-carried at 0.3.0: unchanged) New in v0.1: the state a row left, the state it reached, and the execution outcome an approved row now carries."
+      },
+      {
+        "id": "v0.3/notification/90-expiring-without-deadline",
+        "file": "v0.3/notification/90-expiring-without-deadline.json",
+        "schema": "schemas/0.3.0/notification.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.1/notification/01-docket-expiring.json",
+        "notes": "(re-carried at 0.3.0: unchanged) A docket-expiring notification with no deadline. The deadline is the whole payload: a consumer keys a countdown off expiresAt precisely because the notification is re-sent on every sweep (DK-3)."
       }
     ]
   },
