@@ -85,6 +85,12 @@ the schema, `select, insert, delete` on the two tables, and `select` on the view
 are the grants the package's own row-level-security suite issues and measures; the view
 is not updatable, so it needs no more.
 
+`docket_approvers` and `docket_approvals` — the record of a `MultiParty` requirement's
+approvers and the decisions they file — join that statement: the role needs `select,
+insert` on both, since an approval is recorded once per approver and read back with the
+entry; neither needs its own `delete` grant, because a purge deletes the `docket_entries`
+row and the `on delete cascade` foreign key removes both without a separate statement.
+
 **Grant `usage` on the schema to the role that owns `docket_entries` as well**, if that
 is not the role that owns the schema. `docket_events` references `docket_entries`, and
 Postgres enforces that reference as the owner of the table being referenced — not as the
