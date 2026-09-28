@@ -135,7 +135,7 @@ describe("a declared-uncovered tool's proposals are filed blocked (CV-4, AZ-4)",
           version: "1.0.0",
           declaredInputs: [],
           async evaluate() {
-            return { requirement: "StandingOrder" as const };
+            return { requirement: { kind: "StandingOrder" as const } };
           },
         },
       ],
