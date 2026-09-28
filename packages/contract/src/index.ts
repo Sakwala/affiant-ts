@@ -684,7 +684,7 @@ export interface OutsideGateMarker {
  *
  * Schema: `schemas/0.1.0/docket-entry.schema.json#/$defs/status`.
  */
-export type DocketStatus = "pending" | "approved" | "rejected" | "expired";
+export type DocketStatus = "pending" | "approved" | "rejected" | "expired" | "withdrawn";
 
 /** Every {@link DocketStatus} value. */
 export const DOCKET_STATUSES = [
@@ -692,6 +692,7 @@ export const DOCKET_STATUSES = [
   "approved",
   "rejected",
   "expired",
+  "withdrawn",
 ] as const satisfies readonly DocketStatus[];
 
 /**
@@ -1060,7 +1061,7 @@ export type ToolResult = WriteProposalResult | ReadResult | ToolErrorResult;
  *
  * Schema: the `outcome` property of `schemas/0.1.0/decision-result.schema.json`.
  */
-export type DecisionOutcome = "approved" | "rejected" | "expired" | "resubmitted";
+export type DecisionOutcome = "approved" | "rejected" | "expired" | "resubmitted" | "withdrawn";
 
 /** Every {@link DecisionOutcome} value. */
 export const DECISION_OUTCOMES = [
@@ -1068,6 +1069,7 @@ export const DECISION_OUTCOMES = [
   "rejected",
   "expired",
   "resubmitted",
+  "withdrawn",
 ] as const satisfies readonly DecisionOutcome[];
 
 /**
@@ -1204,10 +1206,11 @@ export interface TelemetryKeyRegistry {
 /**
  * What became of a review, in the shipped host's own vocabulary.
  *
- * The same closed set as {@link DecisionOutcome}, which is the protocol's own
- * property from v0.1. Pinned set: `enum-values.json → actionDecisionResultOutcome`.
+ * The v0.1 hub set, a prefix of {@link DecisionOutcome} — frozen by the wire rule
+ * rather than widened alongside the protocol's own set. Pinned set:
+ * `enum-values.json → actionDecisionResultOutcome`.
  */
-export type ActionDecisionOutcome = DecisionOutcome;
+export type ActionDecisionOutcome = "approved" | "rejected" | "expired" | "resubmitted";
 
 /** Every {@link ActionDecisionOutcome} value. */
 export const ACTION_DECISION_OUTCOMES = [

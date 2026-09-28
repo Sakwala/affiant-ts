@@ -12,6 +12,17 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.4`, `@affiant/core` `0.1.0-alpha.8` and `@affiant/store-postgres`
+  `0.1.0-alpha.6`: the withdrawal transition, pinned at the `v0.4.0-pre.1` pre-release.**
+  `packages/contract/protocol/PIN` now names commit
+  [`28f0753`](https://github.com/Sakwala/affiant-protocol/commit/28f0753df2f8c2ac3df82c0be54283d0fcb4cb51)
+  (the `v0.4.0-pre.1` pre-release). DK-1 adds `Gate.withdraw(entryId, { reason }, ctx)`, closing a
+  `pending` entry the host has abandoned, in the order tenant scope, expiry, pending; `withdrawn` joins
+  the docket's terminal states and the `withdraw` decision kind and fixture step (DK-1). The store needs no migration; its
+  `transition` now takes the per-entry advisory lock `recordApproval` took, so a refused approval
+  leaves no record (DK-1). Vendored, generated and fixture-driven code changed across all three
+  packages ([rulebook pull request #51](https://github.com/Sakwala/affiant-protocol/pull/51)).
+
 - **`@affiant/contract` `0.1.0-alpha.3`, `@affiant/core` `0.1.0-alpha.7` and `@affiant/store-postgres`
   `0.1.0-alpha.5`: the protocol pin moves to the tag.** `packages/contract/protocol/PIN` now names
   [`v0.3.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.3.0) (`38a91cf`) rather than

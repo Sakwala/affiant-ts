@@ -380,46 +380,49 @@ const wireEntries = manifest.fixtures.map((entry) => ({
   json: readJson(join(protocolDir, "fixtures", entry.file)),
 }));
 
-// Every versioned manifest section's schema documents are emitted, not just
-// 0.1.0's. A pin whose manifest carries no "0.3.0" section (older than this ruling)
-// gets an empty v03Entries/v03Fixtures rather than a missing export.
-const v03 = manifest["0.3.0"] ?? { fixtures: [], definitionsOnly: [] };
-const v03Entries = v03.fixtures.map((entry) => ({
-  id: entry.id,
-  kind: entry.kind,
-  schema: entry.schema,
-  json: readJson(join(protocolDir, "fixtures", entry.file)),
-}));
-
 /**
  * A document validates against the schema version it was written for.
  * `protocol/schemas/` is a single flat directory holding only the pinned
- * (`wireSchemaVersion`) schema shapes, so a 0.1.0 document can only still validate if
- * the schema it names did not change shape between 0.1.0 and the pin — exactly the
- * schemas the 0.3.0 manifest section lists under `definitionsOnly` (common,
- * affidavit, and so on: unchanged since 0.1.0). A 0.1.0 document for a schema that
- * did change (docket-entry, requirement, attestation, evidence-card-request,
- * error-code) has no vendored 0.1.0 schema left to validate against, so it is
- * dropped here rather than emitted to fail every run; `v03Fixtures` above is its
- * replacement. The kept documents are re-pathed onto the flat directory the pin
- * actually vendors (`schemas/0.1.0/<name>` -> `schemas/${wireSchemaVersion}/<name>`).
+ * (`wireSchemaVersion`) schema shapes, so a document from an older manifest section
+ * can only still validate if the schema it names kept its shape from that section up
+ * to the pin — that is, if the schema appears under `definitionsOnly` in **every**
+ * section newer than the document's own. A document whose schema was re-authored by
+ * any later section has no vendored schema of its version left to validate against,
+ * so it is dropped here rather than emitted to fail every run; the re-authoring
+ * section's own documents are its replacement. The newest section's documents are
+ * all kept. Schema paths are compared re-pathed onto the flat directory the pin
+ * actually vendors (`schemas/<version>/<name>` -> `schemas/${wireSchemaVersion}/<name>`).
+ *
+ * Every versioned section (`0.1.0`, `0.3.0`, `0.4.0`, and any later one the pin
+ * carries) is emitted as its own export, `v01Fixtures`, `v03Fixtures`,
+ * `v04Fixtures`, …: `v` followed by the major and minor digits.
  */
-const v03DefinitionsOnly = new Set(v03.definitionsOnly ?? []);
-const v01 = manifest["0.1.0"];
-const v01Entries = v01.fixtures
-  .map((entry) => ({
-    ...entry,
-    schema: entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${wireSchemaVersion}/`),
-  }))
-  .filter((entry) => v03DefinitionsOnly.has(entry.schema))
-  .map((entry) => ({
-    id: entry.id,
-    kind: entry.kind,
-    schema: entry.schema,
-    json: readJson(join(protocolDir, "fixtures", entry.file)),
-  }));
+const repath = (schemaPath) =>
+  schemaPath.replace(/^schemas\/\d+\.\d+\.\d+\//, `schemas/${wireSchemaVersion}/`);
+const compareVersions = (a, b) => {
+  const [x, y] = [a, b].map((v) => v.split(".").map(Number));
+  return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+};
+const sectionVersions = Object.keys(manifest)
+  .filter((key) => /^\d+\.\d+\.\d+$/.test(key))
+  .sort(compareVersions);
+const sections = sectionVersions.map((version, index) => {
+  const newer = sectionVersions
+    .slice(index + 1)
+    .map((later) => new Set((manifest[later].definitionsOnly ?? []).map(repath)));
+  const entries = manifest[version].fixtures
+    .filter((entry) => newer.every((unchanged) => unchanged.has(repath(entry.schema))))
+    .map((entry) => ({
+      id: entry.id,
+      kind: entry.kind,
+      schema: repath(entry.schema),
+      json: readJson(join(protocolDir, "fixtures", entry.file)),
+    }));
+  const [major, minor] = version.split(".");
+  return { version, name: `v${major}${minor}Fixtures`, entries };
+});
 
-const fixturesTs = `${banner("Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/")}
+const fixturesTs = `${banner(`Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections ${sectionVersions.join(", ")}`)}
 ${wireEntries
   .map(
     (e) =>
@@ -432,24 +435,20 @@ export const wireFixtures = {
 ${wireEntries.map((e) => `  ${JSON.stringify(e.id)}: ${e.identifier},`).join("\n")}
 } as const;
 
-/**
- * Every v0.1 fixture, keyed by its manifest id: one or more positive examples per
- * schema, and the negatives that must fail. Left as \`unknown\` because a negative
+${sections
+  .map(
+    (section) => `/**
+ * Every ${section.version} manifest-section document the pinned schemas can still
+ * validate, keyed by its manifest id: the positive examples and the negatives that
+ * must fail. A document whose schema a later section re-authored is not here; the
+ * later section's documents replace it. Left as \`unknown\` because a negative
  * fixture is, by construction, not assignable to the type its schema describes.
  */
-export const v01Fixtures: Readonly<Record<string, unknown>> = {
-${v01Entries.map((e) => `  ${JSON.stringify(e.id)}: ${literal(e.json, "  ")},`).join("\n")}
-};
-
-/**
- * Every v0.3 fixture, keyed by its manifest id: the \`MultiParty\`
- * requirement, attestor and docket-entry shapes the 0.3.0 schemas describe. Left as
- * \`unknown\` for the same reason \`v01Fixtures\` is: a negative fixture is not
- * assignable to the type its schema describes.
- */
-export const v03Fixtures: Readonly<Record<string, unknown>> = {
-${v03Entries.map((e) => `  ${JSON.stringify(e.id)}: ${literal(e.json, "  ")},`).join("\n")}
-};
+export const ${section.name}: Readonly<Record<string, unknown>> = {
+${section.entries.map((e) => `  ${JSON.stringify(e.id)}: ${literal(e.json, "  ")},`).join("\n")}
+};`,
+  )
+  .join("\n\n")}
 
 /** \`conformance/fixtures/MANIFEST.json\` at the pinned ref. */
 export const manifest = ${literal(manifest, "")} as const;
@@ -464,6 +463,6 @@ console.log(
   `generated src/schemas.ts (${wireSchemas.length} schemas + ${seedSchemaEntries.length} seed), ` +
     `src/conformance.ts (${stepFixtures.length} fixtures + ${canonicalEntries.length} vectors + ` +
     `${adapterEntries.length} adapter fixtures) and ` +
-    `test/fixtures.generated.ts (${wireEntries.length} wire + ${v01Entries.length} v0.1 + ` +
-    `${v03Entries.length} v0.3 fixtures) from ${pin}`,
+    `test/fixtures.generated.ts (${wireEntries.length} wire + ` +
+    `${sections.map((section) => `${section.entries.length} ${section.version}`).join(" + ")} fixtures) from ${pin}`,
 );

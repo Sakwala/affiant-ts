@@ -95,7 +95,12 @@ describe("the exported value sets match the schemas they come from", () => {
       ...DECISION_OUTCOMES,
     ]);
     expect([...ACTION_DECISION_OUTCOMES]).toEqual([...enumValues.actionDecisionResultOutcome]);
-    expect([...ACTION_DECISION_OUTCOMES]).toEqual([...DECISION_OUTCOMES]);
+    // The protocol's outcome set grew at 0.4.0 (`withdrawn`, DK-1) while the hub
+    // vocabulary of `enum-values.json` is frozen at v0.1 by the wire rule, so the
+    // hub set is only a prefix of the protocol's, not equal to it.
+    expect(DECISION_OUTCOMES.slice(0, ACTION_DECISION_OUTCOMES.length)).toEqual([
+      ...ACTION_DECISION_OUTCOMES,
+    ]);
   });
 
   it("binding kinds, one per arm of the binding union", () => {

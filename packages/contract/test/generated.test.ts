@@ -26,6 +26,15 @@ import {
 import { enumValues, manifest, v01Fixtures, wireFixtures } from "./fixtures.generated.js";
 
 /**
+ * A 0.1.0 document is kept only if its schema is unchanged in every later manifest
+ * section (listed under `definitionsOnly` in both 0.3.0 and 0.4.0), compared on the
+ * flat pinned directory the generator re-paths onto.
+ */
+function repathToPin(schemaPath: string): string {
+  return schemaPath.replace(/^schemas\/\d+\.\d+\.\d+\//, `schemas/${PROTOCOL_VERSION}/`);
+}
+
+/**
  * `src/schemas.ts`, `src/conformance.ts` and `test/fixtures.generated.ts` are
  * committed, generated modules: `scripts/generate-sources.mjs` writes them from
  * `protocol/`, and the first two are what a consumer imports as
@@ -84,7 +93,11 @@ describe("src/schemas.ts is what protocol/schemas/ says it is", () => {
     // against (docket-entry, requirement, attestation, evidence-card-request,
     // error-code) — the same filter B-58a8 built as `v01KeptEntries` is repeated
     // here so this check only looks up entries `schemasByPath` can actually answer.
-    const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
+    const v03DefinitionsOnly = new Set<string>(
+      manifest["0.3.0"].definitionsOnly
+        .map(repathToPin)
+        .filter((path) => (manifest["0.4.0"].definitionsOnly as readonly string[]).includes(path)),
+    );
     for (const entry of manifest["0.1.0"].fixtures) {
       const repathed = entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`);
       if (!v03DefinitionsOnly.has(repathed)) continue;
@@ -169,8 +182,12 @@ describe("test/fixtures.generated.ts is what protocol/fixtures/ says it is", () 
   // schema it names changed shape by the pin (docket-entry, requirement, attestation,
   // evidence-card-request, error-code) — it has no vendored 0.1.0 schema left to
   // validate against. The kept set is exactly the entries whose (re-pathed) schema is
-  // one of the 0.3.0 manifest section's `definitionsOnly` schemas.
-  const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
+  // listed under `definitionsOnly` in both the 0.3.0 and the 0.4.0 manifest sections.
+  const v03DefinitionsOnly = new Set<string>(
+    manifest["0.3.0"].definitionsOnly
+      .map(repathToPin)
+      .filter((path) => (manifest["0.4.0"].definitionsOnly as readonly string[]).includes(path)),
+  );
   const v01KeptEntries = manifest["0.1.0"].fixtures.filter((entry) =>
     v03DefinitionsOnly.has(
       entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`),
