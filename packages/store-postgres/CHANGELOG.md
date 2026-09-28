@@ -10,6 +10,28 @@ the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.6] — 2026-09-28
+
+### Fixed
+
+- **`transition` takes the per-entry advisory lock `recordApproval` already took.**
+  Without it, `transition/a-withdrawal-racing-the-folding-approval-has-one-winner`
+  could interleave a withdrawal's append between an approval's insert and its fold,
+  so a losing approval's row survived a commit though its own refusal preserved
+  nothing (DK-1).
+
+### Changed
+
+- **Pinned to `v0.4.0-pre.1`.** Proven against `@affiant/core/testing`'s two
+  withdrawal cases (`transition/a-withdrawal-racing-the-folding-approval-has-one-winner`,
+  `retention/ages-out-a-withdrawn-row-from-its-withdrawal`). A
+  withdrawal (DK-1) is filed as a `decision`-kind event whose payload's own `status`
+  field reads `"withdrawn"`, exactly as an approval or a rejection is; `docket_entries`
+  and `docket_events` never had a `status` column or a decision-kind constraint for a
+  migration to widen, so this pin ships with no fourth migration.
+
+## [0.1.0-alpha.5] — 2026-09-28
+
 ### Changed
 
 - Pinned to `v0.3.0`; no code change.

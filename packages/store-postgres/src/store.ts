@@ -299,6 +299,11 @@ class Store implements DocketStore, SessionStore {
     patch: TransitionPatch,
   ): Promise<TransitionResult> {
     return this.#run(scope.tenantId, async (tx) => {
+      // The same lock `recordApproval` takes, so a transition and an approval on
+      // this entry run one after the other: a losing approval then reads the
+      // transitioned row and refuses before it inserts anything (DK-1).
+      await tx`select pg_advisory_xact_lock(hashtext(${scope.tenantId}::text || ':' || ${entryId}::text)::bigint)`;
+
       const stored = await this.#fold(tx, entryId, scope);
       if (stored === null) return "not-found" as TransitionResult;
 
