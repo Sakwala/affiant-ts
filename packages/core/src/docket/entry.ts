@@ -286,7 +286,21 @@ export function multiPartyAttestorOf(
     kind: "multi-party",
     approvers: records
       .filter((record) => record.decision === "approve")
-      .map((record) => record.attestation.by as MemberAttestor | MemberViaRelayAttestor),
+      .map((record) => {
+        const by = record.attestation.by;
+        const kind: string = by.kind;
+        // `ApprovalRecord.attestation` is already typed as a `PersonAttestation`
+        // (member or member-via-relay only), so this can only fail a record built by
+        // casting past that type — but a store port is exactly such a boundary, so
+        // the check stands (AZ-4).
+        if (kind !== "member" && kind !== "member-via-relay") {
+          throw new RangeError(
+            `AZ-4: a multi-party attestation is composed only of member or ` +
+              `member-via-relay attestors, got ${JSON.stringify(kind)}`,
+          );
+        }
+        return by;
+      }),
   };
 }
 
@@ -309,8 +323,22 @@ export interface ApprovalRecord {
   readonly reason: string | null;
   /** When this record was made, as an ISO 8601 instant in UTC. */
   readonly at: string;
-  /** Who attested this act — `member` or `member-via-relay`, never `standing-order`. */
-  readonly attestation: Attestation;
+  /**
+   * Who attested this act — `member` or `member-via-relay`, never `standing-order`
+   * (AZ-4): a `PersonAttestation`, not the general {@link Attestation}, so the type
+   * itself admits no other attestor kind.
+   */
+  readonly attestation: PersonAttestation;
+}
+
+/** An {@link Attestation} whose `by` is a person: `member` or `member-via-relay` (AZ-4). */
+export interface PersonAttestation {
+  /** Who agreed — a person, directly or via a trusted relay. */
+  readonly by: MemberAttestor | MemberViaRelayAttestor;
+  /** When, as an ISO 8601 instant in UTC. */
+  readonly at: string;
+  /** The entry this one attests to. */
+  readonly entryId: string;
 }
 
 /**
@@ -663,8 +691,29 @@ function validateRequirement(requirement: Requirement): Requirement {
   if (!(REQUIREMENT_KINDS as readonly string[]).includes(requirement.kind)) {
     throw new RangeError(`unknown requirement kind: ${String(requirement.kind)}`);
   }
+  const allowedKeys: readonly string[] =
+    requirement.kind === "MultiParty" ? ["kind", "approvers", "required"] : ["kind"];
+  const extraKeys = Object.keys(requirement).filter((key) => !allowedKeys.includes(key));
+  if (extraKeys.length > 0) {
+    throw new RangeError(
+      `a ${requirement.kind} requirement admits no property beyond ${JSON.stringify(allowedKeys)}, ` +
+        `got extra ${JSON.stringify(extraKeys)}`,
+    );
+  }
   if (requirement.kind === "MultiParty") {
     const { approvers, required } = requirement;
+    if (!Array.isArray(approvers)) {
+      throw new RangeError(
+        "AZ-4: a MultiParty requirement's approvers must be an array of at least two " +
+          `distinct identifiers, got ${JSON.stringify(approvers)}`,
+      );
+    }
+    if (approvers.some((approver) => typeof approver !== "string" || approver.trim() === "")) {
+      throw new RangeError(
+        "AZ-4: a MultiParty requirement's approvers must all be non-empty identifiers, " +
+          `got ${JSON.stringify(approvers)}`,
+      );
+    }
     const distinct = new Set(approvers);
     if (approvers.length < 2 || distinct.size !== approvers.length) {
       throw new RangeError(
