@@ -361,7 +361,7 @@ export class InMemoryDocketStore implements DocketStore {
       approvals,
       status: "approved",
       execution: "unexecuted",
-      decision: { kind: "approve", reason: null, at: record.at, by: record.approver },
+      decision: { kind: "approve", reason: record.reason, at: record.at, by: record.approver },
       attestation: {
         by: multiPartyAttestorOf(approvals),
         at: record.at,
