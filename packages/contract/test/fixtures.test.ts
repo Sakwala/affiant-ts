@@ -40,6 +40,18 @@ import {
 type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
 
 /**
+ * BD-268: `generate-sources.mjs` drops a v0.1 document from `v01Fixtures` when the
+ * schema it names changed shape by the pin (docket-entry, requirement, attestation,
+ * evidence-card-request, error-code) — it has no vendored 0.1.0 schema left to
+ * validate against. The kept set is exactly the entries whose (re-pathed) schema is
+ * one of the 0.3.0 manifest section's `definitionsOnly` schemas.
+ */
+const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
+const v01KeptEntries = (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).filter((entry) =>
+  v03DefinitionsOnly.has(entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`)),
+);
+
+/**
  * Compile-time half of the contract: every positive fixture the rulebook promotes
  * must be assignable to the hand-written type that claims to describe it. These
  * lines are checked by `pnpm typecheck`; a type that drifts from a schema fails the
@@ -99,16 +111,12 @@ describe("the vendored v0.1 fixtures", () => {
   });
 
   it("has one generated module entry per manifest row, and no extras", () => {
-    expect(Object.keys(v01Fixtures).sort()).toEqual(
-      (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).map((entry) => entry.id).sort(),
-    );
+    expect(Object.keys(v01Fixtures).sort()).toEqual(v01KeptEntries.map((entry) => entry.id).sort());
   });
 
-  it.each(
-    (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).map(
-      (entry) => [entry.id, entry.kind] as const,
-    ),
-  )("%s (%s) survives a JSON round trip unchanged", (id) => {
+  it.each(v01KeptEntries.map((entry) => [entry.id, entry.kind] as const))(
+    "%s (%s) survives a JSON round trip unchanged",
+    (id) => {
     const fixture = v01Fixtures[id];
 
     expect(fixture).toBeDefined();
@@ -118,14 +126,25 @@ describe("the vendored v0.1 fixtures", () => {
 
 describe("every envelope carries the protocol version (SR-4)", () => {
   it.each([
-    ["affidavit", v01Affidavit.protocolVersion],
     ["evidence card request", v03Card.protocolVersion],
     ["docket entry", v03Row.protocolVersion],
     ["decision result", v03Decision.protocolVersion],
     ["notification", v03Transition.protocolVersion],
-    ["telemetry registry", v01Registry.protocolVersion],
   ])("%s", (_what, version) => {
     expect(version).toBe(PROTOCOL_VERSION);
+  });
+
+  // BD-268: an `affidavit`/`telemetry registry` fixture here is still the raw
+  // vendored `0.1.0` document (an unchanged schema, never re-carried the way
+  // BD-257's five reshaped schemas were) — it truly carries its own section's
+  // version, not the package's. A v0.3.0 follow-up that re-carries these two
+  // forward, the way `evidence-card-request` etc. already were, would move
+  // them into the table above and stamp `PROTOCOL_VERSION` instead.
+  it.each([
+    ["affidavit", v01Affidavit.protocolVersion],
+    ["telemetry registry", v01Registry.protocolVersion],
+  ])("%s", (_what, version) => {
+    expect(version).toBe("0.1.0");
   });
 });
 
