@@ -2306,7 +2306,11 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
 
           const stored = await store.get("entry-1", scope);
           expect(stored?.status).not.toBe("pending");
-          expect(stored?.approvals).toHaveLength(3);
+          // Only the winner's record joins ana's: the loser's "conflict" answer
+          // means its record was never appended (the guard is read-then-append in
+          // the same synchronous step, exactly as `transition`'s CAS is), so the
+          // row folds on two approvals, not three.
+          expect(stored?.approvals).toHaveLength(2);
         },
       },
       {
