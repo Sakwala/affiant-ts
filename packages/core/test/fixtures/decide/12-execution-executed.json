@@ -89,7 +89,10 @@
         "id": "ana"
       },
       "outcome": "executed",
-      "detail": "invoice row 41"
+      "detail": {
+        "code": "invoice-row-written",
+        "note": "invoice row 41"
+      }
     }
   },
   "expect": {
