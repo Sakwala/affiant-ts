@@ -135,6 +135,11 @@ application role stays ordinary; only the migrator needs the elevated role. A ho
 vendors the SQL instead of calling `applyMigrations` asserts the same role requirement
 in its own forward-only sequence.
 
+A withdrawal (DK-1) needs none of this: it is a `decision`-kind event like an approval
+or a rejection, its payload's own `status` field reading `"withdrawn"`, so the `0.4.0`
+protocol adds no fourth migration — `docket_entries` and `docket_events` never carried a
+`status` column or a decision-kind constraint for a migration to widen.
+
 ## Export is a walk, not a snapshot
 
 `export(scope)` yields every entry in filing order, in bounded batches, each batch its
