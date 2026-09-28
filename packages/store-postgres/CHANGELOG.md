@@ -12,8 +12,7 @@ the [root changelog](../../CHANGELOG.md).
 
 ### Added
 
-- **`migrations/0003_multiparty_migration_guard.sql`, a forward-only migration guard
-  (BD-324 F-2).** `0002`'s blocked-`MultiParty` refusal and its `filed_row` rewrite are
+- **`migrations/0003_multiparty_migration_guard.sql`, a forward-only migration guard.** `0002`'s blocked-`MultiParty` refusal and its `filed_row` rewrite are
   plain DML under `force row level security` on `docket_entries`; a migrator role that
   is neither a superuser nor `BYPASSRLS` sees zero rows under that policy and both
   statements succeed having done nothing, silently skipping the refusal and the

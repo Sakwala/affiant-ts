@@ -1,6 +1,6 @@
--- The migration guard (BD-324 F-2): `0002_native_multiparty`'s blocked-`MultiParty`
--- refusal and its `filed_row` rewrite are plain DML — a `select count(*)` and an
--- `update` — over `docket_entries`, whose policy `force row level security` applies to
+-- The migration guard: `0002_native_multiparty`'s blocked-`MultiParty` refusal and its
+-- `filed_row` rewrite are plain DML — a `select count(*)` and an `update` — over
+-- `docket_entries`, whose policy `force row level security` applies to the table's owner
 -- as well as to an ordinary role, keyed on `current_setting('affiant.tenant_id', true)`.
 -- A migrator role that is neither a superuser nor `BYPASSRLS` — and `0002` states no
 -- role requirement — sees zero rows under that policy no matter how many rows the
@@ -12,9 +12,7 @@
 --
 -- The requirement this file enforces and repairs: **run this package's migrations as a
 -- superuser or as a role with `BYPASSRLS`.** The application role stays ordinary — this
--- is a migrator-only requirement, and it is the same requirement `0001`'s and `0002`'s
--- row-level-security statements always needed to be effective, now stated and checked
--- rather than assumed.
+-- is a migrator-only requirement, now stated and checked rather than assumed.
 --
 -- What this file does, in order: (a) fails loudly, naming the requirement and
 -- `current_user`, unless the role applying it can bypass row level security; (b)
