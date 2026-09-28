@@ -75,7 +75,9 @@ const gate = createGate({
   // Your model, asked once for structured values against the unmodified turn.
   inference: { infer: async (turn, schema) => extract(turn, schema) },
   // What the entity holds now, so every field can swear to what it replaces (AF-3).
-  projection: { previousValues: async (op) => db.read(op.entityType, op.entityId) },
+  projection: {
+    previousValues: async (op) => (op.entityId === null ? null : db.read(op.entityType, op.entityId)),
+  },
   // Who may decide. Asked before every transition; `false` refuses it (AZ-2).
   authorization: { mayDecide: async (principal) => reviewers.has(principal.id) },
   policies: [routineStatusChange], // your Standing Orders and confirmations (AZ-4)
