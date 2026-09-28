@@ -637,9 +637,9 @@ describe("a policy that throws is a refusal, not an escape (CV-1)", () => {
 });
 
 describe("a requirement this version does not run is blocked, never weakened (AZ-4)", () => {
-  it("files a MultiParty verdict pending with the requirement recorded verbatim", async () => {
+  it("files a ReferralRequired verdict pending with the requirement recorded verbatim", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "MultiParty" })],
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
     });
 
     const filed = await gate.wrap(writeTool(), turnContext()).execute({ status: "Active" });
@@ -647,17 +647,17 @@ describe("a requirement this version does not run is blocked, never weakened (AZ
     if (filed.kind !== "write") expect.unreachable("a write tool produces a proposal");
     const entry = await gate.get(filed.entryId, turnContext());
     expect(entry?.status).toBe("pending");
-    expect(entry?.requirement).toEqual({ kind: "MultiParty" });
+    expect(entry?.requirement).toEqual({ kind: "ReferralRequired" });
     expect(entry?.blocked).toEqual({
       code: "requirement-not-implemented",
-      level: "MultiParty",
+      level: "ReferralRequired",
     });
     expect(entry?.attestation).toBeNull();
   });
 
-  it("does the same for ReferralRequired", async () => {
+  it("does the same for a write filed through gate.file", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "ReferralRequired" })],
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
     });
 
     const filed = await gate.file(
@@ -676,7 +676,7 @@ describe("a requirement this version does not run is blocked, never weakened (AZ
 
   it("tells a reviewer on the card that no decision will be accepted", async () => {
     const { gate } = harness({
-      policies: [policyReturning({ requirement: "MultiParty" })],
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
     });
 
     const filed = await gate.file(
