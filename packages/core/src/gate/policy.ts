@@ -530,14 +530,30 @@ function checkMultiPartyVerdict(
   policy: ApprovalPolicy,
   requirement: Requirement,
 ): void {
+  const allowedKeys: readonly string[] =
+    requirement.kind === "MultiParty" ? ["kind", "approvers", "required"] : ["kind"];
+  const extraKeys = Object.keys(requirement).filter((key) => !allowedKeys.includes(key));
+  if (extraKeys.length > 0) {
+    const extraReason =
+      `AZ-4: policy ${JSON.stringify(policy.id)} returned a ${requirement.kind} requirement ` +
+      `carrying a property beyond ${JSON.stringify(allowedKeys)}: ${JSON.stringify(extraKeys)}`;
+    emitPolicyInvalid(deps, policy, "evaluate", extraReason);
+    throw new AffiantError("wireup-invalid", extraReason, { policyId: policy.id, requirement });
+  }
   if (requirement.kind !== "MultiParty") return;
   const approvers = requirement.approvers;
   const required = requirement.required;
-  const distinct = new Set(approvers);
+  // Array.isArray is checked first (and short-circuits `||`) so a non-array
+  // `approvers` never reaches `.some` or `new Set`, which would throw on it.
   const approversBad =
-    !Array.isArray(approvers) || approvers.length < 2 || distinct.size !== approvers.length;
+    !Array.isArray(approvers) ||
+    approvers.length < 2 ||
+    approvers.some((approver) => typeof approver !== "string" || approver.trim() === "") ||
+    new Set(approvers).size !== approvers.length;
   const requiredBad =
-    !Number.isInteger(required) || required < 1 || required > (approvers?.length ?? 0);
+    !Number.isInteger(required) ||
+    required < 1 ||
+    required > (Array.isArray(approvers) ? approvers.length : 0);
   if (!approversBad && !requiredBad) return;
   const reason =
     `AZ-4: policy ${JSON.stringify(policy.id)} returned a MultiParty verdict whose ` +
