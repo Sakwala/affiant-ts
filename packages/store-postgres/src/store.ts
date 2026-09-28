@@ -213,15 +213,14 @@ class Store implements DocketStore, SessionStore {
       const inserted = await tx`
         insert into ${tx(this.#table("docket_entries"))} (
           tenant_id, entry_id, conversation_id, channel, tool_name, affidavit, requirement,
-          blocked, composite_ref, supersedes, filed_at, expires_at, protocol_version, filed_row
+          blocked, supersedes, filed_at, expires_at, protocol_version, filed_row
         ) values (
           ${text(entry, "tenantId", entry.tenantId)}, ${text(entry, "entryId", entry.entryId)},
           ${text(entry, "conversationId", entry.conversationId)},
           ${text(entry, "channel", entry.channel)}, ${text(entry, "toolName", entry.toolName)},
           ${json(entry, "affidavit", entry.affidavit)}::text::jsonb,
-          ${text(entry, "requirement", entry.requirement)},
+          ${json(entry, "requirement", entry.requirement)}::text::jsonb,
           ${entry.blocked === null ? null : json(entry, "blocked", entry.blocked)}::text::jsonb,
-          ${text(entry, "compositeRef", entry.compositeRef)},
           ${text(entry, "lineage.supersedes", entry.lineage.supersedes)},
           ${instant(entry.filedAt, "filedAt")}::text::timestamptz,
           ${instant(entry.expiresAt, "expiresAt")}::text::timestamptz,
@@ -235,7 +234,24 @@ class Store implements DocketStore, SessionStore {
       // entry as it was handed in and reading it back would be a round trip for an
       // answer already in hand. A re-file has to be read: what it returns is the
       // entry that is *already* there, with the deadline it already had (GT-4).
-      if (inserted.length === 1) return { entry: this.#read(entry), created: true };
+      if (inserted.length === 1) {
+        // The host policy's approvers, one row each, in the order the policy named
+        // them — written in the same transaction as the filing, and only once: a
+        // retried filing conflicts above and never reaches here a second time, so
+        // there is no "on conflict" to word for these rows (AZ-4, DK-1).
+        if (entry.requirement.kind === "MultiParty") {
+          const approvers = entry.requirement.approvers;
+          await tx`
+            insert into ${tx(this.#table("docket_approvers"))} (tenant_id, entry_id, approver, position)
+            select * from unnest(
+              ${tx.array(approvers.map(() => entry.tenantId))}::text[],
+              ${tx.array(approvers.map(() => entry.entryId))}::text[],
+              ${tx.array(approvers.map((approver) => text(entry, "requirement.approvers", approver)))}::text[],
+              ${tx.array(approvers.map((_, index) => index))}::int[]
+            )`;
+        }
+        return { entry: this.#read(entry), created: true };
+      }
 
       const stored = await this.#fold(tx, entry.entryId, { tenantId: entry.tenantId });
       if (stored === null) {
