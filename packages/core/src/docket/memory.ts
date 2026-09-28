@@ -39,8 +39,14 @@ import type { AmendmentMap } from "../model/amendments.js";
 import type { Clock } from "../ports.js";
 import { defaultClock } from "../ports.js";
 
-import type { DocketEntry, DocketStatus, ExecutionOutcome } from "./entry.js";
-import { readStatus } from "./entry.js";
+import type {
+  ApprovalRecord,
+  DocketEntry,
+  DocketStatus,
+  ExecutionDetail,
+  ExecutionOutcome,
+} from "./entry.js";
+import { multiPartyAttestorOf, readStatus } from "./entry.js";
 import { isDue, instantMs } from "./expiry.js";
 import type {
   DocketStore,
@@ -48,6 +54,7 @@ import type {
   PageResult,
   PreservedAct,
   PreserveAmendmentsResult,
+  RecordApprovalResult,
   RecordExecutionResult,
   RecordSupersessionResult,
   RetentionPolicy,
@@ -285,7 +292,7 @@ export class InMemoryDocketStore implements DocketStore {
     entryId: string,
     scope: Scope,
     outcome: Exclude<ExecutionOutcome, "unexecuted">,
-    detail: string | null,
+    detail: ExecutionDetail | null,
     expected: "unexecuted",
   ): Promise<RecordExecutionResult> {
     const stored = this.#find(entryId, scope);
@@ -295,6 +302,74 @@ export class InMemoryDocketStore implements DocketStore {
 
     stored.entry = { ...stored.entry, execution: outcome, executionDetail: detail };
     return this.#read(stored.entry);
+  }
+
+  /**
+   * Record one approver's act on a `MultiParty` entry, folding it in the same step
+   * when this record completes it (AZ-4, DK-1).
+   *
+   * Under the same guard {@link InMemoryDocketStore.transition} reads: the entry
+   * must read `pending` and carry no `blocked` marker, or this call answers
+   * `"conflict"` — the caller (the gate) re-reads and answers `decision-expired` or
+   * `decision-not-pending` itself, exactly as a losing `transition` caller does.
+   * `record.approver` already having a record is this method's own half of DK-1's
+   * guard and answers `"already-recorded"`. Otherwise the record is appended and,
+   * in the same synchronous block, folded: a `reject` always folds `rejected`; an
+   * `approve` folds `approved` once the count of `approve` records reaches
+   * `fold.required`, with the entry-level attestation composed by
+   * {@link multiPartyAttestorOf} from the folding records, in the order recorded.
+   * Short of that the row stays `pending` and this call answers `"recorded"`.
+   */
+  async recordApproval(
+    entryId: string,
+    scope: Scope,
+    record: ApprovalRecord,
+    fold: { readonly required: number },
+  ): Promise<RecordApprovalResult> {
+    const stored = this.#find(entryId, scope);
+    if (stored === null) return "not-found";
+
+    const now = this.#clock.now();
+    const status = readStatus(stored.entry, now);
+    if (status !== "pending" || stored.entry.blocked !== null) return "conflict";
+    if (stored.entry.approvals === null) return "conflict";
+    if (stored.entry.approvals.some((existing) => existing.approver === record.approver)) {
+      return "already-recorded";
+    }
+
+    const approvals = [...stored.entry.approvals, record];
+
+    if (record.decision === "reject") {
+      stored.entry = {
+        ...stored.entry,
+        approvals,
+        status: "rejected",
+        decision: { kind: "reject", reason: record.reason, at: record.at, by: record.approver },
+        decidedAt: record.at,
+      };
+      return { outcome: "folded", entry: this.#read(stored.entry) };
+    }
+
+    const approveCount = approvals.filter((a) => a.decision === "approve").length;
+    if (approveCount < fold.required) {
+      stored.entry = { ...stored.entry, approvals };
+      return { outcome: "recorded", entry: this.#read(stored.entry) };
+    }
+
+    stored.entry = {
+      ...stored.entry,
+      approvals,
+      status: "approved",
+      execution: "unexecuted",
+      decision: { kind: "approve", reason: null, at: record.at, by: record.approver },
+      attestation: {
+        by: multiPartyAttestorOf(approvals),
+        at: record.at,
+        entryId: stored.entry.entryId,
+      },
+      decidedAt: record.at,
+    };
+    return { outcome: "folded", entry: this.#read(stored.entry) };
   }
 
   /** Record the successor of a terminal row (DK-1); the row keeps its terminal state. */
