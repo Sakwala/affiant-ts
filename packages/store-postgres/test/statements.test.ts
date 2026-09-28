@@ -87,7 +87,7 @@ describe("a decision that crosses the deadline while it is being applied (DK-1)"
 
     const result = await crossing.transition("crossing", scope, "pending", {
       status: "approved",
-      decision: { kind: "approve", reason: null, at: NOON },
+      decision: { by: "person-7", kind: "approve", reason: null, at: NOON },
       attestation: { by: { kind: "member", id: "person-7" }, at: NOON, entryId: "crossing" },
     });
 
@@ -232,7 +232,7 @@ describe("removing a filing removes what was appended to it (DK-4)", () => {
     await store.file(sampleEntry("purged", { tenantId: scope.tenantId }));
     await store.transition("purged", scope, "pending", {
       status: "rejected",
-      decision: { kind: "reject", reason: "no", at: NOON },
+      decision: { by: "person-7", kind: "reject", reason: "no", at: NOON },
     });
     expect(await eventCount(scope.tenantId)).toBe(1);
 
@@ -248,7 +248,7 @@ describe("removing a filing removes what was appended to it (DK-4)", () => {
     clock.set(NOON);
     await store.transition("aged-out", scope, "pending", {
       status: "rejected",
-      decision: { kind: "reject", reason: "no", at: NOON },
+      decision: { by: "person-7", kind: "reject", reason: "no", at: NOON },
       decidedAt: NOON,
     });
     expect(await eventCount(scope.tenantId)).toBe(1);

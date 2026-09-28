@@ -43,6 +43,7 @@ import { adapterFixtures, adapterManifest, fixtureSchema } from "@affiant/contra
 import type { ConformanceFixtureDocument } from "@affiant/contract/conformance";
 import { createGate, isAffiantError, readStatus } from "@affiant/core";
 import type {
+  ExecutionDetail,
   ApprovalPolicy,
   Clock,
   Decision,
@@ -480,7 +481,7 @@ interface AdapterStep {
     readonly reason?: string | null;
   };
   readonly outcome?: "executed" | "failed";
-  readonly detail?: string | null;
+  readonly detail?: ExecutionDetail | null;
   readonly limit?: number;
   readonly scope?: { readonly tenantId?: string; readonly conversationId?: string };
   readonly page?: { readonly limit: number; readonly cursor?: string | null };

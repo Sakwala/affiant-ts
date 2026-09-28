@@ -118,7 +118,7 @@ async function run(
   await store.file(sampleEntry(entryId, { tenantId, affidavit }));
   await store.transition(entryId, { tenantId }, "pending", {
     status: "approved",
-    decision: { kind: "approve", reason: null, at: "2026-09-04T09:00:00.000Z" },
+    decision: { by: "person-7", kind: "approve", reason: null, at: "2026-09-04T09:00:00.000Z" },
     attestation: {
       by: { kind: "member", id: "person-7" },
       at: "2026-09-04T09:00:00.000Z",
