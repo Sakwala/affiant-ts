@@ -193,6 +193,9 @@ describe("row-level security applies to the tables' own owner (AZ-2)", () => {
   }, 120_000);
 
   afterAll(async () => {
+    // The tables were handed to the owner role above; hand them back before dropping what
+    // remains, because the approval tables' foreign keys depend on docket_entries.
+    await owned.sql.unsafe(`reassign owned by "${owner}" to current_user`);
     await owned.sql.unsafe(`drop owned by "${owner}"`);
     await owned.sql.unsafe(`drop role if exists "${owner}"`);
     await owned.close();
