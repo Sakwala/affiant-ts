@@ -253,6 +253,7 @@ export type {
   PageResult,
   PreservedAct,
   PreserveAmendmentsResult,
+  RecordApprovalResult,
   RecordExecutionResult,
   RecordSupersessionResult,
   RetentionPolicy,
