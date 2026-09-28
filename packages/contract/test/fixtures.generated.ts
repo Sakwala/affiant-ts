@@ -773,7 +773,7 @@ export const v01Fixtures: Readonly<Record<string, unknown>> = {
 };
 
 /**
- * Every v0.3 fixture, keyed by its manifest id (BD-256): the `MultiParty`
+ * Every v0.3 fixture, keyed by its manifest id: the `MultiParty`
  * requirement, attestor and docket-entry shapes the 0.3.0 schemas describe. Left as
  * `unknown` for the same reason `v01Fixtures` is: a negative fixture is not
  * assignable to the type its schema describes.
