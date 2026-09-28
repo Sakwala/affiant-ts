@@ -691,7 +691,7 @@ describe("the Evidence Card (SR-4)", () => {
   });
 
   it("does not ask for a confirmation on a blocked entry, and says why on the card", async () => {
-    const { gate } = harness({ policies: [policyReturning({ requirement: "MultiParty" })] });
+    const { gate } = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
 
     const filed = await gate.file(proposal(), turnContext());
 
@@ -702,7 +702,7 @@ describe("the Evidence Card (SR-4)", () => {
     expect(filed.card.requiresConfirmation).toBe(false);
     expect(filed.card.blocked).toEqual({
       code: "requirement-not-implemented",
-      level: "MultiParty",
+      level: "ReferralRequired",
     });
   });
 
