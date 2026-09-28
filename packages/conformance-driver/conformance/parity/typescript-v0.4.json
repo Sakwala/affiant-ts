@@ -2,23 +2,10 @@
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
   "version": "0.1.0-alpha.8",
-  "protocolTag": "28f0753df2f8c2ac3df82c0be54283d0fcb4cb51",
-  "producedAt": "2026-09-28T16:22:41.561Z",
+  "protocolTag": "52e1a3dd636c85a5f83755f4efb4a05391c30bd4",
+  "producedAt": "2026-09-28T17:45:07.545Z",
   "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.8.json",
-  "failing": [
-    {
-      "id": "decide/amend-recompute",
-      "rules": ["AF-1", "AF-4", "DK-2", "DK-4", "PV-2", "SR-1"],
-      "disposition": "ignored",
-      "detail": "canonicalHash does not match the fixture's expected value; the mismatch is a rulebook defect under repair upstream (Sakwala/affiant-protocol pull request #52), not a defect in this implementation's canonicalization."
-    },
-    {
-      "id": "sequence-a/approve-round-trip",
-      "rules": ["GT-1", "GT-6", "DK-1", "AZ-1", "AZ-5", "SR-1"],
-      "disposition": "ignored",
-      "detail": "canonicalHash does not match the fixture's expected value; the mismatch is a rulebook defect under repair upstream (Sakwala/affiant-protocol pull request #52), not a defect in this implementation's canonicalization."
-    }
-  ],
+  "failing": [],
   "adapters": [
     {
       "package": "@affiant/adapter-ai-sdk",

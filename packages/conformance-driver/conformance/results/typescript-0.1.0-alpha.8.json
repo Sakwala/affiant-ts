@@ -5,36 +5,36 @@
     "version": "0.1.0-alpha.8",
     "runtime": "node"
   },
-  "protocolTag": "28f0753df2f8c2ac3df82c0be54283d0fcb4cb51",
-  "producedAt": "2026-09-28T16:22:41.561Z",
+  "protocolTag": "52e1a3dd636c85a5f83755f4efb4a05391c30bd4",
+  "producedAt": "2026-09-28T17:45:07.545Z",
   "summary": {
     "total": 109,
-    "passed": 107,
-    "failed": 2,
+    "passed": 109,
+    "failed": 0,
     "errored": 0,
     "skipped": 0,
-    "durationMs": 239
+    "durationMs": 204
   },
   "results": [
     {
       "id": "gate/substance-hollow-refused",
       "outcome": "pass",
-      "durationMs": 136
+      "durationMs": 112
     },
     {
       "id": "gate/substance-zero-field-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/ttl-from-verdict",
       "outcome": "pass",
-      "durationMs": 11
+      "durationMs": 9
     },
     {
       "id": "gate/ttl-from-policy-default",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/ttl-from-gate-default",
@@ -54,7 +54,7 @@
     {
       "id": "gate/standing-order-threshold-over",
       "outcome": "pass",
-      "durationMs": 4
+      "durationMs": 2
     },
     {
       "id": "gate/standing-order-unbound-input",
@@ -79,12 +79,12 @@
     {
       "id": "gate/update-previous-values",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/create-null-previous-values",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/inference-conversation-and-inferred",
@@ -104,17 +104,17 @@
     {
       "id": "gate/inference-port-literal-unconfirmed",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/inference-port-span-fails-the-boundary",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "gate/inference-empty-value-is-nothing-reported",
@@ -124,7 +124,7 @@
     {
       "id": "gate/multiparty-files-one-entry",
       "outcome": "pass",
-      "durationMs": 3
+      "durationMs": 1
     },
     {
       "id": "gate/multiparty-verdict-too-few-approvers",
@@ -144,22 +144,22 @@
     {
       "id": "gate/multiparty-verdict-required-zero",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/approve",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "decide/reject",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/second-decision-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/expired-amendments-preserved",
@@ -169,18 +169,11 @@
     {
       "id": "decide/blocked-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/amend-recompute",
-      "outcome": "fail",
-      "diff": [
-        {
-          "at": "canonicalHash",
-          "expected": "80d8f098596c2201d27d21a82297c83c1afe7e3c1a8cb3a1c627465a4b89e24f",
-          "actual": "71cfd5229f5567a05df48f6cce7569d242fc8cf85dd4dd0c59047190ad3df578"
-        }
-      ],
+      "outcome": "pass",
       "durationMs": 2
     },
     {
@@ -351,17 +344,17 @@
     {
       "id": "decide/withdraw-twice-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/withdraw-wrong-tenant-not-found",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/decide-after-withdraw-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/execution-on-withdrawn-refused",
@@ -375,14 +368,7 @@
     },
     {
       "id": "sequence-a/approve-round-trip",
-      "outcome": "fail",
-      "diff": [
-        {
-          "at": "canonicalHash",
-          "expected": "a79213196c6eb0a10ff75c1864ee6066f1550ea6aade3dcc97b6f713d12e826f",
-          "actual": "1d71b3f7187fcfb5c32095668b68904e94c36c3f046ce4e52985047f90f594dd"
-        }
-      ],
+      "outcome": "pass",
       "durationMs": 2
     },
     {
@@ -398,12 +384,12 @@
     {
       "id": "sequence-a/picker-external-binding",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/mandatory-field-left-empty",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/mandatory-field-reviewer-approves",
@@ -443,17 +429,17 @@
     {
       "id": "sequence-a/coverage-refused-at-wire-up",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/mandatory-field-empty-blocks-standing-order",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-a/optional-field-empty-standing-order-fires",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/relay-auto-approve-bound-external",
@@ -463,12 +449,12 @@
     {
       "id": "sequence-c/relayed-decision-member-via-relay",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "sequence-c/unbound-external-asks-a-person",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/relay-may-not-attest-member",
@@ -483,7 +469,7 @@
     {
       "id": "canonical/create-shaped",
       "outcome": "pass",
-      "durationMs": 4
+      "durationMs": 3
     },
     {
       "id": "canonical/update-shaped",
@@ -503,12 +489,12 @@
     {
       "id": "canonical/key-order-stress",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/number-forms",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/money-and-escapes",
@@ -518,7 +504,7 @@
     {
       "id": "adapter/cv2-write-with-context-files",
       "outcome": "pass",
-      "durationMs": 96
+      "durationMs": 92
     },
     {
       "id": "adapter/cv2-write-without-context-refuses",
@@ -528,7 +514,7 @@
     {
       "id": "adapter/cv2-gate-absent-throws",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "adapter/cv2-read-without-context-never-runs",
@@ -538,7 +524,7 @@
     {
       "id": "adapter/cv3-model-output-carries-no-values",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "adapter/cv3-docket-row-survives-history",

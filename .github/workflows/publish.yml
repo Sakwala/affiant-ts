@@ -19,7 +19,7 @@
 # because the stated conditions for publishing it were a public parity report for
 # both implementations and a green, merge-blocking conformance driver. Those
 # conditions hold at the rulebook's v0.4.0-pre.1 pre-release, commit
-# 28f0753df2f8c2ac3df82c0be54283d0fcb4cb51, the ref packages/contract/protocol/PIN
+# 52e1a3dd636c85a5f83755f4efb4a05391c30bd4, the ref packages/contract/protocol/PIN
 # names — the .NET parity report is still read at the v0.2.0 tag:
 # https://github.com/Sakwala/affiant-protocol/blob/main/conformance/parity/dotnet-v0.2.json,
 # and not the v0.1 document frozen inside the tag, whose own protocolTag reads v0.1.3;
