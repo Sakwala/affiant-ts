@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.4.0.
+// copy of Sakwala/affiant-protocol at v0.4.1.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 

@@ -10,6 +10,13 @@ the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.8] — 2026-09-29
+
+### Changed
+
+- Pinned to the rulebook's `v0.4.1` tag (text only: DK-1 amended from the first host's run of the withdrawal
+  transition; no schema or fixture change from `v0.4.0`); no code change, no migration.
+
 ## [0.1.0-alpha.7] — 2026-09-29
 
 ### Changed
