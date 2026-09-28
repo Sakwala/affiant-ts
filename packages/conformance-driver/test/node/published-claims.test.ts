@@ -7,6 +7,7 @@ import type { AnySchemaObject } from "ajv/dist/2020.js";
 import ajvFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
 import { parityManifestSchema, resultsSchema } from "@affiant/contract/conformance";
 
 import { ADAPTER_PACKAGE_VERSION, AI_SDK_VERSION } from "../../src/adapters/version.js";
@@ -46,9 +47,11 @@ function validatorFor(schema: unknown): (document: unknown) => string[] {
   };
 }
 
-const manifestFile = join(packageRoot, "conformance", "parity", "typescript-v0.2.json");
+const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
+const manifestFileName = `typescript-v${protocolMajor}.${protocolMinor}.json`;
+const manifestFile = join(packageRoot, "conformance", "parity", manifestFileName);
 
-describe("conformance/parity/typescript-v0.2.json", () => {
+describe(`conformance/parity/${manifestFileName}`, () => {
   it("is exactly what src/parity.ts produces", () => {
     // The module is the source and the file is the artifact. Without this the file
     // could be regenerated and not committed, or edited and not regenerated, and
