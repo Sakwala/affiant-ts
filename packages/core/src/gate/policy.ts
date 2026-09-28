@@ -64,7 +64,7 @@
  */
 
 import type { TurnContext } from "../context.js";
-import type { RequirementKind } from "../docket/entry.js";
+import type { Requirement, RequirementKind } from "../docket/entry.js";
 import { REQUIREMENT_KINDS } from "../docket/entry.js";
 import { AffiantError, isAffiantError } from "../errors.js";
 import type { Affidavit } from "../model/affidavit.js";
@@ -90,8 +90,14 @@ import type { RiskScorer, TelemetryPort } from "../ports.js";
  * carried onto the reviewer's card so a person can see why they are being asked.
  */
 export interface Verdict {
-  /** What this write needs before it may execute (AZ-4). */
-  readonly requirement: RequirementKind;
+  /**
+   * What this write needs before it may execute (AZ-4). A bare kind name is
+   * shorthand for `{ kind }`, normalised once by {@link normaliseRequirement} in
+   * this chain before {@link PolicyOutcome.requirement} is built — a `MultiParty`
+   * verdict must be given as the object (the host policy's own `approvers` and
+   * `required`; this package validates and never invents either).
+   */
+  readonly requirement: RequirementKind | Requirement;
   /**
    * The policy's deadline for this write, in milliseconds. Applied by GT-4, after
    * the chain. A whole number, one or more; anything else is a policy contract
@@ -162,8 +168,8 @@ export interface PolicyOutcome {
   readonly verdict: Verdict;
   /** The policy that spoke, or `null` when none did. */
   readonly policy: ApprovalPolicy | null;
-  /** The requirement in force after PV-4 and GT-5 have had their say. */
-  readonly requirement: RequirementKind;
+  /** The requirement in force after PV-4 and GT-5 have had their say, normalised to the object form. */
+  readonly requirement: Requirement;
   /** `verdict.ttlMs ?? policy.defaultTtlMs`, or `null` to fall through to the gate's default (GT-4). */
   readonly ttlMs: number | null;
   /** `"StandingOrder"` when a Standing Order was not honoured, else `null`. */
@@ -252,7 +258,7 @@ export async function evaluatePolicies(
   for (const policy of policies) {
     const verdict = await evaluateOne(deps, policy, affidavit, ctx);
     if (verdict === null || verdict === undefined) continue;
-    checkVerdict(deps, policy, verdict);
+    const requirement = checkVerdict(deps, policy, verdict);
 
     // GT-4: the fallback is read here, so it is checked here too — a policy whose
     // verdict names no deadline and whose own default is unusable must not reach the
@@ -273,8 +279,8 @@ export async function evaluatePolicies(
       emptyMandatoryFields: null,
     } as const;
 
-    if (verdict.requirement !== "StandingOrder") {
-      return { ...base, requirement: verdict.requirement };
+    if (requirement.kind !== "StandingOrder") {
+      return { ...base, requirement };
     }
 
     // GT-5: a Standing Order never fires over a required field with no known value.
@@ -288,7 +294,7 @@ export async function evaluatePolicies(
       emitBlocked(deps, policy, { reason, code: "mandatory-field-empty", fields: empties });
       return {
         ...base,
-        requirement: "ReviewerConfirmation",
+        requirement: { kind: "ReviewerConfirmation" },
         degradedFrom: "StandingOrder",
         reason,
         emptyMandatoryFields: empties,
@@ -310,7 +316,7 @@ export async function evaluatePolicies(
       });
       return {
         ...base,
-        requirement: "ReviewerConfirmation",
+        requirement: { kind: "ReviewerConfirmation" },
         degradedFrom: "StandingOrder",
         reason,
         unboundInput: unbound,
@@ -343,22 +349,22 @@ export async function evaluatePolicies(
         });
         return {
           ...base,
-          requirement: "ReviewerConfirmation",
+          requirement: { kind: "ReviewerConfirmation" },
           degradedFrom: "StandingOrder",
           reason,
           riskScore: score,
         };
       }
-      return { ...base, requirement: "StandingOrder", riskScore: score };
+      return { ...base, requirement, riskScore: score };
     }
 
-    return { ...base, requirement: "StandingOrder" };
+    return { ...base, requirement };
   }
 
   return {
-    verdict: { requirement: "ReviewerConfirmation" },
+    verdict: { requirement: { kind: "ReviewerConfirmation" } },
     policy: null,
-    requirement: "ReviewerConfirmation",
+    requirement: { kind: "ReviewerConfirmation" },
     ttlMs: null,
     degradedFrom: null,
     reason: null,
@@ -453,38 +459,97 @@ export function emptyMandatoryFields(affidavit: Affidavit): readonly string[] {
 }
 
 /**
- * Refuse a verdict this package cannot act on.
+ * `verdict.requirement`, normalised to the object form (AZ-4): a bare kind name
+ * becomes `{ kind }`; the object form passes through unchanged. Run once, here, so
+ * every reader downstream — {@link PolicyOutcome.requirement} included — sees the
+ * same shape regardless of which form the policy returned.
+ *
+ * A bare `"MultiParty"` normalises to `{ kind: "MultiParty" }`, which
+ * {@link checkVerdict} then refuses for missing `approvers`/`required`: the object
+ * form is the only legal way to say `MultiParty`, because there is nothing to
+ * invent the host policy's own approvers and count from.
+ */
+export function normaliseRequirement(requirement: RequirementKind | Requirement): Requirement {
+  return typeof requirement === "string" ? ({ kind: requirement } as Requirement) : requirement;
+}
+
+/**
+ * Refuse a verdict this package cannot act on, and return its requirement
+ * normalised to the object form.
  *
  * Two arms are a `RangeError` rather than an {@link AffiantError}: a policy that
  * names a requirement outside the four, or hangs a risk threshold off a requirement
  * that has nothing to compare, is a programming error in the host's policy and not a
  * refusal the gate is handing back to a model.
  *
- * The third arm — an unusable deadline — is an `AffiantError` carrying
- * `"wireup-invalid"`, and deliberately so. `createGate` already refuses
+ * The third and fourth arms are an `AffiantError` carrying `"wireup-invalid"`, and
+ * deliberately so: both are the host policy's own contract broken, not a
+ * programming error in this package's types. `createGate` already refuses
  * `GateOptions.defaultTtlMs` with that code (CV-1); a policy naming the *same value*
  * badly is the same misconfiguration arriving one layer down, and the failure it
  * replaces is silent — a `ttlMs` of `0` files a Docket row that satisfies every
  * invariant and reads `expired` on the read that files it, so the write the gate was
- * standing in front of simply never happens. A code a host can branch on, and that
- * `wrap` hands back as `{ kind: "error" }`, is the answer; a bare `RangeError` out of
- * the tool seam is not.
+ * standing in front of simply never happens. A `MultiParty` verdict whose `approvers`
+ * or `required` do not validate is the same shape of failure: nothing catches it
+ * structurally, so it is refused here, at evaluation, with nothing filed (AZ-4,
+ * CV-1) — a code a host can branch on, and that `wrap` hands back as
+ * `{ kind: "error" }`, is the answer; a bare `RangeError` out of the tool seam is not.
  */
-function checkVerdict(deps: PolicyChainDeps, policy: ApprovalPolicy, verdict: Verdict): void {
-  if (!(REQUIREMENT_KINDS as readonly string[]).includes(verdict.requirement)) {
+function checkVerdict(deps: PolicyChainDeps, policy: ApprovalPolicy, verdict: Verdict): Requirement {
+  const requirement = normaliseRequirement(verdict.requirement);
+  if (!(REQUIREMENT_KINDS as readonly string[]).includes(requirement.kind)) {
     throw new RangeError(
       `AZ-4: policy ${JSON.stringify(policy.id)} returned an unknown requirement ` +
-        `${JSON.stringify(verdict.requirement)}; the four are ${REQUIREMENT_KINDS.join(", ")}`,
+        `${JSON.stringify(requirement.kind)}; the four are ${REQUIREMENT_KINDS.join(", ")}`,
     );
   }
-  if (verdict.threshold !== undefined && verdict.requirement !== "StandingOrder") {
+  if (verdict.threshold !== undefined && requirement.kind !== "StandingOrder") {
     throw new RangeError(
       `GT-5: policy ${JSON.stringify(policy.id)} put a risk threshold on a ` +
-        `${verdict.requirement} verdict; a threshold is the ceiling a Standing Order fires ` +
+        `${requirement.kind} verdict; a threshold is the ceiling a Standing Order fires ` +
         `under, and means nothing on a requirement that asks a person`,
     );
   }
+  checkMultiPartyVerdict(deps, policy, requirement);
   checkTtlMs(deps, policy, "ttlMs", verdict.ttlMs);
+  return requirement;
+}
+
+/**
+ * Refuse a `MultiParty` verdict whose `approvers` or `required` do not validate
+ * (AZ-4, Amendment B): this package validates the host policy's own values and
+ * never invents either. No-op on every other kind.
+ *
+ * `approvers` must be at least two distinct identifiers; `required` an integer
+ * with `1 <= required <= approvers.length`. Either fault is `"wireup-invalid"`,
+ * nothing filed (CV-1) — the same mechanism {@link checkTtlMs} uses for an
+ * unusable deadline, because both are the same shape of policy contract violation.
+ */
+function checkMultiPartyVerdict(
+  deps: PolicyChainDeps,
+  policy: ApprovalPolicy,
+  requirement: Requirement,
+): void {
+  if (requirement.kind !== "MultiParty") return;
+  const approvers = requirement.approvers;
+  const required = requirement.required;
+  const distinct = new Set(approvers);
+  const approversBad =
+    !Array.isArray(approvers) || approvers.length < 2 || distinct.size !== approvers.length;
+  const requiredBad =
+    !Number.isInteger(required) || required < 1 || required > (approvers?.length ?? 0);
+  if (!approversBad && !requiredBad) return;
+  const reason =
+    `AZ-4: policy ${JSON.stringify(policy.id)} returned a MultiParty verdict whose ` +
+    `approvers/required do not validate — approvers must be at least two distinct ` +
+    `identifiers and required an integer with 1 <= required <= approvers.length; got ` +
+    `approvers=${JSON.stringify(approvers)}, required=${String(required)}`;
+  emitPolicyInvalid(deps, policy, "evaluate", reason);
+  throw new AffiantError("wireup-invalid", reason, {
+    policyId: policy.id,
+    approvers,
+    required,
+  });
 }
 
 /**
