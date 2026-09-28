@@ -128,10 +128,27 @@ describe("the v0.1 fixture set", () => {
     // error-code changed shape at the pin, so their 0.1.0 documents (the 1
     // cross-object negative among them) are excluded from this filtered set —
     // v03Fixtures / the v0.3 describe blocks below cover those schemas instead.
-    expect(positives).toHaveLength(28);
-    expect(negatives).toHaveLength(16);
-    expect(schemaNegatives).toHaveLength(16);
-    expect(crossObject).toHaveLength(0);
+    // The counts below are read from the generated manifest, never written as
+    // literals: the total is what the rulebook promoted, the excluded count is
+    // what BD-257's five changed schemas remove from it.
+    const v01Raw = manifest["0.1.0"].fixtures as readonly V01ManifestFixture[];
+    const excluded = v01Raw.filter(
+      (entry) =>
+        !v03DefinitionsOnly.has(entry.schema.replace(/^schemas\/0\.1\.0\//, "schemas/0.3.0/")),
+    );
+    const totalPositives = v01Raw.filter((entry) => entry.kind === "positive").length;
+    const totalNegatives = v01Raw.filter((entry) => entry.kind === "negative").length;
+    const excludedPositives = excluded.filter((entry) => entry.kind === "positive").length;
+    const excludedNegatives = excluded.filter((entry) => entry.kind === "negative").length;
+
+    expect(totalPositives).toBe(46);
+    expect(totalNegatives).toBe(23);
+    expect(positives).toHaveLength(totalPositives - excludedPositives);
+    expect(negatives).toHaveLength(totalNegatives - excludedNegatives);
+    expect(schemaNegatives).toHaveLength(negatives.length - crossObject.length);
+    expect(crossObject).toHaveLength(
+      negatives.filter((entry) => (entry as { check?: string }).check === "cross-object").length,
+    );
   });
 
   it("covers every schema that carries a payload of its own", () => {
@@ -295,17 +312,20 @@ describe("the v0.1 schemas refuse the mutations a rule is about", () => {
     expect(keywords).toContain("additionalProperties");
   });
 
-  it("rejects a notification told apart by its properties rather than by its kind", () => {
-    const validate = validatorFor("schemas/0.1.0/notification.schema.json");
-    const mutated = documentFor("v0.1/notification/01-docket-expiring") as Record<string, unknown>;
+  it("rejects a notification told apart by its properties rather than by its kind (BD-256/BD-257)", () => {
+    const validate = validatorFor("schemas/0.3.0/notification.schema.json");
+    const mutated = v03DocumentFor("v0.3/notification/01-docket-expiring") as Record<
+      string,
+      unknown
+    >;
     delete mutated["kind"];
 
     expect(validate(mutated)).toBe(false);
   });
 
-  it("rejects a tool result carrying the seed's $type discriminator", () => {
-    const validate = validatorFor("schemas/0.1.0/tool-result.schema.json");
-    const mutated = documentFor("v0.1/tool-result/03-read") as Record<string, unknown>;
+  it("rejects a tool result carrying the seed's $type discriminator (BD-256/BD-257)", () => {
+    const validate = validatorFor("schemas/0.3.0/tool-result.schema.json");
+    const mutated = v03DocumentFor("v0.3/tool-result/03-read") as Record<string, unknown>;
     mutated["$type"] = mutated["kind"];
     delete mutated["kind"];
 
