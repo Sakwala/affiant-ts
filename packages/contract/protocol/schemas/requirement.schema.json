@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.3.0/requirement.schema.json",
+  "$id": "https://affiant.dev/schemas/0.4.0/requirement.schema.json",
   "title": "Requirement",
   "description": "How much agreement a write needs before it may execute — the policy chain's verdict, recorded verbatim on the Docket row (AZ-4). `StandingOrder`, `ReviewerConfirmation` and `ReferralRequired` carry no data beyond their kind; `MultiParty` also carries the host policy's `approvers` and `required`. This schema cannot state the correlation `required <= approvers.length` — the rule text and every implementation enforce it, and a verdict that fails it is a policy fault refused at evaluation (`wireup-invalid`), nothing filed (CV-1). Both `approvers` and `required` are the host policy's values: an implementation validates them and never invents either (AZ-4).",
   "oneOf": [
@@ -51,7 +51,7 @@
         "approvers": {
           "description": "The host policy's list of who may decide this entry, each a distinct principal identifier. At least two: one approver is ReviewerConfirmation, not MultiParty.",
           "type": "array",
-          "items": { "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier" },
+          "items": { "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier" },
           "minItems": 2,
           "uniqueItems": true
         },

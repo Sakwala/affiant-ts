@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.3.0/entity-ref.schema.json",
+  "$id": "https://affiant.dev/schemas/0.4.0/entity-ref.schema.json",
   "title": "EntityRef",
   "description": "The entity a write is about: its kind and, for an update, its identifier. Both are the host's own vocabulary — the protocol never parses either. entityId is null exactly when the operation is create-shaped (INVARIANTS.md AF-3).",
   "type": "object",
@@ -9,12 +9,12 @@
   "properties": {
     "entityType": {
       "description": "The kind of domain entity being written, named by the host.",
-      "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
     },
     "entityId": {
       "description": "The identifier of the entity; null for a create, where no identifier exists yet.",
       "oneOf": [
-        { "$ref": "https://affiant.dev/schemas/0.3.0/common.schema.json#/$defs/identifier" },
+        { "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier" },
         { "type": "null" }
       ]
     }

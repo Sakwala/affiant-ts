@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.3.0.
+// copy of Sakwala/affiant-protocol at 28f0753df2f8c2ac3df82c0be54283d0fcb4cb51.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/v0.1/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -190,586 +190,7 @@ export const wireFixtures = {
  * fixture is, by construction, not assignable to the type its schema describes.
  */
 export const v01Fixtures: Readonly<Record<string, unknown>> = {
-  "v0.1/affidavit-field/01-conversation-tagged": {
-    "name": "status",
-    "kind": "enum",
-    "value": "Active",
-    "previousValue": null,
-    "provenance": {
-      "current": {
-        "source": "Conversation",
-        "confidence": 0.9,
-        "note": "Literally present in the turn: status",
-        "at": "2026-09-04T09:00:00.000Z",
-        "conversationTurn": null,
-        "binding": null
-      },
-      "prior": []
-    },
-    "isMandatory": true
-  },
-  "v0.1/affidavit-field/02-external-bound": {
-    "name": "owner",
-    "kind": "text",
-    "value": "user-77",
-    "previousValue": null,
-    "provenance": {
-      "current": {
-        "source": "External",
-        "confidence": 1,
-        "note": "Chosen from the owner picker",
-        "at": "2026-09-04T09:00:00.000Z",
-        "conversationTurn": null,
-        "binding": {
-          "kind": "external-ref",
-          "ref": {
-            "system": "directory",
-            "recordId": "user-77"
-          }
-        }
-      },
-      "prior": [
-        {
-          "source": "Inferred",
-          "confidence": 0.9,
-          "note": "Inferred from the turn: owner",
-          "at": "2026-09-04T09:00:00.000Z",
-          "conversationTurn": null,
-          "binding": null
-        }
-      ]
-    },
-    "isMandatory": true
-  },
-  "v0.1/affidavit-field/90-unknown-kind": {
-    "name": "status",
-    "kind": "money",
-    "value": "Active",
-    "previousValue": null,
-    "provenance": {
-      "current": {
-        "source": "Conversation",
-        "confidence": 0.9,
-        "note": "Literally present in the turn: status",
-        "at": "2026-09-04T09:00:00.000Z",
-        "conversationTurn": null,
-        "binding": null
-      },
-      "prior": []
-    },
-    "isMandatory": true
-  },
-  "v0.1/affidavit/01-update-shaped": {
-    "protocolVersion": "0.1.0",
-    "operationType": "update",
-    "entityType": "Invoice",
-    "entityId": "invoice-1",
-    "fields": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "value": "Active",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Conversation",
-            "confidence": 0.9,
-            "note": "Literally present in the turn: status",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": true
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "value": 40,
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Conversation",
-            "confidence": 0.8,
-            "note": "Literally present in the turn: amount",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": true
-      },
-      {
-        "name": "dueOn",
-        "kind": "date",
-        "value": "2026-10-01",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Inferred",
-            "confidence": 0.6,
-            "note": "Inferred from the turn: dueOn",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": false
-      },
-      {
-        "name": "note",
-        "kind": "text",
-        "value": "raised in chat",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Inferred",
-            "confidence": 0.7,
-            "note": "Inferred from the turn: note",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": false
-      }
-    ],
-    "aggregateConfidence": 0.6,
-    "populatedConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "conversationTurn": null,
-    "createdAt": "2026-09-04T09:00:00.000Z"
-  },
-  "v0.1/affidavit/02-amended": {
-    "protocolVersion": "0.1.0",
-    "operationType": "update",
-    "entityType": "Invoice",
-    "entityId": "invoice-1",
-    "fields": [
-      {
-        "name": "status",
-        "kind": "text",
-        "value": "Active",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Conversation",
-            "confidence": 0.9,
-            "note": null,
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": false
-      },
-      {
-        "name": "amount",
-        "kind": "text",
-        "value": "4000",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "UserStated",
-            "confidence": 1,
-            "note": "Amended by ana on Docket entry 4f3f031b-a7c4-867c-9b1f-be0de416040d",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": {
-              "kind": "reviewer-act",
-              "ref": {
-                "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-                "decisionAt": "2026-09-04T09:00:00.000Z"
-              }
-            }
-          },
-          "prior": [
-            {
-              "source": "Conversation",
-              "confidence": 0.9,
-              "note": null,
-              "at": "2026-09-04T09:00:00.000Z",
-              "conversationTurn": null,
-              "binding": null
-            }
-          ]
-        },
-        "isMandatory": false
-      }
-    ],
-    "aggregateConfidence": 0.9,
-    "populatedConfidence": 0.9,
-    "emptyFieldCount": 0,
-    "conversationTurn": null,
-    "createdAt": "2026-09-04T09:00:00.000Z"
-  },
-  "v0.1/affidavit/90-missing-populated-confidence": {
-    "protocolVersion": "0.1.0",
-    "operationType": "update",
-    "entityType": "Invoice",
-    "entityId": "invoice-1",
-    "fields": [
-      {
-        "name": "status",
-        "kind": "enum",
-        "value": "Active",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Conversation",
-            "confidence": 0.9,
-            "note": "Literally present in the turn: status",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": true
-      },
-      {
-        "name": "amount",
-        "kind": "number",
-        "value": 40,
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Conversation",
-            "confidence": 0.8,
-            "note": "Literally present in the turn: amount",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": true
-      },
-      {
-        "name": "dueOn",
-        "kind": "date",
-        "value": "2026-10-01",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Inferred",
-            "confidence": 0.6,
-            "note": "Inferred from the turn: dueOn",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": false
-      },
-      {
-        "name": "note",
-        "kind": "text",
-        "value": "raised in chat",
-        "previousValue": null,
-        "provenance": {
-          "current": {
-            "source": "Inferred",
-            "confidence": 0.7,
-            "note": "Inferred from the turn: note",
-            "at": "2026-09-04T09:00:00.000Z",
-            "conversationTurn": null,
-            "binding": null
-          },
-          "prior": []
-        },
-        "isMandatory": false
-      }
-    ],
-    "aggregateConfidence": 0.6,
-    "emptyFieldCount": 0,
-    "conversationTurn": null,
-    "createdAt": "2026-09-04T09:00:00.000Z"
-  },
-  "v0.1/amendments/01-accepted": {
-    "amount": "4000",
-    "note": null
-  },
-  "v0.1/amendments/90-not-an-object": [
-    [
-      "status",
-      "Active"
-    ]
-  ],
-  "v0.1/binding/01-external-ref": {
-    "kind": "external-ref",
-    "ref": {
-      "system": "directory",
-      "recordId": "user-77"
-    }
-  },
-  "v0.1/binding/02-reviewer-act": {
-    "kind": "reviewer-act",
-    "ref": {
-      "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-      "decisionAt": "2026-09-04T09:00:00.000Z"
-    }
-  },
-  "v0.1/binding/90-unknown-kind": {
-    "kind": "database-row",
-    "ref": {
-      "system": "directory",
-      "recordId": "user-77"
-    }
-  },
-  "v0.1/blocked/01-coverage-refused": {
-    "code": "coverage-refused",
-    "category": "provider-executed",
-    "toolName": "relay_capture"
-  },
-  "v0.1/blocked/02-requirement-not-implemented": {
-    "code": "requirement-not-implemented",
-    "level": "MultiParty"
-  },
-  "v0.1/blocked/90-coverage-refused-with-level": {
-    "code": "coverage-refused",
-    "level": "MultiParty"
-  },
-  "v0.1/entity-ref/01-update": {
-    "entityType": "Invoice",
-    "entityId": "invoice-1"
-  },
-  "v0.1/entity-ref/90-missing-entity-id": {
-    "entityType": "Invoice"
-  },
-  "v0.1/money/01-decimal-string": {
-    "amount": "4000.10",
-    "currency": "GBP"
-  },
-  "v0.1/money/02-negative-no-minor-units": {
-    "currency": "JPY",
-    "amount": "-1250"
-  },
-  "v0.1/money/90-numeric-amount": {
-    "amount": 4000.1,
-    "currency": "GBP"
-  },
-  "v0.1/operation/01-update": "update",
-  "v0.1/operation/90-delete": "delete",
-  "v0.1/outside-gate/01-migration": {
-    "reason": "Back-fill of 4,102 invoices imported from the legacy ledger on cut-over.",
-    "recordedBy": "ops/migration-2026-09",
-    "at": "2026-09-04T02:15:00.000Z"
-  },
-  "v0.1/outside-gate/90-missing-recorded-by": {
-    "reason": "Back-fill of 4,102 invoices imported from the legacy ledger on cut-over.",
-    "at": "2026-09-04T02:15:00.000Z"
-  },
-  "v0.1/provenance-chain/01-single-tag": {
-    "current": {
-      "source": "Conversation",
-      "confidence": 0.9,
-      "note": "Literally present in the turn: status",
-      "at": "2026-09-04T09:00:00.000Z",
-      "conversationTurn": null,
-      "binding": null
-    },
-    "prior": []
-  },
-  "v0.1/provenance-chain/02-superseded": {
-    "current": {
-      "source": "UserStated",
-      "confidence": 1,
-      "note": "Amended by ana on Docket entry 4f3f031b-a7c4-867c-9b1f-be0de416040d",
-      "at": "2026-09-04T09:00:00.000Z",
-      "conversationTurn": null,
-      "binding": {
-        "kind": "reviewer-act",
-        "ref": {
-          "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-          "decisionAt": "2026-09-04T09:00:00.000Z"
-        }
-      }
-    },
-    "prior": [
-      {
-        "source": "Conversation",
-        "confidence": 0.9,
-        "note": null,
-        "at": "2026-09-04T09:00:00.000Z",
-        "conversationTurn": null,
-        "binding": null
-      }
-    ]
-  },
-  "v0.1/provenance-chain/90-missing-prior": {
-    "current": {
-      "source": "Conversation",
-      "confidence": 0.9,
-      "note": "Literally present in the turn: status",
-      "at": "2026-09-04T09:00:00.000Z",
-      "conversationTurn": null,
-      "binding": null
-    }
-  },
-  "v0.1/provenance-source/01-conversation": "Conversation",
-  "v0.1/provenance-source/90-unknown-source": "Guessed",
-  "v0.1/provenance-tag/01-conversation": {
-    "source": "Conversation",
-    "confidence": 0.9,
-    "note": "Literally present in the turn: status",
-    "at": "2026-09-04T09:00:00.000Z",
-    "conversationTurn": null,
-    "binding": null
-  },
-  "v0.1/provenance-tag/02-user-stated-reviewer-act": {
-    "source": "UserStated",
-    "confidence": 1,
-    "note": "Amended by ana on Docket entry 4f3f031b-a7c4-867c-9b1f-be0de416040d",
-    "at": "2026-09-04T09:00:00.000Z",
-    "conversationTurn": null,
-    "binding": {
-      "kind": "reviewer-act",
-      "ref": {
-        "entryId": "4f3f031b-a7c4-867c-9b1f-be0de416040d",
-        "decisionAt": "2026-09-04T09:00:00.000Z"
-      }
-    }
-  },
-  "v0.1/provenance-tag/90-confidence-out-of-range": {
-    "source": "Conversation",
-    "confidence": 1.4,
-    "note": "Literally present in the turn: status",
-    "at": "2026-09-04T09:00:00.000Z",
-    "conversationTurn": null,
-    "binding": null
-  },
-  "v0.1/telemetry-key/01-registry": {
-    "protocolVersion": "0.1.0",
-    "registryVersion": "0.1.0-alpha.0",
-    "keys": [
-      {
-        "key": "affidavit.filed",
-        "since": "0.1.0-alpha.0",
-        "description": "An Affidavit was filed as a Docket entry.",
-        "attributes": [
-          "gen_ai.tool.name",
-          "gen_ai.conversation.id",
-          "entry.id",
-          "docket.requirement",
-          "docket.status",
-          "affidavit.field_count",
-          "created"
-        ]
-      },
-      {
-        "key": "affidavit.refused.substance",
-        "since": "0.1.0-alpha.0",
-        "description": "A proposal was refused before filing because it swore to nothing (GT-3).",
-        "attributes": [
-          "gen_ai.tool.name",
-          "gen_ai.conversation.id",
-          "affidavit.field_count",
-          "reason"
-        ]
-      },
-      {
-        "key": "coverage.refused",
-        "since": "0.1.0-alpha.0",
-        "description": "A tool the gate must cover could not be intercepted, or a tool the host declared uncovered produced a proposal (CV-4).",
-        "attributes": [
-          "gen_ai.tool.name",
-          "coverage.category",
-          "phase"
-        ]
-      },
-      {
-        "key": "docket.transition",
-        "since": "0.1.0-alpha.0",
-        "description": "A Docket entry changed state (DK-1).",
-        "attributes": [
-          "entry.id",
-          "gen_ai.conversation.id",
-          "from",
-          "to",
-          "execution",
-          "decision.kind",
-          "attestation.kind",
-          "amended"
-        ]
-      },
-      {
-        "key": "docket.expired",
-        "since": "0.1.0-alpha.0",
-        "description": "A pending Docket entry passed its expiry (DK-3).",
-        "attributes": [
-          "entry.id"
-        ]
-      },
-      {
-        "key": "decision.unauthorized",
-        "since": "0.1.0-alpha.0",
-        "description": "A decision was refused on identity grounds: no resolved principal, another tenant, or the host's authorization port said no (AZ-2).",
-        "attributes": [
-          "entry.id",
-          "gen_ai.conversation.id",
-          "reason",
-          "principal.kind",
-          "path"
-        ]
-      },
-      {
-        "key": "standing-order.fired",
-        "since": "0.1.0-alpha.0",
-        "description": "A Standing Order policy approved a write with no person present (AZ-1).",
-        "attributes": [
-          "policy.id",
-          "policy.version",
-          "entry.id",
-          "risk.score"
-        ]
-      },
-      {
-        "key": "standing-order.blocked",
-        "since": "0.1.0-alpha.0",
-        "description": "A Standing Order verdict was not honoured: a proposed field the entity requires had no known value (GT-5), an unbound provenance input (PV-4), or a risk score above the policy's threshold (GT-5). `blocked.reason` is the stable code to alert on - `mandatory-field-empty`, `unbound-declared-input` or `risk-above-threshold`; `reason` is the sentence the reviewer sees on the card and is free to be rephrased.",
-        "attributes": [
-          "policy.id",
-          "policy.version",
-          "blocked.reason",
-          "reason",
-          "provenance.field",
-          "provenance.source",
-          "affidavit.empty_mandatory_fields",
-          "risk.score",
-          "risk.threshold"
-        ]
-      },
-      {
-        "key": "policy.invalid",
-        "since": "0.1.0-alpha.0",
-        "description": "A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1).",
-        "attributes": [
-          "policy.id",
-          "policy.version",
-          "option",
-          "reason"
-        ]
-      }
-    ]
-  },
-  "v0.1/telemetry-key/90-key-without-attributes": {
-    "protocolVersion": "0.1.0",
-    "registryVersion": "0.1.0-alpha.0",
-    "keys": [
-      {
-        "key": "affidavit.filed",
-        "since": "0.1.0-alpha.0",
-        "description": "An Affidavit was filed as a Docket entry."
-      }
-    ]
-  },
+
 };
 
 /**
@@ -4550,8 +3971,62 @@ export const manifest = {
       }
     ]
   },
+  "0.4.0": {
+    "protocolVersion": "0.4.0",
+    "schemas": "schemas/0.4.0",
+    "$note": "The withdrawal transition, DK-1 at 0.4.0 (INVARIANTS.md DK-1; https://github.com/Sakwala/affiant-protocol/issues/48). This section carries only the documents whose shape 0.4.0 changes; every 0.3.0 document remains a valid 0.4.0 document (common.schema.json's protocolVersion is a semver pattern, not a fixed value), so nothing byte-identical to its 0.3.0 counterpart is re-authored here.",
+    "derivedFrom": {
+      "reference": "authored here ahead of @affiant/core's implementation of the withdrawal transition; the core's emitted documents replace these at 0.4.0",
+      "values": "Same shape as the decide/withdraw-* fixtures' resulting rows, so the schema documents and the behaviour fixtures tell one story.",
+      "date": "2026-09-28"
+    },
+    "definitionsOnly": [
+      "schemas/0.4.0/common.schema.json",
+      "schemas/0.4.0/affidavit.schema.json",
+      "schemas/0.4.0/affidavit-field.schema.json",
+      "schemas/0.4.0/amendments.schema.json",
+      "schemas/0.4.0/attestation.schema.json",
+      "schemas/0.4.0/binding.schema.json",
+      "schemas/0.4.0/blocked.schema.json",
+      "schemas/0.4.0/entity-ref.schema.json",
+      "schemas/0.4.0/error-code.schema.json",
+      "schemas/0.4.0/evidence-card-request.schema.json",
+      "schemas/0.4.0/money.schema.json",
+      "schemas/0.4.0/operation.schema.json",
+      "schemas/0.4.0/outside-gate.schema.json",
+      "schemas/0.4.0/provenance-chain.schema.json",
+      "schemas/0.4.0/provenance-source.schema.json",
+      "schemas/0.4.0/provenance-tag.schema.json",
+      "schemas/0.4.0/requirement.schema.json",
+      "schemas/0.4.0/telemetry-key.schema.json",
+      "schemas/0.4.0/tool-result.schema.json"
+    ],
+    "fixtures": [
+      {
+        "id": "v0.4/docket-entry-withdrawn",
+        "file": "v0.4/docket-entry-withdrawn.json",
+        "schema": "schemas/0.4.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "A withdrawn MultiParty row: one approval record kept (DK-4), decision.kind \"withdraw\" with reason and by, attestation null (nothing was agreed, AZ-1), execution null. Same tenant, entry and approver values as v0.3/docket-entry-multiparty-approved, decided withdraw instead of approve."
+      },
+      {
+        "id": "v0.4/decision-result-withdrawn",
+        "file": "v0.4/decision-result-withdrawn.json",
+        "schema": "schemas/0.4.0/decision-result.schema.json",
+        "kind": "positive",
+        "notes": "The withdrawn entry reported back: outcome \"withdrawn\", attestation null, execution null — a report, never an authorization (AZ-5)."
+      },
+      {
+        "id": "v0.4/notification-transition-to-withdrawn",
+        "file": "v0.4/notification-transition-to-withdrawn.json",
+        "schema": "schemas/0.4.0/notification.schema.json",
+        "kind": "positive",
+        "notes": "The docket-transition envelope for a withdrawal: from \"pending\" to \"withdrawn\", execution null — a withdrawal carries no execution outcome (DK-1)."
+      }
+    ]
+  },
   "conformance": {
-    "protocolVersion": "0.3.0",
+    "protocolVersion": "0.4.0",
     "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
     "promotedFrom": {
       "repository": "Sakwala/affiant-ts",
@@ -5365,6 +4840,152 @@ export const manifest = {
             "dotnet@1.0.0-beta.3.1"
           ],
           "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/withdraw-pending-multiparty",
+        "file": "decide/35-withdraw-pending-multiparty.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-pending-reviewer-confirmation",
+        "file": "decide/36-withdraw-pending-reviewer-confirmation.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-blocked-allowed",
+        "file": "decide/37-withdraw-blocked-allowed.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-after-fold-refused",
+        "file": "decide/38-withdraw-after-fold-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-expired-refused",
+        "file": "decide/39-withdraw-expired-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-twice-refused",
+        "file": "decide/40-withdraw-twice-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-wrong-tenant-not-found",
+        "file": "decide/41-withdraw-wrong-tenant-not-found.json",
+        "rules": [
+          "DK-1",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/decide-after-withdraw-refused",
+        "file": "decide/42-decide-after-withdraw-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/execution-on-withdrawn-refused",
+        "file": "decide/43-execution-on-withdrawn-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-replay-returns-withdrawn",
+        "file": "decide/44-withdraw-replay-returns-withdrawn.json",
+        "rules": [
+          "DK-1",
+          "GT-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
         }
       },
       {

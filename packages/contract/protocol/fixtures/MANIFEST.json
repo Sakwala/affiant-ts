@@ -1070,8 +1070,62 @@
       }
     ]
   },
+  "0.4.0": {
+    "protocolVersion": "0.4.0",
+    "schemas": "schemas/0.4.0",
+    "$note": "The withdrawal transition, DK-1 at 0.4.0 (INVARIANTS.md DK-1; https://github.com/Sakwala/affiant-protocol/issues/48). This section carries only the documents whose shape 0.4.0 changes; every 0.3.0 document remains a valid 0.4.0 document (common.schema.json's protocolVersion is a semver pattern, not a fixed value), so nothing byte-identical to its 0.3.0 counterpart is re-authored here.",
+    "derivedFrom": {
+      "reference": "authored here ahead of @affiant/core's implementation of the withdrawal transition; the core's emitted documents replace these at 0.4.0",
+      "values": "Same shape as the decide/withdraw-* fixtures' resulting rows, so the schema documents and the behaviour fixtures tell one story.",
+      "date": "2026-09-28"
+    },
+    "definitionsOnly": [
+      "schemas/0.4.0/common.schema.json",
+      "schemas/0.4.0/affidavit.schema.json",
+      "schemas/0.4.0/affidavit-field.schema.json",
+      "schemas/0.4.0/amendments.schema.json",
+      "schemas/0.4.0/attestation.schema.json",
+      "schemas/0.4.0/binding.schema.json",
+      "schemas/0.4.0/blocked.schema.json",
+      "schemas/0.4.0/entity-ref.schema.json",
+      "schemas/0.4.0/error-code.schema.json",
+      "schemas/0.4.0/evidence-card-request.schema.json",
+      "schemas/0.4.0/money.schema.json",
+      "schemas/0.4.0/operation.schema.json",
+      "schemas/0.4.0/outside-gate.schema.json",
+      "schemas/0.4.0/provenance-chain.schema.json",
+      "schemas/0.4.0/provenance-source.schema.json",
+      "schemas/0.4.0/provenance-tag.schema.json",
+      "schemas/0.4.0/requirement.schema.json",
+      "schemas/0.4.0/telemetry-key.schema.json",
+      "schemas/0.4.0/tool-result.schema.json"
+    ],
+    "fixtures": [
+      {
+        "id": "v0.4/docket-entry-withdrawn",
+        "file": "v0.4/docket-entry-withdrawn.json",
+        "schema": "schemas/0.4.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "A withdrawn MultiParty row: one approval record kept (DK-4), decision.kind \"withdraw\" with reason and by, attestation null (nothing was agreed, AZ-1), execution null. Same tenant, entry and approver values as v0.3/docket-entry-multiparty-approved, decided withdraw instead of approve."
+      },
+      {
+        "id": "v0.4/decision-result-withdrawn",
+        "file": "v0.4/decision-result-withdrawn.json",
+        "schema": "schemas/0.4.0/decision-result.schema.json",
+        "kind": "positive",
+        "notes": "The withdrawn entry reported back: outcome \"withdrawn\", attestation null, execution null — a report, never an authorization (AZ-5)."
+      },
+      {
+        "id": "v0.4/notification-transition-to-withdrawn",
+        "file": "v0.4/notification-transition-to-withdrawn.json",
+        "schema": "schemas/0.4.0/notification.schema.json",
+        "kind": "positive",
+        "notes": "The docket-transition envelope for a withdrawal: from \"pending\" to \"withdrawn\", execution null — a withdrawal carries no execution outcome (DK-1)."
+      }
+    ]
+  },
   "conformance": {
-    "protocolVersion": "0.3.0",
+    "protocolVersion": "0.4.0",
     "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
     "promotedFrom": {
       "repository": "Sakwala/affiant-ts",
@@ -1885,6 +1939,152 @@
             "dotnet@1.0.0-beta.3.1"
           ],
           "defect": "The release records `MultiParty` verbatim and files it `blocked` — correct at v0.2, absent at 0.3.0 — carrying no requirement object, no approval records, no `multi-party` attestation and no `decision.by`"
+        }
+      },
+      {
+        "id": "decide/withdraw-pending-multiparty",
+        "file": "decide/35-withdraw-pending-multiparty.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-pending-reviewer-confirmation",
+        "file": "decide/36-withdraw-pending-reviewer-confirmation.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-blocked-allowed",
+        "file": "decide/37-withdraw-blocked-allowed.json",
+        "rules": [
+          "DK-1",
+          "AZ-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-after-fold-refused",
+        "file": "decide/38-withdraw-after-fold-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-expired-refused",
+        "file": "decide/39-withdraw-expired-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-twice-refused",
+        "file": "decide/40-withdraw-twice-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-wrong-tenant-not-found",
+        "file": "decide/41-withdraw-wrong-tenant-not-found.json",
+        "rules": [
+          "DK-1",
+          "AZ-2"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/decide-after-withdraw-refused",
+        "file": "decide/42-decide-after-withdraw-refused.json",
+        "rules": [
+          "DK-1"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/execution-on-withdrawn-refused",
+        "file": "decide/43-execution-on-withdrawn-refused.json",
+        "rules": [
+          "DK-1",
+          "AZ-5"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+        }
+      },
+      {
+        "id": "decide/withdraw-replay-returns-withdrawn",
+        "file": "decide/44-withdraw-replay-returns-withdrawn.json",
+        "rules": [
+          "DK-1",
+          "GT-4"
+        ],
+        "set": "decide",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
         }
       },
       {

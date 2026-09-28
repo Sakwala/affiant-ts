@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.3.0.
+// copy of Sakwala/affiant-protocol at 28f0753df2f8c2ac3df82c0be54283d0fcb4cb51.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.3.0" as const;
+export const PROTOCOL_PIN = "28f0753df2f8c2ac3df82c0be54283d0fcb4cb51" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -76,7 +76,7 @@ export interface CanonicalVectorDocument {
  * exists to prevent.
  */
 export const conformanceManifest = {
-  "protocolVersion": "0.3.0",
+  "protocolVersion": "0.4.0",
   "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
   "promotedFrom": {
     "repository": "Sakwala/affiant-ts",
@@ -893,6 +893,152 @@ export const conformanceManifest = {
       }
     },
     {
+      "id": "decide/withdraw-pending-multiparty",
+      "file": "decide/35-withdraw-pending-multiparty.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-pending-reviewer-confirmation",
+      "file": "decide/36-withdraw-pending-reviewer-confirmation.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-blocked-allowed",
+      "file": "decide/37-withdraw-blocked-allowed.json",
+      "rules": [
+        "DK-1",
+        "AZ-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-after-fold-refused",
+      "file": "decide/38-withdraw-after-fold-refused.json",
+      "rules": [
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-expired-refused",
+      "file": "decide/39-withdraw-expired-refused.json",
+      "rules": [
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-twice-refused",
+      "file": "decide/40-withdraw-twice-refused.json",
+      "rules": [
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-wrong-tenant-not-found",
+      "file": "decide/41-withdraw-wrong-tenant-not-found.json",
+      "rules": [
+        "DK-1",
+        "AZ-2"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/decide-after-withdraw-refused",
+      "file": "decide/42-decide-after-withdraw-refused.json",
+      "rules": [
+        "DK-1"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/execution-on-withdrawn-refused",
+      "file": "decide/43-execution-on-withdrawn-refused.json",
+      "rules": [
+        "DK-1",
+        "AZ-5"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
+      "id": "decide/withdraw-replay-returns-withdrawn",
+      "file": "decide/44-withdraw-replay-returns-withdrawn.json",
+      "rules": [
+        "DK-1",
+        "GT-4"
+      ],
+      "set": "decide",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `withdraw` step and `ReviewStatus` has no `Withdrawn` (`Pending, Approved, Rejected, Expired, Deferred`)"
+      }
+    },
+    {
       "id": "sequence-a/approve-round-trip",
       "file": "sequence-a/01-approve-round-trip.json",
       "rules": [
@@ -1231,7 +1377,7 @@ export const conformanceManifest = {
 } as const;
 
 /**
- * The 80 declarative fixtures, in manifest order. Promoted
+ * The 90 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -8414,6 +8560,1173 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
     }
   },
   {
+    "id": "decide/withdraw-pending-multiparty",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "The host withdraws a pending MultiParty entry whose subject is gone: the row reads withdrawn, carries the withdrawal as its decision, no attestation and no execution, and keeps the one approval already recorded.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-28T09:01:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve"
+          }
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-28T09:02:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "the payee cancelled the invoice"
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the payee cancelled the invoice",
+          "by": "host"
+        },
+        "approvals": [
+          {
+            "approver": "ana",
+            "decision": "approve",
+            "reason": null,
+            "attestation": {
+              "kind": "member",
+              "id": "ana"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-pending-reviewer-confirmation",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "The host withdraws a pending ReviewerConfirmation entry whose subject is gone: the transition is not MultiParty-only and reads withdrawn with no attestation and no execution.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "the invoice was deleted before review"
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "requirement": "ReviewerConfirmation",
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the invoice was deleted before review",
+          "by": "host"
+        },
+        "approvals": null
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-blocked-allowed",
+    "rules": [
+      "DK-1",
+      "AZ-4"
+    ],
+    "title": "A pending entry carrying a blocked marker is withdrawn: pending is pending, and this is the one exit a blocked entry has short of expiry.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "referral-required",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": "ReferralRequired"
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "the invoice was deleted before referral"
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "requirement": "ReferralRequired",
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the invoice was deleted before referral",
+          "by": "host"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-after-fold-refused",
+    "rules": [
+      "DK-1"
+    ],
+    "title": "A withdraw of an approved entry is refused decision-not-pending: withdraw is a guarded compare-and-set from pending only, and the row's status, execution, attestation and decision are unchanged from what the approval left.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "decide",
+          "at": "2026-09-04T09:05:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "decision": {
+            "kind": "approve",
+            "reason": "checked against the purchase order"
+          }
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "too late, the subject is gone"
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-pending"
+      },
+      "entry": {
+        "status": "approved",
+        "execution": "unexecuted",
+        "attestation": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve",
+          "reason": "checked against the purchase order",
+          "by": "ana"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-expired-refused",
+    "rules": [
+      "DK-1"
+    ],
+    "title": "A withdraw arriving after the entry's deadline is refused decision-expired: the entry is already terminal as expired, and a withdrawal preserves nothing, unlike a decision's amendments.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-04T09:45:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "the subject is gone"
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-expired"
+      },
+      "entry": {
+        "status": "expired",
+        "execution": null,
+        "attestation": null,
+        "decision": null,
+        "preservedAmendments": null
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-twice-refused",
+    "rules": [
+      "DK-1"
+    ],
+    "title": "A second withdraw of an already-withdrawn entry is refused decision-not-pending: the first withdrawal's record stands, unchanged (DK-4).",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "withdraw",
+          "at": "2026-09-04T09:05:00.000Z",
+          "principal": {
+            "kind": "service",
+            "id": "host"
+          },
+          "reason": "the invoice was deleted before review"
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "reason": "asked again"
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-pending"
+      },
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the invoice was deleted before review",
+          "by": "host"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-wrong-tenant-not-found",
+    "rules": [
+      "DK-1",
+      "AZ-2"
+    ],
+    "title": "A withdraw made from another tenant is reported as entry not found, exactly as an id that never existed: a wrong-tenant withdraw of a pending entry is refused entry-not-found and the row is unchanged.",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-28T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "withdraw",
+        "at": "2026-09-28T09:01:00.000Z",
+        "principal": {
+          "kind": "service",
+          "id": "host"
+        },
+        "tenantId": "tenant-b",
+        "reason": "the invoice was deleted before review"
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "entry-not-found"
+      },
+      "entry": {
+        "status": "pending",
+        "execution": null,
+        "attestation": null,
+        "decision": null
+      }
+    }
+  },
+  {
+    "id": "decide/decide-after-withdraw-refused",
+    "rules": [
+      "DK-1"
+    ],
+    "title": "A decision arriving after a withdrawal is refused decision-not-pending: the withdrawal's record stands, and the amendments the late decision carried are not preserved (unlike an expiry's).",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "withdraw",
+          "at": "2026-09-04T09:05:00.000Z",
+          "principal": {
+            "kind": "service",
+            "id": "host"
+          },
+          "reason": "the invoice was deleted before review"
+        }
+      ],
+      "step": {
+        "kind": "decide",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "decision": {
+          "kind": "approve",
+          "amendments": {
+            "amount": "4000",
+            "note": null
+          }
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-pending"
+      },
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the invoice was deleted before review",
+          "by": "host"
+        },
+        "preservedAmendments": null
+      }
+    }
+  },
+  {
+    "id": "decide/execution-on-withdrawn-refused",
+    "rules": [
+      "DK-1",
+      "AZ-5"
+    ],
+    "title": "An execution outcome is only ever recorded against an approved, attested row. A report on a withdrawn entry is refused, exactly as one on a pending entry is: nothing was authorised, and the withdrawal carries no attestation.",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Set the invoice status to Active and the amount to 40",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "update_invoice",
+          "operation": {
+            "kind": "update",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "fields": [
+              "status",
+              "amount",
+              "note"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "status",
+              "kind": "text",
+              "value": "Active",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "40",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "note",
+              "kind": "text",
+              "value": "kept",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "withdraw",
+          "at": "2026-09-04T09:05:00.000Z",
+          "principal": {
+            "kind": "service",
+            "id": "host"
+          },
+          "reason": "the invoice was deleted before review"
+        }
+      ],
+      "step": {
+        "kind": "markExecuted",
+        "at": "2026-09-04T09:10:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "outcome": "executed"
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "decision-not-pending"
+      },
+      "entry": {
+        "status": "withdrawn",
+        "execution": null,
+        "attestation": null,
+        "decision": {
+          "kind": "withdraw",
+          "reason": "the invoice was deleted before review",
+          "by": "host"
+        }
+      }
+    }
+  },
+  {
+    "id": "decide/withdraw-replay-returns-withdrawn",
+    "rules": [
+      "DK-1",
+      "GT-4"
+    ],
+    "title": "Refiling the same proposal after it was withdrawn is the same entry, not a second one: the id derives as any other filing's does, so the retry reads status withdrawn and the store holds exactly one row (GT-4).",
+    "given": {
+      "clock": "2026-09-28T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "policies": [
+          {
+            "id": "policy-mp",
+            "version": "1.0.0",
+            "declaredInputs": [],
+            "verdict": {
+              "requirement": {
+                "kind": "MultiParty",
+                "approvers": [
+                  "ana",
+                  "bo",
+                  "cy"
+                ],
+                "required": 3
+              }
+            }
+          }
+        ]
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "utterance": "Pay 250 to Acme for the September invoice",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "at": "2026-09-28T09:00:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "filer"
+          },
+          "toolName": "propose_payment",
+          "operation": {
+            "kind": "update",
+            "entityType": "Payment",
+            "entityId": "payment-1",
+            "fields": [
+              "amount",
+              "payee"
+            ]
+          },
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "text",
+              "value": "250",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "value": "Acme",
+              "provenance": {
+                "source": "Conversation",
+                "confidence": 0.9
+              }
+            }
+          ]
+        },
+        {
+          "kind": "withdraw",
+          "at": "2026-09-28T09:05:00.000Z",
+          "principal": {
+            "kind": "service",
+            "id": "host"
+          },
+          "reason": "the payee cancelled the invoice"
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "at": "2026-09-28T09:10:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "propose_payment",
+        "operation": {
+          "kind": "update",
+          "entityType": "Payment",
+          "entityId": "payment-1",
+          "fields": [
+            "amount",
+            "payee"
+          ]
+        },
+        "preparedFields": [
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "250",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "value": "Acme",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "withdrawn"
+      },
+      "store": {
+        "count": 1
+      }
+    }
+  },
+  {
     "id": "sequence-a/approve-round-trip",
     "rules": [
       "GT-1",
@@ -11687,26 +13000,36 @@ export const conformanceById: Readonly<
   "decide/multiparty-approvals-in-record-order": conformanceFixtures[57]!,
   "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[58]!,
   "decide/multiparty-refile-replays": conformanceFixtures[59]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[60]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[61]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[62]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[63]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[64]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[65]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[66]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[67]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[68]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[69]!,
-  "sequence-a/sweep-pages": conformanceFixtures[70]!,
-  "sequence-a/rehydration-order": conformanceFixtures[71]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[72]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[73]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[74]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[75]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[76]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[77]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[78]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[79]!,
+  "decide/withdraw-pending-multiparty": conformanceFixtures[60]!,
+  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[61]!,
+  "decide/withdraw-blocked-allowed": conformanceFixtures[62]!,
+  "decide/withdraw-after-fold-refused": conformanceFixtures[63]!,
+  "decide/withdraw-expired-refused": conformanceFixtures[64]!,
+  "decide/withdraw-twice-refused": conformanceFixtures[65]!,
+  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[66]!,
+  "decide/decide-after-withdraw-refused": conformanceFixtures[67]!,
+  "decide/execution-on-withdrawn-refused": conformanceFixtures[68]!,
+  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[69]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[70]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[71]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[72]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[73]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[74]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[75]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[76]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[77]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[78]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[79]!,
+  "sequence-a/sweep-pages": conformanceFixtures[80]!,
+  "sequence-a/rehydration-order": conformanceFixtures[81]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[82]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[83]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[84]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[85]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[86]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[87]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[88]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[89]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -14032,7 +15355,8 @@ export const fixtureSchema: JsonSchemaDocument = {
             "pending",
             "approved",
             "rejected",
-            "expired"
+            "expired",
+            "withdrawn"
           ]
         },
         "carriesNoFieldValues": {
@@ -14249,6 +15573,28 @@ export const fixtureSchema: JsonSchemaDocument = {
           "properties": {
             "kind": {
               "const": "resubmit"
+            }
+          }
+        },
+        {
+          "title": "withdraw",
+          "description": "The host withdraws a pending entry whose subject it has abandoned (DK-1). `reason` is required.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/stepCommon"
+            }
+          ],
+          "unevaluatedProperties": false,
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "properties": {
+            "kind": {
+              "const": "withdraw"
+            },
+            "reason": {
+              "type": "string"
             }
           }
         },
@@ -14769,7 +16115,8 @@ export const fixtureSchema: JsonSchemaDocument = {
             "pending",
             "approved",
             "rejected",
-            "expired"
+            "expired",
+            "withdrawn"
           ]
         },
         "execution": {
@@ -14846,7 +16193,8 @@ export const fixtureSchema: JsonSchemaDocument = {
                   "type": "string",
                   "enum": [
                     "approve",
-                    "reject"
+                    "reject",
+                    "withdraw"
                   ]
                 },
                 "reason": {
@@ -14856,7 +16204,7 @@ export const fixtureSchema: JsonSchemaDocument = {
                   ]
                 },
                 "by": {
-                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind.",
+                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind. For a withdrawal, the principal who withdrew (DK-1).",
                   "type": "string"
                 }
               }
