@@ -40,7 +40,7 @@ expectTypeOf<Attestation>().toEqualTypeOf<{
   readonly entryId: string;
 }>();
 expectTypeOf<Attestation["by"]["kind"]>().toEqualTypeOf<
-  "member" | "member-via-relay" | "standing-order"
+  "member" | "member-via-relay" | "standing-order" | "multi-party"
 >();
 
 // AZ-3: a relayed decision names the person and the relay, and is a different kind
@@ -96,7 +96,6 @@ expectTypeOf<DocketEntry["blocked"]>().toEqualTypeOf<BlockedMarker | null>();
 expectTypeOf<DocketEntry["attestation"]>().toEqualTypeOf<Attestation | null>();
 expectTypeOf<DocketEntry["amendments"]>().toEqualTypeOf<AmendmentMap | null>();
 expectTypeOf<DocketEntry["lineage"]>().toEqualTypeOf<Lineage>();
-expectTypeOf<DocketEntry["compositeRef"]>().toEqualTypeOf<string | null>();
 
 // Absent is spelled `| null` in a value, never by omitting a key: nothing on the
 // entry is optional, so a producer cannot leave a property out and still compile.
