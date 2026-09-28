@@ -7,6 +7,8 @@ import type { ValidateFunction } from "ajv/dist/2020.js";
 import ajvFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 import type { DocketEntry } from "../../src/docket/entry.js";
 import { cardFor } from "../../src/gate/card.js";
 import type { EvidenceCardRequest, PreparedField } from "../../src/gate/pipeline.js";
@@ -38,7 +40,7 @@ const schemaDir = join(
   "schemas",
 );
 
-const CARD = "https://affiant.dev/schemas/0.1.0/evidence-card-request.schema.json";
+const CARD = `https://affiant.dev/schemas/${PROTOCOL_VERSION}/evidence-card-request.schema.json`;
 
 /**
  * ajv-formats is CommonJS and sets both `module.exports` and `exports.default` to
