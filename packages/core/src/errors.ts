@@ -233,6 +233,10 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
  *   issue: it does not decode, is not the shape the store mints, or was minted for a
  *   different list (DK-3).
+ * - `execution-detail-invalid` — `markExecuted`'s `detail` was neither `null` nor an
+ *   object carrying a non-empty string `code` (DK-1, 0.3.0). From 0.3.0 a string is
+ *   not a legal `executionDetail`, so a caller passing one made a programming error,
+ *   not something the gate refuses. Nothing is recorded.
  *
  * `composite-ref-invalid` and `composite-ref-mismatch` left this union at 0.3.0:
  * there is no composition above the gate any more (AZ-4) — `compositeRef` left the
@@ -245,7 +249,8 @@ export type CallerErrorKind =
   | "superseded-entry-mismatch"
   | "entry-not-decided"
   | "binding-invalid"
-  | "cursor-invalid";
+  | "cursor-invalid"
+  | "execution-detail-invalid";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -255,6 +260,7 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "entry-not-decided",
   "binding-invalid",
   "cursor-invalid",
+  "execution-detail-invalid",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */
