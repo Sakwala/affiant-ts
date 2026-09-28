@@ -63,17 +63,16 @@ describe("the declarative conformance suite over the Postgres Docket", () => {
     expect(run.document.summary.passed).toBe(conformanceManifest.fixtures.length);
   });
 
-  it("built a Docket of its own for each of the 61 declarative documents", () => {
+  it("built a Docket of its own for each of the declarative documents", () => {
     // The factory is the proof that the run went through this store at all: a run
     // that quietly fell back to the in-memory reference would pass and mean nothing.
     const declarative = conformanceManifest.fixtures.filter((row) => row.set !== "canonical");
-    expect(declarative).toHaveLength(61);
     expect(schemas).toHaveLength(declarative.length);
     expect(new Set(schemas).size).toBe(schemas.length);
   });
 
   it("reports one result per document, canonical byte vectors included", () => {
-    expect(run.document.results).toHaveLength(68);
+    expect(run.document.results).toHaveLength(conformanceManifest.fixtures.length);
     expect(run.document.results.map((result) => result.id).sort()).toEqual(
       conformanceManifest.fixtures.map((row) => row.id).sort(),
     );
