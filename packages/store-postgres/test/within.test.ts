@@ -104,7 +104,7 @@ describe("a store bound to the host's transaction", () => {
 
     const row = await store.get("executed", scope);
     expect(row?.execution).toBe("executed");
-    expect(row?.executionDetail).toBe("wrote 1 row");
+    expect(row?.executionDetail).toEqual({ code: "wrote-1-row", note: "wrote 1 row" });
     expect(await hostRows()).toContain("executed");
   });
 
