@@ -8,6 +8,23 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [0.1.0-alpha.4] — 2026-09-28
+
+### Added
+
+- **`migrations/0003_multiparty_migration_guard.sql`, a forward-only migration guard
+  (BD-324 F-2).** `0002`'s blocked-`MultiParty` refusal and its `filed_row` rewrite are
+  plain DML under `force row level security` on `docket_entries`; a migrator role that
+  is neither a superuser nor `BYPASSRLS` sees zero rows under that policy and both
+  statements succeed having done nothing, silently skipping the refusal and the
+  rewrite. `0002` itself is not edited — `applyMigrations` records its digest and a
+  changed digest is a refusal. `0003` fails loudly, naming the requirement and
+  `current_user`, unless the applying role can bypass row level security, and then
+  re-applies `0002`'s refusal and rewrite over rows still in the pre-0.3.0 shape,
+  repairing a silent `0002` run without touching a row `0002` already converted.
+  Migrations must now run as a superuser or a role with `BYPASSRLS`; the application
+  role stays ordinary.
+
 ## [0.1.0-alpha.2] — 2026-09-22
 
 ### Changed
