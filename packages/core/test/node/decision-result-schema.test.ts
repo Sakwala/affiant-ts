@@ -7,6 +7,8 @@ import type { ValidateFunction } from "ajv/dist/2020.js";
 import ajvFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 import type { DocketEntry } from "../../src/docket/entry.js";
 import type { DecisionResult } from "../../src/gate/decision-result.js";
 import { decisionResultOf } from "../../src/gate/decision-result.js";
@@ -36,7 +38,7 @@ const schemaDir = join(
   "schemas",
 );
 
-const RESULT = "https://affiant.dev/schemas/0.1.0/decision-result.schema.json";
+const RESULT = `https://affiant.dev/schemas/${PROTOCOL_VERSION}/decision-result.schema.json`;
 
 /**
  * ajv-formats is CommonJS and sets both `module.exports` and `exports.default` to

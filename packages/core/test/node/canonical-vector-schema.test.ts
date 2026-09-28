@@ -7,6 +7,8 @@ import type { ValidateFunction } from "ajv/dist/2020.js";
 import ajvFormats from "ajv-formats";
 import { describe, expect, it } from "vitest";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 import { canonicalVectors } from "../fixtures/canonical.generated.js";
 
 /**
@@ -49,7 +51,7 @@ const schemaDir = join(
   "schemas",
 );
 
-const AFFIDAVIT = "https://affiant.dev/schemas/0.1.0/affidavit.schema.json";
+const AFFIDAVIT = `https://affiant.dev/schemas/${PROTOCOL_VERSION}/affidavit.schema.json`;
 
 /**
  * ajv-formats is CommonJS and sets both `module.exports` and `exports.default` to
