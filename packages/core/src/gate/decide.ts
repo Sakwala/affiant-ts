@@ -57,7 +57,14 @@
  */
 
 import type { Principal, TurnContext } from "../context.js";
-import type { Attestation, Attestor, DocketEntry, ExecutionOutcome } from "../docket/entry.js";
+import type {
+  ApprovalRecord,
+  Attestation,
+  Attestor,
+  DocketEntry,
+  ExecutionDetail,
+  ExecutionOutcome,
+} from "../docket/entry.js";
 import { readStatus } from "../docket/entry.js";
 import type { Scope, SessionStore, TransitionPatch } from "../docket/store.js";
 import { AffiantCallerError, AffiantError } from "../errors.js";
@@ -215,6 +222,92 @@ export async function decide(
   }
   const attestation: Attestation = { by: attestor, at: now, entryId };
 
+  // AZ-4: a MultiParty entry takes an entirely different write from here — an
+  // approval record folded by the store, never the single-reviewer patch below.
+  // Expiry, pending and AZ-2/AZ-3 (steps (i)-(v) above) all precede these checks;
+  // the order below is the order AZ-4 states them in: amendable, listed, once.
+  if (entry.requirement.kind === "MultiParty") {
+    if (amendments !== null && Object.keys(amendments).length > 0) {
+      throw new AffiantError(
+        "decision-not-amendable",
+        `AZ-4: Docket entry ${JSON.stringify(entryId)} requires MultiParty approval; there is ` +
+          `no single reviewer whose correction the row could bind, so an amendment map is ` +
+          `refused and nothing is recorded.`,
+        { entryId },
+      );
+    }
+    // The deciding *person* — the member id, or the member a relay asserted — never
+    // the relay itself (AZ-4): the same source `subjectOf` already takes for PV-2's
+    // binding below.
+    const approver = subjectOf(attestor);
+    if (!entry.requirement.approvers.includes(approver)) {
+      throw new AffiantError(
+        "approver-not-listed",
+        `AZ-4: ${JSON.stringify(approver)} is not one of Docket entry ${JSON.stringify(entryId)}'s ` +
+          `approvers; nothing is recorded.`,
+        { entryId, approver },
+      );
+    }
+    const record: ApprovalRecord = {
+      approver,
+      decision: decision.kind,
+      reason: decision.reason ?? null,
+      at: now,
+      attestation,
+    };
+    const result = await deps.store.recordApproval(entryId, scope, record, {
+      required: entry.requirement.required,
+    });
+    if (result === "not-found") throw notFound(entryId, ctx);
+    if (result === "already-recorded") {
+      throw new AffiantError(
+        "approver-already-decided",
+        `AZ-4: ${JSON.stringify(approver)} already has an approval record on Docket entry ` +
+          `${JSON.stringify(entryId)}; nothing is recorded a second time and the entry keeps ` +
+          `the record it already has.`,
+        { entryId, approver },
+      );
+    }
+    if (result === "conflict") {
+      // The store saw a state this function's own read did not — the losing side of
+      // the guarded transition re-reads and answers precisely, exactly as the
+      // single-reviewer path's own race handling does below.
+      const current = await deps.store.get(entryId, scope);
+      if (current === null) throw notFound(entryId, ctx);
+      const currentReads = readStatus(current, deps.clock.now());
+      if (currentReads === "expired") {
+        // MultiParty never preserves an amendment (AZ-4): none was ever accepted
+        // above this branch, so there is nothing this decision carried to keep.
+        throw await refuseExpired(entryId, scope, current, null, principal, now, deps);
+      }
+      throw new AffiantError(
+        "decision-not-pending",
+        `DK-1: Docket entry ${JSON.stringify(entryId)} is no longer pending.`,
+        { entryId, status: currentReads },
+      );
+    }
+
+    deps.telemetry.emit({
+      key: "docket.transition",
+      at: now,
+      attributes: {
+        "entry.id": entryId,
+        "gen_ai.conversation.id": ctx.conversationId,
+        from: "pending",
+        to: result.entry.status,
+        execution: result.entry.execution,
+        // Emitted only on the fold, exactly as the single-reviewer path emits them
+        // only on a transition out of pending (a "recorded" outcome leaves the row
+        // pending, so there is no decision or attestation to report yet).
+        "decision.kind": result.outcome === "folded" ? decision.kind : null,
+        "attestation.kind": result.outcome === "folded" ? (result.entry.attestation?.by.kind ?? null) : null,
+        amended: false,
+      },
+    });
+
+    return result.entry;
+  }
+
   // (vi) The amendment, if there is one (DK-2, AF-4, PV-2).
   const amended: Affidavit | null =
     decision.kind === "approve" && amendments !== null
@@ -229,7 +322,7 @@ export async function decide(
   const patch: TransitionPatch = {
     status: decision.kind === "approve" ? "approved" : "rejected",
     execution: decision.kind === "approve" ? "unexecuted" : null,
-    decision: { kind: decision.kind, reason: decision.reason ?? null, at: now },
+    decision: { kind: decision.kind, reason: decision.reason ?? null, at: now, by: subjectOf(attestor) },
     amendments,
     attestation,
     decidedAt: now,
@@ -322,12 +415,27 @@ export async function decide(
 export async function markExecuted(
   entryId: string,
   outcome: ExecutionReport,
-  detail: string | null,
+  detail: ExecutionDetail | null,
   ctx: TurnContext,
   deps: DecideDeps,
 ): Promise<DocketEntry> {
   const now = deps.clock.now();
   const scope: Scope = { tenantId: ctx.tenantId };
+
+  // From 0.3.0 the detail is a typed object with the host's own `code`, never a
+  // string a reader must parse (DK-1); a caller that hands over anything else made
+  // a programming error, not something the gate refuses.
+  if (
+    detail !== null &&
+    (typeof detail !== "object" || typeof detail.code !== "string" || detail.code.length === 0)
+  ) {
+    throw new AffiantCallerError(
+      "execution-detail-invalid",
+      `DK-1: an execution detail is \`null\` or an object carrying a non-empty string \`code\` ` +
+        `and the host's own properties; ${JSON.stringify(detail)} is neither.`,
+      { entryId, detail },
+    );
+  }
 
   const principal = requirePrincipal(ctx, entryId, "mark-executed", deps, now);
   const entry = await requireEntry(entryId, ctx, "mark-executed", deps, now);
@@ -528,15 +636,13 @@ function resubmissionProposal(entry: DocketEntry): PipelineProposal {
     toolName: entry.toolName,
     schema: null,
     args: null,
-    // The successor stays a constituent of the composite the superseded row named
-    // (AZ-4, R-4): a resubmission is a filing built off the row, never off the call.
-    compositeRef: entry.compositeRef,
     preparedFields,
     operationLabel: null,
     supersedes: entry.entryId,
     priorAmendments: prior,
   };
 }
+
 
 // ---------------------------------------------------------------------------
 // Identity and attestation (AZ-1, AZ-2, AZ-3)
@@ -692,8 +798,14 @@ function subjectOf(attestor: Attestor): string {
       return attestor.id;
     case "member-via-relay":
       return attestor.memberId;
-    default:
+    case "standing-order":
       return attestor.policyId;
+    case "multi-party":
+      // `subjectOf` is called only with a decision's own attestor (member or
+      // member-via-relay, built by `attestorOf` above); a fold's `multi-party`
+      // attestation is a row-level fact the store composes, never a value this
+      // function is asked about.
+      throw new RangeError("subjectOf: a multi-party attestation has no single subject");
   }
 }
 
