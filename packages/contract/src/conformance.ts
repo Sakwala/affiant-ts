@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at f0cb10b8fc4e4710de0243bca7ea8d1609e42ebf.
+// copy of Sakwala/affiant-protocol at 247948c7bd43b95103704b8c66f8f936af5435e5.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "f0cb10b8fc4e4710de0243bca7ea8d1609e42ebf" as const;
+export const PROTOCOL_PIN = "247948c7bd43b95103704b8c66f8f936af5435e5" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -4426,7 +4426,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true
       },
-      "canonicalHash": "d389401ddf036c47a3eaac5c830c97b671de1eeffd1b64571072eef383bd3402"
+      "canonicalHash": "80d8f098596c2201d27d21a82297c83c1afe7e3c1a8cb3a1c627465a4b89e24f"
     }
   },
   {
@@ -8566,7 +8566,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "pending": 0,
         "approvedUnexecuted": 0
       },
-      "canonicalHash": "2ce4c4afcf3c094f04acec7c447235d71455f5eb8e01013da5262d7c5840eca9"
+      "canonicalHash": "a79213196c6eb0a10ff75c1864ee6066f1550ea6aade3dcc97b6f713d12e826f"
     }
   },
   {
