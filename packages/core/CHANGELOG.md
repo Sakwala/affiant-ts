@@ -10,6 +10,38 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.8] — 2026-09-28
+
+### Added
+
+- **`Gate.withdraw(entryId, { reason }, ctx)`.** Closes a `pending` entry the host has
+  abandoned, checked in DK-1's order — tenant scope (`entry-not-found`), expiry
+  (`decision-expired`, nothing preserved), pending (`decision-not-pending`) — without
+  consulting the authorization port, since a withdrawal is the host's own act rather
+  than a reviewer's decision (DK-1).
+- **`"withdrawn"` in `DocketStatus`.** The row records `decision: { kind: "withdraw",
+  reason, at, by }`, `attestation: null`, `execution: null`, and the `approvals` already
+  recorded kept as they stood (DK-4).
+- **`"withdraw"` in `DecisionRecord.kind`; `"withdrawn"` in `DecisionOutcome`; the exports
+  `withdraw` and `Withdrawal`.**
+- **The `withdraw` fixture step** in `@affiant/core/testing`, binding the rulebook's
+  `withdraw` conformance cases to `Gate.withdraw` (GT-4).
+- **Two store-contract cases** in `@affiant/core/testing`: `transition/a-withdrawal-racing-the-folding-approval-has-one-winner`,
+  which a store passes only if a withdrawal racing the approval that would fold the
+  entry lets exactly one of the two apply, and
+  `retention/ages-out-a-withdrawn-row-from-its-withdrawal`, which ages a withdrawn row
+  out from the instant it was withdrawn rather than from its filing (DK-1).
+- **`withdrawal-reason-missing`.** `Gate.withdraw` throws `AffiantCallerError` of this
+  kind when `reason` is blank after trimming, before any read — the one silent
+  terminal transition the Docket must never carry (DK-1).
+
+### Changed
+
+- Pinned to the rulebook's `v0.4.0-pre.1` pre-release (commit `28f0753`),
+  `schemas/0.4.0`.
+
+## [0.1.0-alpha.7] — 2026-09-28
+
 ### Changed
 
 - Pinned to `v0.3.0`; no code change.

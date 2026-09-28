@@ -336,6 +336,11 @@ export type FixtureStep =
       readonly kind: "resubmit";
     })
   | (StepCommon & {
+      /** The host withdraws a pending entry whose subject is gone (DK-1). */
+      readonly kind: "withdraw";
+      readonly reason: string;
+    })
+  | (StepCommon & {
       /** Report what the host's executor did (DK-1, AZ-5, AZ-7). */
       readonly kind: "markExecuted";
       readonly outcome: Exclude<ExecutionOutcome, "unexecuted">;
@@ -747,6 +752,7 @@ const STEP_KEYS = {
   file: ["toolName", "operation", "schema", "preparedFields", "args", "operationLabel"],
   decide: ["decision"],
   resubmit: [],
+  withdraw: ["reason"],
   markExecuted: ["outcome", "detail"],
   expireDue: ["limit", "scope"],
   get: [],
@@ -1769,6 +1775,11 @@ async function performStep(
         const id = requireTarget(deps.target, step.kind);
         const filed = await deps.gate.resubmit(id, ctx);
         return { ...NOTHING, filed, entryId: filed.entry.entryId };
+      }
+      case "withdraw": {
+        const id = requireTarget(deps.target, step.kind);
+        const entry = await deps.gate.withdraw(id, { reason: step.reason }, ctx);
+        return { ...NOTHING, entryId: id, read: entry };
       }
       case "markExecuted": {
         const id = requireTarget(deps.target, step.kind);

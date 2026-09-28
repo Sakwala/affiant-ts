@@ -77,7 +77,7 @@ const wire = toWire(core);
 describe("a core Affidavit written out to the v0.1 wire", () => {
   it("stamps the protocol version the envelope conforms to (SR-4)", () => {
     expect(wire.protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(PROTOCOL_VERSION).toBe("0.3.0");
+    expect(PROTOCOL_VERSION).toBe("0.4.0");
   });
 
   it("swears to the operation's shape, never to the host's verb (AF-3)", () => {

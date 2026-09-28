@@ -50,8 +50,8 @@ import { noopTelemetry } from "../telemetry.js";
 
 import type { CoverageRegistry, ToolDefinition, UncoveredCategory } from "./coverage.js";
 import { createCoverageRegistry, declareUncovered } from "./coverage.js";
-import type { DecideDeps, Decision, ExecutionReport } from "./decide.js";
-import { decide, markExecuted, resubmit } from "./decide.js";
+import type { DecideDeps, Decision, ExecutionReport, Withdrawal } from "./decide.js";
+import { decide, markExecuted, resubmit, withdraw } from "./decide.js";
 import type { FiledEntry, PipelineDeps, PreparedField } from "./pipeline.js";
 import { runPipeline } from "./pipeline.js";
 import type { ApprovalPolicy } from "./policy.js";
@@ -187,6 +187,24 @@ export interface Gate {
    *         `"decision-not-pending"` when the entry does not read `expired`.
    */
   resubmit(entryId: string, ctx: TurnContext): Promise<FiledEntry>;
+  /**
+   * Cancel a `pending` entry whose subject the host has abandoned, as the host's own
+   * act rather than a reviewer's decision (DK-1).
+   *
+   * Checked in DK-1's order — tenant scope, then expiry, then pending. The host's
+   * `mayDecide` is **not** consulted: who may withdraw is left to the host's own
+   * authorization above the gate, as `file` is (DK-1). No `blocked` check: a `blocked`
+   * pending entry may still be withdrawn. The row records `decision: { kind:
+   * "withdraw", reason, at, by }`, `attestation: null`, `execution: null`;
+   * `approvals` is untouched.
+   *
+   * @throws AffiantCallerError `"withdrawal-reason-missing"` when `withdrawal.reason`
+   *         is blank after trimming.
+   * @throws AffiantError `"decision-unauthorized"`, `"entry-not-found"`,
+   *         `"decision-expired"` (nothing preserved), `"decision-not-pending"` or
+   *         `"decision-lost-race"`.
+   */
+  withdraw(entryId: string, withdrawal: Withdrawal, ctx: TurnContext): Promise<DocketEntry>;
   /**
    * The entry as it reads now, within `ctx`'s tenant, or `null` (DK-1, expiry as
    * state).
@@ -365,6 +383,10 @@ export function createGate(options: GateOptions): Gate {
 
     async resubmit(entryId, ctx) {
       return resubmit(entryId, ctx, decideDeps);
+    },
+
+    async withdraw(entryId, withdrawal, ctx) {
+      return withdraw(entryId, withdrawal, ctx, decideDeps);
     },
 
     async rehydrate(scope, page) {

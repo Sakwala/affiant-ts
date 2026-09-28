@@ -237,6 +237,11 @@ export function isAffiantError(value: unknown): value is AffiantError {
  *   object carrying a non-empty string `code` (DK-1, 0.3.0). From 0.3.0 a string is
  *   not a legal `executionDetail`, so a caller passing one made a programming error,
  *   not something the gate refuses. Nothing is recorded.
+ * - `withdrawal-reason-missing` — `Gate.withdraw` was called with `reason` missing or
+ *   blank after trimming (DK-1). A withdrawal without a reason would be the one
+ *   silent terminal transition in the Docket, so this is refused before any read and
+ *   nothing is recorded — the same precedent as `execution-detail-invalid`: no
+ *   registry code exists for a missing argument.
  *
  * `composite-ref-invalid` and `composite-ref-mismatch` left this union at 0.3.0:
  * there is no composition above the gate any more (AZ-4) — `compositeRef` left the
@@ -250,7 +255,8 @@ export type CallerErrorKind =
   | "entry-not-decided"
   | "binding-invalid"
   | "cursor-invalid"
-  | "execution-detail-invalid";
+  | "execution-detail-invalid"
+  | "withdrawal-reason-missing";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -261,6 +267,7 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "binding-invalid",
   "cursor-invalid",
   "execution-detail-invalid",
+  "withdrawal-reason-missing",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */

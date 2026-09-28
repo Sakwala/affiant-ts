@@ -111,6 +111,21 @@ export type Decision =
     };
 
 /**
+ * The host's own act to cancel a `pending` entry whose subject it has abandoned
+ * (DK-1).
+ *
+ * A withdrawal is not a `Decision`: it is the host cancelling a write nobody will
+ * ever review, not a reviewer approving or rejecting one. `by` is not a parameter
+ * here either — the principal in `ctx` is who withdrew it, exactly as a decision's
+ * `by` is the principal deciding it, and a host that wants to name the member whose
+ * act cancelled the subject builds the `ctx` with that principal.
+ */
+export interface Withdrawal {
+  /** Why. Required — a withdrawal nobody explained would be the Docket's one silent terminal transition. */
+  readonly reason: string;
+}
+
+/**
  * What a host's executor reports back: the write happened, or it did not.
  *
  * `"unexecuted"` is excluded because it is the state a row is *filed* in, never a
@@ -127,7 +142,7 @@ export interface DecideDeps extends PipelineDeps {
 }
 
 /** Which entry point a refusal came from, for the host's telemetry. */
-type DecisionPath = "decide" | "mark-executed" | "resubmit";
+type DecisionPath = "decide" | "mark-executed" | "resubmit" | "withdraw";
 
 // ---------------------------------------------------------------------------
 // decide
@@ -666,6 +681,155 @@ function resubmissionProposal(entry: DocketEntry): PipelineProposal {
     supersedes: entry.entryId,
     priorAmendments: prior,
   };
+}
+
+// ---------------------------------------------------------------------------
+// withdraw
+// ---------------------------------------------------------------------------
+
+/**
+ * Cancel the `pending` entry `entryId` names, as the host's own act rather than a
+ * reviewer's decision (DK-1).
+ *
+ * Checked in DK-1's order — tenant scope, then expiry, then pending — and nothing
+ * else: `mayDecide` is not consulted (DK-1 leaves who may withdraw to the host's own
+ * authorization above the gate, as `file` is), no `blocked` check runs (a `blocked`
+ * pending entry may still be withdrawn), and a `MultiParty` entry's approval records
+ * stay exactly as they are — a withdrawal never calls `recordApproval`. The row
+ * records `decision: { kind: "withdraw", reason, at, by }`, `attestation: null` and
+ * `execution: null`; `approvals` is untouched. `by` is the subject of the principal —
+ * the relayed member for a relay principal, the principal's own id otherwise —
+ * exactly as a decision's `by` is derived (DK-1). `decidedAt` is the gate's own
+ * instant, set the same way `decide` sets it (DK-1).
+ *
+ * @returns The row as it stands after the transition.
+ * @throws AffiantCallerError `"withdrawal-reason-missing"` when `withdrawal.reason`
+ *         is blank after trimming, before any read (DK-1: a withdrawal without a
+ *         reason would be the one silent terminal transition in the Docket).
+ * @throws AffiantError `"decision-unauthorized"` when the context carries no
+ *         resolved principal; `"entry-not-found"` when no entry with that id is
+ *         visible in the caller's tenant; `"decision-expired"` when the entry has
+ *         passed its deadline — nothing is preserved, unlike a late decision's
+ *         amendments; `"decision-not-pending"` when it has already been decided,
+ *         withdrawn or otherwise left `pending`; `"decision-lost-race"` when a
+ *         competing transition won the guarded compare-and-set.
+ */
+export async function withdraw(
+  entryId: string,
+  withdrawal: Withdrawal,
+  ctx: TurnContext,
+  deps: DecideDeps,
+): Promise<DocketEntry> {
+  const now = deps.clock.now();
+  const scope: Scope = { tenantId: ctx.tenantId };
+
+  // (i) The argument, before any read (DK-1): a withdrawal without a reason is the
+  // one silent terminal transition the Docket must never carry.
+  const reason = withdrawal?.reason;
+  if (typeof reason !== "string" || reason.trim() === "") {
+    throw new AffiantCallerError(
+      "withdrawal-reason-missing",
+      `DK-1: a withdrawal of Docket entry ${JSON.stringify(entryId)} requires a reason — a ` +
+        `non-blank string — because a withdrawal with none would be the one silent terminal ` +
+        `transition in the Docket. Nothing is recorded.`,
+      { entryId },
+    );
+  }
+
+  // (ii) AZ-2, fail closed — before any store call at all.
+  const principal = requirePrincipal(ctx, entryId, "withdraw", deps, now);
+
+  // (iii) The tenant is the boundary, and a miss is a miss (AZ-2).
+  const entry = await requireEntry(entryId, ctx, "withdraw", deps, now);
+
+  // No requireAuthorized here (DK-1): a withdrawal is the host's own act, not a
+  // reviewer's decision, so `mayDecide` is not consulted — who may withdraw is left
+  // to the host's own authorization above the gate, as `file` is.
+
+  // (iv) What the entry reads now (DK-1). No blocked check: a blocked pending entry
+  // may be withdrawn (DK-1).
+  const reads = readStatus(entry, now);
+  if (reads === "expired") {
+    // Unlike a late decision, a withdrawal preserves nothing: there is no amendment
+    // map to keep, so there is no refuseExpired call here.
+    throw new AffiantError(
+      "decision-expired",
+      `DK-1: Docket entry ${JSON.stringify(entryId)} passed its deadline at ${entry.expiresAt} ` +
+        `and reads expired, whether or not a sweep has run. The withdrawal is refused; nothing ` +
+        `is preserved.`,
+      { entryId, expiresAt: entry.expiresAt },
+    );
+  }
+  if (reads !== "pending") {
+    throw new AffiantError(
+      "decision-not-pending",
+      `DK-1: Docket entry ${JSON.stringify(entryId)} reads ${reads}; a withdrawal is accepted ` +
+        `only while an entry is pending, and a recorded decision — including an earlier ` +
+        `withdrawal — is never overwritten.`,
+      { entryId, status: reads },
+    );
+  }
+
+  // (v) The guarded compare-and-set (DK-1). No MultiParty branch: a withdrawal
+  // never calls recordApproval, and the approval records stand as they are.
+  // `by` is the subject of the principal — the relayed member for a relay
+  // principal, the principal's own id otherwise — exactly as `decide` derives a
+  // decision's `by` (DK-1).
+  const attestor = attestorOf(principal);
+  const patch: TransitionPatch = {
+    status: "withdrawn",
+    execution: null,
+    decision: {
+      kind: "withdraw",
+      reason,
+      at: now,
+      by: attestor === null ? principal.id : subjectOf(attestor),
+    },
+    attestation: null,
+    decidedAt: now,
+  };
+
+  const result = await deps.store.transition(entryId, scope, "pending", patch);
+  if (result === "not-found") {
+    throw notFound(entryId, ctx);
+  }
+  if (result === "already-decided") {
+    throw new AffiantError(
+      "decision-lost-race",
+      `DK-1: another transition on Docket entry ${JSON.stringify(entryId)} was applied first. ` +
+        `A transition out of pending happens once or not at all — this withdrawal is refused, ` +
+        `not queued and not applied on top.`,
+      { entryId },
+    );
+  }
+  if (result === "expired") {
+    // The store's guard saw a state this function's own read did not. Same answer as
+    // step (iv)'s expiry, no re-read for preservation: a withdrawal preserves nothing.
+    throw new AffiantError(
+      "decision-expired",
+      `DK-1: Docket entry ${JSON.stringify(entryId)} passed its deadline at ${entry.expiresAt} ` +
+        `and reads expired, whether or not a sweep has run. The withdrawal is refused; nothing ` +
+        `is preserved.`,
+      { entryId, expiresAt: entry.expiresAt },
+    );
+  }
+
+  deps.telemetry.emit({
+    key: "docket.transition",
+    at: now,
+    attributes: {
+      "entry.id": entryId,
+      "gen_ai.conversation.id": ctx.conversationId,
+      from: "pending",
+      to: "withdrawn",
+      execution: null,
+      "decision.kind": "withdraw",
+      "attestation.kind": null,
+      amended: false,
+    },
+  });
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------

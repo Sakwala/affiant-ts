@@ -89,7 +89,9 @@ if (marker.code === "requirement-not-implemented") {
 
 // ------------------------------------------------------- DK-1: the state machine
 
-expectTypeOf<DocketStatus>().toEqualTypeOf<"pending" | "approved" | "rejected" | "expired">();
+expectTypeOf<DocketStatus>().toEqualTypeOf<
+  "pending" | "approved" | "rejected" | "expired" | "withdrawn"
+>();
 expectTypeOf<ExecutionOutcome>().toEqualTypeOf<"unexecuted" | "executed" | "failed">();
 expectTypeOf<DocketEntry["execution"]>().toEqualTypeOf<ExecutionOutcome | null>();
 expectTypeOf<DocketEntry["blocked"]>().toEqualTypeOf<BlockedMarker | null>();
@@ -102,7 +104,9 @@ expectTypeOf<DocketEntry["lineage"]>().toEqualTypeOf<Lineage>();
 expectTypeOf<Required<DocketEntry>>().toEqualTypeOf<DocketEntry>();
 
 // A transition never returns an entry to `pending`.
-expectTypeOf<TransitionPatch["status"]>().toEqualTypeOf<"approved" | "rejected" | "expired">();
+expectTypeOf<TransitionPatch["status"]>().toEqualTypeOf<
+  "approved" | "rejected" | "expired" | "withdrawn"
+>();
 // Each refusal is named after the state it describes: "already-decided" for the row
 // somebody else decided, "expired" for the row that passed its deadline. A store
 // implementer reading the type cannot get the two the wrong way round.
