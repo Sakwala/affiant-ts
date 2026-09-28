@@ -306,7 +306,7 @@ export async function decide(
     }
 
     // Emitted only on the fold, exactly as the single-reviewer path emits
-    // `docket.transition` only on a transition out of pending (N-5): a "recorded"
+    // `docket.transition` only on a transition out of pending: a "recorded"
     // outcome leaves the row pending, so there is no transition to report yet.
     if (result.outcome === "folded") {
       deps.telemetry.emit({

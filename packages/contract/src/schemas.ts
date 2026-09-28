@@ -17,7 +17,7 @@ export interface JsonSchemaDocument {
 }
 
 /**
- * The protocol version these schemas were vendored from (BD-256): `protocol/PIN`'s
+ * The protocol version these schemas were vendored from: `protocol/PIN`'s
  * optional `schemas=<version>` second line, or `"0.1.0"` when that line is absent —
  * what `protocol/schemas/` held before the line existed. Generated so a version
  * bump is a vendoring change, never a hand edit; `./index.js` re-exports this.
