@@ -46,7 +46,7 @@ type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
  * validate against. The kept set is exactly the entries whose (re-pathed) schema is
  * one of the 0.3.0 manifest section's `definitionsOnly` schemas.
  */
-const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
+const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
 const v01KeptEntries = (manifest["0.1.0"].fixtures as readonly V01ManifestFixture[]).filter((entry) =>
   v03DefinitionsOnly.has(entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`)),
 );

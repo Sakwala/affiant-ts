@@ -76,7 +76,7 @@ describe("src/schemas.ts is what protocol/schemas/ says it is", () => {
     // against (docket-entry, requirement, attestation, evidence-card-request,
     // error-code) — the same filter B-58a8 built as `v01KeptEntries` is repeated
     // here so this check only looks up entries `schemasByPath` can actually answer.
-    const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
+    const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
     for (const entry of manifest["0.1.0"].fixtures) {
       const repathed = entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`);
       if (!v03DefinitionsOnly.has(repathed)) continue;
@@ -107,7 +107,7 @@ describe("src/conformance.ts is what protocol/fixtures/ and protocol/conformance
     // protocol/PIN's first line is the ref; a second line, when present, pins the
     // vendored schema directory's version (`schemas=<version>`) and is not part of
     // the ref itself (protocol-pin.test.ts's own parse, mirrored here).
-    const pinFirstLine = readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n")[0].trim();
+    const pinFirstLine = (readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n")[0] ?? "").trim();
     expect(PROTOCOL_PIN).toBe(pinFirstLine);
   });
 
@@ -160,7 +160,7 @@ describe("test/fixtures.generated.ts is what protocol/fixtures/ says it is", () 
   // evidence-card-request, error-code) — it has no vendored 0.1.0 schema left to
   // validate against. The kept set is exactly the entries whose (re-pathed) schema is
   // one of the 0.3.0 manifest section's `definitionsOnly` schemas.
-  const v03DefinitionsOnly = new Set(manifest["0.3.0"].definitionsOnly);
+  const v03DefinitionsOnly = new Set<string>(manifest["0.3.0"].definitionsOnly);
   const v01KeptEntries = manifest["0.1.0"].fixtures.filter((entry) =>
     v03DefinitionsOnly.has(
       entry.schema.replace(/^schemas\/0\.1\.0\//, `schemas/${PROTOCOL_VERSION}/`),
