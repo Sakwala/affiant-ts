@@ -49,7 +49,12 @@
 
 import { PROTOCOL_VERSION } from "@affiant/contract";
 
-import type { ApprovalRecord, Attestation, DocketEntry, NewEntryInit } from "./docket/entry.js";
+import type {
+  ApprovalRecord,
+  DocketEntry,
+  NewEntryInit,
+  PersonAttestation,
+} from "./docket/entry.js";
 import { multiPartyAttestorOf, newEntry } from "./docket/entry.js";
 import type {
   DocketStore,
@@ -317,8 +322,8 @@ interface ContractSection<TStore, TSection extends string> {
   readonly cases: readonly ContractCase<TStore>[];
 }
 
-/** An approval by a named person (AZ-1). */
-function attestedBy(id: string, entryId: string, at = NOON): Attestation {
+/** An approval by a named person (AZ-1). Always a `member`, so also a {@link PersonAttestation}. */
+function attestedBy(id: string, entryId: string, at = NOON): PersonAttestation {
   return { by: { kind: "member", id }, at, entryId };
 }
 
