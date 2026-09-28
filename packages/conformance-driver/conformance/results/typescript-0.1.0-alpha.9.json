@@ -2,24 +2,24 @@
   "schemaVersion": "0.1.0",
   "implementation": {
     "name": "typescript",
-    "version": "0.1.0-alpha.8",
+    "version": "0.1.0-alpha.9",
     "runtime": "node"
   },
-  "protocolTag": "52e1a3dd636c85a5f83755f4efb4a05391c30bd4",
-  "producedAt": "2026-09-28T17:45:07.545Z",
+  "protocolTag": "v0.4.0",
+  "producedAt": "2026-09-28T19:01:17.083Z",
   "summary": {
     "total": 109,
     "passed": 109,
     "failed": 0,
     "errored": 0,
     "skipped": 0,
-    "durationMs": 204
+    "durationMs": 173
   },
   "results": [
     {
       "id": "gate/substance-hollow-refused",
       "outcome": "pass",
-      "durationMs": 112
+      "durationMs": 94
     },
     {
       "id": "gate/substance-zero-field-refused",
@@ -39,12 +39,12 @@
     {
       "id": "gate/ttl-from-gate-default",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/standing-order-by-the-book",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 3
     },
     {
       "id": "gate/standing-order-threshold-under",
@@ -59,7 +59,7 @@
     {
       "id": "gate/standing-order-unbound-input",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/standing-order-bound-input",
@@ -74,37 +74,37 @@
     {
       "id": "gate/coverage-refused-declared",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/update-previous-values",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 2
     },
     {
       "id": "gate/create-null-previous-values",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "gate/inference-conversation-and-inferred",
       "outcome": "pass",
-      "durationMs": 3
+      "durationMs": 2
     },
     {
       "id": "gate/threshold-without-scorer",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/inference-presence-computed-from-the-utterance",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/inference-port-literal-unconfirmed",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/inference-port-span-fails-the-boundary",
@@ -114,7 +114,7 @@
     {
       "id": "gate/inference-case-folds-and-the-digest-is-the-utterances",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "gate/inference-empty-value-is-nothing-reported",
@@ -134,7 +134,7 @@
     {
       "id": "gate/multiparty-verdict-required-out-of-range",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "gate/multiparty-verdict-duplicate-approvers",
@@ -164,22 +164,22 @@
     {
       "id": "decide/expired-amendments-preserved",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/blocked-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/amend-recompute",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "decide/unresolved-identity",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/wrong-tenant",
@@ -189,7 +189,7 @@
     {
       "id": "decide/authorization-declined",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/relay-member-via-relay",
@@ -219,7 +219,7 @@
     {
       "id": "decide/resubmit-prefills",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "decide/executed-only-through-a-report",
@@ -254,7 +254,7 @@
     {
       "id": "decide/multiparty-executed-with-typed-detail",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/execution-detail-typed",
@@ -284,7 +284,7 @@
     {
       "id": "decide/multiparty-after-fold-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/multiparty-expired-then-resubmit",
@@ -304,12 +304,12 @@
     {
       "id": "decide/multiparty-approvals-in-record-order",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/multiparty-wrong-tenant-not-found",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/multiparty-refile-replays",
@@ -319,47 +319,47 @@
     {
       "id": "decide/withdraw-pending-multiparty",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/withdraw-pending-reviewer-confirmation",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/withdraw-blocked-allowed",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/withdraw-after-fold-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/withdraw-expired-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/withdraw-twice-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/withdraw-wrong-tenant-not-found",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/decide-after-withdraw-refused",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "decide/execution-on-withdrawn-refused",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "decide/withdraw-replay-returns-withdrawn",
@@ -369,7 +369,7 @@
     {
       "id": "sequence-a/approve-round-trip",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/reject-round-trip",
@@ -399,12 +399,12 @@
     {
       "id": "sequence-a/expiry-then-resubmit",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-a/late-amendments-preserved",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/interleaved-conversations",
@@ -424,7 +424,7 @@
     {
       "id": "sequence-a/rehydration-order",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "sequence-a/coverage-refused-at-wire-up",
@@ -449,7 +449,7 @@
     {
       "id": "sequence-c/relayed-decision-member-via-relay",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "sequence-c/unbound-external-asks-a-person",
@@ -469,22 +469,22 @@
     {
       "id": "canonical/create-shaped",
       "outcome": "pass",
-      "durationMs": 3
+      "durationMs": 4
     },
     {
       "id": "canonical/update-shaped",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/wire-evidence-card-request",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "canonical/wire-evidence-card-request-amended",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "canonical/key-order-stress",
@@ -499,22 +499,22 @@
     {
       "id": "canonical/money-and-escapes",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "adapter/cv2-write-with-context-files",
       "outcome": "pass",
-      "durationMs": 92
+      "durationMs": 84
     },
     {
       "id": "adapter/cv2-write-without-context-refuses",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "adapter/cv2-gate-absent-throws",
       "outcome": "pass",
-      "durationMs": 0
+      "durationMs": 1
     },
     {
       "id": "adapter/cv2-read-without-context-never-runs",
@@ -529,7 +529,7 @@
     {
       "id": "adapter/cv3-docket-row-survives-history",
       "outcome": "pass",
-      "durationMs": 2
+      "durationMs": 1
     },
     {
       "id": "adapter/cv3-replayed-approval-changes-nothing",
@@ -544,7 +544,7 @@
     {
       "id": "adapter/cv2-read-gate-absent-throws",
       "outcome": "pass",
-      "durationMs": 1
+      "durationMs": 0
     },
     {
       "id": "adapter/cv2-malformed-context-refuses",

@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at 52e1a3dd636c85a5f83755f4efb4a05391c30bd4.
+// copy of Sakwala/affiant-protocol at v0.4.0.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -2832,7 +2832,7 @@ export const manifest = {
     "schemas": "schemas/0.3.0",
     "$note": "The pre-release set written to the native MultiParty design (INVARIANTS.md AZ-4; https://github.com/Sakwala/affiant-protocol/issues/41). Documents live under conformance/fixtures/v0.3/, authored only for the schemas that changed: requirement.schema.json (new), docket-entry.schema.json (approvals, decision.by, typed executionDetail, compositeRef removed), attestation.schema.json (the multi-party attestor), evidence-card-request.schema.json (card.multiParty) and error-code.schema.json (three appended codes). Every other 0.3.0 schema is byte-identical in shape to its 0.1.0 counterpart but for its $id and version string, so the 0.1.0 documents under conformance/fixtures/v0.1/ validate against it unchanged (common.schema.json's protocolVersion is a semver pattern, not a fixed value) and are not duplicated here; those schemas are listed in definitionsOnly with a note rather than re-authoring sixty-nine documents for a shape that did not change. A POSITIVE must validate against the schema the row names; a NEGATIVE must fail it, each a single deliberate mutation of a named positive, in the same convention as 0.1.0.",
     "derivedFrom": {
-      "reference": "authored here ahead of @affiant/core's pre-release; the core's emitted documents replace these at v0.3.0",
+      "reference": "authored here ahead of @affiant/core's pre-release",
       "values": "Same tenant, ids and approvers as the conformance fixtures (gate/multiparty-files-one-entry, decide/multiparty-all-approve), so the schema documents and the behaviour fixtures tell one story.",
       "date": "2026-09-28"
     },
@@ -3233,7 +3233,7 @@ export const manifest = {
     "schemas": "schemas/0.4.0",
     "$note": "The withdrawal transition, DK-1 at 0.4.0 (INVARIANTS.md DK-1; https://github.com/Sakwala/affiant-protocol/issues/48). This section carries only the documents whose shape 0.4.0 changes; every 0.3.0 document remains a valid 0.4.0 document (common.schema.json's protocolVersion is a semver pattern, not a fixed value), so nothing byte-identical to its 0.3.0 counterpart is re-authored here.",
     "derivedFrom": {
-      "reference": "authored here ahead of @affiant/core's implementation of the withdrawal transition; the core's emitted documents replace these at 0.4.0",
+      "reference": "authored here ahead of @affiant/core's implementation of the withdrawal transition",
       "values": "Same shape as the decide/withdraw-* fixtures' resulting rows, so the schema documents and the behaviour fixtures tell one story.",
       "date": "2026-09-28"
     },
