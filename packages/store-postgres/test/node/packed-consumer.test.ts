@@ -42,6 +42,7 @@ import { createTestDatabase, databaseUrl } from "../setup.js";
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
 const coreRoot = join(workspaceRoot, "packages", "core");
+const contractRoot = join(workspaceRoot, "packages", "contract");
 
 /** The `postgres` version this package is pinned to for development, which the consumer installs. */
 const pinnedPostgres = (
@@ -109,7 +110,8 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     const packs = join(scratch, "packs");
     const project = join(scratch, "project");
     const corePacks = join(scratch, "core-packs");
-    for (const directory of [packs, corePacks, project]) {
+    const contractPacks = join(scratch, "contract-packs");
+    for (const directory of [packs, corePacks, contractPacks, project]) {
       mkdirSync(directory, { recursive: true });
     }
 
@@ -125,6 +127,14 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
     expect(packedCore, "pnpm pack failed for the core").not.toBeNull();
     const coreTarball = tarballIn(corePacks);
     expect(coreTarball).not.toBeNull();
+
+    // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+    // has not published — a workspace dependency, so it is packed alongside the core
+    // and installed from its own tarball, rather than pulled from the registry (BD-310).
+    const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+    expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
+    const contractTarball = tarballIn(contractPacks);
+    expect(contractTarball).not.toBeNull();
 
     writeFileSync(
       join(project, "package.json"),
@@ -214,6 +224,7 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
         "error",
         storeTarball as string,
         coreTarball as string,
+        contractTarball as string,
         `postgres@${pinnedPostgres}`,
         // What a consumer of postgres.js already has: its declarations name
         // `node:stream`, `node:tls`, `node:events` and `Buffer`, none of which resolve
@@ -259,7 +270,8 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
       const packs = join(scratch, "runtime-packs");
       const project = join(scratch, "runtime-project");
       const corePacks = join(scratch, "runtime-core-packs");
-      for (const directory of [packs, corePacks, project]) {
+      const contractPacks = join(scratch, "runtime-contract-packs");
+      for (const directory of [packs, corePacks, contractPacks, project]) {
         mkdirSync(directory, { recursive: true });
       }
 
@@ -272,6 +284,14 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
       expect(packedCore, "pnpm pack failed for the core").not.toBeNull();
       const coreTarball = tarballIn(corePacks);
       expect(coreTarball).not.toBeNull();
+
+      // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+      // has not published — a workspace dependency, so it is packed alongside the core
+      // and installed from its own tarball, rather than pulled from the registry (BD-310).
+      const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+      expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
+      const contractTarball = tarballIn(contractPacks);
+      expect(contractTarball).not.toBeNull();
 
       writeFileSync(
         join(project, "package.json"),
@@ -297,6 +317,7 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
           "error",
           storeTarball as string,
           coreTarball as string,
+          contractTarball as string,
           `postgres@${pinnedPostgres}`,
         ],
         project,
