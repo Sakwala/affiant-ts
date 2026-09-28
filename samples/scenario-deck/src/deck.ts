@@ -172,7 +172,7 @@ function rowLines(row: RowView): string[] {
     `entry       ${row.entryId}`,
     `tool        ${row.toolName}`,
     `status      ${row.status}`,
-    `requires    ${row.requirement}`,
+    `requires    ${row.requirement.kind}`,
     `execution   ${row.execution ?? "(not approved)"}`,
     `attestation ${
       row.attestationKind === null

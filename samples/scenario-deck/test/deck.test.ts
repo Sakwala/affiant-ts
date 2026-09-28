@@ -94,7 +94,7 @@ describe("act 1 - the agent proposes four changes", () => {
     if (card === undefined || row === undefined) throw new Error("act 1 filed nothing");
 
     expect(row.status).toBe("pending");
-    expect(row.requirement).toBe("ReviewerConfirmation");
+    expect(row.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(card.entityId).toBe("C-1042");
     expect(card.fields.map((field) => field.name)).toEqual([
       "email",
@@ -211,7 +211,7 @@ describe("act 3 - a person-free approval meets a required field with no value", 
 
     // The verdict degraded toward a person — the only direction AZ-4 permits.
     expect(row.status).toBe("pending");
-    expect(row.requirement).toBe("ReviewerConfirmation");
+    expect(row.requirement).toEqual({ kind: "ReviewerConfirmation" });
     expect(row.attestationKind).toBeNull();
 
     const blocked = third.affiant.telemetry.find((line) => line.key === "standing-order.blocked");
