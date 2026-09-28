@@ -125,7 +125,12 @@ async function results(): Promise<{ readonly [name: string]: DecisionResult }> {
   const toFail = await fileOne(failing);
   await failing.gate.decide(toFail.entryId, { kind: "approve", amendments: {} }, turnContext());
   built["approved, the write failed"] = decisionResultOf(
-    await failing.gate.markExecuted(toFail.entryId, "failed", "the ledger refused", turnContext()),
+    await failing.gate.markExecuted(
+      toFail.entryId,
+      "failed",
+      { code: "the-ledger-refused" },
+      turnContext(),
+    ),
   );
 
   const standing = harness({ policies: [policyReturning({ requirement: "StandingOrder" })] });
