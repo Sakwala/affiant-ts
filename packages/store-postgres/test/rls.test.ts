@@ -38,7 +38,7 @@ beforeAll(async () => {
   await sql.unsafe(`create role "${role}" nosuperuser`);
   await sql.unsafe(`grant usage on schema affiant to "${role}"`);
   await sql.unsafe(
-    `grant select, insert, delete on affiant.docket_entries, affiant.docket_events to "${role}"`,
+    `grant select, insert, delete on affiant.docket_entries, affiant.docket_events, affiant.docket_approvers, affiant.docket_approvals to "${role}"`,
   );
   await sql.unsafe(`grant select on affiant.docket_current to "${role}"`);
 
@@ -275,7 +275,7 @@ describe("the grants the store's objects need to reference each other (AZ-2)", (
 
     await sql.unsafe(`grant usage on schema affiant to "${application}"`);
     await sql.unsafe(
-      `grant select, insert, delete on affiant.docket_entries, affiant.docket_events to "${application}"`,
+      `grant select, insert, delete on affiant.docket_entries, affiant.docket_events, affiant.docket_approvers, affiant.docket_approvals to "${application}"`,
     );
     await sql.unsafe(`grant select on affiant.docket_current to "${application}"`);
   }, 120_000);
