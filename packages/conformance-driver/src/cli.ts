@@ -153,10 +153,13 @@ if (write) {
   console.log(`run document: ${file}`);
 }
 
+// The parity file name is the pinned protocol's major.minor, read from
+// @affiant/contract's PROTOCOL_VERSION rather than hand-typed here — every message
+// below that names the file, whether it writes it or only reports against it, uses
+// this same derivation.
+const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
+
 if (flag("write-manifest") !== undefined) {
-  // The parity file name is the pinned protocol's major.minor, read from
-  // @affiant/contract's PROTOCOL_VERSION rather than hand-typed here.
-  const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
   const file = join(
     packageRoot,
     "conformance",
@@ -177,7 +180,7 @@ console.log(
 const verdict = compareToManifest(run);
 if (verdict.matches) {
   console.log(
-    `parity: the failing set equals conformance/parity/typescript-v0.2.json ` +
+    `parity: the failing set equals conformance/parity/typescript-v${protocolMajor}.${protocolMinor}.json ` +
       `(${String(parityManifest.failing.length)} listed)`,
   );
   process.exit(0);
@@ -187,6 +190,6 @@ console.error("parity: the failing set does not equal the published manifest.");
 for (const line of describeVerdict(verdict, run)) console.error(`  ${line}`);
 console.error(
   "A parity manifest is a published claim about this implementation. Fix the regression, or " +
-    "publish the change by editing conformance/parity/typescript-v0.2.json in the same pull request.",
+    `publish the change by editing conformance/parity/typescript-v${protocolMajor}.${protocolMinor}.json in the same pull request.`,
 );
 process.exit(1);
