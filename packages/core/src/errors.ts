@@ -96,6 +96,23 @@ export const ErrorCode = {
    * **Provisional** until the protocol's `ErrorCode` registry lands.
    */
   "execution-already-recorded": "execution-already-recorded",
+  /**
+   * A decision on a `MultiParty` entry named a person the requirement's `approvers`
+   * does not list. Nothing is recorded (AZ-4).
+   */
+  "approver-not-listed": "approver-not-listed",
+  /**
+   * A decision on a `MultiParty` entry named a person who already has an approval
+   * record on it. Nothing is recorded a second time; the entry keeps the record it
+   * already has (AZ-4).
+   */
+  "approver-already-decided": "approver-already-decided",
+  /**
+   * A decision on a `MultiParty` entry carried an amendment map. `MultiParty` never
+   * amends — there is no single reviewer whose correction the row could bind — and
+   * nothing is recorded (AZ-4).
+   */
+  "decision-not-amendable": "decision-not-amendable",
 } as const;
 
 /** One of the reasons in {@link ErrorCode}. */
@@ -121,6 +138,9 @@ export const ERROR_CODES = [
   "wireup-invalid",
   "entry-not-found",
   "execution-already-recorded",
+  "approver-not-listed",
+  "approver-already-decided",
+  "decision-not-amendable",
 ] as const satisfies readonly ErrorCode[];
 
 /** Whether `value` is one of the codes in {@link ErrorCode}. */
@@ -213,13 +233,11 @@ export function isAffiantError(value: unknown): value is AffiantError {
  * - `cursor-invalid` — a paged list was handed a cursor the store can tell it did not
  *   issue: it does not decode, is not the shape the store mints, or was minted for a
  *   different list (DK-3).
- * - `composite-ref-invalid` — `gate.file` was given a `compositeRef` that is not the
- *   schema's identifier (a non-empty string). Nothing is filed (AZ-4).
- * - `composite-ref-mismatch` — a filing replayed an existing row (GT-4) while naming a
- *   different composite than the row records: not a retry of the same proposal but a
- *   second constituent filed with the first one's material, which would hand N
- *   reviewers one row (AZ-4). `details` carries `entryId`, `stored` and `proposed`.
- *   Nothing new is written.
+ *
+ * `composite-ref-invalid` and `composite-ref-mismatch` left this union at 0.3.0:
+ * there is no composition above the gate any more (AZ-4) — `compositeRef` left the
+ * row and the filing surface, and a host that needs several approvals asks for
+ * `MultiParty`.
  */
 export type CallerErrorKind =
   | "amendment-unknown-field"
@@ -227,9 +245,7 @@ export type CallerErrorKind =
   | "superseded-entry-mismatch"
   | "entry-not-decided"
   | "binding-invalid"
-  | "cursor-invalid"
-  | "composite-ref-invalid"
-  | "composite-ref-mismatch";
+  | "cursor-invalid";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -239,8 +255,6 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "entry-not-decided",
   "binding-invalid",
   "cursor-invalid",
-  "composite-ref-invalid",
-  "composite-ref-mismatch",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */
