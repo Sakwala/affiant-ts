@@ -42,9 +42,11 @@
 
 import type {
   AmendmentMap,
+  ApprovalRecord,
   Clock,
   DocketEntry,
   DocketStore,
+  ExecutionDetail,
   ExecutionOutcome,
   Page,
   PageResult,
@@ -58,7 +60,14 @@ import type {
   TransitionPatch,
   TransitionResult,
 } from "@affiant/core";
-import { AffiantCallerError, defaultClock, instantMs, isDue, readStatus } from "@affiant/core";
+import {
+  AffiantCallerError,
+  defaultClock,
+  instantMs,
+  isDue,
+  multiPartyAttestorOf,
+  readStatus,
+} from "@affiant/core";
 import type { Sql, TransactionSql } from "postgres";
 
 import type { CursorKind } from "./cursor.js";
@@ -69,7 +78,7 @@ import {
   requireLimit,
   requirePosition,
 } from "./cursor.js";
-import type { FoldRow } from "./fold.js";
+import type { DecisionPayload, FoldRow } from "./fold.js";
 import { decisionPayload, expired, foldEntry, withDecision } from "./fold.js";
 import { DEFAULT_SCHEMA, requireSchema } from "./schema.js";
 
@@ -365,7 +374,7 @@ class Store implements DocketStore, SessionStore {
     entryId: string,
     scope: Scope,
     outcome: Exclude<ExecutionOutcome, "unexecuted">,
-    detail: string | null,
+    detail: ExecutionDetail | null,
     expected: "unexecuted",
   ): Promise<RecordExecutionResult> {
     return this.#run(scope.tenantId, async (tx) => {
@@ -391,6 +400,119 @@ class Store implements DocketStore, SessionStore {
       const after = await this.#fold(tx, entryId, scope);
       if (after === null) return "not-found" as RecordExecutionResult;
       return this.#read(after);
+    });
+  }
+
+  /**
+   * Record one approver's act on a `MultiParty` entry, folding the row in the same
+   * transaction when this record completes it (AZ-4, DK-1, N-4, N-7).
+   *
+   * `select … for update` locks the entry row for the rest of this transaction, so
+   * two approvals racing for the same entry serialise on it: the loser's own
+   * `#fold` re-read, once the winner has committed, already shows the row folded
+   * and answers `"conflict"` before this call ever attempts its own insert — the
+   * loser's record is never appended, exactly as the reference store's
+   * synchronous guard behaves. The terminal-once partial index is still the
+   * backstop underneath the lock (a sweep racing the same entry is not blocked by
+   * this lock, since it does not take it): if the decision insert this method
+   * makes loses to one already there, `#appendGuarded` reports `false` and this
+   * method answers `"conflict"` rather than writing a second decision row.
+   *
+   * The *listing* check (is `record.approver` one of `requirement.approvers`?) is
+   * the gate's, not this method's (N-4). The database still refuses an approver
+   * with no `docket_approvers` row: the foreign key on `docket_approvals` has
+   * nothing to reference and the insert fails closed — belt short of the gate's
+   * own check, and not reachable through it, so it is left to throw rather than
+   * mapped onto a result arm.
+   */
+  async recordApproval(
+    entryId: string,
+    scope: Scope,
+    record: ApprovalRecord,
+    fold: { readonly required: number },
+  ) {
+    return this.#run(scope.tenantId, async (tx) => {
+      const locked = await tx`
+        select 1 from ${tx(this.#table("docket_entries"))}
+        where tenant_id = ${scope.tenantId}::text and entry_id = ${entryId}::text
+        for update`;
+      if (locked.length === 0) return "not-found" as const;
+
+      const stored = await this.#fold(tx, entryId, scope);
+      if (stored === null) return "not-found" as const;
+      if (readStatus(stored, this.#clock.now()) !== "pending" || stored.blocked !== null) {
+        return "conflict" as const;
+      }
+      if (stored.approvals === null) return "conflict" as const;
+
+      const subject = { entryId };
+      try {
+        await tx`
+          insert into ${tx(this.#table("docket_approvals"))} (
+            tenant_id, entry_id, approver, decision, reason, decided_at, attestation
+          ) values (
+            ${text(subject, "tenantId", scope.tenantId)},
+            ${text(subject, "entryId", entryId)},
+            ${text(subject, "approver", record.approver)},
+            ${text(subject, "decision", record.decision)},
+            ${record.reason === null ? null : text(subject, "reason", record.reason)},
+            ${instant(record.at, "at")}::text::timestamptz,
+            ${json(subject, "attestation", record.attestation)}::text::jsonb
+          )`;
+      } catch (error) {
+        if (isUniqueViolation(error)) return "already-recorded" as const;
+        throw error;
+      }
+
+      const counted = await tx<{ count: string }[]>`
+        select count(*)::text as count
+        from ${tx(this.#table("docket_approvals"))}
+        where tenant_id = ${scope.tenantId}::text and entry_id = ${entryId}::text
+          and decision = 'approve'`;
+      const approveCount = Number(counted[0]?.count ?? "0");
+      const folds = record.decision === "reject" || approveCount >= fold.required;
+
+      if (!folds) {
+        const after = await this.#fold(tx, entryId, scope);
+        if (after === null) return "not-found" as const;
+        return { outcome: "recorded" as const, entry: this.#read(after) };
+      }
+
+      // The order these approvals joined in above (`decided_at, approver`, N-7) is
+      // what {@link multiPartyAttestorOf} composes from; appending this record to
+      // the list `#fold` already read (before this insert) reproduces that order
+      // without a second query, the same way the memory store appends to its own
+      // in-hand array rather than re-reading it.
+      const attestation =
+        record.decision === "reject"
+          ? null
+          : {
+              by: multiPartyAttestorOf([...stored.approvals, record]),
+              at: record.at,
+              entryId,
+            };
+
+      const payload: DecisionPayload = {
+        status: record.decision === "reject" ? "rejected" : "approved",
+        execution: record.decision === "reject" ? null : "unexecuted",
+        decidedAt: record.at,
+        decision: { kind: record.decision, reason: record.reason, at: record.at, by: record.approver },
+        amendments: null,
+        amendedAffidavit: null,
+        attestation,
+        executionDetail: null,
+        supersededBy: null,
+      };
+
+      const written = await this.#appendGuarded(tx, scope.tenantId, entryId, "decision", payload, {
+        at: payload.decidedAt,
+        liveAt: this.#clock.now(),
+      });
+      if (!written) return "conflict" as const;
+
+      const after = await this.#fold(tx, entryId, scope);
+      if (after === null) return "not-found" as const;
+      return { outcome: "folded" as const, entry: this.#read(after) };
     });
   }
 
@@ -682,7 +804,7 @@ class Store implements DocketStore, SessionStore {
   async #fold(tx: TransactionSql, entryId: string, scope: Scope): Promise<DocketEntry | null> {
     const rows = await tx<FoldRow[]>`
       select filed_row, decision_payload, execution_payload, supersession_payload,
-             preserved_payload, expiry_payload, filing_seq
+             preserved_payload, expiry_payload, approvals, filing_seq
       from ${tx(this.#table("docket_current"))}
       where tenant_id = ${scope.tenantId}::text
         and entry_id = ${entryId}::text
@@ -751,7 +873,7 @@ class Store implements DocketStore, SessionStore {
     const now = instant(this.#clock.now(), "now");
     const rows = await tx<FoldRow[]>`
       select filed_row, decision_payload, execution_payload, supersession_payload,
-             preserved_payload, expiry_payload, filing_seq
+             preserved_payload, expiry_payload, approvals, filing_seq
       from ${tx(this.#table("docket_current"))} v
       where v.tenant_id = ${scope.tenantId}::text
         and (${conversationOf(scope)}::text is null
@@ -905,6 +1027,14 @@ function unstorable(entryId: string, field: string, index: number, what: string)
   return new RangeError(
     `entry ${entryId}: ${field} carries ${what} at index ${index}, which Postgres cannot store`,
   );
+}
+
+/**
+ * Whether `error` is Postgres's `unique_violation` (SQLSTATE `23505`) — the shape
+ * `postgres.js` throws it in, checked by code rather than by message text.
+ */
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505";
 }
 
 /** A slice as the contract's page shape, with a cursor only when another page exists. */
