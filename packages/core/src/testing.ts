@@ -321,8 +321,6 @@ export type FixtureStep =
       readonly preparedFields?: readonly FixturePreparedField[] | null;
       readonly args?: JsonValue;
       readonly operationLabel?: string | null;
-      /** The composite this constituent belongs to (AZ-4); host-chosen. */
-      readonly compositeRef?: string;
     })
   | (StepCommon & {
       /** Approve, amend or reject (DK-1, AZ-1, AZ-2). */
@@ -341,7 +339,8 @@ export type FixtureStep =
       /** Report what the host's executor did (DK-1, AZ-5, AZ-7). */
       readonly kind: "markExecuted";
       readonly outcome: Exclude<ExecutionOutcome, "unexecuted">;
-      readonly detail?: string | null;
+      /** From 0.3.0, the host's own typed object — never a string a reader must parse. */
+      readonly detail?: { readonly code: string; readonly [key: string]: JsonValue } | null;
     })
   | (StepCommon & {
       /** The host-scheduled sweep (DK-3). */
@@ -411,6 +410,37 @@ export interface FixtureExpectation {
   readonly canonicalHash?: string;
 }
 
+/**
+ * A partial matcher over the requirement object, or the bare kind name (the
+ * shorthand RUNNER §2.1 states). A stated `approvers` is the whole list, in
+ * order — the same convention `approvals` uses (0.3.0).
+ */
+export type RequirementExpectation =
+  | RequirementKind
+  | {
+      readonly kind?: RequirementKind;
+      readonly approvers?: readonly string[];
+      readonly required?: number;
+    };
+
+/**
+ * A partial matcher over the typed execution detail: `code` is compared
+ * exactly, every other property is the host's own and unconstrained (0.3.0).
+ */
+export type ExecutionDetailExpectation = { readonly code?: string };
+
+/**
+ * A partial matcher over one `MultiParty` approval record (0.3.0). `attestation`
+ * is the record's own attestor — `member` or `member-via-relay`, never
+ * `standing-order` — the same shape {@link EntryExpectation.attestation} takes.
+ */
+export interface ApprovalRecordExpectation {
+  readonly approver?: string;
+  readonly decision?: "approve" | "reject";
+  readonly reason?: string | null;
+  readonly attestation?: Attestor | null;
+}
+
 /** A partial matcher over a Docket row. */
 export interface EntryExpectation {
   readonly status?: string;
@@ -421,19 +451,33 @@ export interface EntryExpectation {
    * Stated where a fixture is about a row being *unchanged*: a refused second
    * execution report has to leave both halves of the first one standing, and an
    * outcome alone would not show that the detail had been overwritten (DK-4).
+   * From 0.3.0 the row's own value is a typed object; `null`, or a partial
+   * matcher over it, is what a fixture states.
    */
-  readonly executionDetail?: string | null;
-  readonly requirement?: RequirementKind;
+  readonly executionDetail?: ExecutionDetailExpectation | null;
+  readonly requirement?: RequirementExpectation;
   readonly blocked?: BlockedMarker | null;
   readonly toolName?: string;
   readonly channel?: string;
   readonly tenantId?: string;
   readonly conversationId?: string;
-  /** The composite this entry is one constituent of (AZ-4), or `null` for none. */
-  readonly compositeRef?: string | null;
   /** The attestor as it must read (AZ-1, AZ-3), or `null` for no attestation. */
   readonly attestation?: Attestor | null;
-  readonly decision?: { readonly kind: string; readonly reason: string | null } | null;
+  readonly decision?: {
+    readonly kind: string;
+    readonly reason: string | null;
+    /** The principal whose act folded the row — required on every decided row (0.3.0). */
+    readonly by?: string;
+  } | null;
+  /**
+   * The WHOLE list of approval records, in record order, or `null`.
+   *
+   * `null` asserts `requirement.kind !== "MultiParty"`; a `MultiParty` row's
+   * list is `[]` at filing and gains one entry per decision folded onto it so
+   * far — the same "state the whole list, in order" convention `affidavit.fields`
+   * uses (0.3.0).
+   */
+  readonly approvals?: readonly ApprovalRecordExpectation[] | null;
   readonly amendments?: AmendmentMap | null;
   readonly preservedAmendments?: {
     readonly amendments: AmendmentMap;
@@ -534,6 +578,15 @@ export interface CardExpectation {
     readonly allowedValues?: readonly JsonValue[];
     readonly pattern?: string;
   }[];
+  /**
+   * Stated whole, never partially: `null` for a card not built from a
+   * `MultiParty` row, otherwise the approvers in the row's own order and the
+   * required count (0.3.0).
+   */
+  readonly multiParty?: {
+    readonly approvers: readonly { readonly id: string; readonly decided: string | null }[];
+    readonly required: number;
+  } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -631,9 +684,9 @@ const FIXTURE_KEYS = {
     "channel",
     "tenantId",
     "conversationId",
-    "compositeRef",
     "attestation",
     "decision",
+    "approvals",
     "amendments",
     "preservedAmendments",
     "lineage",
@@ -676,6 +729,7 @@ const FIXTURE_KEYS = {
     "emptyFieldCount",
     "fields",
     "presentation",
+    "multiParty",
   ],
   cardField: ["name", "kind", "value", "isMandatory"],
   cardPresentation: ["name", "kind", "allowedValues", "pattern"],
@@ -694,7 +748,6 @@ const STEP_KEYS = {
     "preparedFields",
     "args",
     "operationLabel",
-    "compositeRef",
   ],
   decide: ["decision"],
   resubmit: [],
@@ -1694,7 +1747,6 @@ async function performStep(
           ...(step.operationLabel === undefined || step.operationLabel === null
             ? {}
             : { operationLabel: step.operationLabel }),
-          ...(step.compositeRef === undefined ? {} : { compositeRef: step.compositeRef }),
         };
         const filed = await deps.gate.file(proposal, ctx);
         return { ...NOTHING, filed, entryId: filed.entry.entryId };
@@ -1825,15 +1877,88 @@ async function checkEntry(
   // about the read.
   compare(`${at}.status`, expected.status, readStatus(entry, now), failures);
   compare(`${at}.execution`, expected.execution, entry.execution, failures);
-  compare(`${at}.executionDetail`, expected.executionDetail, entry.executionDetail, failures);
-  compare(`${at}.requirement`, expected.requirement, entry.requirement, failures);
+
+  if (expected.executionDetail !== undefined) {
+    if (expected.executionDetail === null) {
+      compare(`${at}.executionDetail`, null, entry.executionDetail, failures);
+    } else if (entry.executionDetail === null) {
+      failures.push({
+        at: `${at}.executionDetail`,
+        expected: expected.executionDetail,
+        actual: null,
+      });
+    } else {
+      compare(
+        `${at}.executionDetail.code`,
+        expected.executionDetail.code,
+        entry.executionDetail.code,
+        failures,
+      );
+    }
+  }
+
+  // From 0.3.0, `requirement` is a kind name (shorthand) or a partial matcher
+  // over the object; a stated `approvers` is the whole list, in order.
+  if (expected.requirement !== undefined) {
+    if (typeof expected.requirement === "string") {
+      compare(`${at}.requirement.kind`, expected.requirement, entry.requirement.kind, failures);
+    } else {
+      compare(`${at}.requirement.kind`, expected.requirement.kind, entry.requirement.kind, failures);
+      if (expected.requirement.approvers !== undefined) {
+        compare(
+          `${at}.requirement.approvers`,
+          expected.requirement.approvers,
+          entry.requirement.kind === "MultiParty" ? entry.requirement.approvers : undefined,
+          failures,
+        );
+      }
+      if (expected.requirement.required !== undefined) {
+        compare(
+          `${at}.requirement.required`,
+          expected.requirement.required,
+          entry.requirement.kind === "MultiParty" ? entry.requirement.required : undefined,
+          failures,
+        );
+      }
+    }
+  }
+
   compare(`${at}.blocked`, expected.blocked, entry.blocked, failures);
   compare(`${at}.toolName`, expected.toolName, entry.toolName, failures);
   compare(`${at}.channel`, expected.channel, entry.channel, failures);
   compare(`${at}.tenantId`, expected.tenantId, entry.tenantId, failures);
   compare(`${at}.conversationId`, expected.conversationId, entry.conversationId, failures);
-  compare(`${at}.compositeRef`, expected.compositeRef, entry.compositeRef, failures);
   compare(`${at}.amendments`, expected.amendments, entry.amendments, failures);
+
+  // `approvals` is the WHOLE list of approval records, in record order, or
+  // `null` — the same convention `affidavit.fields` uses (0.3.0).
+  if (expected.approvals !== undefined) {
+    if (expected.approvals === null) {
+      compare(`${at}.approvals`, null, entry.approvals, failures);
+    } else {
+      const actual = entry.approvals ?? [];
+      compare(
+        `${at}.approvals`,
+        expected.approvals.length,
+        actual.length,
+        failures,
+      );
+      for (const [index, wanted] of expected.approvals.entries()) {
+        const record = actual[index];
+        const path = `${at}.approvals[${String(index)}]`;
+        if (record === undefined) {
+          failures.push({ at: path, expected: wanted, actual: undefined });
+          continue;
+        }
+        compare(`${path}.approver`, wanted.approver, record.approver, failures);
+        compare(`${path}.decision`, wanted.decision, record.decision, failures);
+        compare(`${path}.reason`, wanted.reason, record.reason, failures);
+        if (wanted.attestation !== undefined) {
+          compare(`${path}.attestation`, wanted.attestation, record.attestation.by, failures);
+        }
+      }
+    }
+  }
   compare(
     `${at}.preservedAmendments`,
     expected.preservedAmendments,
@@ -1851,7 +1976,11 @@ async function checkEntry(
     compare(
       `${at}.decision`,
       expected.decision,
-      entry.decision === null ? null : { kind: entry.decision.kind, reason: entry.decision.reason },
+      entry.decision === null
+        ? null
+        : expected.decision !== null && expected.decision.by !== undefined
+          ? { kind: entry.decision.kind, reason: entry.decision.reason, by: entry.decision.by }
+          : { kind: entry.decision.kind, reason: entry.decision.reason },
       failures,
     );
   }
@@ -2051,6 +2180,7 @@ function checkCard(
   );
   compare("card.priorAmendments", expected.priorAmendments, card.priorAmendments, failures);
   compare("card.blocked", expected.blocked, card.blocked, failures);
+  compare("card.multiParty", expected.multiParty, card.multiParty, failures);
   compare("card.protocolVersion", expected.protocolVersion, card.protocolVersion, failures);
   compare(
     "card.aggregateConfidence",
