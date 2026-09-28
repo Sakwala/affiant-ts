@@ -1,8 +1,8 @@
 {
-  "protocolVersion": "0.1.0",
+  "protocolVersion": "0.3.0",
   "docketId": "421b12e8-d13f-85a5-8afa-fdb44b7fd08f",
   "affidavit": {
-    "protocolVersion": "0.1.0",
+    "protocolVersion": "0.3.0",
     "operationType": "update",
     "entityType": "Invoice",
     "entityId": "invoice-1",
