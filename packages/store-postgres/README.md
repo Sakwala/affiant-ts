@@ -126,10 +126,9 @@ left as it is.
 
 **Run migrations as a superuser or a role with `BYPASSRLS`.** `0003` guards this
 directly: it raises before doing anything unless `current_user` can bypass row level
-security, because `0001` and `0002`'s row-level-security statements over
-`docket_entries` were only ever effective under that role, and `0002`'s
-blocked-`MultiParty` refusal and `filed_row` rewrite otherwise see zero rows and
-succeed silently. Where the guard passes, `0003` also repairs what a silent `0002` run
+security, because `0002`'s blocked-`MultiParty` refusal and `filed_row` rewrite are
+plain DML under `force row level security` on `docket_entries` and under any other
+role see zero rows and succeed silently. Where the guard passes, `0003` also repairs what a silent `0002` run
 under an ordinary role left behind — re-applying `0002`'s refusal and rewrite over rows
 still in the pre-0.3.0 shape, leaving a row `0002` already converted byte-identical. The
 application role stays ordinary; only the migrator needs the elevated role. A host that
