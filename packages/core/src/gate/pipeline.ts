@@ -287,15 +287,6 @@ export interface PipelineProposal {
    * a first filing.
    */
   readonly priorAmendments: AmendmentMap | null;
-  /**
-   * The composite this entry is one constituent of (AZ-4), or `null` for a
-   * standalone entry — host-chosen, opaque, set at filing only.
-   *
-   * Set by `Gate.file` only; `wrap`'s agent path always supplies `null`, and
-   * `resubmit` copies the superseded row's value verbatim (R-4) rather than
-   * accepting one on the call. An absent value is read as `null`.
-   */
-  readonly compositeRef: string | null;
 }
 
 /** Everything the pipeline needs from the host, assembled once by `createGate`. */
@@ -508,19 +499,6 @@ export async function runPipeline(
   requireTurnIdentifier(ctx.conversationId, "conversationId");
   requireTurnIdentifier(ctx.tenantId, "tenantId");
   requireTurnIdentifier(ctx.channel, "channel");
-
-  // AZ-4: normalised once, so a caller of this exported function who omits the field
-  // (or passes null) is filing a standalone entry, not a mismatched one.
-  const compositeRef = proposal.compositeRef ?? null;
-  if (compositeRef !== null && (typeof compositeRef !== "string" || compositeRef.length === 0)) {
-    throw new AffiantCallerError(
-      "composite-ref-invalid",
-      `AZ-4: compositeRef must be a non-empty string identifying the composite this ` +
-        `entry is one constituent of; ${JSON.stringify(compositeRef)} was supplied. ` +
-        `Nothing is filed.`,
-      { compositeRef },
-    );
-  }
 
   // Beside it, and for the same reason: a prepared field's provenance is written by
   // the host, so a binding the protocol's schema refuses is refused here — before the
@@ -769,9 +747,6 @@ export async function runPipeline(
     // DK-1: a resubmission names what it replaces on the way in. The successor link
     // is written on the *other* row, by `resubmit`, after this filing succeeds.
     ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
-    // AZ-4: the composite this entry is one constituent of, host-chosen and opaque; the
-    // row type defaults it to null, so it is written only when the host named one.
-    ...(compositeRef === null ? {} : { compositeRef }),
     // A Standing Order writes status, execution outcome and attestation in the same
     // operation as the filing (AZ-1) — never a file followed by an approve, which
     // would leave a window in which an approved write had no attestation.
@@ -782,21 +757,6 @@ export async function runPipeline(
   };
 
   const { entry, created } = await deps.store.file(newEntry(init));
-
-  // AZ-4: a replay whose proposal names a different composite than the stored row is
-  // not a retry — it is a second constituent with material identical to the first, and
-  // it would otherwise collapse to one row for N reviewers. The store has already
-  // answered and written nothing new; this only refuses the caller's own filing.
-  if (!created && (entry.compositeRef ?? null) !== compositeRef) {
-    throw new AffiantCallerError(
-      "composite-ref-mismatch",
-      `AZ-4: Docket entry ${entry.entryId} replays an existing row that records composite ` +
-        `${JSON.stringify(entry.compositeRef)}, but this filing names ${JSON.stringify(compositeRef)}; ` +
-        `a second constituent must differ in its material (GT-4), not only in its compositeRef. ` +
-        `Nothing new is written.`,
-      { entryId: entry.entryId, stored: entry.compositeRef, proposed: compositeRef },
-    );
-  }
 
   if (fires && outcome.policy !== null) {
     deps.telemetry.emit({
@@ -1015,14 +975,6 @@ function wireCarry(entry: DocketEntry, build: CardBuild): WireCarry {
     warnings.push(
       `AZ-4: ${String(entry.blocked.level)} approval is not implemented in this version; the ` +
         `entry is blocked and no decision on it will be accepted.`,
-    );
-  }
-  // AZ-4: read off the row, so this sentence appears whether the card is built at
-  // filing or later by `cardFor` — a constituent's card says so on its face either way.
-  if (entry.compositeRef !== null) {
-    warnings.push(
-      `AZ-4: this entry is one constituent of composite ${JSON.stringify(entry.compositeRef)}; ` +
-        `its approval alone does not reach the executor.`,
     );
   }
 

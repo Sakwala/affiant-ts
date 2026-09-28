@@ -132,18 +132,6 @@ export interface WriteProposal {
   readonly args?: JsonValue;
   /** The host's own verb for the operation, carried onto the card. */
   readonly operationLabel?: string;
-  /**
-   * The composite this entry is one constituent of (AZ-4) — host-chosen, opaque,
-   * set at filing only.
-   *
-   * A host composing multi-party approval above the gate mints one identifier per
-   * composite and carries it on every constituent's proposal here; `gate.wrap`'s
-   * agent path has no composite to carry and files `null`. Must be a non-empty
-   * string when supplied, or `gate.file` throws {@link AffiantCallerError} kind
-   * `composite-ref-invalid` and files nothing. `null` means none, the same as
-   * leaving it out.
-   */
-  readonly compositeRef?: string | null;
 }
 
 /** The gate a host builds once and calls from every seam (CV-2). */
@@ -357,7 +345,6 @@ export function createGate(options: GateOptions): Gate {
           operationLabel: proposal.operationLabel ?? null,
           supersedes: null,
           priorAmendments: null,
-          compositeRef: proposal.compositeRef ?? null,
         },
         ctx,
         deps,
