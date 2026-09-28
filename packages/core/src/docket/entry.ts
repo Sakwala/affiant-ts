@@ -248,10 +248,10 @@ export type Attestor =
       readonly approvers: readonly (MemberAttestor | MemberViaRelayAttestor)[];
     };
 
-/** The `member` arm of {@link Attestor}, named for N-3's own vocabulary. */
+/** The `member` arm of {@link Attestor}, named for AZ-3's own vocabulary. */
 export type MemberAttestor = Extract<Attestor, { kind: "member" }>;
 
-/** The `member-via-relay` arm of {@link Attestor}, named for N-3's own vocabulary. */
+/** The `member-via-relay` arm of {@link Attestor}, named for AZ-3's own vocabulary. */
 export type MemberViaRelayAttestor = Extract<Attestor, { kind: "member-via-relay" }>;
 
 /**
