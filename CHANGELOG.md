@@ -12,6 +12,17 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.3`, `@affiant/core` `0.1.0-alpha.7` and `@affiant/store-postgres`
+  `0.1.0-alpha.5`: the protocol pin moves to the tag.** `packages/contract/protocol/PIN` now names
+  [`v0.3.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.3.0) (`38a91cf`) rather than
+  commit `247948c` (pull request [#47](https://github.com/Sakwala/affiant-protocol/pull/47)'s head,
+  pinned while no tag existed) — the vendored bytes at the tag are identical to that commit's, so no
+  wire type, schema or fixture changed; what changed at the tag is the rulebook's own text, including
+  AZ-4's *Why*, which now records that the quorum below the approver list has run, and the fold
+  sentence stating that rejection is terminal, the host's next request is a new entry, and
+  `lineage.supersedes` names only an expired entry
+  ([#49](https://github.com/Sakwala/affiant-protocol/pull/49)). No code changes.
+
 - **`@affiant/core` `0.1.0-alpha.6` and `@affiant/store-postgres` `0.1.0-alpha.3`: native `MultiParty`,
   built against [`Sakwala/affiant-protocol`](https://github.com/Sakwala/affiant-protocol) `v0.3-pre` at
   `247948c` ([#47](https://github.com/Sakwala/affiant-protocol/pull/47)), tagged `v0.3.0-pre.1` by the owner.**

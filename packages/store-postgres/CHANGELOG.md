@@ -8,6 +8,12 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [Unreleased]
+
+### Changed
+
+- Pinned to `v0.3.0`; no code change.
+
 ## [0.1.0-alpha.4] — 2026-09-28
 
 ### Added

@@ -10,6 +10,10 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Pinned to `v0.3.0`; no code change.
+
 ## [0.1.0-alpha.5] — 2026-09-27
 
 Native `MultiParty` semantics stay reserved; this release is the package's part of what

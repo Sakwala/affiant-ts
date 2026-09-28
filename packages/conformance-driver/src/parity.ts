@@ -301,8 +301,8 @@ export const parityManifest: ParityManifest = {
   // (conformance/PARITY.md): "When the run happened." A literal because this module runs
   // inside workerd and cannot read the file; `published-claims.test.ts` holds it to that
   // file, so a regenerated run and a stale literal cannot both be committed.
-  producedAt: "2026-09-28T03:05:39.040Z",
-  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.6.json",
+  producedAt: "2026-09-28T11:07:10.005Z",
+  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.7.json",
   failing: [],
   adapters: [
     {
