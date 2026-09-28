@@ -21,6 +21,59 @@ alter table {{schema}}.docket_entries
 alter table {{schema}}.docket_entries
   drop column composite_ref;
 
+-- AZ-4: a level an implementation has not reached files `pending` with the requirement
+-- recorded verbatim and a `blocked` marker, never executed. An implementation that has
+-- not reached 0.3.0 does that for `MultiParty`, and such a row has no approval records
+-- to rewrite and no way to state one at 0.3.0 (there is no host policy on file for it
+-- here), so it is refused rather than guessed at: expire or purge it first.
+do $$
+declare
+  blocked_multiparty_rows integer;
+begin
+  select count(*) into blocked_multiparty_rows
+  from {{schema}}.docket_entries
+  where filed_row ->> 'status' = 'pending'
+    and filed_row ->> 'requirement' = 'MultiParty';
+
+  if blocked_multiparty_rows > 0 then
+    raise exception 'expire or purge blocked MultiParty rows before upgrading; they cannot be represented at 0.3.0 (% row(s) found)', blocked_multiparty_rows;
+  end if;
+end $$;
+
+-- Every other existing row's `filed_row` predates the object requirement, the
+-- approvals list and typed `decision.by`/`executionDetail` (0.3.0), so it is rewritten
+-- in place to the shape `fold.ts` reads: the bare kind name becomes `{ kind }`;
+-- `compositeRef` (dropped from the column above, AZ-4: composition above the gate is
+-- withdrawn) leaves the jsonb too; a decided row's `decision` gains `by`, read from
+-- the entry-level attestation the pre-0.3.0 gate wrote (`member`'s own `id`, or a
+-- relay's `memberId` — never the relay's own id, DK-1); and a string `executionDetail`
+-- becomes the typed object the string always meant, tagged `legacy` because no
+-- pre-0.3.0 code minted a vocabulary this migration could reuse.
+update {{schema}}.docket_entries
+set filed_row = (filed_row - 'compositeRef')
+  || jsonb_build_object(
+       'requirement', jsonb_build_object('kind', filed_row ->> 'requirement'),
+       'approvals', 'null'::jsonb,
+       'decision', case
+         when jsonb_typeof(filed_row -> 'decision') = 'object'
+           then (filed_row -> 'decision') || jsonb_build_object(
+                  'by', coalesce(
+                    filed_row -> 'attestation' -> 'by' ->> 'id',
+                    filed_row -> 'attestation' -> 'by' ->> 'memberId'
+                  )
+                )
+         else filed_row -> 'decision'
+       end,
+       'executionDetail', case
+         when jsonb_typeof(filed_row -> 'executionDetail') = 'string'
+           then jsonb_build_object('code', 'legacy', 'note', filed_row ->> 'executionDetail')
+         else filed_row -> 'executionDetail'
+       end
+     )
+where jsonb_typeof(filed_row -> 'requirement') = 'string'
+   or filed_row ? 'compositeRef'
+   or jsonb_typeof(filed_row -> 'executionDetail') = 'string';
+
 -- The host policy's list of approvers, one row per name, in the order the policy
 -- named them — `position` is what lets a read reproduce that order without trusting
 -- whatever order a query happens to return rows in. Filed once, with the entry, and
@@ -51,6 +104,12 @@ create table if not exists {{schema}}.docket_approvals (
   reason       text,
   decided_at   timestamptz not null,
   attestation  jsonb       not null,
+  -- The order the row's own insert took the entry's lock in (AZ-4: approvals compose
+  -- "in record order"), never `decided_at` — the gate reads its clock before it takes
+  -- the lock, so two approvers can tie on `at` or even invert it under a race; `seq`
+  -- cannot, because Postgres serialises the identity sequence and the row that gets
+  -- the lower value is the row that committed first.
+  seq          bigint      not null generated always as identity,
   primary key (tenant_id, entry_id, approver),
   foreign key (tenant_id, entry_id, approver)
     references {{schema}}.docket_approvers (tenant_id, entry_id, approver) on delete cascade
@@ -72,11 +131,14 @@ create policy docket_approvals_tenant on {{schema}}.docket_approvals
   using (tenant_id = {{schema}}.current_tenant())
   with check (tenant_id = {{schema}}.current_tenant());
 
--- Reading an entry joins its approvals ordered by decided_at, approver (N-7), so
--- every reader — `#fold`, `#slice`, the sweep's own view of the row — gets the same
--- order without repeating the join by hand. The view is recreated whole (the same
--- shape `0001:100-156` defines, one lateral join added) rather than altered in
--- place, because a view's column list cannot be extended with `alter view`.
+-- Reading an entry joins its approvals ordered by `seq` — the insert order under the
+-- entry's own lock, which is record order (AZ-4) — so every reader — `#fold`,
+-- `#slice`, the sweep's own view of the row — gets the same order without repeating
+-- the join by hand. `approvals` is appended as the view's **last** column and the view
+-- is `create or replace`d, never dropped: Postgres keeps every privilege granted on a
+-- view across a column appended by `create or replace`, and drops them all the moment
+-- the view is dropped, which a host that granted `select` on it after `0001` would
+-- otherwise discover only when the next read failed.
 --
 -- `to_char(... 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')` is what turns the stored
 -- `timestamptz` back into the ISO 8601 instant the core wrote in (`decided_at`
@@ -88,9 +150,6 @@ create policy docket_approvals_tenant on {{schema}}.docket_approvals
 -- touches it. `jsonb_agg` over zero rows is `null`, not `[]`; the fold (`fold.ts`)
 -- tells "no approvals recorded yet" and "not a MultiParty row" apart by
 -- `requirement.kind`, never by which of the two this column happens to read.
--- The view gains a column; Postgres refuses to add one through create-or-replace, so the view is dropped and made again.
-drop view if exists {{schema}}.docket_current;
-
 create or replace view {{schema}}.docket_current
   with (security_invoker = true)
   as
@@ -106,7 +165,6 @@ select
   s.payload  as supersession_payload,
   p.payload  as preserved_payload,
   q.payload  as expiry_payload,
-  a.approvals as approvals,
   case
     when d.payload is not null then d.payload ->> 'status'
     when q.payload is not null then 'expired'
@@ -122,7 +180,8 @@ select
     when d.payload is not null then (d.payload ->> 'decidedAt')::timestamptz
     when q.payload is not null then (q.payload ->> 'decidedAt')::timestamptz
     else (e.filed_row ->> 'decidedAt')::timestamptz
-  end as decided_at
+  end as decided_at,
+  a.approvals as approvals
 from {{schema}}.docket_entries e
 left join lateral (
   select ev.payload from {{schema}}.docket_events ev
@@ -153,7 +212,7 @@ left join lateral (
              'at', to_char(ap.decided_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
              'attestation', ap.attestation
            )
-           order by ap.decided_at, ap.approver
+           order by ap.seq
          ) as approvals
   from {{schema}}.docket_approvals ap
   where ap.tenant_id = e.tenant_id and ap.entry_id = e.entry_id
