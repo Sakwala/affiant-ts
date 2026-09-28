@@ -39,7 +39,7 @@
  * change bumps the minor. A consumer refuses a payload whose major differs from
  * this and MAY warn on a newer minor it does not know.
  *
- * Generated (BD-256): defined once in `./schemas.js` from `protocol/PIN`'s optional
+ * Generated: defined once in `./schemas.js` from `protocol/PIN`'s optional
  * `schemas=<version>` line, or `"0.1.0"` when that line is absent. Re-exported here
  * so a consumer importing the package's root need not know it moved.
  */
@@ -618,8 +618,23 @@ export interface StandingOrderAttestor {
   version: string;
 }
 
+/**
+ * A `MultiParty` requirement folded from its approval records (AZ-4). Composed of
+ * those records' own attestations and nothing else (AZ-1, AZ-3) — there is no path
+ * by which this arm is built from principals directly.
+ */
+export interface MultiPartyAttestor {
+  kind: "multi-party";
+  /** The `approve` records' own attestors, in the order they were recorded. */
+  approvers: readonly (MemberAttestor | MemberViaRelayAttestor)[];
+}
+
 /** Who agreed. The **mode** is the kind — there is no separate mode field for it to drift from. */
-export type Attestor = MemberAttestor | MemberViaRelayAttestor | StandingOrderAttestor;
+export type Attestor =
+  | MemberAttestor
+  | MemberViaRelayAttestor
+  | StandingOrderAttestor
+  | MultiPartyAttestor;
 
 /**
  * Who agreed to a write, when, and to which entry (AZ-1). Every executed write
