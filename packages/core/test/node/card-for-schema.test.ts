@@ -176,10 +176,13 @@ async function cards(): Promise<{ readonly [name: string]: EvidenceCardRequest }
   const blockedRequirement = harness({
     policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
   });
-  built["blocked: a requirement this version does not run"] = cardFor(await fileOne(blockedRequirement), {
-    now: AT,
-    schema: SCHEMA,
-  });
+  built["blocked: a requirement this version does not run"] = cardFor(
+    await fileOne(blockedRequirement),
+    {
+      now: AT,
+      schema: SCHEMA,
+    },
+  );
 
   const uncovered = harness({ uncovered: [["update_invoice", "no-execute"]] });
   built["blocked: a tool the host declared uncovered"] = cardFor(await fileOne(uncovered), {

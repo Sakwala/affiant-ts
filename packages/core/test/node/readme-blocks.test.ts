@@ -14,7 +14,15 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -81,110 +89,106 @@ const built = existsSync(join(packageRoot, "dist", "index.d.ts"));
 const online = registryReachable();
 
 describe.skipIf(!online)("the README's fenced ts blocks", () => {
-  it(
-    "each compiles under tsc --strict against the packed tarball",
-    { timeout: 300_000 },
-    () => {
-      expect(built, "dist/index.d.ts is missing — build the package before this test").toBe(true);
+  it("each compiles under tsc --strict against the packed tarball", { timeout: 300_000 }, () => {
+    expect(built, "dist/index.d.ts is missing — build the package before this test").toBe(true);
 
-      const blocks = readmeTsBlocks();
-      expect(blocks.length).toBeGreaterThan(0);
+    const blocks = readmeTsBlocks();
+    expect(blocks.length).toBeGreaterThan(0);
 
-      const packs = join(scratch, "packs");
-      const contractPacks = join(scratch, "contract-packs");
-      const project = join(scratch, "project");
-      for (const directory of [packs, contractPacks, project]) {
-        mkdirSync(directory, { recursive: true });
-      }
+    const packs = join(scratch, "packs");
+    const contractPacks = join(scratch, "contract-packs");
+    const project = join(scratch, "project");
+    for (const directory of [packs, contractPacks, project]) {
+      mkdirSync(directory, { recursive: true });
+    }
 
-      const packed = run("pnpm", ["pack", "--pack-destination", packs], packageRoot);
-      expect(packed, "pnpm pack failed for the core").not.toBeNull();
-      const coreTarball = tarballIn(packs);
-      expect(coreTarball).not.toBeNull();
+    const packed = run("pnpm", ["pack", "--pack-destination", packs], packageRoot);
+    expect(packed, "pnpm pack failed for the core").not.toBeNull();
+    const coreTarball = tarballIn(packs);
+    expect(coreTarball).not.toBeNull();
 
-      // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
-      // has not published — a workspace dependency, so it is packed alongside the core
-      // and installed from its own tarball, rather than pulled from the registry (BD-310).
-      const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
-      expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
-      const contractTarball = tarballIn(contractPacks);
-      expect(contractTarball).not.toBeNull();
+    // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+    // has not published — a workspace dependency, so it is packed alongside the core
+    // and installed from its own tarball, rather than pulled from the registry (BD-310).
+    const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+    expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
+    const contractTarball = tarballIn(contractPacks);
+    expect(contractTarball).not.toBeNull();
 
-      writeFileSync(
-        join(project, "package.json"),
-        `${JSON.stringify(
-          { name: "affiant-readme-blocks-consumer", version: "0.0.0", private: true, type: "module" },
-          null,
-          2,
-        )}\n`,
-      );
+    writeFileSync(
+      join(project, "package.json"),
+      `${JSON.stringify(
+        { name: "affiant-readme-blocks-consumer", version: "0.0.0", private: true, type: "module" },
+        null,
+        2,
+      )}\n`,
+    );
 
-      const blockFiles = blocks.map((_, index) => `block-${String(index)}.ts`);
-      writeFileSync(
-        join(project, "tsconfig.json"),
-        `${JSON.stringify(
-          {
-            compilerOptions: {
-              strict: true,
-              target: "ES2023",
-              lib: ["ES2023", "DOM"],
-              module: "NodeNext",
-              moduleResolution: "NodeNext",
-              noEmit: true,
-              skipLibCheck: false,
-              skipDefaultLibCheck: true,
-              types: ["node"],
-            },
-            include: blockFiles,
+    const blockFiles = blocks.map((_, index) => `block-${String(index)}.ts`);
+    writeFileSync(
+      join(project, "tsconfig.json"),
+      `${JSON.stringify(
+        {
+          compilerOptions: {
+            strict: true,
+            target: "ES2023",
+            lib: ["ES2023", "DOM"],
+            module: "NodeNext",
+            moduleResolution: "NodeNext",
+            noEmit: true,
+            skipLibCheck: false,
+            skipDefaultLibCheck: true,
+            types: ["node"],
           },
-          null,
-          2,
-        )}\n`,
+          include: blockFiles,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+
+    for (const [index, body] of blocks.entries()) {
+      writeFileSync(join(project, blockFiles[index] as string), body);
+    }
+
+    const installed = run(
+      "npm",
+      [
+        "install",
+        "--no-audit",
+        "--no-fund",
+        "--loglevel",
+        "error",
+        coreTarball as string,
+        contractTarball as string,
+        "@types/node@22",
+      ],
+      project,
+    );
+    if (installed === null) {
+      expect.soft(registryReachable(), "the npm registry stopped answering mid-test").toBe(true);
+      throw new Error(
+        `installing the packed tarball into a scratch project failed against a ` +
+          `registry that answered \`npm ping\`: the published manifest cannot be ` +
+          `resolved by a consumer.`,
       );
+    }
 
-      for (const [index, body] of blocks.entries()) {
-        writeFileSync(join(project, blockFiles[index] as string), body);
-      }
+    const tsc = join(workspaceRoot, "node_modules", ".bin", "tsc");
+    let output = "";
+    let compileFailed = false;
+    try {
+      output = execFileSync(tsc, ["-p", "tsconfig.json"], {
+        cwd: project,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (error) {
+      compileFailed = true;
+      output = String((error as { stdout?: unknown }).stdout ?? error);
+    }
 
-      const installed = run(
-        "npm",
-        [
-          "install",
-          "--no-audit",
-          "--no-fund",
-          "--loglevel",
-          "error",
-          coreTarball as string,
-          contractTarball as string,
-          "@types/node@22",
-        ],
-        project,
-      );
-      if (installed === null) {
-        expect.soft(registryReachable(), "the npm registry stopped answering mid-test").toBe(true);
-        throw new Error(
-          `installing the packed tarball into a scratch project failed against a ` +
-            `registry that answered \`npm ping\`: the published manifest cannot be ` +
-            `resolved by a consumer.`,
-        );
-      }
-
-      const tsc = join(workspaceRoot, "node_modules", ".bin", "tsc");
-      let output = "";
-      let compileFailed = false;
-      try {
-        output = execFileSync(tsc, ["-p", "tsconfig.json"], {
-          cwd: project,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-      } catch (error) {
-        compileFailed = true;
-        output = String((error as { stdout?: unknown }).stdout ?? error);
-      }
-
-      expect(output, "tsc --strict reported errors against a README block").toBe("");
-      expect(compileFailed).toBe(false);
-    },
-  );
+    expect(output, "tsc --strict reported errors against a README block").toBe("");
+    expect(compileFailed).toBe(false);
+  });
 });

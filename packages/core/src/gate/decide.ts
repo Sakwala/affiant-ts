@@ -342,7 +342,12 @@ export async function decide(
   const patch: TransitionPatch = {
     status: decision.kind === "approve" ? "approved" : "rejected",
     execution: decision.kind === "approve" ? "unexecuted" : null,
-    decision: { kind: decision.kind, reason: decision.reason ?? null, at: now, by: subjectOf(attestor) },
+    decision: {
+      kind: decision.kind,
+      reason: decision.reason ?? null,
+      at: now,
+      by: subjectOf(attestor),
+    },
     amendments,
     attestation,
     decidedAt: now,
@@ -662,7 +667,6 @@ function resubmissionProposal(entry: DocketEntry): PipelineProposal {
     priorAmendments: prior,
   };
 }
-
 
 // ---------------------------------------------------------------------------
 // Identity and attestation (AZ-1, AZ-2, AZ-3)

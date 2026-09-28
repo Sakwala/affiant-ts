@@ -288,7 +288,11 @@ describe.skipIf(!built || !online)("a consumer of the packed tarball", () => {
       // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
       // has not published — a workspace dependency, so it is packed alongside the core
       // and installed from its own tarball, rather than pulled from the registry (BD-310).
-      const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+      const contractPacked = run(
+        "pnpm",
+        ["pack", "--pack-destination", contractPacks],
+        contractRoot,
+      );
       expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
       const contractTarball = tarballIn(contractPacks);
       expect(contractTarball).not.toBeNull();

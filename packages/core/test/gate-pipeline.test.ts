@@ -691,7 +691,9 @@ describe("the Evidence Card (SR-4)", () => {
   });
 
   it("does not ask for a confirmation on a blocked entry, and says why on the card", async () => {
-    const { gate } = harness({ policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })] });
+    const { gate } = harness({
+      policies: [policyReturning({ requirement: { kind: "ReferralRequired" } })],
+    });
 
     const filed = await gate.file(proposal(), turnContext());
 
