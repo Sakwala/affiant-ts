@@ -1450,7 +1450,7 @@ function checkEntry(
   compare(`${path}.status`, stated["status"], readStatus(row, now), failures);
   compare(`${path}.execution`, stated["execution"], row.execution, failures);
   compare(`${path}.executionDetail`, stated["executionDetail"], row.executionDetail, failures);
-  // From 0.3.0 `requirement` is an object (`{ kind, … }`, N-1); a fixture's plain
+  // From 0.3.0 `requirement` is an object (`{ kind, … }`, AZ-4); a fixture's plain
   // string is the `{ kind }` shorthand and compares to the row's own `kind` alone —
   // mirroring the same shorthand the declarative runner accepts in `@affiant/core`'s
   // `testing.ts`.

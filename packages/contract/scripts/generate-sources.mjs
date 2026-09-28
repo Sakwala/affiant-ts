@@ -153,7 +153,7 @@ export interface JsonSchemaDocument {
 }
 
 /**
- * The protocol version these schemas were vendored from (BD-256): \`protocol/PIN\`'s
+ * The protocol version these schemas were vendored from: \`protocol/PIN\`'s
  * optional \`schemas=<version>\` second line, or \`"0.1.0"\` when that line is absent —
  * what \`protocol/schemas/\` held before the line existed. Generated so a version
  * bump is a vendoring change, never a hand edit; \`./index.js\` re-exports this.
@@ -380,7 +380,7 @@ const wireEntries = manifest.fixtures.map((entry) => ({
   json: readJson(join(protocolDir, "fixtures", entry.file)),
 }));
 
-// BD-256: every versioned manifest section's schema documents are emitted, not just
+// Every versioned manifest section's schema documents are emitted, not just
 // 0.1.0's. A pin whose manifest carries no "0.3.0" section (older than this ruling)
 // gets an empty v03Entries/v03Fixtures rather than a missing export.
 const v03 = manifest["0.3.0"] ?? { fixtures: [], definitionsOnly: [] };
@@ -392,7 +392,7 @@ const v03Entries = v03.fixtures.map((entry) => ({
 }));
 
 /**
- * BD-257: a document validates against the schema version it was written for.
+ * A document validates against the schema version it was written for.
  * `protocol/schemas/` is a single flat directory holding only the pinned
  * (`wireSchemaVersion`) schema shapes, so a 0.1.0 document can only still validate if
  * the schema it names did not change shape between 0.1.0 and the pin — exactly the
@@ -442,7 +442,7 @@ ${v01Entries.map((e) => `  ${JSON.stringify(e.id)}: ${literal(e.json, "  ")},`).
 };
 
 /**
- * Every v0.3 fixture, keyed by its manifest id (BD-256): the \`MultiParty\`
+ * Every v0.3 fixture, keyed by its manifest id: the \`MultiParty\`
  * requirement, attestor and docket-entry shapes the 0.3.0 schemas describe. Left as
  * \`unknown\` for the same reason \`v01Fixtures\` is: a negative fixture is not
  * assignable to the type its schema describes.

@@ -63,6 +63,8 @@ const SKIP_DIRECTORIES = new Set(["node_modules", "dist", ".git"]);
  */
 const FORBIDDEN = [
   [/\bBD-\d+\b/, "a citation of an internal decision record (BD-n)"],
+  [/\bN-\d+\b/, "a citation of an internal ruling or ledger id (N-n)"],
+  [/\bM-\d+\b/, "a citation of an internal ruling or ledger id (M-n)"],
   [/\bledgers?\b/i, 'the word "ledger" — name the record, or cite the rulebook id'],
   [/\bOrrery\b/, "the name of a private project (Orrery)"],
   [/\bFin\b(?=\s)/, "the name of a private working agent (Fin)"],
