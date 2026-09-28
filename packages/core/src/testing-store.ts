@@ -2211,6 +2211,47 @@ const DOCKET_SECTIONS: readonly ContractSection<DocketStore, DocketContractSecti
         },
       },
       {
+        id: "approval/an-approve-with-a-reason-folds-with-it",
+        title: "folds keeping the folding record's own reason",
+        async run({ store, expect, scope, entry }) {
+          await store.file(
+            entry("entry-1", {
+              requirement: { kind: "MultiParty", approvers: ["ana", "bo"], required: 2 },
+            }),
+          );
+          const records: ApprovalRecord[] = [
+            {
+              approver: "ana",
+              decision: "approve",
+              reason: "checked the invoice",
+              at: NOON,
+              attestation: attestedBy("ana", "entry-1"),
+            },
+            {
+              approver: "bo",
+              decision: "approve",
+              reason: "agreed",
+              at: NOON,
+              attestation: attestedBy("bo", "entry-1"),
+            },
+          ];
+          let last: RecordApprovalResult | undefined;
+          for (const record of records) {
+            last = await store.recordApproval("entry-1", scope, record, { required: 2 });
+          }
+
+          expect(typeof last).not.toBe("string");
+          const outcome = last as Extract<RecordApprovalResult, { outcome: string }>;
+          expect(outcome.outcome).toBe("folded");
+          expect(outcome.entry.decision).toEqual({
+            kind: "approve",
+            reason: "agreed",
+            at: NOON,
+            by: "bo",
+          });
+        },
+      },
+      {
         id: "approval/first-reject-folds-naming-the-approver",
         title: "folds rejected on the first reject, naming the approver who rejected",
         async run({ store, expect, scope, entry }) {
