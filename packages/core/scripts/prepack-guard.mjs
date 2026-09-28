@@ -15,8 +15,9 @@
  *     (the oracle run log is alongside it, under conformance/results/)
  *   - this repository's conformance driver is green on Node, Bun and workerd, and
  *     the `conformance` job is required on `main`: see
- *     packages/conformance-driver/conformance/parity/typescript-v0.2.json, which
- *     records `"failing": []`
+ *     packages/conformance-driver/conformance/parity/typescript-v<major>.<minor>.json
+ *     (the pinned protocol's own major.minor — @affiant/contract's `PROTOCOL_VERSION`,
+ *     not a literal repeated here), which records `"failing": []`
  *
  * The tag is **read from that manifest** rather than repeated here. It has moved once
  * already — v0.1.0 to v0.1.3 — and a literal in this file went stale without anything
@@ -39,14 +40,25 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
+
 if (process.env["AFFIANT_ALLOW_PUBLISH"] === "1") {
   console.log("AFFIANT_ALLOW_PUBLISH=1: packing @affiant/core.");
   process.exit(0);
 }
 
-/** The manifest this message is about, in the sibling package that produces it. */
+/**
+ * The manifest this message is about, in the sibling package that produces it. The
+ * file name is the pinned protocol's own major.minor, not a literal repeated here —
+ * the same derivation `packages/conformance-driver/src/cli.ts`'s `--write-manifest`
+ * block uses.
+ */
+const [protocolMajor, protocolMinor] = PROTOCOL_VERSION.split(".");
 const manifestFile = fileURLToPath(
-  new URL("../../conformance-driver/conformance/parity/typescript-v0.2.json", import.meta.url),
+  new URL(
+    `../../conformance-driver/conformance/parity/typescript-v${protocolMajor}.${protocolMinor}.json`,
+    import.meta.url,
+  ),
 );
 
 /** The protocol tag the committed manifest names, or `null` when it cannot be read. */
@@ -78,7 +90,7 @@ console.error(
     dotnetReport +
     "  (the oracle run log sits beside it, under conformance/results/). This\n" +
     "  repository's conformance driver is green on Node, Bun and workerd and required\n" +
-    "  by branch protection: packages/conformance-driver/conformance/parity/typescript-v0.2.json\n" +
+    `  by branch protection: packages/conformance-driver/conformance/parity/typescript-v${protocolMajor}.${protocolMinor}.json\n` +
     againstTag +
     "  on 2026-09-06 on that basis, from .github/workflows/publish.yml, which is the only\n" +
     "  thing that sets the override.\n" +
