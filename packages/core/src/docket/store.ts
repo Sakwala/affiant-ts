@@ -54,10 +54,12 @@ import type { Affidavit } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 
 import type {
+  ApprovalRecord,
   Attestation,
   DecisionRecord,
   DocketEntry,
   DocketStatus,
+  ExecutionDetail,
   ExecutionOutcome,
   PreservedAmendments,
 } from "./entry.js";
@@ -188,8 +190,8 @@ export interface TransitionPatch {
   readonly attestation?: Attestation | null;
   /** When the row left `pending`. Defaults to the store's clock reading. */
   readonly decidedAt?: string | null;
-  /** What the executor reported, when the caller already knows. */
-  readonly executionDetail?: string | null;
+  /** What the executor reported, when the caller already knows (DK-1: an object). */
+  readonly executionDetail?: ExecutionDetail | null;
   /** The successor link, for a caller closing and superseding a row in one write. */
   readonly lineage?: { readonly supersededBy?: string | null };
 }
@@ -245,6 +247,30 @@ export type RecordExecutionResult =
 
 /** What {@link DocketStore.recordSupersession} returns. */
 export type RecordSupersessionResult = DocketEntry | "not-found" | "not-terminal";
+
+/**
+ * What {@link DocketStore.recordApproval} returns.
+ *
+ * `"recorded"` and `"folded"` are the same guarded transition's two outcomes, not two
+ * different writes: the record is appended and, in that same step, the entry's
+ * status folds when the record is the one that completes it (AZ-4). `"folded"` means
+ * this call's record was the one that closed the row — `entry.status` is no longer
+ * `pending`; `"recorded"` means the row is still `pending` after this record.
+ * `"already-recorded"` is this approver's own half of DK-1's guard: they already have
+ * a record on this entry, so this one changes nothing. `"conflict"` is the other
+ * half — the entry read as not `pending`, or `blocked`, for some other reason (it
+ * expired, another approver's record already folded it, or a level this
+ * implementation does not run blocked it) — a caller that gets it re-reads the entry
+ * and answers `decision-expired` or `decision-not-pending` itself, exactly as the
+ * racing loser of {@link DocketStore.transition} does. `"not-found"` is the same
+ * answer as every other scoped lookup: no such id in this scope, indistinguishable
+ * from a wrong tenant (AZ-2).
+ */
+export type RecordApprovalResult =
+  | { readonly outcome: "recorded" | "folded"; readonly entry: DocketEntry }
+  | "already-recorded"
+  | "conflict"
+  | "not-found";
 
 // ---------------------------------------------------------------------------
 // The store
@@ -356,9 +382,44 @@ export interface DocketStore {
     entryId: string,
     scope: Scope,
     outcome: Exclude<ExecutionOutcome, "unexecuted">,
-    detail: string | null,
+    detail: ExecutionDetail | null,
     expected: "unexecuted",
   ): Promise<RecordExecutionResult>;
+
+  /**
+   * Record one approver's act on a `MultiParty` entry, folding the row in the same
+   * step when this record completes it (AZ-4, DK-1).
+   *
+   * A single guarded transition, not two: the record's append and the fold it may
+   * cause happen with no interleaving point between them, so of two approvals racing
+   * for the `required`-th place, exactly one folds the row and the other reads
+   * `"conflict"`. The entry must be `pending`, unblocked and not past its deadline as
+   * read at the moment of the call — an entry that is any of those things answers
+   * `"conflict"`, and the caller (the gate) turns that into `decision-not-pending` or
+   * `decision-expired` by re-reading, the same way a losing {@link
+   * DocketStore.transition} caller does. `record.approver` having a record already is
+   * this method's own half of DK-1's guard and answers `"already-recorded"` — the
+   * *listing* check, that the approver is one of `requirement.approvers`, is the
+   * gate's, not this method's.
+   *
+   * A `reject` record always folds: the entry moves to `rejected` with `decision {
+   * kind: "reject", reason: record.reason, at: record.at, by: record.approver }`. An
+   * `approve` record folds only once the count of `approve` records (including this
+   * one) reaches `fold.required`; short of that it is appended and the row stays
+   * `pending`. A fold to `approved` writes `execution: "unexecuted"`, `decision {
+   * kind: "approve", reason: null, at: record.at, by: record.approver }` — naming the
+   * approver whose record completed it, not every approver — and an entry-level
+   * `attestation` composed by {@link multiPartyAttestorOf} from the folding
+   * `approve` records, in the order they were recorded. The row stays read-forward:
+   * a record is appended, never edited, and a fold writes facts beside the approvals
+   * list, never over it.
+   */
+  recordApproval(
+    entryId: string,
+    scope: Scope,
+    record: ApprovalRecord,
+    fold: { readonly required: number },
+  ): Promise<RecordApprovalResult>;
 
   /**
    * Record that a terminal entry has been resubmitted as `supersededBy` (DK-1).
