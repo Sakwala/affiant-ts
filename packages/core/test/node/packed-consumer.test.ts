@@ -33,6 +33,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 const workspaceRoot = join(packageRoot, "..", "..");
+const contractRoot = join(workspaceRoot, "packages", "contract");
 
 /** Run a command, returning its output, or `null` with nothing when it failed. */
 function run(command: string, args: readonly string[], cwd: string): string | null {
@@ -408,8 +409,9 @@ describe.skipIf(!online)("a consumer of the packed tarball", () => {
       // a failure to surface, not a reason to skip silently.
       expect(built, "dist/index.d.ts is missing — build the package before this test").toBe(true);
       const packs = join(scratch, "packs");
+      const contractPacks = join(scratch, "contract-packs");
       const project = join(scratch, "project");
-      for (const directory of [packs, project]) {
+      for (const directory of [packs, contractPacks, project]) {
         mkdirSync(directory, { recursive: true });
       }
 
@@ -417,6 +419,14 @@ describe.skipIf(!online)("a consumer of the packed tarball", () => {
       expect(packed, "pnpm pack failed for the core").not.toBeNull();
       const coreTarball = tarballIn(packs);
       expect(coreTarball).not.toBeNull();
+
+      // `@affiant/core`'s own manifest names `@affiant/contract` at a range this branch
+      // has not published — a workspace dependency, so it is packed alongside the core
+      // and installed from its own tarball, rather than pulled from the registry (BD-310).
+      const contractPacked = run("pnpm", ["pack", "--pack-destination", contractPacks], contractRoot);
+      expect(contractPacked, "pnpm pack failed for the contract").not.toBeNull();
+      const contractTarball = tarballIn(contractPacks);
+      expect(contractTarball).not.toBeNull();
 
       writeFileSync(
         join(project, "package.json"),
@@ -464,6 +474,7 @@ describe.skipIf(!online)("a consumer of the packed tarball", () => {
           "--loglevel",
           "error",
           coreTarball as string,
+          contractTarball as string,
           // What a host compiling under a full library check already has.
           "@types/node@22",
         ],
