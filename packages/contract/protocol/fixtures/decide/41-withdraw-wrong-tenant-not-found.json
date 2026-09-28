@@ -1,0 +1,94 @@
+{
+  "id": "decide/withdraw-wrong-tenant-not-found",
+  "rules": ["DK-1", "AZ-2"],
+  "title": "A withdraw made from another tenant is reported as entry not found, exactly as an id that never existed: a wrong-tenant withdraw of a pending entry is refused entry-not-found and the row is unchanged.",
+  "given": {
+    "clock": "2026-09-28T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": ["*"]
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "filer"
+      },
+      "utterance": "Set the invoice status to Active and the amount to 40",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "at": "2026-09-28T09:00:00.000Z",
+        "principal": {
+          "kind": "member",
+          "id": "filer"
+        },
+        "toolName": "update_invoice",
+        "operation": {
+          "kind": "update",
+          "entityType": "Invoice",
+          "entityId": "invoice-1",
+          "fields": ["status", "amount", "note"]
+        },
+        "preparedFields": [
+          {
+            "name": "status",
+            "kind": "text",
+            "value": "Active",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "amount",
+            "kind": "text",
+            "value": "40",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          },
+          {
+            "name": "note",
+            "kind": "text",
+            "value": "kept",
+            "provenance": {
+              "source": "Conversation",
+              "confidence": 0.9
+            }
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "withdraw",
+      "at": "2026-09-28T09:01:00.000Z",
+      "principal": {
+        "kind": "service",
+        "id": "host"
+      },
+      "tenantId": "tenant-b",
+      "reason": "the invoice was deleted before review"
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "entry-not-found"
+    },
+    "entry": {
+      "status": "pending",
+      "execution": null,
+      "attestation": null,
+      "decision": null
+    }
+  }
+}

@@ -575,7 +575,7 @@
         "status": {
           "description": "The status the output tells the model the row reads at. It must be the row's own: a seam that read an approval out of the framework's history and told the model `approved` over a `pending` row is what AZ-5 closes, and nothing else in this matcher would see it.",
           "type": "string",
-          "enum": ["pending", "approved", "rejected", "expired"]
+          "enum": ["pending", "approved", "rejected", "expired", "withdrawn"]
         },
         "carriesNoFieldValues": {
           "description": "The derived check the rule is about, and it is a check over TEXT rather than over structure: no key anywhere in the output is the name of a sworn field, and no serialisation of any sworn field's value appears as a substring of the output's own JSON serialisation. A STRING value's serialisation is its JSON-escaped body without the surrounding quotes, so a value sitting inside a longer sentence is found; every other value's is its whole JSON form. Structural equality is not enough — a summary whose note reads `filed for review: priority=High` has put a sworn value in the framework's history just as surely as one carrying it as a value. A serialisation shorter than three characters is compared as a whole JSON token instead, because a one-character value would otherwise match almost any output.",
@@ -673,6 +673,17 @@
           "unevaluatedProperties": false,
           "required": ["kind"],
           "properties": { "kind": { "const": "resubmit" } }
+        },
+        {
+          "title": "withdraw",
+          "description": "The host withdraws a pending entry whose subject it has abandoned (DK-1). `reason` is required.",
+          "allOf": [{ "$ref": "#/$defs/stepCommon" }],
+          "unevaluatedProperties": false,
+          "required": ["kind", "reason"],
+          "properties": {
+            "kind": { "const": "withdraw" },
+            "reason": { "type": "string" }
+          }
         },
         {
           "title": "markExecuted",
@@ -951,7 +962,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "expired"] },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "expired", "withdrawn"] },
         "execution": { "type": ["string", "null"], "enum": ["unexecuted", "executed", "failed", null] },
         "executionDetail": {
           "description": "From 0.3.0, a partial matcher over the typed executionDetail: `code`, when stated, is compared exactly; the row's other properties are the host's own and this clause says nothing about them unless it states one. `null` asserts the row carries no detail.",
@@ -987,10 +998,10 @@
               "additionalProperties": false,
               "required": ["kind", "reason"],
               "properties": {
-                "kind": { "type": "string", "enum": ["approve", "reject"] },
+                "kind": { "type": "string", "enum": ["approve", "reject", "withdraw"] },
                 "reason": { "type": ["string", "null"] },
                 "by": {
-                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind.",
+                  "description": "From 0.3.0, the principal whose act folded this row: required on every decided row, and the reviewer for a single-reviewer kind. For a withdrawal, the principal who withdrew (DK-1).",
                   "type": "string"
                 }
               }
