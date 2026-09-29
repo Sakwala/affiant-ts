@@ -73,9 +73,9 @@
   },
   "devDependencies": {
     "@affiant/core": "workspace:^",
-    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "ai": "7.0.101",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   }
 }

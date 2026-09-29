@@ -65,10 +65,10 @@
     "@affiant/conformance-driver": "workspace:^",
     "@affiant/contract": "workspace:^",
     "@affiant/core": "workspace:^",
-    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   }
 }
