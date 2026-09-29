@@ -1,4 +1,5 @@
-import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
 /**
  * The store contract, run inside workerd — the runtime a Cloudflare Worker host would
@@ -9,14 +10,14 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
  * Hyperdrive binding here, and there is no global setup either — a Node-context setup
  * that imported the driver would resolve the wrong build of it.
  */
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: { configPath: "./wrangler.jsonc" },
+    }),
+  ],
   test: {
     name: "store-postgres-workerd",
     include: ["test/contract.test.ts"],
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: "./wrangler.jsonc" },
-      },
-    },
   },
 });

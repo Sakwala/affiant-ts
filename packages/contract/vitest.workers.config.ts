@@ -1,4 +1,5 @@
-import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
 /**
  * The fixture and schema suites, run inside workerd — the runtime a Cloudflare
@@ -6,14 +7,14 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
  * because it reads the tracked files off disk and talks to codeload.github.com;
  * neither is a thing a Worker does.
  */
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: { configPath: "./wrangler.jsonc" },
+    }),
+  ],
   test: {
     name: "contract-workerd",
     include: ["test/fixtures.test.ts", "test/schema.test.ts", "test/enums.test.ts"],
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: "./wrangler.jsonc" },
-      },
-    },
   },
 });

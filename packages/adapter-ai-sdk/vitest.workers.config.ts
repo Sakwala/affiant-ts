@@ -1,4 +1,5 @@
-import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
 /**
  * The runtime-neutral suites, run inside workerd — the runtime a Cloudflare Worker
@@ -8,14 +9,14 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
  * Worker does. `test/*.test.ts` matches one level only, so a new suite under
  * `test/node/` stays out by construction.
  */
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: { configPath: "./wrangler.jsonc" },
+    }),
+  ],
   test: {
     name: "adapter-ai-sdk-workerd",
     include: ["test/*.test.ts"],
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: "./wrangler.jsonc" },
-      },
-    },
   },
 });

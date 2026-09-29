@@ -1,4 +1,5 @@
-import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
+import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
+import { defineConfig } from "vitest/config";
 
 /**
  * The conformance run, executed inside workerd — the runtime a Cloudflare Worker
@@ -10,14 +11,14 @@ import { defineWorkersConfig } from "@cloudflare/vitest-pool-workers/config";
  * document, and neither is a thing a Worker does. `test/*.test.ts` matches one
  * level only, so a new suite under `test/node/` stays out by construction.
  */
-export default defineWorkersConfig({
+export default defineConfig({
+  plugins: [
+    cloudflareTest({
+      wrangler: { configPath: "./wrangler.jsonc" },
+    }),
+  ],
   test: {
     name: "conformance-driver-workerd",
     include: ["test/*.test.ts"],
-    poolOptions: {
-      workers: {
-        wrangler: { configPath: "./wrangler.jsonc" },
-      },
-    },
   },
 });
