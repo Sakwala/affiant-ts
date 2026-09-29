@@ -199,7 +199,7 @@ export function probeUnicodeVersion(
 export const MEASURED_UNICODE_VERSIONS: Readonly<Record<ClaimedRuntime, string>> = {
   node: "17.0",
   bun: "17.0",
-  workerd: "16.0",
+  workerd: "17.0",
 };
 
 /** The recorded measurement for a runtime, or `undefined` for one not claimed. */
@@ -301,7 +301,7 @@ export const parityManifest: ParityManifest = {
   // (conformance/PARITY.md): "When the run happened." A literal because this module runs
   // inside workerd and cannot read the file; `published-claims.test.ts` holds it to that
   // file, so a regenerated run and a stale literal cannot both be committed.
-  producedAt: "2026-09-28T19:58:47.912Z",
+  producedAt: "2026-09-29T02:19:55.816Z",
   runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.10.json",
   failing: [],
   adapters: [
