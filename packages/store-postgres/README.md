@@ -277,7 +277,7 @@ deployment proves it.
 
 ## Status
 
-`@affiant/store-postgres` is `0.1.0-alpha.2` in this repository. Releases are published
+`@affiant/store-postgres` is `0.1.0-alpha.8` in this repository. Releases are published
 under the `alpha` dist-tag with a provenance attestation through this repository's
 publish workflow (`.github/workflows/publish.yml`), which moves the `alpha` dist-tag and
 no other; `npm view @affiant/store-postgres dist-tags` shows what the registry currently
