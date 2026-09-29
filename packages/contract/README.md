@@ -14,9 +14,9 @@ approve, amend or reject before the host commits anything.
 This package is types and data. It has no runtime dependencies and does nothing at
 import time.
 
-> **On npm at `0.1.0-alpha.1`**, under the `alpha` dist-tag and with a provenance
+> **On npm at `0.1.0-alpha.6`**, under the `alpha` dist-tag and with a provenance
 > attestation, since 2026-09-10: `npm i @affiant/contract@alpha`. `latest` and `alpha`
-> both point at `0.1.0-alpha.1`. Publishing is a separate, deliberate step — a workflow
+> both point at `0.1.0-alpha.6`. Publishing is a separate, deliberate step — a workflow
 > a maintainer dispatches by hand, which defaults to a dry run.
 
 ## Pinned protocol version
@@ -25,7 +25,7 @@ import time.
 description of what one implementation happened to send. The ref it is pinned to is
 in [`protocol/PIN`](protocol/PIN).
 
-That ref is the rulebook's **`v0.2.0`** tag — [`protocol/PIN`](protocol/PIN) above is
+That ref is the rulebook's **`v0.4.1`** tag — [`protocol/PIN`](protocol/PIN) above is
 the exact, current source of truth if this line has drifted from it again. It may
 also be a full commit, which is what it holds while a version's text is on the
 rulebook's default branch and its tag has not been cut: a commit is as immutable as
@@ -41,14 +41,16 @@ files onto `protocol/schemas/` when the line is present, and
 `src/schemas.ts`. Absent, both scripts keep vendoring the one live directory they
 find, exactly as before this line existed.
 
-Everything under `protocol/` is a byte-for-byte copy at that ref — 195 documents:
+Everything under `protocol/` is a byte-for-byte copy at that ref — 278 documents:
 
 | Path                                                     | What it is                                                                                                                         |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `protocol/schemas/`                                      | the 21 v0.1 JSON Schemas                                                                                                           |
+| `protocol/schemas/`                                      | the 23 v0.4 JSON Schemas                                                                                                           |
 | `protocol/schemas/seed/`                                 | the 8 superseded `0.0.1-seed` schemas, kept because a shipped framework still sends that shape                                     |
 | `protocol/fixtures/v0.1/`                                | 46 positive and 23 negative per-schema fixtures                                                                                    |
-| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 61 promoted conformance fixtures                                                                                               |
+| `protocol/fixtures/v0.3/`                                | the 19 v0.3 fixtures                                                                                                               |
+| `protocol/fixtures/v0.4/`                                | the 3 v0.4 fixtures                                                                                                                |
+| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 90 promoted conformance fixtures                                                                                               |
 | `protocol/fixtures/adapter/`                             | the 12 adapter fixtures, which arrived at `v0.2.0` with the first adapter                                                          |
 | `protocol/fixtures/canonical/`                           | the 7 canonical byte vectors (SR-1)                                                                                                |
 | `protocol/fixtures/wire/`                                | the 8 seed wire examples                                                                                                           |

@@ -14,7 +14,7 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> `@affiant/core` is `0.1.0-alpha.5` in this repository. Releases are published under the
+> `@affiant/core` is `0.1.0-alpha.10` in this repository. Releases are published under the
 > `alpha` dist-tag with a provenance attestation through this repository's publish
 > workflow ([`.github/workflows/publish.yml`](../../.github/workflows/publish.yml)),
 > which moves the `alpha` dist-tag and no other; `npm view @affiant/core dist-tags` shows
@@ -22,11 +22,11 @@ reaches the person — those are ports you supply.
 > report** — the per-implementation list of conformance fixtures each implementation
 > does not yet pass — and a **green, merge-blocking TypeScript conformance driver**
 > running the shared fixture suite against this package. Both hold, at the rulebook's
-> [`v0.2.0`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.2.0) tag, which is what
+> [`v0.4.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.1) tag, which is what
 > `packages/contract/protocol/PIN` pins and what both manifests are read at. The
-> [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.2.0/conformance/parity/dotnet-v0.1.json)
+> [.NET parity report](https://github.com/Sakwala/affiant-protocol/blob/v0.4.1/conformance/parity/dotnet-v0.2.json)
 > is public, with its oracle run log alongside it under `conformance/results/`, and
-> this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.2.json)
+> this package's own [conformance parity manifest](../conformance-driver/conformance/parity/typescript-v0.4.json)
 > is green on Node, Bun and workerd, asserted by the `conformance` job that is
 > required on `main`. Publishing is a separate, deliberate step, and the gate is
 > enforced rather than relaxed on trust: `prepack` refuses, so `npm pack` and
