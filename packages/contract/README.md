@@ -50,7 +50,7 @@ Everything under `protocol/` is a byte-for-byte copy at that ref — 278 documen
 | `protocol/fixtures/v0.1/`                                | 46 positive and 23 negative per-schema fixtures                                                                                    |
 | `protocol/fixtures/v0.3/`                                | the 19 v0.3 fixtures                                                                                                               |
 | `protocol/fixtures/v0.4/`                                | the 3 v0.4 fixtures                                                                                                                |
-| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 90 promoted conformance fixtures                                                                                               |
+| `protocol/fixtures/{gate,decide,sequence-a,sequence-c}/` | the 90 declarative conformance fixtures                                                                                            |
 | `protocol/fixtures/adapter/`                             | the 12 adapter fixtures, which arrived at `v0.2.0` with the first adapter                                                          |
 | `protocol/fixtures/canonical/`                           | the 7 canonical byte vectors (SR-1)                                                                                                |
 | `protocol/fixtures/wire/`                                | the 8 seed wire examples                                                                                                           |
