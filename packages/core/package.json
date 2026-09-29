@@ -67,10 +67,10 @@
     "@affiant/contract": "workspace:^"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.21",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^4.1.11"
   }
 }
