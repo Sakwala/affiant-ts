@@ -74,6 +74,11 @@ export const MONEY_AMOUNT_PATTERN = /^-?(0|[1-9]\d*)(\.\d+)?$/;
  */
 export const MONEY_CURRENCY_PATTERN = /^[A-Z]{3}$/;
 
+/** The own keys of `value` other than `amount` and `currency`; `money.schema.json` allows none. */
+function extraKeys(value: object): string[] {
+  return Object.keys(value).filter((key) => key !== "amount" && key !== "currency");
+}
+
 /** Whether `value` is a plain object carrying an own `amount` and an own `currency`. */
 function isMoneyShaped(
   value: unknown,
@@ -87,13 +92,14 @@ function isMoneyShaped(
 
 /**
  * Whether `value` is a valid {@link Money}: both properties present, both strings,
- * both matching their patterns.
+ * both matching their patterns, and no key beyond the two.
  *
  * A predicate, not a refusal — {@link assertMoney} is the refusing form and carries
  * the diagnosis. Use this one where a value may legitimately not be money.
  */
 export function isMoney(value: unknown): value is Money {
   if (!isMoneyShaped(value)) return false;
+  if (extraKeys(value).length > 0) return false;
   return (
     typeof value.amount === "string" &&
     typeof value.currency === "string" &&
@@ -130,6 +136,13 @@ export function assertMoney(value: unknown, where = "value"): asserts value is M
         `"currency" (ISO 4217 code); received ${describe(value)}.`,
     );
   }
+  const extra = extraKeys(value);
+  if (extra.length > 0) {
+    throw new TypeError(
+      `SR-2: ${where} carries a key that is not money: ${extra.join(", ")}. ` +
+        `Money is exactly { amount, currency }; the wire schema allows no other key.`,
+    );
+  }
   if (typeof value.amount === "number") {
     throw new TypeError(
       `SR-2: ${where}.amount is a JSON number. The amount is a decimal ` +
@@ -155,8 +168,8 @@ export function assertMoney(value: unknown, where = "value"): asserts value is M
 /**
  * Validate `value` as money and return it as a {@link Money}.
  *
- * The returned object carries exactly the two properties, so a value that arrived
- * with extra keys does not smuggle them onward. The strings are returned unchanged
+ * A value that carries a key beyond the two is refused by {@link assertMoney}, not
+ * trimmed: dropping it would turn a wrong input into a valid one. The strings are returned unchanged
  * — this parses, it does not normalise: `"10.00"` stays `"10.00"` and never becomes
  * `"10"`, because the trailing zeros are what the reviewer saw and dropping them
  * would change the canonical bytes (SR-1) for a value nobody amended.
