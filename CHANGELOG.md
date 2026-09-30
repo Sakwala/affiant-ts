@@ -12,6 +12,7 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.8` and `@affiant/core` `0.1.0-alpha.12`: the pin moved to the rulebook's tag `v0.5.0-pre.1`.** `packages/contract/protocol/PIN` named commit `d1fbd9b`; the tag carries the same schemas and fixtures plus text-only changes, so no wire type, vendored file or behaviour changed. The pin check accepts a `-pre.<n>` tag.
 - **`@affiant/contract` `0.1.0-alpha.7` and `@affiant/core` `0.1.0-alpha.11`: the conversation draft (GT-7),
   pinned at the rulebook's `v0.5` head.** `packages/contract/protocol/PIN` now names commit
   `d1fbd9b764a2176095b2ce324afa25adc46aa1fe` (protocol `0.5.0`). A host that lets a person say a value in one
