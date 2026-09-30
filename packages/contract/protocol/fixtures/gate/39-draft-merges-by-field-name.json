@@ -1,0 +1,223 @@
+{
+  "id": "gate/draft-merges-by-field-name",
+  "rules": [
+    "GT-7",
+    "PV-3",
+    "PV-2"
+  ],
+  "title": "A second draft adds and replaces by field name and never removes: turn 1 drafts the amount and the payee, turn 2 drafts the currency and reports an amount the person did not say, so turn 3 carries the amount from turn 1 (msg-1), the currency from turn 2 (msg-2) and binds the payee to this turn's span.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "draft": {
+        "ttlMs": 3600000
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "prior": [
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          }
+        }
+      },
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "LKR, yesterday",
+          "messageId": "msg-2"
+        },
+        "inference": {
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          },
+          "amount": {
+            "value": 16000,
+            "confidence": 0.9
+          }
+        }
+      }
+    ],
+    "step": {
+      "kind": "file",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "How much money moves"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who the money goes to"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "inference": {
+        "amount": {
+          "value": 15000,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Serendib Growth Fund unit trust",
+          "confidence": 0.9
+        },
+        "currency": {
+          "value": "LKR",
+          "confidence": 0.9
+        }
+      },
+      "turn": {
+        "utterance": "Money going out to Serendib Growth Fund unit trust",
+        "messageId": "msg-3"
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "affidavit": {
+        "fields": [
+          {
+            "name": "amount",
+            "value": 15000,
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
+          },
+          {
+            "name": "payee",
+            "value": "Serendib Growth Fund unit trust",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 19,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb"
+            }
+          },
+          {
+            "name": "currency",
+            "value": "LKR",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 0,
+              "length": 3,
+              "hash": "8c6a812f0224f53a28daf594d835111c52f76f5748d82082d0e85971680e9f29",
+              "messageId": "msg-2"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

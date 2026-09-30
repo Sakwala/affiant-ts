@@ -126,6 +126,11 @@ export interface UtteranceSpanBinding {
     length: number;
     /** Digest of the spanned substring, so the span can be checked after the fact. */
     hash: string;
+    /**
+     * The message whose utterance the span indexes. Absent when the span indexes the
+     * Affidavit's own turn; present on a binding carried from an earlier turn (GT-7).
+     */
+    messageId?: string;
   };
 }
 

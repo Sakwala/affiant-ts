@@ -220,7 +220,7 @@ describe("canonical byte vectors (SR-1)", () => {
     for (const vector of canonicalVectors) {
       const record = vector.input as Record<string, unknown>;
 
-      expect(record["protocolVersion"], vector.id).toBe("0.4.0");
+      expect(record["protocolVersion"], vector.id).toBe("0.5.0");
       expect(["create", "update"], vector.id).toContain(record["operationType"]);
       expect(Object.hasOwn(record, "conversationTurn"), vector.id).toBe(true);
       expect(Object.hasOwn(record, "createdAt"), vector.id).toBe(true);

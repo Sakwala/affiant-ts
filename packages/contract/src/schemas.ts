@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.4.1.
+// copy of Sakwala/affiant-protocol at d1fbd9b764a2176095b2ce324afa25adc46aa1fe.
 // Source: protocol/schemas/*.schema.json and protocol/schemas/seed/*.schema.json
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -22,7 +22,7 @@ export interface JsonSchemaDocument {
  * what `protocol/schemas/` held before the line existed. Generated so a version
  * bump is a vendoring change, never a hand edit; `./index.js` re-exports this.
  */
-export const PROTOCOL_VERSION = "0.4.0" as const;
+export const PROTOCOL_VERSION = "0.5.0" as const;
 
 /** The name of each schema, without the `.schema.json` suffix. */
 export type SchemaName =
@@ -35,6 +35,7 @@ export type SchemaName =
   | "common"
   | "decision-result"
   | "docket-entry"
+  | "draft"
   | "entity-ref"
   | "error-code"
   | "evidence-card-request"
@@ -49,10 +50,10 @@ export type SchemaName =
   | "telemetry-key"
   | "tool-result";
 
-/** `schemas/0.4.0/affidavit-field.schema.json` — AffidavitField. */
+/** `schemas/0.5.0/affidavit-field.schema.json` — AffidavitField. */
 export const affidavitFieldSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/affidavit-field.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/affidavit-field.schema.json",
   "title": "AffidavitField",
   "description": "One sworn field inside an Affidavit: the proposed value, the value it replaces, and the whole provenance chain behind it. A field the operation does not propose — untouched on an update, not applicable to the operation — is ABSENT from the Affidavit; a proposed field whose provenance is unknown is PRESENT and tagged Empty at confidence 0. The two are never confused, which is what makes the field list a statement of intent a policy can read (INVARIANTS.md AF-1). Presentation the reviewer surface needs but the record does not swear to — the closed value set an input offers, the pattern an input is constrained by — travels beside the Affidavit, not on it: see evidence-card-request.",
   "type": "object",
@@ -68,7 +69,7 @@ export const affidavitFieldSchema: JsonSchemaDocument = {
   "properties": {
     "name": {
       "description": "The field's name on the target entity. Also the key the amendment maps use.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "kind": {
       "description": "Rendering hint for a reviewer surface, drawn from a fixed set. It never constrains the value: the gate carries a hint and validates nothing against it.",
@@ -82,15 +83,15 @@ export const affidavitFieldSchema: JsonSchemaDocument = {
     },
     "value": {
       "description": "The proposed value. Any JSON value, null included. A monetary value is a Money object (SR-2), never a JSON number.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/jsonValue"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
     },
     "previousValue": {
       "description": "The stored value this replaces. Null on a create, and also on an update field the entity had no stored value for; the two are distinguished by the Affidavit's operationType, not by the field (AF-3). On an update the key is always present — the host's projection port supplies the values.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/jsonValue"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
     },
     "provenance": {
       "description": "Where the value came from, and everything it displaced.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/provenance-chain.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/provenance-chain.schema.json"
     },
     "isMandatory": {
       "description": "Whether the target entity requires this field. A Standing Order is never honoured while a mandatory proposed field reads Empty (GT-5), so this is not decoration.",
@@ -99,10 +100,10 @@ export const affidavitFieldSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/affidavit.schema.json` — Affidavit. */
+/** `schemas/0.5.0/affidavit.schema.json` — Affidavit. */
 export const affidavitSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/affidavit.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/affidavit.schema.json",
   "title": "Affidavit",
   "description": "The sworn evidence record for one proposed write. Every write an agent proposes is wrapped in one of these, carrying per-field provenance, before any person sees it and before anything is committed. operationType is the protocol's own two-valued vocabulary rather than the host's verb, because AF-3 is a rule about the SHAPE — an update names the entity it updates and swears to what it replaces — and \"create-only\" has to be a predicate a policy can test without knowing the host's verbs. The host's own verb travels on the card envelope. The three confidence numbers are AF-2: a mean that first discards every Empty field lets a mostly-empty Affidavit report high confidence, which is the exact hole once provenance authorises writes, so the aggregate is a MINIMUM with Empty counting as 0.",
   "type": "object",
@@ -122,21 +123,21 @@ export const affidavitSchema: JsonSchemaDocument = {
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this record conforms to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "operationType": {
       "description": "The shape of the operation being proposed.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/operation.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/operation.schema.json"
     },
     "entityType": {
       "description": "The kind of domain entity being written, named by the host. With entityId this is the entity-ref shape.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "entityId": {
       "description": "The entity being written; null on a create, non-null on an update (AF-3). Non-null if and only if operationType is \"update\" — a schema cannot state that correlation, and an implementation enforces it.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         {
           "type": "null"
@@ -147,18 +148,18 @@ export const affidavitSchema: JsonSchemaDocument = {
       "description": "The sworn fields, in the order the operation proposed them. Never null — an empty array is what no fields looks like, and the substance gate refuses a proposal with nothing to swear to before it is ever filed (GT-3).",
       "type": "array",
       "items": {
-        "$ref": "https://affiant.dev/schemas/0.4.0/affidavit-field.schema.json"
+        "$ref": "https://affiant.dev/schemas/0.5.0/affidavit-field.schema.json"
       }
     },
     "aggregateConfidence": {
       "description": "The MINIMUM confidence over every proposed field's current tag, with an Empty field counting as 0 whatever its tag says — so it is 0 exactly when some proposed field has unknown provenance (AF-2). This is the safety number an invariant and a fixture pin; a host policy floor predicates on populatedConfidence and emptyFieldCount instead. Neither the protocol nor any implementation defines a threshold on it.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/unitInterval"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/unitInterval"
     },
     "populatedConfidence": {
       "description": "The minimum confidence over the NON-Empty proposed fields, or null when there are none (AF-2). Null rather than 0: \"there is nothing populated to be confident about\" is a different statement from \"the populated fields are worthless\", and a card showing 0 would say the second. New in v0.1; on the card envelope under the seed.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/unitInterval"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/unitInterval"
         },
         {
           "type": "null"
@@ -167,7 +168,7 @@ export const affidavitSchema: JsonSchemaDocument = {
     },
     "emptyFieldCount": {
       "description": "How many proposed fields are tagged Empty (AF-2). Without it a person approving a card sees an aggregate of 0 and cannot tell how many fields are empty or how good the populated ones are. New in v0.1; on the card envelope under the seed.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/nonNegativeInteger"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/nonNegativeInteger"
     },
     "conversationTurn": {
       "description": "The conversation turn the proposal was made on, or null when it did not come from a turn.",
@@ -178,28 +179,28 @@ export const affidavitSchema: JsonSchemaDocument = {
     },
     "createdAt": {
       "description": "When the Affidavit was built. Passed in by the caller, never read from a clock inside the model, so a fixture can pin it.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     }
   }
 };
 
-/** `schemas/0.4.0/amendments.schema.json` — AmendmentMap. */
+/** `schemas/0.5.0/amendments.schema.json` — AmendmentMap. */
 export const amendmentsSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/amendments.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/amendments.schema.json",
   "title": "AmendmentMap",
   "description": "A reviewer's corrections, keyed by the field's name on the Affidavit. Within a map, null means the reviewer CLEARED the field and an absent key means they LEFT IT UNTOUCHED; an implementation never conflates the two and never accepts an undefined value, which is not a JSON value and would vanish on serialization (INVARIANTS.md DK-2). An amendment naming a field the Affidavit does not propose is a caller error and changes no state — a language-level error, not a refusal code.",
   "type": "object",
   "additionalProperties": {
     "description": "The reviewer's replacement value for the named field. Any JSON value, null included; null means cleared.",
-    "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/jsonValue"
+    "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
   }
 };
 
-/** `schemas/0.4.0/attestation.schema.json` — Attestation. */
+/** `schemas/0.5.0/attestation.schema.json` — Attestation. */
 export const attestationSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/attestation.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/attestation.schema.json",
   "title": "Attestation",
   "description": "Who agreed to a write, when, and to which entry (INVARIANTS.md AZ-1). Every executed write carries one: an implementation that cannot attribute a write refuses it. The MODE is the kind of `by` — there is no separate mode field for it to drift from. AZ-3 is what the three kinds encode: a human-verified session attests member; a machine caller may NEVER attest member, so a decision a person makes through a trusted relay attests member-via-relay naming both the person and the relay, and a capture a policy auto-approves attests standing-order naming the policy and the version that fired. entryId is repeated here rather than left implicit because the attestation is the fragment a host exports, signs or ships to an audit sink, and a record that cannot name its own subject is not evidence. From 0.3.0 a fourth kind, multi-party, attests a MultiParty entry's fold: it is composed entirely of the approval records' own member or member-via-relay attestations and nothing else (AZ-3, AZ-4).",
   "type": "object",
@@ -230,11 +231,11 @@ export const attestationSchema: JsonSchemaDocument = {
     },
     "at": {
       "description": "When they agreed.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "entryId": {
       "description": "The Docket entry this attests to.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
     }
   },
   "$defs": {
@@ -253,7 +254,7 @@ export const attestationSchema: JsonSchemaDocument = {
         },
         "id": {
           "description": "The host's id for the person.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     },
@@ -273,11 +274,11 @@ export const attestationSchema: JsonSchemaDocument = {
         },
         "memberId": {
           "description": "The host's id for the person the relay named.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "relay": {
           "description": "The relay, and the message the decision arrived on.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/binding.schema.json#/$defs/relayRef"
+          "$ref": "https://affiant.dev/schemas/0.5.0/binding.schema.json#/$defs/relayRef"
         }
       }
     },
@@ -297,7 +298,7 @@ export const attestationSchema: JsonSchemaDocument = {
         },
         "policyId": {
           "description": "The host's id for the policy that fired.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "version": {
           "description": "The version of that policy.",
@@ -339,10 +340,10 @@ export const attestationSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/binding.schema.json` — Binding. */
+/** `schemas/0.5.0/binding.schema.json` — Binding. */
 export const bindingSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/binding.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/binding.schema.json",
   "title": "Binding",
   "description": "What to look at to check a value (INVARIANTS.md PV-2). A provenance tag says where a value came from; a binding points at the artifact an auditor can go and check years later. The five kinds are a fixed set — a binding kind nobody can enumerate is a binding nobody can audit — and a binding whose source cannot be re-fetched or re-verified is not a binding. A tag with no binding is not a lie, it is a weaker claim, and the framework's job is to keep the difference visible rather than to average it away: a tag graded above Conversation with no binding is recorded as claimed but a person-free verdict may not rest on it (PV-4, PV-5).",
   "type": "object",
@@ -366,7 +367,7 @@ export const bindingSchema: JsonSchemaDocument = {
   "$defs": {
     "utteranceSpan": {
       "title": "UtteranceSpanBinding",
-      "description": "The span of the unmodified utterance the value was read from. Offset and length rather than a start/end pair, and a hash of the substring: offsets alone rot the moment anything re-wraps or re-encodes a transcript, so the hash is what lets an auditor prove the span still says what it said. The digest algorithm and encoding are the canonical-form rules' (SR-1).",
+      "description": "The span of the unmodified utterance the value was read from. Offset and length rather than a start/end pair, and a hash of the substring: offsets alone rot the moment anything re-wraps or re-encodes a transcript, so the hash is what lets an auditor prove the span still says what it said. The digest algorithm and encoding are the canonical-form rules' (SR-1). The span indexes the utterance of the message named by `ref.messageId`; with no `messageId` it indexes the utterance of the Affidavit's own turn (GT-7).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -388,16 +389,20 @@ export const bindingSchema: JsonSchemaDocument = {
           "properties": {
             "offset": {
               "description": "Character offset into the utterance, from 0.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/nonNegativeInteger"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/nonNegativeInteger"
             },
             "length": {
               "description": "Length of the span in characters.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/nonNegativeInteger"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/nonNegativeInteger"
             },
             "hash": {
               "description": "Digest of the spanned substring, so the span can be checked after the fact.",
               "type": "string",
               "minLength": 1
+            },
+            "messageId": {
+              "description": "The message whose utterance the span indexes. Absent, the span indexes the utterance of the Affidavit's own turn's message, which is the meaning every binding has had; present on every binding carried from an earlier turn of the conversation (GT-7), because a span an auditor cannot check against the right message is not a binding.",
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
             }
           }
         }
@@ -426,11 +431,11 @@ export const bindingSchema: JsonSchemaDocument = {
           "properties": {
             "entryId": {
               "description": "The Docket entry the decision was made on.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
             },
             "decisionAt": {
               "description": "When the decision was made.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
             }
           }
         }
@@ -458,7 +463,7 @@ export const bindingSchema: JsonSchemaDocument = {
           "properties": {
             "field": {
               "description": "The form field's name.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
             }
           }
         }
@@ -487,15 +492,15 @@ export const bindingSchema: JsonSchemaDocument = {
           "properties": {
             "system": {
               "description": "The source system, named the way the host names it.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
             },
             "recordId": {
               "description": "The record within that system. A canonical URL where the system is a page with no API.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
             },
             "fetchedAt": {
               "description": "When the value was read. Optional: present where the source is re-read rather than addressed by a stable record id.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
             },
             "contentHash": {
               "description": "Digest of what the source said when it was read. Optional, and the companion of fetchedAt.",
@@ -533,13 +538,13 @@ export const bindingSchema: JsonSchemaDocument = {
           "properties": {
             "rule": {
               "description": "The rule's name — re-runnable, not a description.",
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
             },
             "inputs": {
               "description": "The field names the rule consumed, in the order it consumed them. Never null — an empty array is what no inputs looks like.",
               "type": "array",
               "items": {
-                "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+                "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
               }
             },
             "constant": {
@@ -580,25 +585,25 @@ export const bindingSchema: JsonSchemaDocument = {
       "properties": {
         "principal": {
           "description": "The relay's own principal id.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "channelIdentity": {
           "description": "How the person is addressed on that channel.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "messageId": {
           "description": "The message the capture arrived in.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     }
   }
 };
 
-/** `schemas/0.4.0/blocked.schema.json` — BlockedMarker. */
+/** `schemas/0.5.0/blocked.schema.json` — BlockedMarker. */
 export const blockedSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/blocked.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/blocked.schema.json",
   "title": "BlockedMarker",
   "description": "Why an entry cannot be decided even though it sits in pending (INVARIANTS.md AZ-4, CV-4). An implementation that receives a requirement level it does not run records that level verbatim, files the entry pending with this marker, refuses every decision on it, never executes it, and NEVER degrades it to a weaker requirement — a joint requirement quietly satisfied by one approval is the failure this exists to prevent. A blocked entry's card says so on its face and never claims a confirmation is being awaited. The marker is discriminated by its code, and each code carries exactly the context that code makes meaningful: a coverage refusal has no requirement level to report.",
   "type": "object",
@@ -661,19 +666,19 @@ export const blockedSchema: JsonSchemaDocument = {
         },
         "toolName": {
           "description": "The tool the uncovered proposal came from.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     }
   }
 };
 
-/** `schemas/0.4.0/common.schema.json` — Common definitions. */
+/** `schemas/0.5.0/common.schema.json` — Common definitions. */
 export const commonSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/common.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/common.schema.json",
   "title": "Common definitions",
-  "description": "The primitives every other 0.4.0 schema refers to, defined once. Nothing here is a payload on its own; each $def is reached by $ref from the schemas in this directory.",
+  "description": "The primitives every other 0.5.0 schema refers to, defined once. Nothing here is a payload on its own; each $def is reached by $ref from the schemas in this directory.",
   "$defs": {
     "isoInstant": {
       "title": "IsoInstant",
@@ -695,7 +700,7 @@ export const commonSchema: JsonSchemaDocument = {
     },
     "protocolVersion": {
       "title": "ProtocolVersion",
-      "description": "The protocol version an envelope conforms to, as a semantic version with no leading \"v\" (INVARIANTS.md SR-4). It is a version of the PROTOCOL, not of any implementation: while the major is 0 a schema-breaking change bumps the minor. A consumer refuses a payload whose major differs from the one it targets and MAY warn on a newer minor. \"0.4.0\" for this directory; the fixture-set-level string \"0.0.1-seed\" is what the seed carried instead, since the seed predates the field.",
+      "description": "The protocol version an envelope conforms to, as a semantic version with no leading \"v\" (INVARIANTS.md SR-4). It is a version of the PROTOCOL, not of any implementation: while the major is 0 a schema-breaking change bumps the minor. A consumer refuses a payload whose major differs from the one it targets and MAY warn on a newer minor. \"0.5.0\" for this directory; the fixture-set-level string \"0.0.1-seed\" is what the seed carried instead, since the seed predates the field.",
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
     },
@@ -745,10 +750,10 @@ export const commonSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/decision-result.schema.json` — DecisionResult. */
+/** `schemas/0.5.0/decision-result.schema.json` — DecisionResult. */
 export const decisionResultSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/decision-result.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/decision-result.schema.json",
   "title": "DecisionResult",
   "description": "What became of a review, as the producer reports it back: the entry, the outcome, who agreed, and — once an executor has reported — what became of the write (INVARIANTS.md DK-1, AZ-1). A decision result is a REPORT, never an authorization: the Docket row is the sole record of approval authority, and nothing replayed from this envelope stands in for the row (AZ-5). \"resubmitted\" is the outcome an expired entry reads once a successor has superseded it.",
   "type": "object",
@@ -763,11 +768,11 @@ export const decisionResultSchema: JsonSchemaDocument = {
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this envelope conforms to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "docketId": {
       "description": "The Docket entry this reports on.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
     },
     "outcome": {
       "description": "What became of the review. \"withdrawn\" is the outcome a host-initiated withdrawal reads (DK-1).",
@@ -784,7 +789,7 @@ export const decisionResultSchema: JsonSchemaDocument = {
       "description": "Who agreed, or null when nobody did — a rejection and an expiry carry none (AZ-1). No attribution, no execution.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/attestation.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/attestation.schema.json"
         },
         {
           "type": "null"
@@ -795,7 +800,7 @@ export const decisionResultSchema: JsonSchemaDocument = {
       "description": "What became of the write, or null when the review did not approve it. \"unexecuted\" until the host's executor reports (AZ-7).",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json#/$defs/execution"
+          "$ref": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json#/$defs/execution"
         },
         {
           "type": "null"
@@ -805,10 +810,10 @@ export const decisionResultSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/docket-entry.schema.json` — DocketEntry. */
+/** `schemas/0.5.0/docket-entry.schema.json` — DocketEntry. */
 export const docketEntrySchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json",
   "title": "DocketEntry",
   "description": "One filed proposal: the Affidavit, what it needs before it may execute, where it stands, and who agreed. The Docket is the SOLE record of approval authority — an executor is reachable only through an entry that carries an attestation, and nothing replayed from a client's history, a chat transcript or a framework checkpoint stands in for that (INVARIANTS.md AZ-5). A row reads FORWARD (DK-4): a recorded fact is never edited in place, and an accepted amendment, a preserved late amendment, an execution outcome and a supersession are each appended beside what was already there. Five correlations no JSON Schema can state, which an implementation enforces instead: execution is non-null exactly when status is \"approved\"; decidedAt is non-null on every terminal row and null while pending; status is what the row SAYS — what it READS is status with the deadline applied, so a pending entry past expiresAt reads expired whether or not any sweep has run; approvals is null exactly when requirement.kind is not \"MultiParty\" (AZ-4); and, for a MultiParty requirement, required is at most approvers.length (AZ-4).",
   "type": "object",
@@ -840,37 +845,37 @@ export const docketEntrySchema: JsonSchemaDocument = {
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this row's shapes conform to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "entryId": {
       "description": "The entry's id, stable for its whole lifetime; a resubmission gets a new one. Derived deterministically from the tenant, the conversation, the tool and the canonical form of the operation and its arguments, so a retry replays the same entry and a genuinely new proposal files a new one (GT-4). Unique WITHIN a tenant, never across them.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
     },
     "tenantId": {
       "description": "The tenant this entry is scoped to — the host's isolation boundary. The framework compares this with the caller's tenant ITSELF before any transition and treats a miss as not-found; it does not trust a store's scope (AZ-2).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "conversationId": {
       "description": "The conversation the proposal came from. Passed in explicitly at every gate entry point, never resolved from anything ambient (GT-2).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "channel": {
       "description": "Where the turn arrived from — \"chat\", \"mcp\", \"api\" or the host's own name for a surface. An open string: the transport is not the protocol (SR-5).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "toolName": {
       "description": "The tool or capture source the proposal came from. On the row because two later questions need it and neither can be answered from the Affidavit: a resubmission re-runs the coverage lookup against the original tool (CV-4), and an audit of a filed write has to be able to say which tool proposed it.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "affidavit": {
       "description": "The sworn evidence record AS THE AGENT PROPOSED IT. Never edited (DK-4). A row that overwrote its proposal could not show what the agent originally said, which is the fact an auditor is reading the row for.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/affidavit.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/affidavit.schema.json"
     },
     "amendedAffidavit": {
       "description": "The state a reviewer's ACCEPTED amendments produced, or null while none has been accepted (AF-4, DK-4). The form a host's execution grant binds to is the canonical form of this if present, else of the proposal — a form over the proposal alone would let an amended proposal execute against a grant minted for the unamended one (SR-1).",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/affidavit.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/affidavit.schema.json"
         },
         {
           "type": "null"
@@ -878,8 +883,8 @@ export const docketEntrySchema: JsonSchemaDocument = {
       ]
     },
     "requirement": {
-      "description": "What the policy chain decided this write needs before it may execute, recorded verbatim (AZ-4). From 0.3.0 this is an object naming its kind (schemas/0.4.0/requirement.schema.json); MultiParty's carries the host policy's approvers and required.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/requirement.schema.json"
+      "description": "What the policy chain decided this write needs before it may execute, recorded verbatim (AZ-4). From 0.3.0 this is an object naming its kind (schemas/0.5.0/requirement.schema.json); MultiParty's carries the host policy's approvers and required.",
+      "$ref": "https://affiant.dev/schemas/0.5.0/requirement.schema.json"
     },
     "status": {
       "description": "What the row says.",
@@ -900,7 +905,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "description": "Why this entry cannot be decided, or null when it can (AZ-4). A blocked entry sits in pending and refuses every decision.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/blocked.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/blocked.schema.json"
         },
         {
           "type": "null"
@@ -925,7 +930,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "description": "Who agreed, or null while nobody has (AZ-1). A Standing Order's attestation is written in the same operation as the filing. Null on a withdrawn row: nothing was agreed to (AZ-1, DK-1).",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/attestation.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/attestation.schema.json"
         },
         {
           "type": "null"
@@ -936,7 +941,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "description": "The amendments a reviewer's approval ACCEPTED, or null when the approval carried none (DK-2). A map a REFUSED late decision carried is a different fact and lives under preservedAmendments: nobody accepted it, and conflating the two would let a resubmission present a refused caller's corrections as an approval's.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/amendments.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/amendments.schema.json"
         },
         {
           "type": "null"
@@ -971,17 +976,17 @@ export const docketEntrySchema: JsonSchemaDocument = {
     },
     "filedAt": {
       "description": "When the entry was filed. Fixes the filing order rehydration reads in (DK-5).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "expiresAt": {
       "description": "The deadline. Stamped from the policy verdict's time-to-live AFTER the policy chain has run, else the policy's declared default, else the gate's required default (GT-4) — a single global default applied before policy is non-conformant. NEVER refreshed by a re-file: a replay re-broadcasts the existing card with its existing deadline. The boundary is inclusive: at expiresAt the entry is expired.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "decidedAt": {
       "description": "When the row left pending, or null while it has not.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         },
         {
           "type": "null"
@@ -1053,11 +1058,11 @@ export const docketEntrySchema: JsonSchemaDocument = {
         },
         "at": {
           "description": "When the decision was made.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         },
         "by": {
           "description": "The principal whose act folded this row. For a ReviewerConfirmation decision, that reviewer; for a MultiParty decision, the approver whose approval or rejection record folded the entry; for a withdrawal, the principal the host names as having withdrawn it (DK-1) — required on every decided row from 0.3.0 so a reader never has to reconstruct who caused the fold from the approvals list.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     },
@@ -1076,7 +1081,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "properties": {
         "approver": {
           "description": "The principal who decided, one of the entry's requirement.approvers.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "decision": {
           "description": "Approve or reject.",
@@ -1095,7 +1100,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
         },
         "at": {
           "description": "When this approver decided.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         },
         "attestation": {
           "description": "This approver's own attestation — member or member-via-relay, never standing-order (AZ-3). The entry-level attestation the fold writes is composed of these and nothing else (AZ-4).",
@@ -1119,20 +1124,20 @@ export const docketEntrySchema: JsonSchemaDocument = {
           "type": "object",
           "oneOf": [
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/attestation.schema.json#/$defs/member"
+              "$ref": "https://affiant.dev/schemas/0.5.0/attestation.schema.json#/$defs/member"
             },
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/attestation.schema.json#/$defs/memberViaRelay"
+              "$ref": "https://affiant.dev/schemas/0.5.0/attestation.schema.json#/$defs/memberViaRelay"
             }
           ]
         },
         "at": {
           "description": "When they agreed.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         },
         "entryId": {
           "description": "The Docket entry this attests to.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
         }
       }
     },
@@ -1147,7 +1152,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "properties": {
         "code": {
           "description": "The host's identifier for what happened. Never a string to parse: a caller that needs structure puts it in another property on this object.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     },
@@ -1165,7 +1170,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
           "description": "The entry this one resubmits, or null for a first filing.",
           "oneOf": [
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
             },
             {
               "type": "null"
@@ -1176,7 +1181,7 @@ export const docketEntrySchema: JsonSchemaDocument = {
           "description": "The entry that resubmitted this one, or null while none has.",
           "oneOf": [
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
             },
             {
               "type": "null"
@@ -1198,25 +1203,128 @@ export const docketEntrySchema: JsonSchemaDocument = {
       "properties": {
         "amendments": {
           "description": "The map the refused decision carried. DK-2 holds inside it.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/amendments.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/amendments.schema.json"
         },
         "at": {
           "description": "When the refused decision was made.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         },
         "by": {
           "description": "Who made it, as the host identifies them.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     }
   }
 };
 
-/** `schemas/0.4.0/entity-ref.schema.json` — EntityRef. */
+/** `schemas/0.5.0/draft.schema.json` — Draft. */
+export const draftSchema: JsonSchemaDocument = {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://affiant.dev/schemas/0.5.0/draft.schema.json",
+  "title": "Draft",
+  "description": "The fields whose Conversation tag and utterance-span binding an earlier turn of the same conversation established, held by the host for the gate between turns so that a later turn's proposal can carry them (GT-7). It is not an Affidavit and not a Docket entry: it has no entry id, status, decision or attestation, and nothing in it is sworn to. It is keyed by the tenant, the conversation and the tool, and holds exactly the fields whose tag in force is Conversation bound to an utterance-span that names its message.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "tenantId",
+    "conversationId",
+    "toolName",
+    "fields",
+    "updatedAt"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
+    },
+    "tenantId": {
+      "description": "The tenant the draft belongs to; one part of the draft's key.",
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
+    },
+    "conversationId": {
+      "description": "The conversation the draft belongs to; one part of the draft's key.",
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
+    },
+    "toolName": {
+      "description": "The tool whose proposal the draft is for; one part of the draft's key.",
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
+    },
+    "fields": {
+      "description": "The drafted fields, one entry per field name; a later statement of the same name replaces the earlier (GT-7). A draft holds at least one field.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value",
+          "tag"
+        ],
+        "properties": {
+          "name": {
+            "description": "The field's name in the proposal.",
+            "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
+          },
+          "value": {
+            "description": "The value as the proposal carried it.",
+            "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
+          },
+          "tag": {
+            "description": "The Conversation tag the earlier turn minted, with its utterance-span binding, which names the message it was read from.",
+            "allOf": [
+              {
+                "$ref": "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "const": "Conversation"
+                  },
+                  "binding": {
+                    "type": "object",
+                    "required": [
+                      "kind",
+                      "ref"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "const": "utterance-span"
+                      },
+                      "ref": {
+                        "type": "object",
+                        "required": [
+                          "messageId"
+                        ],
+                        "properties": {
+                          "messageId": true
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "binding"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "updatedAt": {
+      "description": "When the draft was last written.",
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
+    }
+  }
+};
+
+/** `schemas/0.5.0/entity-ref.schema.json` — EntityRef. */
 export const entityRefSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/entity-ref.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/entity-ref.schema.json",
   "title": "EntityRef",
   "description": "The entity a write is about: its kind and, for an update, its identifier. Both are the host's own vocabulary — the protocol never parses either. entityId is null exactly when the operation is create-shaped (INVARIANTS.md AF-3).",
   "type": "object",
@@ -1228,13 +1336,13 @@ export const entityRefSchema: JsonSchemaDocument = {
   "properties": {
     "entityType": {
       "description": "The kind of domain entity being written, named by the host.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "entityId": {
       "description": "The identifier of the entity; null for a create, where no identifier exists yet.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         {
           "type": "null"
@@ -1244,10 +1352,10 @@ export const entityRefSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/error-code.schema.json` — ErrorCode. */
+/** `schemas/0.5.0/error-code.schema.json` — ErrorCode. */
 export const errorCodeSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/error-code.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/error-code.schema.json",
   "title": "ErrorCode",
   "description": "The registry of reasons the gate refuses a request (INVARIANTS.md, \"Refusal codes (v0.1)\"). A refusal carries its code and a human-readable reason; the CODE is the contract and the message is for a human reading a log, so a host that branches on the message is doing it wrong. An implementation MAY add codes but MUST NOT reuse these names for other meanings. The registry names GATE REFUSALS only: a caller's programming error — an amendment naming a field the Affidavit does not propose, a verdict naming a requirement outside the four — is a language-level error, not a refusal code. Three names are PROVISIONAL until this registry is first tagged, marked in their own descriptions; the other ten are fixed by the rulebook's v0.1 text. The order below only ever grows at the end: a code is added by appending, never by inserting among the codes that already shipped, because a reordering looks like a rename to a host's exhaustiveness check and to a parity manifest.",
   "type": "string",
@@ -1322,10 +1430,10 @@ export const errorCodeSchema: JsonSchemaDocument = {
   ]
 };
 
-/** `schemas/0.4.0/evidence-card-request.schema.json` — EvidenceCardRequest. */
+/** `schemas/0.5.0/evidence-card-request.schema.json` — EvidenceCardRequest. */
 export const evidenceCardRequestSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/evidence-card-request.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/evidence-card-request.schema.json",
   "title": "EvidenceCardRequest",
   "description": "The envelope that carries an Affidavit to a reviewer surface: the entry it is filed under, the sworn record, the deadline, the amendments already made on a superseded entry, and the presentation the core does not swear to — whether a person must confirm, the per-field rendering hints, the warnings a reviewer should see and the host's own verb for the operation, none of which is part of the canonical form (SR-1). A producer may send the same request for the same docketId more than once; a consumer treats a repeat as the SAME card, updating in place rather than adding a second one — a re-file is an idempotent replay that re-broadcasts the existing deadline, never a fresh one (INVARIANTS.md GT-4). AF-2 requires a card to show all three confidence numbers; aggregateConfidence is on the Affidavit and the two companions are repeated here, where the seed carried them, so a consumer written against either shape finds them.",
   "type": "object",
@@ -1345,25 +1453,25 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this envelope conforms to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "docketId": {
       "description": "The Docket entry this card is filed under — the row's own entryId.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
     },
     "affidavit": {
       "description": "The record awaiting a decision: the proposal, or the state an accepted amendment produced.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/affidavit.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/affidavit.schema.json"
     },
     "requiredBy": {
       "description": "When the review window closes — the entry's own expiresAt (GT-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "priorAmendments": {
       "description": "Set only when this card resubmits a review that expired: the amendments a reviewer made on the original entry, so the next reviewer sees what was already agreed. Null for a first filing. DK-2 holds inside the map — a null under a key means the reviewer CLEARED that field, which is distinct from the key being absent.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/amendments.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/amendments.schema.json"
         },
         {
           "type": "null"
@@ -1374,7 +1482,7 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
       "description": "The minimum confidence over the non-Empty proposed fields, or null when there are none (AF-2). The same number the Affidavit carries; repeated on the envelope for one version, since this is where the seed put it.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/unitInterval"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/unitInterval"
         },
         {
           "type": "null"
@@ -1383,13 +1491,13 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
     },
     "emptyFieldCount": {
       "description": "How many proposed fields are tagged Empty (AF-2). The same number the Affidavit carries; repeated on the envelope for one version.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/nonNegativeInteger"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/nonNegativeInteger"
     },
     "blocked": {
       "description": "Why no decision on this entry will be accepted, or null when it can be decided (AZ-4, CV-4). On the envelope so a reviewer surface can render it rather than infer it from a warning string.",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/blocked.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/blocked.schema.json"
         },
         {
           "type": "null"
@@ -1410,17 +1518,17 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
         "properties": {
           "name": {
             "description": "The field these hints are about. A name present in affidavit.fields.",
-            "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+            "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
           },
           "kind": {
             "description": "The rendering hint the field carries, repeated here so a surface reading only the presentation array has it. When present it agrees with that field's own kind; the Affidavit's copy is the one the record swears to.",
-            "$ref": "https://affiant.dev/schemas/0.4.0/affidavit-field.schema.json#/properties/kind"
+            "$ref": "https://affiant.dev/schemas/0.5.0/affidavit-field.schema.json#/properties/kind"
           },
           "allowedValues": {
             "description": "The closed set an amendment input offers for this field, in the order a surface should show them. Absent when the host declared none. The gate validates no value against it: a proposed or amended value outside the set is still recorded, and the set is a hint to the control, not a constraint on the record.",
             "type": "array",
             "items": {
-              "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/jsonValue"
+              "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
             }
           },
           "pattern": {
@@ -1471,7 +1579,7 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
                 "properties": {
                   "id": {
                     "description": "The approver's identifier, one of the requirement's approvers.",
-                    "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+                    "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
                   },
                   "decided": {
                     "description": "How this approver has decided so far, or null while they have not.",
@@ -1505,10 +1613,10 @@ export const evidenceCardRequestSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/money.schema.json` — Money. */
+/** `schemas/0.5.0/money.schema.json` — Money. */
 export const moneySchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/money.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/money.schema.json",
   "title": "Money",
   "description": "A monetary field value: a decimal string and an ISO 4217 alphabetic currency code, never a binary float (INVARIANTS.md SR-2). The reason is not fussiness about types. An Affidavit is a record a person swears to and an auditor reads back years later; a binary float cannot represent 0.10, so a card showing \"4000.10\" and a store holding 4000.099999999999 disagree about what was approved and nothing in the record says which one the reviewer saw. A decimal string is the value the reviewer read, byte for byte. This is a wire rule only: a host stores what it likes (integer minor units, a database decimal) and converts at the edge. No currency list is embedded here — ISO 4217 changes, and a table frozen into a schema would be wrong within a year; the shape is checked here and membership is the host's check.",
   "type": "object",
@@ -1531,10 +1639,10 @@ export const moneySchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/notification.schema.json` — Notification. */
+/** `schemas/0.5.0/notification.schema.json` — Notification. */
 export const notificationSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/notification.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/notification.schema.json",
   "title": "Notification",
   "description": "What a producer tells a reviewer surface about a Docket entry that nobody asked it about: a deadline approaching, a deadline passed, a state change (INVARIANTS.md DK-1, DK-3). One discriminated union with a `kind` property, added in v0.1 — the seed's two notifications were told apart by which properties they carried, and a consumer switching on the presence of fields is exactly what AF-5 forbids. A notification is a HINT, never a fact a consumer may act on alone: expiry is queryable state, so an entry past its deadline reads expired whether or not any sweep has run or any notification arrived.",
   "type": "object",
@@ -1563,18 +1671,18 @@ export const notificationSchema: JsonSchemaDocument = {
       ],
       "properties": {
         "protocolVersion": {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
         },
         "kind": {
           "const": "docket-expiring"
         },
         "docketId": {
           "description": "The entry approaching expiry.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
         },
         "expiresAt": {
           "description": "When the entry expires. The boundary is inclusive.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
         }
       }
     },
@@ -1590,14 +1698,14 @@ export const notificationSchema: JsonSchemaDocument = {
       ],
       "properties": {
         "protocolVersion": {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
         },
         "kind": {
           "const": "docket-expired"
         },
         "docketId": {
           "description": "The entry that expired.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
         }
       }
     },
@@ -1616,28 +1724,28 @@ export const notificationSchema: JsonSchemaDocument = {
       ],
       "properties": {
         "protocolVersion": {
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
         },
         "kind": {
           "const": "docket-transition"
         },
         "docketId": {
           "description": "The entry that changed state.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
         },
         "from": {
           "description": "The state the entry left.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json#/$defs/status"
+          "$ref": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json#/$defs/status"
         },
         "to": {
           "description": "The state the entry reached.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json#/$defs/status"
+          "$ref": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json#/$defs/status"
         },
         "execution": {
           "description": "The execution outcome the row now carries, or null when it is not approved — including a transition to \"withdrawn\", which carries no execution (DK-1).",
           "oneOf": [
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json#/$defs/execution"
+              "$ref": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json#/$defs/execution"
             },
             {
               "type": "null"
@@ -1649,10 +1757,10 @@ export const notificationSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/operation.schema.json` — Operation. */
+/** `schemas/0.5.0/operation.schema.json` — Operation. */
 export const operationSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/operation.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/operation.schema.json",
   "title": "Operation",
   "description": "The registry of operation shapes an Affidavit may swear to. Two in v0.1, and they are shapes rather than the host's own verbs: a create names no entity and swears to no previous values; an update names the entity it changes and carries a previousValue key on every proposed field (INVARIANTS.md AF-3). \"Create-only\" is therefore a predicate a policy can test without knowing what the host calls its operations. The host's own verb travels beside this, never instead of it.",
   "type": "string",
@@ -1672,10 +1780,10 @@ export const operationSchema: JsonSchemaDocument = {
   ]
 };
 
-/** `schemas/0.4.0/outside-gate.schema.json` — OutsideGateMarker. */
+/** `schemas/0.5.0/outside-gate.schema.json` — OutsideGateMarker. */
 export const outsideGateSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/outside-gate.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/outside-gate.schema.json",
   "title": "OutsideGateMarker",
   "description": "A write a host made outside the gate — an import, a migration, a backfill (INVARIANTS.md AZ-1). It is deliberately a DIFFERENT shape from an attestation and not a fourth attestor kind: no export may render it in an attestation position, and a card shows it as outside the guarantee. The honest boundary as a mechanism rather than a paragraph — a system that quietly attributed a bulk import to whoever ran it would make the attestation record worth less than the paper it is not printed on.",
   "type": "object",
@@ -1693,19 +1801,19 @@ export const outsideGateSchema: JsonSchemaDocument = {
     },
     "recordedBy": {
       "description": "Who recorded the fact — the operator or the process. Not an approver: nobody approved this through the gate.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
     },
     "at": {
       "description": "When the fact was recorded.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     }
   }
 };
 
-/** `schemas/0.4.0/provenance-chain.schema.json` — ProvenanceChain. */
+/** `schemas/0.5.0/provenance-chain.schema.json` — ProvenanceChain. */
 export const provenanceChainSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/provenance-chain.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/provenance-chain.schema.json",
   "title": "ProvenanceChain",
   "description": "The ordered provenance history of a single field: the tag in force now, plus every tag it displaced, newest first. Nothing is ever dropped from a chain — a merge that discarded the loser would erase the fact that two producers disagreed, which is the fact a reviewer most wants. On merge the higher confidence wins and ties break toward the more deterministic source; a reviewer's act is not a confidence contest it might lose and supersedes outright (INVARIANTS.md PV-1, AF-4).",
   "type": "object",
@@ -1717,22 +1825,22 @@ export const provenanceChainSchema: JsonSchemaDocument = {
   "properties": {
     "current": {
       "description": "The tag in force for this field's current value.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/provenance-tag.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json"
     },
     "prior": {
       "description": "Superseded tags, newest first — the order a card reads them in (\"was Inferred at 0.4, before that Default\"). Empty on a chain that has never been merged or superseded. Never null.",
       "type": "array",
       "items": {
-        "$ref": "https://affiant.dev/schemas/0.4.0/provenance-tag.schema.json"
+        "$ref": "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json"
       }
     }
   }
 };
 
-/** `schemas/0.4.0/provenance-source.schema.json` — ProvenanceSource. */
+/** `schemas/0.5.0/provenance-source.schema.json` — ProvenanceSource. */
 export const provenanceSourceSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/provenance-source.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/provenance-source.schema.json",
   "title": "ProvenanceSource",
   "description": "Where a field value came from. Serialized as the member name, not an integer. The order below is the determinism ladder, most deterministic first: when two provenance tags carry equal confidence, the earlier member in this list wins the merge (INVARIANTS.md PV-1). Read it as a claim about who could re-derive the value: the person said it; a system of record holds it; a named rule computes it; it was literally present in the conversation; a model reasoned to it; a default filled it in; nobody knows.",
   "type": "string",
@@ -1747,10 +1855,10 @@ export const provenanceSourceSchema: JsonSchemaDocument = {
   ]
 };
 
-/** `schemas/0.4.0/provenance-tag.schema.json` — ProvenanceTag. */
+/** `schemas/0.5.0/provenance-tag.schema.json` — ProvenanceTag. */
 export const provenanceTagSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/provenance-tag.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json",
   "title": "ProvenanceTag",
   "description": "One provenance record for one field value: where the value came from, how confident its producer is, a line for the reviewer, when the tag was minted, which conversation turn produced it, and what to look at to check it. A field whose provenance is unknown carries a tag with source \"Empty\" at confidence 0 rather than no tag at all — the absence of evidence is itself recorded evidence (INVARIANTS.md AF-1, PV-1).",
   "type": "object",
@@ -1766,11 +1874,11 @@ export const provenanceTagSchema: JsonSchemaDocument = {
   "properties": {
     "source": {
       "description": "Where the value came from.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/provenance-source.schema.json"
+      "$ref": "https://affiant.dev/schemas/0.5.0/provenance-source.schema.json"
     },
     "confidence": {
       "description": "Confidence in the value, clamped into [0, 1] at mint time (PV-1). An Empty tag always carries 0: \"nobody knows where this came from\" cannot also be a confident claim.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/unitInterval"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/unitInterval"
     },
     "note": {
       "description": "A human-readable line for the reviewer explaining how the value was obtained, or null when there is nothing to say. Named `evidence` in the 0.0.1-seed wire; renamed here because the whole record is the evidence and this property is the sentence a person reads.",
@@ -1781,7 +1889,7 @@ export const provenanceTagSchema: JsonSchemaDocument = {
     },
     "at": {
       "description": "When the tag was minted. New in v0.1: the seed wire had nowhere to put it, so a chain read off the seed could not say when a claim was made.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "conversationTurn": {
       "description": "Index of the conversation turn the value came from, or null when the value did not come from a turn.",
@@ -1794,7 +1902,7 @@ export const provenanceTagSchema: JsonSchemaDocument = {
       "description": "What to look at to check the value, or null when the producer had nothing to point at (PV-2). Written on every minted tag — null rather than omitted — so a reader never has to distinguish \"unbound\" from \"the property was left off\". A tag graded above Conversation SHOULD carry one at v0.1 and MUST at v0.2; an unbound tag above Conversation is recorded as claimed but never honoured by a verdict made with no person present (PV-4, PV-5).",
       "oneOf": [
         {
-          "$ref": "https://affiant.dev/schemas/0.4.0/binding.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/binding.schema.json"
         },
         {
           "type": "null"
@@ -1804,10 +1912,10 @@ export const provenanceTagSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/requirement.schema.json` — Requirement. */
+/** `schemas/0.5.0/requirement.schema.json` — Requirement. */
 export const requirementSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/requirement.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/requirement.schema.json",
   "title": "Requirement",
   "description": "How much agreement a write needs before it may execute — the policy chain's verdict, recorded verbatim on the Docket row (AZ-4). `StandingOrder`, `ReviewerConfirmation` and `ReferralRequired` carry no data beyond their kind; `MultiParty` also carries the host policy's `approvers` and `required`. This schema cannot state the correlation `required <= approvers.length` — the rule text and every implementation enforce it, and a verdict that fails it is a policy fault refused at evaluation (`wireup-invalid`), nothing filed (CV-1). Both `approvers` and `required` are the host policy's values: an implementation validates them and never invents either (AZ-4).",
   "oneOf": [
@@ -1885,7 +1993,7 @@ export const requirementSchema: JsonSchemaDocument = {
           "description": "The host policy's list of who may decide this entry, each a distinct principal identifier. At least two: one approver is ReviewerConfirmation, not MultiParty.",
           "type": "array",
           "items": {
-            "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+            "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
           },
           "minItems": 2,
           "uniqueItems": true
@@ -1900,10 +2008,10 @@ export const requirementSchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/telemetry-key.schema.json` — TelemetryKeyRegistry. */
+/** `schemas/0.5.0/telemetry-key.schema.json` — TelemetryKeyRegistry. */
 export const telemetryKeySchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/telemetry-key.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/telemetry-key.schema.json",
   "title": "TelemetryKeyRegistry",
   "description": "The telemetry-key registry an implementation ships beside its packages (INVARIANTS.md TL-1). Every event the gate emits is named here, and a key is NEVER renamed and never removed, only deprecated — the registry is a versioned API, and an operator's alerts are built on it. Attributes carry field NAMES, never field values: an event is not an audit record, and the audit record is the Affidavit. Where a public standard names the same thing the registry uses its name (TL-2): OpenTelemetry's gen_ai.* semantic conventions for the tool name, the conversation id and the operation.",
   "type": "object",
@@ -1916,7 +2024,7 @@ export const telemetryKeySchema: JsonSchemaDocument = {
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this registry document conforms to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "registryVersion": {
       "description": "The version of the registry itself, as the implementation that ships it numbers its own releases. Distinct from protocolVersion: a registry gains keys between protocol versions.",
@@ -1973,10 +2081,10 @@ export const telemetryKeySchema: JsonSchemaDocument = {
   }
 };
 
-/** `schemas/0.4.0/tool-result.schema.json` — ToolResult. */
+/** `schemas/0.5.0/tool-result.schema.json` — ToolResult. */
 export const toolResultSchema: JsonSchemaDocument = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/tool-result.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/tool-result.schema.json",
   "title": "ToolResult",
   "description": "What a tool call returns once the gate stands in front of it: one discriminated union of three kinds, carried on a single `kind` property (INVARIANTS.md AF-5). A consumer switches on the discriminator, NEVER on the presence of fields. A gated write tool's result is always the write kind — a PROPOSAL, never a completed write (GT-6): a model reading it learns that the write is pending or that a Standing Order approved it, never that it happened, because the gate does not execute (AZ-7). A refusal the gate raises is the error kind carrying its code. Spelled `$type` in the 0.0.1-seed wire and the shipped .NET envelope; `kind` from v0.1.",
   "type": "object",
@@ -2009,15 +2117,15 @@ export const toolResultSchema: JsonSchemaDocument = {
         },
         "entryId": {
           "description": "The Docket entry the proposal was filed under.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
         },
         "status": {
           "description": "What the row reads at — \"pending\" unless a Standing Order fired.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json#/$defs/status"
+          "$ref": "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json#/$defs/status"
         },
         "card": {
           "description": "The Evidence Card the host delivers to a reviewer.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/evidence-card-request.schema.json"
+          "$ref": "https://affiant.dev/schemas/0.5.0/evidence-card-request.schema.json"
         }
       }
     },
@@ -2036,7 +2144,7 @@ export const toolResultSchema: JsonSchemaDocument = {
         },
         "result": {
           "description": "Whatever the tool returned. Any JSON value — the protocol says nothing about a host's read shapes.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/jsonValue"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/jsonValue"
         }
       }
     },
@@ -2058,7 +2166,7 @@ export const toolResultSchema: JsonSchemaDocument = {
           "description": "The refusal's code from the registry, or \"tool-error\" when a READ tool's own body threw — which is not a gate refusal and is deliberately not in the registry.",
           "oneOf": [
             {
-              "$ref": "https://affiant.dev/schemas/0.4.0/error-code.schema.json"
+              "$ref": "https://affiant.dev/schemas/0.5.0/error-code.schema.json"
             },
             {
               "const": "tool-error",
@@ -2086,6 +2194,7 @@ export const schemas: Readonly<Record<SchemaName, JsonSchemaDocument>> = {
   "common": commonSchema,
   "decision-result": decisionResultSchema,
   "docket-entry": docketEntrySchema,
+  "draft": draftSchema,
   "entity-ref": entityRefSchema,
   "error-code": errorCodeSchema,
   "evidence-card-request": evidenceCardRequestSchema,
@@ -2106,28 +2215,29 @@ export const schemas: Readonly<Record<SchemaName, JsonSchemaDocument>> = {
  * `conformance/fixtures/MANIFEST.json` uses to refer to it.
  */
 export const schemasByPath: Readonly<Record<string, JsonSchemaDocument>> = {
-  "schemas/0.4.0/affidavit-field.schema.json": affidavitFieldSchema,
-  "schemas/0.4.0/affidavit.schema.json": affidavitSchema,
-  "schemas/0.4.0/amendments.schema.json": amendmentsSchema,
-  "schemas/0.4.0/attestation.schema.json": attestationSchema,
-  "schemas/0.4.0/binding.schema.json": bindingSchema,
-  "schemas/0.4.0/blocked.schema.json": blockedSchema,
-  "schemas/0.4.0/common.schema.json": commonSchema,
-  "schemas/0.4.0/decision-result.schema.json": decisionResultSchema,
-  "schemas/0.4.0/docket-entry.schema.json": docketEntrySchema,
-  "schemas/0.4.0/entity-ref.schema.json": entityRefSchema,
-  "schemas/0.4.0/error-code.schema.json": errorCodeSchema,
-  "schemas/0.4.0/evidence-card-request.schema.json": evidenceCardRequestSchema,
-  "schemas/0.4.0/money.schema.json": moneySchema,
-  "schemas/0.4.0/notification.schema.json": notificationSchema,
-  "schemas/0.4.0/operation.schema.json": operationSchema,
-  "schemas/0.4.0/outside-gate.schema.json": outsideGateSchema,
-  "schemas/0.4.0/provenance-chain.schema.json": provenanceChainSchema,
-  "schemas/0.4.0/provenance-source.schema.json": provenanceSourceSchema,
-  "schemas/0.4.0/provenance-tag.schema.json": provenanceTagSchema,
-  "schemas/0.4.0/requirement.schema.json": requirementSchema,
-  "schemas/0.4.0/telemetry-key.schema.json": telemetryKeySchema,
-  "schemas/0.4.0/tool-result.schema.json": toolResultSchema,
+  "schemas/0.5.0/affidavit-field.schema.json": affidavitFieldSchema,
+  "schemas/0.5.0/affidavit.schema.json": affidavitSchema,
+  "schemas/0.5.0/amendments.schema.json": amendmentsSchema,
+  "schemas/0.5.0/attestation.schema.json": attestationSchema,
+  "schemas/0.5.0/binding.schema.json": bindingSchema,
+  "schemas/0.5.0/blocked.schema.json": blockedSchema,
+  "schemas/0.5.0/common.schema.json": commonSchema,
+  "schemas/0.5.0/decision-result.schema.json": decisionResultSchema,
+  "schemas/0.5.0/docket-entry.schema.json": docketEntrySchema,
+  "schemas/0.5.0/draft.schema.json": draftSchema,
+  "schemas/0.5.0/entity-ref.schema.json": entityRefSchema,
+  "schemas/0.5.0/error-code.schema.json": errorCodeSchema,
+  "schemas/0.5.0/evidence-card-request.schema.json": evidenceCardRequestSchema,
+  "schemas/0.5.0/money.schema.json": moneySchema,
+  "schemas/0.5.0/notification.schema.json": notificationSchema,
+  "schemas/0.5.0/operation.schema.json": operationSchema,
+  "schemas/0.5.0/outside-gate.schema.json": outsideGateSchema,
+  "schemas/0.5.0/provenance-chain.schema.json": provenanceChainSchema,
+  "schemas/0.5.0/provenance-source.schema.json": provenanceSourceSchema,
+  "schemas/0.5.0/provenance-tag.schema.json": provenanceTagSchema,
+  "schemas/0.5.0/requirement.schema.json": requirementSchema,
+  "schemas/0.5.0/telemetry-key.schema.json": telemetryKeySchema,
+  "schemas/0.5.0/tool-result.schema.json": toolResultSchema,
 };
 
 /**
@@ -2135,28 +2245,29 @@ export const schemasByPath: Readonly<Record<string, JsonSchemaDocument>> = {
  * registering all of these with a validator is what makes the references resolve.
  */
 export const schemasById: Readonly<Record<string, JsonSchemaDocument>> = {
-  "https://affiant.dev/schemas/0.4.0/affidavit-field.schema.json": affidavitFieldSchema,
-  "https://affiant.dev/schemas/0.4.0/affidavit.schema.json": affidavitSchema,
-  "https://affiant.dev/schemas/0.4.0/amendments.schema.json": amendmentsSchema,
-  "https://affiant.dev/schemas/0.4.0/attestation.schema.json": attestationSchema,
-  "https://affiant.dev/schemas/0.4.0/binding.schema.json": bindingSchema,
-  "https://affiant.dev/schemas/0.4.0/blocked.schema.json": blockedSchema,
-  "https://affiant.dev/schemas/0.4.0/common.schema.json": commonSchema,
-  "https://affiant.dev/schemas/0.4.0/decision-result.schema.json": decisionResultSchema,
-  "https://affiant.dev/schemas/0.4.0/docket-entry.schema.json": docketEntrySchema,
-  "https://affiant.dev/schemas/0.4.0/entity-ref.schema.json": entityRefSchema,
-  "https://affiant.dev/schemas/0.4.0/error-code.schema.json": errorCodeSchema,
-  "https://affiant.dev/schemas/0.4.0/evidence-card-request.schema.json": evidenceCardRequestSchema,
-  "https://affiant.dev/schemas/0.4.0/money.schema.json": moneySchema,
-  "https://affiant.dev/schemas/0.4.0/notification.schema.json": notificationSchema,
-  "https://affiant.dev/schemas/0.4.0/operation.schema.json": operationSchema,
-  "https://affiant.dev/schemas/0.4.0/outside-gate.schema.json": outsideGateSchema,
-  "https://affiant.dev/schemas/0.4.0/provenance-chain.schema.json": provenanceChainSchema,
-  "https://affiant.dev/schemas/0.4.0/provenance-source.schema.json": provenanceSourceSchema,
-  "https://affiant.dev/schemas/0.4.0/provenance-tag.schema.json": provenanceTagSchema,
-  "https://affiant.dev/schemas/0.4.0/requirement.schema.json": requirementSchema,
-  "https://affiant.dev/schemas/0.4.0/telemetry-key.schema.json": telemetryKeySchema,
-  "https://affiant.dev/schemas/0.4.0/tool-result.schema.json": toolResultSchema,
+  "https://affiant.dev/schemas/0.5.0/affidavit-field.schema.json": affidavitFieldSchema,
+  "https://affiant.dev/schemas/0.5.0/affidavit.schema.json": affidavitSchema,
+  "https://affiant.dev/schemas/0.5.0/amendments.schema.json": amendmentsSchema,
+  "https://affiant.dev/schemas/0.5.0/attestation.schema.json": attestationSchema,
+  "https://affiant.dev/schemas/0.5.0/binding.schema.json": bindingSchema,
+  "https://affiant.dev/schemas/0.5.0/blocked.schema.json": blockedSchema,
+  "https://affiant.dev/schemas/0.5.0/common.schema.json": commonSchema,
+  "https://affiant.dev/schemas/0.5.0/decision-result.schema.json": decisionResultSchema,
+  "https://affiant.dev/schemas/0.5.0/docket-entry.schema.json": docketEntrySchema,
+  "https://affiant.dev/schemas/0.5.0/draft.schema.json": draftSchema,
+  "https://affiant.dev/schemas/0.5.0/entity-ref.schema.json": entityRefSchema,
+  "https://affiant.dev/schemas/0.5.0/error-code.schema.json": errorCodeSchema,
+  "https://affiant.dev/schemas/0.5.0/evidence-card-request.schema.json": evidenceCardRequestSchema,
+  "https://affiant.dev/schemas/0.5.0/money.schema.json": moneySchema,
+  "https://affiant.dev/schemas/0.5.0/notification.schema.json": notificationSchema,
+  "https://affiant.dev/schemas/0.5.0/operation.schema.json": operationSchema,
+  "https://affiant.dev/schemas/0.5.0/outside-gate.schema.json": outsideGateSchema,
+  "https://affiant.dev/schemas/0.5.0/provenance-chain.schema.json": provenanceChainSchema,
+  "https://affiant.dev/schemas/0.5.0/provenance-source.schema.json": provenanceSourceSchema,
+  "https://affiant.dev/schemas/0.5.0/provenance-tag.schema.json": provenanceTagSchema,
+  "https://affiant.dev/schemas/0.5.0/requirement.schema.json": requirementSchema,
+  "https://affiant.dev/schemas/0.5.0/telemetry-key.schema.json": telemetryKeySchema,
+  "https://affiant.dev/schemas/0.5.0/tool-result.schema.json": toolResultSchema,
 };
 
 /** Every schema, in a stable order. */
@@ -2170,6 +2281,7 @@ export const allSchemas: readonly JsonSchemaDocument[] = [
   commonSchema,
   decisionResultSchema,
   docketEntrySchema,
+  draftSchema,
   entityRefSchema,
   errorCodeSchema,
   evidenceCardRequestSchema,

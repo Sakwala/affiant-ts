@@ -56,6 +56,7 @@
  * @packageDocumentation
  */
 
+import { PROTOCOL_VERSION } from "@affiant/contract";
 import type { Affidavit as WireAffidavit, FieldPresentation } from "@affiant/contract";
 
 import type { TurnContext } from "../context.js";
@@ -92,6 +93,10 @@ import {
 } from "../model/provenance.js";
 import type {
   Clock,
+  Draft,
+  DraftField,
+  DraftKey,
+  DraftPort,
   FieldInterceptor,
   FieldSchema,
   FieldSchemaEntry,
@@ -107,7 +112,7 @@ import { coverageRefusedMarker } from "./coverage.js";
 import type { ApprovalPolicy } from "./policy.js";
 import { evaluatePolicies } from "./policy.js";
 import type { UtteranceHit } from "./presence.js";
-import { locateInUtterance, utteranceTextOf } from "./presence.js";
+import { locateInUtterance, sameValueText, utteranceTextOf } from "./presence.js";
 
 // ---------------------------------------------------------------------------
 // What comes out
@@ -317,6 +322,8 @@ export interface PipelineDeps {
   readonly interceptors: readonly FieldInterceptor[];
   /** The host's risk function (GT-5). */
   readonly riskScorer?: RiskScorer | undefined;
+  /** Where drafts are held (GT-7); absent when the host wired none. */
+  readonly draft?: DraftPort | undefined;
   /** Where every instant on the record comes from. */
   readonly clock: Clock;
   /** Where the TL-1 events go. */
@@ -470,40 +477,50 @@ interface FieldState {
   readonly value: JsonValue;
 }
 
+/** What steps one to four leave for the rest of the pipeline. */
+interface GradedProposal {
+  readonly states: Map<string, FieldState>;
+  readonly now: string;
+  readonly op: Operation;
+  readonly schemaByName: ReadonlyMap<string, FieldSchemaEntry>;
+  /** The draft read this call, or `null` when none was read or the port held none (GT-7). */
+  readonly draft: Draft | null;
+}
+
+/** The draft's key for a proposal in a turn (GT-7): tenant, conversation, tool. */
+function draftKeyOf(proposal: PipelineProposal, ctx: TurnContext): DraftKey {
+  return {
+    tenantId: ctx.tenantId,
+    conversationId: ctx.conversationId,
+    toolName: proposal.toolName,
+  };
+}
+
+/** The draft's field of this name whose tag is a bound `Conversation`, or `null`. */
+function draftedFieldOf(draft: Draft | null, name: string): DraftField | null {
+  const held = draft?.fields.find((field) => field.name === name);
+  if (held === undefined) return null;
+  if (held.tag.source !== "Conversation") return null;
+  const binding = held.tag.binding;
+  if (binding?.kind !== "utterance-span") return null;
+  // A binding without a non-empty `messageId`, or one the shape check refuses, cannot
+  // name the message it was read on: it is not carried, and the field grades `Inferred`.
+  if (bindingShapeReason(binding) !== null) return null;
+  const messageId = (binding.ref as { readonly messageId?: unknown }).messageId;
+  if (typeof messageId !== "string" || messageId === "") return null;
+  return held;
+}
+
 /**
- * Run steps 2 through 9 for `proposal` in `ctx` and return the filed entry with its
- * card.
- *
- * @throws AffiantCallerError of kind `turn-context-invalid` when a turn-context
- *         identifier the filing needs is blank. GT-1 puts the explicit turn context
- *         first in the order, so this is checked before the interceptors and before
- *         the inference port: the same inputs that were refused before are refused
- *         here, with no port called and nothing filed. A host builds its own
- *         `TurnContext`, so a blank identifier is the host's programming error.
- * @throws AffiantCallerError of kind `binding-invalid` when host-written input carries
- *         something in the binding position that the protocol's binding schema refuses
- *         (PV-2, SR-3): an interceptor's result, checked as that interceptor returns,
- *         so no later interceptor and no other port runs; or a prepared field's chain,
- *         checked beside the turn context. An interceptor's binding must also be one
- *         of the two kinds its type admits — `external-ref` or `computation-ref`, the
- *         two that do not point at a person's act (S-9). Nothing is filed. Rows are
- *         never re-checked on a **read** — the Docket is append-only and this package
- *         does not repair a record — but a resubmission is a filing (S-8), so the
- *         chains it copies off the superseded row are checked here too, and refused
- *         with `details.source = "stored-row"` and that row's `entryId`.
- * @throws AffiantError `"substance-refused"` when the proposal swears to nothing
- *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
- *         telemetry port before the throw.
- * @throws RangeError when a port hands back something that is not a JSON value, or
- *         an interceptor claims a field the operation does not propose. Neither is a
- *         refusal the gate hands back to a model: they are host programming errors,
- *         and an `AffiantError` code would invite a host to catch and continue.
+ * Steps one to four of GT-1: the explicit turn context, the interceptors, the one
+ * structured inference and the merge. Shared by {@link runPipeline} and
+ * {@link runDraft}; touches no projection, policy or store.
  */
-export async function runPipeline(
+async function gradeProposal(
   proposal: PipelineProposal,
   ctx: TurnContext,
   deps: PipelineDeps,
-): Promise<FiledEntry> {
+): Promise<GradedProposal> {
   // ---- step 1: the explicit turn context (GT-1, GT-2) ----------------------
   // First, before any port is touched. These identifiers are the ones a filing
   // cannot be written without, and a blank one has always been refused — but
@@ -544,6 +561,7 @@ export async function runPipeline(
   // Function-local, so nothing survives the call and nothing is shared between two
   // interleaved conversations (GT-2).
   const states = new Map<string, FieldState>();
+  let draft: Draft | null = null;
 
   /** Admit a tag and its value, merging by PV-1 and keeping the loser in the chain. */
   const admit = (name: string, tag: ProvenanceTag, value: JsonValue): void => {
@@ -603,6 +621,20 @@ export async function runPipeline(
       // gate could not check. What a missing utterance must never be is a `TypeError`
       // out of the finder.
       const utterance = typeof ctx.turn.utterance === "string" ? ctx.turn.utterance : "";
+      // GT-7: read the draft once per call, and only where the inference steps run —
+      // a resubmission and a prepared-fields proposal never read it.
+      if (deps.draft !== undefined && proposal.supersedes === null) {
+        const key = draftKeyOf(proposal, ctx);
+        const read = await deps.draft.get(key, ctx);
+        // A record the port answers under another key is not this key's draft.
+        draft =
+          read !== null &&
+          read.tenantId === key.tenantId &&
+          read.conversationId === key.conversationId &&
+          read.toolName === key.toolName
+            ? read
+            : null;
+      }
       const inferred = await deps.inference.infer(ctx.turn, proposal.schema);
       for (const [name, structured] of Object.entries(inferred.fields)) {
         // A model naming a field the operation does not propose is the model being
@@ -634,19 +666,31 @@ export async function runPipeline(
         // `Inferred`, and a value the port said nothing about is `Conversation` when
         // it is there to read.
         const hit = locateInUtterance(utterance, valueText, structured.utteranceSpan ?? null);
+        // PV-3 *Across turns*: no hit in this turn, but the draft holds this field with
+        // the same value text under the finder's own comparison — the drafted binding
+        // carries, the tag is minted now with this turn's confidence. A draft is read,
+        // never searched.
+        const drafted = hit === null ? draftedFieldOf(draft, name) : null;
         const tag =
-          hit === null
-            ? mintInferred({
-                confidence: structured.confidence,
-                at: now,
-                note: `Inferred from the turn: ${name}`,
-              })
-            : mintConversation({
+          hit !== null
+            ? mintConversation({
                 confidence: structured.confidence,
                 at: now,
                 note: `Literally present in the turn: ${name}`,
                 binding: await utteranceSpanBinding(utterance, hit),
-              });
+              })
+            : drafted !== null && sameValueText(utteranceTextOf(drafted.value) ?? "", valueText)
+              ? mintConversation({
+                  confidence: structured.confidence,
+                  at: now,
+                  note: `Stated earlier in the conversation: ${name}`,
+                  binding: drafted.tag.binding ?? null,
+                })
+              : mintInferred({
+                  confidence: structured.confidence,
+                  at: now,
+                  note: `Inferred from the turn: ${name}`,
+                });
         admit(name, tag, value);
       }
     }
@@ -663,6 +707,113 @@ export async function runPipeline(
       }
     }
   }
+
+  return { states, now, op, schemaByName, draft };
+}
+
+/**
+ * Run steps one to four and hold what the turn established as the draft (GT-7).
+ * Never projects, never runs policy, never files. Returns the record written, or —
+ * when this turn holds no graded field, and so nothing is written — the existing
+ * record, or `null` when there is none.
+ */
+export async function runDraft(
+  proposal: PipelineProposal,
+  ctx: TurnContext,
+  deps: PipelineDeps,
+): Promise<Draft | null> {
+  const port = deps.draft;
+  if (port === undefined) {
+    throw new AffiantError("wireup-invalid", "GT-7: draft needs a draft port; none is wired");
+  }
+  // GT-7: a carried binding names the message it was read on, so a turn without one
+  // cannot be drafted. Refused before any port is called.
+  if (typeof ctx.turn.messageId !== "string" || ctx.turn.messageId.trim() === "") {
+    throw new AffiantCallerError(
+      "turn-context-invalid",
+      "GT-7: the turn's messageId is blank; a draft names the message each span was read on",
+      { identifier: "messageId" },
+    );
+  }
+  const { states, now, draft: existing } = await gradeProposal(proposal, ctx, deps);
+  const key = draftKeyOf(proposal, ctx);
+
+  const graded: DraftField[] = [];
+  for (const [name, state] of states) {
+    const tag = state.chain.current;
+    const binding = tag.binding;
+    if (tag.source !== "Conversation" || binding?.kind !== "utterance-span") continue;
+    // An own-turn binding carries no `messageId` on the Affidavit (PV-2); the draft's
+    // copy names the message it was read on, so a later turn can carry it.
+    const ref = binding.ref as { readonly messageId?: string };
+    const held: ProvenanceTag =
+      ref.messageId !== undefined
+        ? tag
+        : {
+            ...tag,
+            binding: {
+              ...binding,
+              ref: { ...(binding.ref as object), messageId: ctx.turn.messageId },
+            } as Binding,
+          };
+    graded.push({ name, value: state.value, tag: held });
+  }
+  if (graded.length === 0) return existing;
+
+  const gradedByName = new Map(graded.map((field) => [field.name, field]));
+  const fields: DraftField[] = (existing?.fields ?? []).map(
+    (field) => gradedByName.get(field.name) ?? field,
+  );
+  const held = new Set(fields.map((field) => field.name));
+  for (const field of graded) if (!held.has(field.name)) fields.push(field);
+
+  const record: Draft = {
+    protocolVersion: PROTOCOL_VERSION,
+    tenantId: key.tenantId,
+    conversationId: key.conversationId,
+    toolName: key.toolName,
+    fields,
+    updatedAt: now,
+  };
+  await port.put(key, record, ctx);
+  return record;
+}
+
+/**
+ * Run steps 2 through 9 for `proposal` in `ctx` and return the filed entry with its
+ * card.
+ *
+ * @throws AffiantCallerError of kind `turn-context-invalid` when a turn-context
+ *         identifier the filing needs is blank. GT-1 puts the explicit turn context
+ *         first in the order, so this is checked before the interceptors and before
+ *         the inference port: the same inputs that were refused before are refused
+ *         here, with no port called and nothing filed. A host builds its own
+ *         `TurnContext`, so a blank identifier is the host's programming error.
+ * @throws AffiantCallerError of kind `binding-invalid` when host-written input carries
+ *         something in the binding position that the protocol's binding schema refuses
+ *         (PV-2, SR-3): an interceptor's result, checked as that interceptor returns,
+ *         so no later interceptor and no other port runs; or a prepared field's chain,
+ *         checked beside the turn context. An interceptor's binding must also be one
+ *         of the two kinds its type admits — `external-ref` or `computation-ref`, the
+ *         two that do not point at a person's act (S-9). Nothing is filed. Rows are
+ *         never re-checked on a **read** — the Docket is append-only and this package
+ *         does not repair a record — but a resubmission is a filing (S-8), so the
+ *         chains it copies off the superseded row are checked here too, and refused
+ *         with `details.source = "stored-row"` and that row's `entryId`.
+ * @throws AffiantError `"substance-refused"` when the proposal swears to nothing
+ *         (GT-3). Nothing is filed, nothing is broadcast, and the refusal is on the
+ *         telemetry port before the throw.
+ * @throws RangeError when a port hands back something that is not a JSON value, or
+ *         an interceptor claims a field the operation does not propose. Neither is a
+ *         refusal the gate hands back to a model: they are host programming errors,
+ *         and an `AffiantError` code would invite a host to catch and continue.
+ */
+export async function runPipeline(
+  proposal: PipelineProposal,
+  ctx: TurnContext,
+  deps: PipelineDeps,
+): Promise<FiledEntry> {
+  const { states, now, op, schemaByName } = await gradeProposal(proposal, ctx, deps);
 
   // ---- step 5: projection, then the Affidavit (AF-1, AF-3, AF-2) -----------
   // The port is consulted for an update only: AF-3 says a create carries
@@ -802,7 +953,10 @@ export async function runPipeline(
     },
   });
 
-  return {
+  // GT-7: a filing that ran the inference steps and filed — created or replayed —
+  // consumes the draft, after its telemetry is out. A refusal above threw before the
+  // filing and leaves it.
+  const filedResult = {
     entry,
     created,
     card: buildCard(entry, {
@@ -817,6 +971,14 @@ export async function runPipeline(
       requiresConfirmation: entry.status === "pending" && entry.blocked === null,
     }),
   };
+  if (
+    deps.draft !== undefined &&
+    proposal.preparedFields === null &&
+    proposal.supersedes === null
+  ) {
+    await deps.draft.consume(draftKeyOf(proposal, ctx), ctx);
+  }
+  return filedResult;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,201 @@
+{
+  "id": "gate/draft-later-hit-replaces-the-earlier",
+  "rules": [
+    "GT-7",
+    "PV-3",
+    "PV-2"
+  ],
+  "title": "The newest statement wins: the payee is drafted on turn 1 and drafted again on turn 2, where the person restates it as Sampath Bank, so turn 3 carries the turn 2 span and msg-2b; the amount and currency, never drafted, are Inferred.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "draft": {
+        "ttlMs": 3600000
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "prior": [
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          }
+        }
+      },
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "Actually, pay it to Sampath Bank",
+          "messageId": "msg-2b"
+        },
+        "inference": {
+          "payee": {
+            "value": "Sampath Bank",
+            "confidence": 0.9
+          }
+        }
+      }
+    ],
+    "step": {
+      "kind": "file",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "How much money moves"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who the money goes to"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "inference": {
+        "amount": {
+          "value": 15000,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Sampath Bank",
+          "confidence": 0.9
+        },
+        "currency": {
+          "value": "LKR",
+          "confidence": 0.9
+        }
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "affidavit": {
+        "fields": [
+          {
+            "name": "amount",
+            "value": 15000,
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          },
+          {
+            "name": "payee",
+            "value": "Sampath Bank",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 20,
+              "length": 12,
+              "hash": "4f7026e849c07f9b06d25900424c481c294d9d8dc382bf72d5f0fac0cf0c79fd",
+              "messageId": "msg-2b"
+            },
+            "priorSources": []
+          },
+          {
+            "name": "currency",
+            "value": "LKR",
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          }
+        ]
+      }
+    }
+  }
+}

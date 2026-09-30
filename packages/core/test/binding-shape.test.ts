@@ -330,6 +330,21 @@ describe("a well-formed binding of a kind no interceptor may mint (S-9)", () => 
 // A prepared field's chain, checked beside the turn context
 // ---------------------------------------------------------------------------
 
+describe("an utterance-span ref's messageId (PV-2, GT-7)", () => {
+  const span = (ref: Record<string, unknown>) => ({
+    kind: "utterance-span",
+    ref: { offset: 0, length: 6, hash: "sha256:abc", ...ref },
+  });
+
+  it("admits a span ref with a messageId", () => {
+    expect(bindingShapeReason(span({ messageId: "msg-1" }))).toBeNull();
+  });
+
+  it("refuses a span ref with an empty messageId", () => {
+    expect(bindingShapeReason(span({ messageId: "" }))).not.toBeNull();
+  });
+});
+
 describe("a malformed binding on a prepared field", () => {
   for (const [name, binding] of MALFORMED) {
     it(`is a caller error naming the field and the source: ${name}`, async () => {

@@ -10,13 +10,13 @@ import {
   manifest,
   v01Fixtures,
   v03Fixtures,
-  v04Fixtures,
+  v05Fixtures,
   wireFixtures,
 } from "./fixtures.generated.js";
 
 type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
 type V03ManifestFixture = (typeof manifest)["0.3.0"]["fixtures"][number];
-type V04ManifestFixture = (typeof manifest)["0.4.0"]["fixtures"][number];
+type V05ManifestFixture = (typeof manifest)["0.5.0"]["fixtures"][number];
 type SeedManifestFixture = (typeof manifest.fixtures)[number];
 
 /**
@@ -40,12 +40,15 @@ const addFormats: AddFormats = typeof imported === "function" ? imported : impor
  * directory the same way the generator re-paths it.
  */
 function repath(schemaPath: string): string {
-  return schemaPath.replace(/^schemas\/\d+\.\d+\.\d+\//, "schemas/0.4.0/");
+  return schemaPath.replace(/^schemas\/\d+\.\d+\.\d+\//, "schemas/0.5.0/");
 }
-function unchangedIn(section: "0.3.0" | "0.4.0"): Set<string> {
+function unchangedIn(section: "0.3.0" | "0.4.0" | "0.5.0"): Set<string> {
   return new Set((manifest[section].definitionsOnly as readonly string[]).map(repath));
 }
-const unchangedSince03 = unchangedIn("0.4.0");
+const unchangedSince04 = unchangedIn("0.5.0");
+const unchangedSince03 = new Set(
+  [...unchangedIn("0.4.0")].filter((path) => unchangedSince04.has(path)),
+);
 const unchangedSince01 = new Set(
   [...unchangedIn("0.3.0")].filter((path) => unchangedSince03.has(path)),
 );
@@ -74,9 +77,9 @@ const schemaNegatives = negatives.filter(
 // BD-256: the 0.3.0 section carries one cross-object negative
 // (`v0.3/evidence-card-request/93-presentation-names-unknown-field`, the same
 // relation as the v0.1 counterpart above) which the schema itself cannot refuse.
-// A 0.3.0 document is kept only if the 0.4.0 section left its schema unchanged: the
-// 0.4.0 section re-authors docket-entry, decision-result and notification, and its
-// own documents (`v04Fixtures`) replace the 0.3.0 ones for those three schemas.
+// A 0.3.0 document is kept only if every later section left its schema unchanged: the
+// 0.5.0 section re-carries docket-entry, decision-result and notification, and its
+// own documents (`v05Fixtures`) replace the 0.3.0 ones for those three schemas.
 const v03Raw = manifest["0.3.0"].fixtures as readonly V03ManifestFixture[];
 const v03 = v03Raw.filter((entry) => unchangedSince03.has(repath(entry.schema)));
 const v03Positives = v03.filter((entry) => entry.kind === "positive");
@@ -89,8 +92,8 @@ const v03Negatives = v03AllNegatives.filter(
 );
 
 // The newest section: every document is kept.
-const v04 = manifest["0.4.0"].fixtures as readonly V04ManifestFixture[];
-const v04Positives = v04.filter((entry) => entry.kind === "positive");
+const v05 = manifest["0.5.0"].fixtures as readonly V05ManifestFixture[];
+const v05Positives = v05.filter((entry) => entry.kind === "positive");
 
 const seedSchemaRelevant = manifest.fixtures.filter(
   (entry): entry is SeedManifestFixture & { schema: string } => entry.schemaRelevant,
@@ -100,10 +103,10 @@ let ajv: Ajv2020;
 
 function validatorFor(schemaPath: string): ValidateFunction {
   // BD-257: `protocol/schemas/` is a flat directory holding only the pinned
-  // (0.4.0) shapes; a caller naming a `schemas/0.1.0/...` or `schemas/0.3.0/...`
+  // (0.5.0) shapes; a caller naming a `schemas/0.1.0/...` or `schemas/0.3.0/...`
   // path for a schema that did not change shape (this file has several literal
   // ones) still resolves, onto the pinned copy of the same file.
-  const repathed = schemaPath.replace(/^schemas\/(0\.1\.0|0\.3\.0)\//, "schemas/0.4.0/");
+  const repathed = schemaPath.replace(/^schemas\/(0\.1\.0|0\.3\.0)\//, "schemas/0.5.0/");
   const schema =
     schemasByPath[repathed] ??
     seedSchemasByPath[repathed] ??
@@ -137,10 +140,10 @@ function v03DocumentFor(id: string): unknown {
   return JSON.parse(JSON.stringify(fixture));
 }
 
-/** The v0.4 counterpart to {@link documentFor}. */
-function v04DocumentFor(id: string): unknown {
-  const fixture = v04Fixtures[id];
-  if (fixture === undefined) throw new Error(`no v0.4 fixture ${id}`);
+/** The v0.5 counterpart to {@link documentFor}. */
+function v05DocumentFor(id: string): unknown {
+  const fixture = v05Fixtures[id];
+  if (fixture === undefined) throw new Error(`no v0.5 fixture ${id}`);
   return JSON.parse(JSON.stringify(fixture));
 }
 
@@ -186,7 +189,7 @@ describe("the v0.1 fixture set", () => {
     // against the pinned flat directory — that is the describe blocks below.
     const v01Raw = manifest["0.1.0"].fixtures as readonly V01ManifestFixture[];
     const cited = new Set<string>(v01Raw.map((entry) => repath(entry.schema)));
-    for (const entry of [...v03Raw, ...v04]) {
+    for (const entry of [...v03Raw, ...v05]) {
       cited.add(repath(entry.schema));
     }
     const uncovered = Object.keys(schemasByPath).filter(
@@ -262,13 +265,13 @@ describe("every negative v0.3 fixture is refused (BD-256)", () => {
   );
 });
 
-describe("every positive v0.4 fixture validates against the schema the manifest assigns it", () => {
-  it.each(v04Positives.map((entry) => [entry.id, entry.schema] as const))(
+describe("every positive v0.5 fixture validates against the schema the manifest assigns it", () => {
+  it.each(v05Positives.map((entry) => [entry.id, entry.schema] as const))(
     "%s against %s",
     (id, schemaPath) => {
       const validate = validatorFor(schemaPath);
 
-      const valid = validate(v04DocumentFor(id));
+      const valid = validate(v05DocumentFor(id));
 
       expect(validate.errors ?? []).toEqual([]);
       expect(valid).toBe(true);
@@ -276,13 +279,60 @@ describe("every positive v0.4 fixture validates against the schema the manifest 
   );
 
   it("carries the withdrawn row: status withdrawn, decided by a withdraw", () => {
-    const row = v04DocumentFor("v0.4/docket-entry-withdrawn") as {
+    const row = v05DocumentFor("v0.5/docket-entry-withdrawn") as {
       status: unknown;
       decision: { kind: unknown };
     };
 
     expect(row.status).toBe("withdrawn");
     expect(row.decision.kind).toBe("withdraw");
+  });
+});
+
+describe("the 0.5.0 section: the conversation draft (GT-7)", () => {
+  const draftSchema = "schemas/0.5.0/draft.schema.json";
+  const affidavitSchema = "schemas/0.5.0/affidavit.schema.json";
+  type Ref = { messageId?: string };
+  type Draft = { fields: { tag: { source: string; binding: { ref: Ref } } }[] };
+
+  it("validates the draft record, its fields Conversation-tagged with a messageId on each span", () => {
+    const validate = validatorFor(draftSchema);
+    const record = v05DocumentFor("v0.5/draft-record") as Draft;
+
+    expect(validate(record)).toBe(true);
+    expect(record.fields.length).toBeGreaterThan(0);
+    for (const field of record.fields) {
+      expect(field.tag.source).toBe("Conversation");
+      expect(typeof field.tag.binding.ref.messageId).toBe("string");
+    }
+  });
+
+  it("refuses the draft record that holds an Inferred field", () => {
+    const validate = validatorFor(draftSchema);
+
+    expect(validate(v05DocumentFor("v0.5/draft-record-inferred-refused"))).toBe(false);
+    expect((validate.errors ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("validates the Affidavit that carries a binding from an earlier turn", () => {
+    const validate = validatorFor(affidavitSchema);
+    const affidavit = v05DocumentFor("v0.5/affidavit-carried-binding");
+    const carried = JSON.stringify(affidavit).includes('"messageId"');
+
+    expect(validate(affidavit)).toBe(true);
+    expect(carried).toBe(true);
+  });
+
+  it("refuses a span binding whose messageId is empty", () => {
+    const validate = validatorFor("schemas/0.5.0/binding.schema.json");
+    const binding = {
+      kind: "utterance-span",
+      ref: { offset: 0, length: 1, hash: "0".repeat(64), messageId: "" },
+    };
+
+    expect(validate(binding)).toBe(false);
+    binding.ref.messageId = "msg-1";
+    expect(validate(binding)).toBe(true);
   });
 });
 
@@ -364,8 +414,8 @@ describe("the v0.1 schemas refuse the mutations a rule is about", () => {
   });
 
   it("rejects a notification told apart by its properties rather than by its kind (BD-256/BD-257)", () => {
-    const validate = validatorFor("schemas/0.4.0/notification.schema.json");
-    const mutated = v04DocumentFor("v0.4/notification-transition-to-withdrawn") as Record<
+    const validate = validatorFor("schemas/0.5.0/notification.schema.json");
+    const mutated = v05DocumentFor("v0.5/notification-transition-to-withdrawn") as Record<
       string,
       unknown
     >;

@@ -23,7 +23,7 @@
 import type { Principal, TurnContext, Turn } from "./context.js";
 import type { DocketEntry } from "./docket/entry.js";
 import type { Affidavit, JsonValue } from "./model/affidavit.js";
-import type { InterceptorBinding } from "./model/provenance.js";
+import type { InterceptorBinding, ProvenanceTag } from "./model/provenance.js";
 
 export type { TelemetryPort, TelemetryEvent, TelemetryAttributes } from "./telemetry.js";
 
@@ -184,6 +184,77 @@ export interface InferencePort {
    * @param schema The fields to fill.
    */
   infer(turn: Turn, schema: FieldSchema): Promise<StructuredResult>;
+}
+
+/**
+ * Where a draft is held: the key that names it.
+ *
+ * A draft belongs to one tenant, one conversation and one tool (GT-7): the same
+ * conversation drafting a different tool holds a different draft.
+ */
+export interface DraftKey {
+  /** The tenant the conversation belongs to. */
+  readonly tenantId: string;
+  /** The conversation the draft was read in. */
+  readonly conversationId: string;
+  /** The tool the draft is for. */
+  readonly toolName: string;
+}
+
+/** One field the draft holds: a value heard in conversation, with the tag it carries. */
+export interface DraftField {
+  /** The field's name. */
+  readonly name: string;
+  /** The value that was heard. */
+  readonly value: JsonValue;
+  /**
+   * The tag in force: source `Conversation`, with an `utterance-span` binding whose
+   * `messageId` names the turn the value was read on.
+   */
+  readonly tag: ProvenanceTag;
+}
+
+/**
+ * What a conversation has established so far for one tool (GT-7).
+ *
+ * Only fields whose tag is `Conversation` with an `utterance-span` binding are held;
+ * a draft is never an Affidavit, holds no Docket entry and adds no field to one.
+ */
+export interface Draft {
+  /** The protocol version the record is written under. */
+  readonly protocolVersion: string;
+  /** The tenant the conversation belongs to. */
+  readonly tenantId: string;
+  /** The conversation the draft was read in. */
+  readonly conversationId: string;
+  /** The tool the draft is for. */
+  readonly toolName: string;
+  /** The fields held, in the order they were first heard. */
+  readonly fields: readonly DraftField[];
+  /** The instant the record was last written; a port's time-to-live runs from here. */
+  readonly updatedAt: string;
+}
+
+/**
+ * The host's store for drafts (GT-7).
+ *
+ * Optional: a gate with no draft port carries nothing across turns, and
+ * {@link Gate.draft} is refused. The port MAY answer `null` for a draft it holds,
+ * for instance after a time-to-live counted from `updatedAt`; the cost is that a
+ * value heard earlier is graded `Inferred` rather than `Conversation`, never a wrong
+ * tag.
+ *
+ * Calls on one key are sequential: a turn's `draft` and `file` are ordered by the
+ * conversation. A host that may interleave two calls on one key serialises them,
+ * because `put` replaces the whole record and the later write wins.
+ */
+export interface DraftPort {
+  /** The draft held under `key`, or `null` when there is none (or it has lapsed). */
+  get(key: DraftKey, ctx: TurnContext): Promise<Draft | null>;
+  /** Hold `draft` under `key`, replacing whatever the port held. */
+  put(key: DraftKey, draft: Draft, ctx: TurnContext): Promise<void>;
+  /** Forget the draft held under `key`. Consuming a draft that is not held is not an error. */
+  consume(key: DraftKey, ctx: TurnContext): Promise<void>;
 }
 
 /**

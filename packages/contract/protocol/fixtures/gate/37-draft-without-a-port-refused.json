@@ -1,0 +1,84 @@
+{
+  "id": "gate/draft-without-a-port-refused",
+  "rules": [
+    "GT-7"
+  ],
+  "title": "With no draft port wired, a draft step is refused wireup-invalid rather than silently holding nothing, and nothing is filed.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "prior": [],
+    "step": {
+      "kind": "draft",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "The amount of money"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who is paid"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "turn": {
+        "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+        "messageId": "msg-1"
+      },
+      "inference": {
+        "amount": {
+          "value": 15000,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Serendib Growth Fund unit trust",
+          "confidence": 0.9
+        }
+      }
+    }
+  },
+  "expect": {
+    "error": {
+      "code": "wireup-invalid"
+    },
+    "store": {
+      "count": 0
+    }
+  }
+}

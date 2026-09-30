@@ -1,7 +1,7 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.4.1.
-// Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0
+// copy of Sakwala/affiant-protocol at d1fbd9b764a2176095b2ce324afa25adc46aa1fe.
+// Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0, 0.5.0
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
 /** Fixture `wire/evidence-card-request`. */
@@ -2035,7 +2035,199 @@ export const v03Fixtures: Readonly<Record<string, unknown>> = {
  * fixture is, by construction, not assignable to the type its schema describes.
  */
 export const v04Fixtures: Readonly<Record<string, unknown>> = {
-  "v0.4/docket-entry-withdrawn": {
+
+};
+
+/**
+ * Every 0.5.0 manifest-section document the pinned schemas can still
+ * validate, keyed by its manifest id: the positive examples and the negatives that
+ * must fail. A document whose schema a later section re-authored is not here; the
+ * later section's documents replace it. Left as `unknown` because a negative
+ * fixture is, by construction, not assignable to the type its schema describes.
+ */
+export const v05Fixtures: Readonly<Record<string, unknown>> = {
+  "v0.5/draft-record": {
+    "protocolVersion": "0.5.0",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "toolName": "capture_entry",
+    "fields": [
+      {
+        "name": "amount",
+        "value": 15000,
+        "tag": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "note": "Literally present in the turn: amount",
+          "at": "2026-09-30T09:00:00.000Z",
+          "conversationTurn": null,
+          "binding": {
+            "kind": "utterance-span",
+            "ref": {
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
+          }
+        }
+      },
+      {
+        "name": "payee",
+        "value": "Serendib Growth Fund unit trust",
+        "tag": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "note": "Literally present in the turn: payee",
+          "at": "2026-09-30T09:00:00.000Z",
+          "conversationTurn": null,
+          "binding": {
+            "kind": "utterance-span",
+            "ref": {
+              "offset": 23,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+              "messageId": "msg-1"
+            }
+          }
+        }
+      }
+    ],
+    "updatedAt": "2026-09-30T09:00:00.000Z"
+  },
+  "v0.5/draft-record-inferred-refused": {
+    "protocolVersion": "0.5.0",
+    "tenantId": "tenant-a",
+    "conversationId": "conv-1",
+    "toolName": "capture_entry",
+    "fields": [
+      {
+        "name": "amount",
+        "value": 15000,
+        "tag": {
+          "source": "Inferred",
+          "confidence": 0.9,
+          "note": "Literally present in the turn: amount",
+          "at": "2026-09-30T09:00:00.000Z",
+          "conversationTurn": null,
+          "binding": {
+            "kind": "utterance-span",
+            "ref": {
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
+          }
+        }
+      },
+      {
+        "name": "payee",
+        "value": "Serendib Growth Fund unit trust",
+        "tag": {
+          "source": "Conversation",
+          "confidence": 0.9,
+          "note": "Literally present in the turn: payee",
+          "at": "2026-09-30T09:00:00.000Z",
+          "conversationTurn": null,
+          "binding": {
+            "kind": "utterance-span",
+            "ref": {
+              "offset": 23,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+              "messageId": "msg-1"
+            }
+          }
+        }
+      }
+    ],
+    "updatedAt": "2026-09-30T09:00:00.000Z"
+  },
+  "v0.5/affidavit-carried-binding": {
+    "protocolVersion": "0.5.0",
+    "operationType": "create",
+    "entityType": "Entry",
+    "entityId": null,
+    "fields": [
+      {
+        "name": "amount",
+        "kind": "number",
+        "value": 15000,
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: amount",
+            "at": "2026-09-30T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": {
+              "kind": "utterance-span",
+              "ref": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              }
+            }
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      },
+      {
+        "name": "payee",
+        "kind": "text",
+        "value": "Serendib Growth Fund unit trust",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Conversation",
+            "confidence": 0.9,
+            "note": "Literally present in the turn: payee",
+            "at": "2026-09-30T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": {
+              "kind": "utterance-span",
+              "ref": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              }
+            }
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      },
+      {
+        "name": "currency",
+        "kind": "text",
+        "value": "LKR",
+        "previousValue": null,
+        "provenance": {
+          "current": {
+            "source": "Inferred",
+            "confidence": 0.9,
+            "note": "Not in the turn: currency",
+            "at": "2026-09-30T09:00:00.000Z",
+            "conversationTurn": null,
+            "binding": null
+          },
+          "prior": []
+        },
+        "isMandatory": true
+      }
+    ],
+    "aggregateConfidence": 0.9,
+    "populatedConfidence": 0.9,
+    "emptyFieldCount": 0,
+    "conversationTurn": null,
+    "createdAt": "2026-09-30T09:00:00.000Z"
+  },
+  "v0.5/docket-entry-withdrawn": {
     "protocolVersion": "0.4.0",
     "entryId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
     "tenantId": "tenant-a",
@@ -2138,14 +2330,14 @@ export const v04Fixtures: Readonly<Record<string, unknown>> = {
     "decidedAt": "2026-09-28T09:05:00.000Z",
     "executionDetail": null
   },
-  "v0.4/decision-result-withdrawn": {
+  "v0.5/decision-result-withdrawn": {
     "protocolVersion": "0.4.0",
     "docketId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
     "outcome": "withdrawn",
     "attestation": null,
     "execution": null
   },
-  "v0.4/notification-transition-to-withdrawn": {
+  "v0.5/notification-transition-to-withdrawn": {
     "protocolVersion": "0.4.0",
     "kind": "docket-transition",
     "docketId": "3f9b1a2c-4e5d-6f70-8a9b-0c1d2e3f4a5b",
@@ -3282,8 +3474,84 @@ export const manifest = {
       }
     ]
   },
+  "0.5.0": {
+    "protocolVersion": "0.5.0",
+    "schemas": "schemas/0.5.0",
+    "$note": "The conversation draft, GT-7 at 0.5.0. This section carries only the documents whose shape 0.5.0 adds (the draft record and the utterance-span binding's messageId); every 0.4.0 document remains a valid 0.5.0 document (common.schema.json's protocolVersion is a semver pattern, not a fixed value, and messageId is optional), so nothing byte-identical to its 0.4.0 counterpart is re-authored here.",
+    "derivedFrom": {
+      "reference": "the conversation draft, GT-7 at 0.5.0",
+      "values": "Same shape as the draft the gate/draft-* fixtures' steps write and read, so the schema documents and the behaviour fixtures tell one story.",
+      "date": "2026-09-30"
+    },
+    "definitionsOnly": [
+      "schemas/0.5.0/common.schema.json",
+      "schemas/0.5.0/affidavit.schema.json",
+      "schemas/0.5.0/affidavit-field.schema.json",
+      "schemas/0.5.0/amendments.schema.json",
+      "schemas/0.5.0/attestation.schema.json",
+      "schemas/0.5.0/binding.schema.json",
+      "schemas/0.5.0/blocked.schema.json",
+      "schemas/0.5.0/entity-ref.schema.json",
+      "schemas/0.5.0/error-code.schema.json",
+      "schemas/0.5.0/evidence-card-request.schema.json",
+      "schemas/0.5.0/money.schema.json",
+      "schemas/0.5.0/operation.schema.json",
+      "schemas/0.5.0/outside-gate.schema.json",
+      "schemas/0.5.0/provenance-chain.schema.json",
+      "schemas/0.5.0/provenance-source.schema.json",
+      "schemas/0.5.0/provenance-tag.schema.json",
+      "schemas/0.5.0/requirement.schema.json",
+      "schemas/0.5.0/telemetry-key.schema.json",
+      "schemas/0.5.0/tool-result.schema.json"
+    ],
+    "fixtures": [
+      {
+        "id": "v0.5/draft-record",
+        "file": "v0.5/draft-record.json",
+        "schema": "schemas/0.5.0/draft.schema.json",
+        "kind": "positive",
+        "notes": "A draft after turn 1 of a capture: the amount and the payee, each a Conversation tag with an utterance-span binding whose messageId names the message it was read from (GT-7). Same values and spans as gate/draft-never-files."
+      },
+      {
+        "id": "v0.5/draft-record-inferred-refused",
+        "file": "v0.5/draft-record-inferred-refused.json",
+        "schema": "schemas/0.5.0/draft.schema.json",
+        "kind": "negative",
+        "derivedFrom": "Mutation of v0.5/draft-record.json",
+        "notes": "The amount's tag has source \"Inferred\" and keeps a valid utterance-span binding that names its message; nothing else differs from the positive record. The draft holds only Conversation tags (GT-7), so the schema refuses it for the source alone."
+      },
+      {
+        "id": "v0.5/affidavit-carried-binding",
+        "file": "v0.5/affidavit-carried-binding.json",
+        "schema": "schemas/0.5.0/affidavit.schema.json",
+        "kind": "positive",
+        "notes": "A create Affidavit filed on turn 3 whose amount and payee are Conversation fields carried from turn 1: the utterance-span binding names its message by messageId (PV-2, GT-7); the currency is Inferred and unbound. Same shape as the result of gate/draft-carries-a-conversation-tag-across-turns."
+      },
+      {
+        "id": "v0.5/docket-entry-withdrawn",
+        "file": "v0.5/docket-entry-withdrawn.json",
+        "schema": "schemas/0.5.0/docket-entry.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      },
+      {
+        "id": "v0.5/decision-result-withdrawn",
+        "file": "v0.5/decision-result-withdrawn.json",
+        "schema": "schemas/0.5.0/decision-result.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      },
+      {
+        "id": "v0.5/notification-transition-to-withdrawn",
+        "file": "v0.5/notification-transition-to-withdrawn.json",
+        "schema": "schemas/0.5.0/notification.schema.json",
+        "kind": "positive",
+        "notes": "unchanged at 0.5.0; listed so the section covers the schema"
+      }
+    ]
+  },
   "conformance": {
-    "protocolVersion": "0.4.0",
+    "protocolVersion": "0.5.0",
     "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
     "promotedFrom": {
       "repository": "Sakwala/affiant-ts",
@@ -3293,7 +3561,7 @@ export const manifest = {
       "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
       "date": "2026-09-04",
       "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 — see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
-      "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why. v0.4.0-pre re-derived two `canonicalHash` values in place — decide/amend-recompute and sequence-a/approve-round-trip — at the 0.4.0 stamp: each expects the hash of a document the implementation produces, the canonical form carries `protocolVersion` (SR-1, SR-4), so a produced document's hash moves with this section's `protocolVersion` and is re-derived from the reference implementation whenever that version moves (2026-09-28).",
+      "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why. v0.4.0-pre re-derived two `canonicalHash` values in place — decide/amend-recompute and sequence-a/approve-round-trip — at the 0.4.0 stamp: each expects the hash of a document the implementation produces, the canonical form carries `protocolVersion` (SR-1, SR-4), so a produced document's hash moves with this section's `protocolVersion` and is re-derived from the reference implementation whenever that version moves (2026-09-28). v0.5.0-pre re-derived the same two values at the 0.5.0 stamp, the section's `protocolVersion` having moved with it; no other fixture changed (2026-09-30).",
       "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value — src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text — and so passes it.",
       "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
     },
@@ -3580,6 +3848,141 @@ export const manifest = {
         "oracle": null
       },
       {
+        "id": "gate/draft-consumed-on-file",
+        "file": "gate/34-draft-consumed-on-file.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-left-by-a-refused-file",
+        "file": "gate/35-draft-left-by-a-refused-file.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-never-files",
+        "file": "gate/36-draft-never-files.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-without-a-port-refused",
+        "file": "gate/37-draft-without-a-port-refused.json",
+        "rules": [
+          "GT-7"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/file-without-a-port-grades-this-turn",
+        "file": "gate/38-file-without-a-port-grades-this-turn.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/draft-merges-by-field-name",
+        "file": "gate/39-draft-merges-by-field-name.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-does-not-add-a-field",
+        "file": "gate/40-draft-does-not-add-a-field.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2",
+          "AF-1"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-other-tool-does-not-carry",
+        "file": "gate/41-draft-other-tool-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-carries-across-entities",
+        "file": "gate/43-draft-carries-across-entities.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
         "id": "gate/multiparty-files-one-entry",
         "file": "gate/23-multiparty-files-one-entry.json",
         "rules": [
@@ -3651,6 +4054,99 @@ export const manifest = {
             "dotnet@1.0.0-beta.3.1"
           ],
           "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+        }
+      },
+      {
+        "id": "gate/draft-inferred-does-not-carry",
+        "file": "gate/31-draft-inferred-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-expired-does-not-carry",
+        "file": "gate/32-draft-expired-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-other-conversation-does-not-carry",
+        "file": "gate/33-draft-other-conversation-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "GT-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-carries-a-conversation-tag-across-turns",
+        "file": "gate/28-draft-carries-a-conversation-tag-across-turns.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-changed-value-does-not-carry",
+        "file": "gate/29-draft-changed-value-does-not-carry.json",
+        "rules": [
+          "GT-7",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/draft-later-hit-replaces-the-earlier",
+        "file": "gate/30-draft-later-hit-replaces-the-earlier.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
         }
       },
       {

@@ -77,7 +77,7 @@ const wire = toWire(core);
 describe("a core Affidavit written out to the v0.1 wire", () => {
   it("stamps the protocol version the envelope conforms to (SR-4)", () => {
     expect(wire.protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(PROTOCOL_VERSION).toBe("0.4.0");
+    expect(PROTOCOL_VERSION).toBe("0.5.0");
   });
 
   it("swears to the operation's shape, never to the host's verb (AF-3)", () => {
@@ -203,10 +203,10 @@ describe("a payload from another protocol version is refused, never guessed at (
     // `toWire(fromWire(x))` a different document from `x`, and — since SR-1's
     // canonical form is over the record as the schema defines it, `protocolVersion`
     // included — a different hash for evidence nobody changed.
-    const newer = fromWire({ ...wire, protocolVersion: "0.4.0" }, { at: AT });
+    const newer = fromWire({ ...wire, protocolVersion: "0.5.0" }, { at: AT });
 
-    expect(newer).toEqual({ ...core, protocolVersion: "0.4.0" });
-    expect(toWire(newer).protocolVersion).toBe("0.4.0");
+    expect(newer).toEqual({ ...core, protocolVersion: "0.5.0" });
+    expect(toWire(newer).protocolVersion).toBe("0.5.0");
   });
 });
 

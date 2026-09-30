@@ -1,0 +1,162 @@
+{
+  "id": "gate/draft-changed-value-does-not-carry",
+  "rules": [
+    "GT-7",
+    "PV-3"
+  ],
+  "title": "A value the model changes is a different claim: the draft holds 15000, the model now proposes 16000, so the amount is Inferred and unbound, while the payee it repeated unchanged still carries.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "draft": {
+        "ttlMs": 3600000
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "prior": [
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          }
+        }
+      }
+    ],
+    "step": {
+      "kind": "file",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "How much money moves"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who the money goes to"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "inference": {
+        "amount": {
+          "value": 16000,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Serendib Growth Fund unit trust",
+          "confidence": 0.9
+        },
+        "currency": {
+          "value": "LKR",
+          "confidence": 0.9
+        }
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "affidavit": {
+        "fields": [
+          {
+            "name": "amount",
+            "value": 16000,
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          },
+          {
+            "name": "payee",
+            "value": "Serendib Growth Fund unit trust",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 23,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+              "messageId": "msg-1"
+            }
+          },
+          {
+            "name": "currency",
+            "value": "LKR",
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          }
+        ]
+      }
+    }
+  }
+}

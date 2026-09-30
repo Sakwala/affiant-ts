@@ -110,6 +110,12 @@ export interface UtteranceSpanRef {
   readonly length: number;
   /** Digest of the spanned substring, so the span can be checked after the fact. */
   readonly hash: string;
+  /**
+   * The message whose utterance the span indexes. Absent for the Affidavit's own turn
+   * (the span indexes the utterance the Affidavit was filed on); present on a span
+   * carried from an earlier turn's draft (PV-2, GT-7).
+   */
+  readonly messageId?: string;
 }
 
 /** The Docket decision that amended the field. */

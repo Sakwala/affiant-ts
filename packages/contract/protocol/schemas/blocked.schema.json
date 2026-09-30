@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/blocked.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/blocked.schema.json",
   "title": "BlockedMarker",
   "description": "Why an entry cannot be decided even though it sits in pending (INVARIANTS.md AZ-4, CV-4). An implementation that receives a requirement level it does not run records that level verbatim, files the entry pending with this marker, refuses every decision on it, never executes it, and NEVER degrades it to a weaker requirement — a joint requirement quietly satisfied by one approval is the failure this exists to prevent. A blocked entry's card says so on its face and never claims a confirmation is being awaited. The marker is discriminated by its code, and each code carries exactly the context that code makes meaningful: a coverage refusal has no requirement level to report.",
   "type": "object",
@@ -39,7 +39,7 @@
         },
         "toolName": {
           "description": "The tool the uncovered proposal came from.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     }

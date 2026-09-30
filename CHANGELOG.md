@@ -12,6 +12,16 @@ was made against.
 
 ### Changed
 
+- **`@affiant/contract` `0.1.0-alpha.7` and `@affiant/core` `0.1.0-alpha.11`: the conversation draft (GT-7),
+  pinned at the rulebook's `v0.5` head.** `packages/contract/protocol/PIN` now names commit
+  `d1fbd9b764a2176095b2ce324afa25adc46aa1fe` (protocol `0.5.0`). A host that lets a person say a value in one
+  message and confirm it in the next now gets that value tagged `Conversation`, not `Inferred`: the gate holds
+  what it heard in a draft between turns, and the filing reads it back. `UtteranceSpanBinding.ref` gains an
+  optional `messageId` naming the message the span was read on. `@affiant/core` gains `gate.draft(proposal, ctx)`
+  and the `DraftPort` a host supplies to keep the draft. The parity manifest is now
+  `packages/conformance-driver/conformance/parity/typescript-v0.5.json`, with `"failing": []`. Vendored,
+  generated and fixture-driven code changed across the contract, the core and the conformance driver.
+
 - **`@affiant/contract` `0.1.0-alpha.6`, `@affiant/core` `0.1.0-alpha.10` and `@affiant/store-postgres`
   `0.1.0-alpha.8`: the protocol pin moves to the `v0.4.1` tag.** `packages/contract/protocol/PIN` now
   names [`v0.4.1`](https://github.com/Sakwala/affiant-protocol/releases/tag/v0.4.1) rather than

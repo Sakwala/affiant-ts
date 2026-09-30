@@ -256,7 +256,8 @@ export type CallerErrorKind =
   | "binding-invalid"
   | "cursor-invalid"
   | "execution-detail-invalid"
-  | "withdrawal-reason-missing";
+  | "withdrawal-reason-missing"
+  | "draft-prepared-fields";
 
 /** Every {@link CallerErrorKind}, as data the guard below can test against. */
 const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
@@ -268,6 +269,7 @@ const CALLER_ERROR_KINDS: readonly CallerErrorKind[] = [
   "cursor-invalid",
   "execution-detail-invalid",
   "withdrawal-reason-missing",
+  "draft-prepared-fields",
 ];
 
 /** Whether `value` is one of the kinds in {@link CallerErrorKind}. */

@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.4.1.
+// copy of Sakwala/affiant-protocol at d1fbd9b764a2176095b2ce324afa25adc46aa1fe.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.4.1" as const;
+export const PROTOCOL_PIN = "d1fbd9b764a2176095b2ce324afa25adc46aa1fe" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -76,7 +76,7 @@ export interface CanonicalVectorDocument {
  * exists to prevent.
  */
 export const conformanceManifest = {
-  "protocolVersion": "0.4.0",
+  "protocolVersion": "0.5.0",
   "$note": "The promoted conformance suite: the reference implementation's declarative fixtures and canonical byte vectors, copied here unchanged in id, file name and content (conformance/fixtures/PROMOTED_FROM names the commit). Five fixtures are NOT promoted — gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported were authored in this repository at v0.1.3, with the PV-3 amendment they check, because no implementation had the behaviour to promote from; and one promoted fixture, sequence-a/picker-external-binding, was amended here at v0.1.3 rather than re-promoted, for the same reason. A fixture is a wiring, a sequence of acts and what must then be true; the format is conformance/RUNNER.md and the schema it is checked against is conformance/fixture.schema.json. `oracle` is the negative oracle of conformance/ORACLE.md: a non-null value names a release the fixture MUST fail against and the shipped defect it refutes, and the two must agree with ORACLE.md exactly — the lint checks that. `oracle: null` claims nothing about that release; the parity manifest of each implementation records what it actually does. The canonical vectors are a different document shape (an input Affidavit, the amendments accepted on it, the accepted state those produce and the exact bytes and SHA-256 that state canonicalises to) and no known release violates them, so they are marked acceptedOnReview. Their inputs are v0.1 records: conformance/lint/lint.mjs validates every vector's `input`, and its `amendedInput` where it carries one, against schemas/0.1.0/affidavit.schema.json, because SR-1's canonical form is over the accepted state of the Affidavit as that schema defines it and the vectors promoted at v0.1.0 described a seed-shaped record it refuses.",
   "promotedFrom": {
     "repository": "Sakwala/affiant-ts",
@@ -86,7 +86,7 @@ export const conformanceManifest = {
     "runner": "@affiant/core/testing — runFixture / runFixtureDir, documented in conformance/RUNNER.md",
     "date": "2026-09-04",
     "unchanged": "Byte-identical for fifty-five of the fifty-six promoted declarative fixtures and for all seven canonical vectors; the fifty-sixth, sequence-a/picker-external-binding, was amended in place at v0.1.3 — see amendedHere and conformance/fixtures/PROMOTED_FROM. Ids and file names are the reference implementation's throughout; a parity manifest cites an id by name, so a rename would silently change what a published document refers to.",
-    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why. v0.4.0-pre re-derived two `canonicalHash` values in place — decide/amend-recompute and sequence-a/approve-round-trip — at the 0.4.0 stamp: each expects the hash of a document the implementation produces, the canonical form carries `protocolVersion` (SR-1, SR-4), so a produced document's hash moves with this section's `protocolVersion` and is re-derived from the reference implementation whenever that version moves (2026-09-28).",
+    "rePromoted": "v0.1.1 re-promoted the seven canonical byte vectors, from aed3bfb to f041cdd. v0.1.2 re-promoted two declarative fixtures, from f041cdd to the commit above: sequence-a/approve-round-trip and decide/amend-recompute, each of which pinned an expect.canonicalHash the reference implementation's runtime canonical path produced while that path omitted protocolVersion from the record. The vectors are byte-identical at f041cdd and at the commit above, and the other 54 declarative fixtures are byte-identical at all three. conformance/fixtures/PROMOTED_FROM says why. v0.4.0-pre re-derived two `canonicalHash` values in place — decide/amend-recompute and sequence-a/approve-round-trip — at the 0.4.0 stamp: each expects the hash of a document the implementation produces, the canonical form carries `protocolVersion` (SR-1, SR-4), so a produced document's hash moves with this section's `protocolVersion` and is re-derived from the reference implementation whenever that version moves (2026-09-28). v0.5.0-pre re-derived the same two values at the 0.5.0 stamp, the section's `protocolVersion` having moved with it; no other fixture changed (2026-09-30).",
     "authoredHere": "v0.1.3 added five fixtures that were authored here rather than promoted: gate/inference-presence-computed-from-the-utterance, gate/inference-port-literal-unconfirmed, gate/inference-port-span-fails-the-boundary, gate/inference-case-folds-and-the-digest-is-the-utterances and gate/inference-empty-value-is-nothing-reported. PV-3 at v0.1.3 states that an implementation establishes presence from the utterance rather than taking the inference port's word for it, and neither implementation did that when the rule was amended, so there was no reference behaviour to copy. Four of them are the negative oracle for the amendment: conformance/ORACLE.md lists those four against dotnet 1.0.0-beta.3. The fifth, gate/inference-empty-value-is-nothing-reported, is on no oracle list, because that release already skips a port's empty value — src/Affiant.Core/Filters/TaskInferenceStep.cs at v1.0.0-beta.3 continues past an empty value text — and so passes it.",
     "amendedHere": "v0.1.3 also amended one promoted fixture in place: sequence-a/picker-external-binding. Its scripted port reports presence literal with no utteranceSpan for the value Active over an utterance that carries Active at offset 21, so under the amended PV-3 the implementation finds the value itself and binds the field to the span it read it from. The fixture pinned bound: false, which was the beta.3 behaviour (a binding only where the port named a span) rather than the rule, so it now pins bound: true, bindingKind utterance-span and the span itself, and it joins the beta.3 oracle list. It was amended rather than re-promoted because the TypeScript reference does not yet implement the amended rule; conformance/fixtures/PROMOTED_FROM says the same and names the bytes that moved."
   },
@@ -373,6 +373,141 @@ export const conformanceManifest = {
       "oracle": null
     },
     {
+      "id": "gate/draft-consumed-on-file",
+      "file": "gate/34-draft-consumed-on-file.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-left-by-a-refused-file",
+      "file": "gate/35-draft-left-by-a-refused-file.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-never-files",
+      "file": "gate/36-draft-never-files.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-without-a-port-refused",
+      "file": "gate/37-draft-without-a-port-refused.json",
+      "rules": [
+        "GT-7"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/file-without-a-port-grades-this-turn",
+      "file": "gate/38-file-without-a-port-grades-this-turn.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": null
+    },
+    {
+      "id": "gate/draft-merges-by-field-name",
+      "file": "gate/39-draft-merges-by-field-name.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-does-not-add-a-field",
+      "file": "gate/40-draft-does-not-add-a-field.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2",
+        "AF-1"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-other-tool-does-not-carry",
+      "file": "gate/41-draft-other-tool-does-not-carry.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-carries-across-entities",
+      "file": "gate/43-draft-carries-across-entities.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
       "id": "gate/multiparty-files-one-entry",
       "file": "gate/23-multiparty-files-one-entry.json",
       "rules": [
@@ -444,6 +579,99 @@ export const conformanceManifest = {
           "dotnet@1.0.0-beta.3.1"
         ],
         "defect": "The release does not validate the verdict's `approvers` / `required` correlation before filing"
+      }
+    },
+    {
+      "id": "gate/draft-inferred-does-not-carry",
+      "file": "gate/31-draft-inferred-does-not-carry.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-expired-does-not-carry",
+      "file": "gate/32-draft-expired-does-not-carry.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-other-conversation-does-not-carry",
+      "file": "gate/33-draft-other-conversation-does-not-carry.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "GT-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-carries-a-conversation-tag-across-turns",
+      "file": "gate/28-draft-carries-a-conversation-tag-across-turns.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-changed-value-does-not-carry",
+      "file": "gate/29-draft-changed-value-does-not-carry.json",
+      "rules": [
+        "GT-7",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/draft-later-hit-replaces-the-earlier",
+      "file": "gate/30-draft-later-hit-replaces-the-earlier.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
       }
     },
     {
@@ -1377,7 +1605,7 @@ export const conformanceManifest = {
 } as const;
 
 /**
- * The 90 declarative fixtures, in manifest order. Promoted
+ * The 105 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -3184,6 +3412,1421 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
     }
   },
   {
+    "id": "gate/draft-consumed-on-file",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "A file that files an entry consumes the draft: the first file carries the amount and the payee from turn 1, and a second file on a later turn, with the same reports and different arguments so it is a new entry, finds no draft and grades every field Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "The amount of money"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who is paid"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        },
+        {
+          "kind": "file",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "The amount of money"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who is paid"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            },
+            "currency": {
+              "value": "LKR",
+              "confidence": 0.9
+            }
+          },
+          "as": "first"
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        },
+        "turn": {
+          "utterance": "Yes, go ahead",
+          "messageId": "msg-4"
+        },
+        "args": {
+          "attempt": 2
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "currency",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      },
+      "store": {
+        "count": 2
+      }
+    }
+  },
+  {
+    "id": "gate/draft-left-by-a-refused-file",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "A filing with prepared fields, refused here as substance-refused, never reads or consumes the draft: the file on turn 3 still carries the amount and the payee from turn 1 with turn 1's message id.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "The amount of money"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who is paid"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        },
+        {
+          "kind": "file",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "turn": {
+            "utterance": "LKR, yesterday",
+            "messageId": "msg-2"
+          },
+          "inference": {},
+          "preparedFields": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "value": 15000,
+              "provenance": null
+            }
+          ],
+          "refusal": "substance-refused"
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "payee",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      },
+      "store": {
+        "count": 1
+      }
+    }
+  },
+  {
+    "id": "gate/draft-never-files",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "A draft step grades the proposal and holds only the fields the person said: the amount and the payee are Conversation bound to turn 1's message, the currency the model added is not held, and nothing is filed.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [],
+      "step": {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "draft": {
+        "fields": [
+          {
+            "name": "amount",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 14,
+              "length": 5,
+              "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+              "messageId": "msg-1"
+            }
+          },
+          {
+            "name": "payee",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 23,
+              "length": 31,
+              "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+              "messageId": "msg-1"
+            }
+          }
+        ]
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/draft-without-a-port-refused",
+    "rules": [
+      "GT-7"
+    ],
+    "title": "With no draft port wired, a draft step is refused wireup-invalid rather than silently holding nothing, and nothing is filed.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [],
+      "step": {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "error": {
+        "code": "wireup-invalid"
+      },
+      "store": {
+        "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/file-without-a-port-grades-this-turn",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "With no draft port wired, a file grades from this turn alone: the amount and the payee the model repeats from an earlier message are Inferred and unbound, which is how every version before 0.5.0 read them.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "currency",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-merges-by-field-name",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "A second draft adds and replaces by field name and never removes: turn 1 drafts the amount and the payee, turn 2 drafts the currency and reports an amount the person did not say, so turn 3 carries the amount from turn 1 (msg-1), the currency from turn 2 (msg-2) and binds the payee to this turn's span.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        },
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "LKR, yesterday",
+            "messageId": "msg-2"
+          },
+          "inference": {
+            "currency": {
+              "value": "LKR",
+              "confidence": 0.9
+            },
+            "amount": {
+              "value": 16000,
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        },
+        "turn": {
+          "utterance": "Money going out to Serendib Growth Fund unit trust",
+          "messageId": "msg-3"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 19,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 0,
+                "length": 3,
+                "hash": "8c6a812f0224f53a28daf594d835111c52f76f5748d82082d0e85971680e9f29",
+                "messageId": "msg-2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-does-not-add-a-field",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2",
+      "AF-1"
+    ],
+    "title": "The draft never adds a field to an Affidavit: the payee is drafted on turn 1, but the turn 3 proposal names only the amount and the currency, so the Affidavit lists exactly those two, the amount carried from msg-1 and the currency Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-other-tool-does-not-carry",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "A draft belongs to one tool: fields drafted under capture_entry on turn 1 do not carry into a capture_transfer proposal on turn 3, so every field is Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_transfer",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-carries-across-entities",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "The draft's key holds the tenant, the conversation and the tool but not the entity: fields drafted for a create of an Entry on turn 1 carry into an update of Entry/e-1 on turn 3, with the entity's stored values as previous values, and the currency, said nowhere the finder can read, is Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        },
+        "entities": {
+          "Entry/e-1": {
+            "amount": 100,
+            "payee": "old"
+          }
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "update",
+          "entityType": "Entry",
+          "entityId": "e-1",
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              },
+              "previousValue": 100
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              },
+              "previousValue": "old"
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
     "id": "gate/multiparty-files-one-entry",
     "rules": [
       "AZ-4"
@@ -3667,6 +5310,1026 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
       },
       "store": {
         "count": 0
+      }
+    }
+  },
+  {
+    "id": "gate/draft-inferred-does-not-carry",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "Only a Conversation tag with a binding is drafted: the currency the model reported on turn 1 is not in that utterance, so nothing is held for it and repeating it on turn 3 is Inferred and unbound, in the same record in which the amount and the payee carry.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            },
+            "currency": {
+              "value": "LKR",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-expired-does-not-carry",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "A draft older than its time-to-live is gone: with a sixty-second time-to-live, a file two minutes after the draft grades every field Inferred, the cost of the expiry being a downgrade and never a wrong tag.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 60000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "at": "2026-09-30T09:02:00.000Z",
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-other-conversation-does-not-carry",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "GT-2"
+    ],
+    "title": "A draft belongs to one conversation: what conv-1 drafted is not seen from conv-2, so a file in conv-2 with the same reports grades every field Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "conversationId": "conv-2",
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-carries-a-conversation-tag-across-turns",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "A value stated on turn 1 and drafted there keeps its Conversation tag and its binding when the model carries it into turn 3, under the finder's own comparison (ASCII case folded, so the lower-case payee still carries) and with this turn's port confidence (0.6 on the amount): the amount and the payee are bound to turn 1 spans that name msg-1, and the currency, said nowhere the finder can read, is Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.6
+          },
+          "payee": {
+            "value": "serendib growth fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-1"
+              },
+              "confidence": 0.6
+            },
+            {
+              "name": "payee",
+              "value": "serendib growth fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-changed-value-does-not-carry",
+    "rules": [
+      "GT-7",
+      "PV-3"
+    ],
+    "title": "A value the model changes is a different claim: the draft holds 15000, the model now proposes 16000, so the amount is Inferred and unbound, while the payee it repeated unchanged still carries.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 16000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 16000,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-later-hit-replaces-the-earlier",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "The newest statement wins: the payee is drafted on turn 1 and drafted again on turn 2, where the person restates it as Sampath Bank, so turn 3 carries the turn 2 span and msg-2b; the amount and currency, never drafted, are Inferred.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        },
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "Actually, pay it to Sampath Bank",
+            "messageId": "msg-2b"
+          },
+          "inference": {
+            "payee": {
+              "value": "Sampath Bank",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Sampath Bank",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            },
+            {
+              "name": "payee",
+              "value": "Sampath Bank",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 20,
+                "length": 12,
+                "hash": "4f7026e849c07f9b06d25900424c481c294d9d8dc382bf72d5f0fac0cf0c79fd",
+                "messageId": "msg-2b"
+              },
+              "priorSources": []
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
+            }
+          ]
+        }
       }
     }
   },
@@ -4572,7 +7235,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "preservedAmendments": null,
         "canonicalDiffersFromProposal": true
       },
-      "canonicalHash": "71cfd5229f5567a05df48f6cce7569d242fc8cf85dd4dd0c59047190ad3df578"
+      "canonicalHash": "273982540f08ff6c9118f71b585beb2b4706630107f7b79d14bd61ad392dc4b3"
     }
   },
   {
@@ -9879,7 +12542,7 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
         "pending": 0,
         "approvedUnexecuted": 0
       },
-      "canonicalHash": "1d71b3f7187fcfb5c32095668b68904e94c36c3f046ce4e52985047f90f594dd"
+      "canonicalHash": "9de26a0b9cbe607b628ce047f46fb4fcb0ef4f3306267cc9660c9735d27c24e1"
     }
   },
   {
@@ -12961,75 +15624,90 @@ export const conformanceById: Readonly<
   "gate/inference-port-span-fails-the-boundary": conformanceFixtures[18]!,
   "gate/inference-case-folds-and-the-digest-is-the-utterances": conformanceFixtures[19]!,
   "gate/inference-empty-value-is-nothing-reported": conformanceFixtures[20]!,
-  "gate/multiparty-files-one-entry": conformanceFixtures[21]!,
-  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[22]!,
-  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[23]!,
-  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[24]!,
-  "gate/multiparty-verdict-required-zero": conformanceFixtures[25]!,
-  "decide/approve": conformanceFixtures[26]!,
-  "decide/reject": conformanceFixtures[27]!,
-  "decide/second-decision-refused": conformanceFixtures[28]!,
-  "decide/expired-amendments-preserved": conformanceFixtures[29]!,
-  "decide/blocked-refused": conformanceFixtures[30]!,
-  "decide/amend-recompute": conformanceFixtures[31]!,
-  "decide/unresolved-identity": conformanceFixtures[32]!,
-  "decide/wrong-tenant": conformanceFixtures[33]!,
-  "decide/authorization-declined": conformanceFixtures[34]!,
-  "decide/relay-member-via-relay": conformanceFixtures[35]!,
-  "decide/relay-without-assertion-refused": conformanceFixtures[36]!,
-  "decide/execution-executed": conformanceFixtures[37]!,
-  "decide/execution-failed": conformanceFixtures[38]!,
-  "decide/execution-on-pending-refused": conformanceFixtures[39]!,
-  "decide/resubmit-prefills": conformanceFixtures[40]!,
-  "decide/executed-only-through-a-report": conformanceFixtures[41]!,
-  "decide/authorization-throws": conformanceFixtures[42]!,
-  "decide/execution-recorded-once": conformanceFixtures[43]!,
-  "decide/execution-second-report-refused": conformanceFixtures[44]!,
-  "decide/multiparty-partial-stays-pending": conformanceFixtures[45]!,
-  "decide/multiparty-all-approve": conformanceFixtures[46]!,
-  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[47]!,
-  "decide/execution-detail-typed": conformanceFixtures[48]!,
-  "decide/multiparty-reject-folds": conformanceFixtures[49]!,
-  "decide/multiparty-non-approver-refused": conformanceFixtures[50]!,
-  "decide/multiparty-approver-twice-refused": conformanceFixtures[51]!,
-  "decide/multiparty-amendment-refused": conformanceFixtures[52]!,
-  "decide/multiparty-after-fold-refused": conformanceFixtures[53]!,
-  "decide/multiparty-expired-then-resubmit": conformanceFixtures[54]!,
-  "decide/multiparty-approve-via-relay": conformanceFixtures[55]!,
-  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[56]!,
-  "decide/multiparty-approvals-in-record-order": conformanceFixtures[57]!,
-  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[58]!,
-  "decide/multiparty-refile-replays": conformanceFixtures[59]!,
-  "decide/withdraw-pending-multiparty": conformanceFixtures[60]!,
-  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[61]!,
-  "decide/withdraw-blocked-allowed": conformanceFixtures[62]!,
-  "decide/withdraw-after-fold-refused": conformanceFixtures[63]!,
-  "decide/withdraw-expired-refused": conformanceFixtures[64]!,
-  "decide/withdraw-twice-refused": conformanceFixtures[65]!,
-  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[66]!,
-  "decide/decide-after-withdraw-refused": conformanceFixtures[67]!,
-  "decide/execution-on-withdrawn-refused": conformanceFixtures[68]!,
-  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[69]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[70]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[71]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[72]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[73]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[74]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[75]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[76]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[77]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[78]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[79]!,
-  "sequence-a/sweep-pages": conformanceFixtures[80]!,
-  "sequence-a/rehydration-order": conformanceFixtures[81]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[82]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[83]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[84]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[85]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[86]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[87]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[88]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[89]!,
+  "gate/draft-consumed-on-file": conformanceFixtures[21]!,
+  "gate/draft-left-by-a-refused-file": conformanceFixtures[22]!,
+  "gate/draft-never-files": conformanceFixtures[23]!,
+  "gate/draft-without-a-port-refused": conformanceFixtures[24]!,
+  "gate/file-without-a-port-grades-this-turn": conformanceFixtures[25]!,
+  "gate/draft-merges-by-field-name": conformanceFixtures[26]!,
+  "gate/draft-does-not-add-a-field": conformanceFixtures[27]!,
+  "gate/draft-other-tool-does-not-carry": conformanceFixtures[28]!,
+  "gate/draft-carries-across-entities": conformanceFixtures[29]!,
+  "gate/multiparty-files-one-entry": conformanceFixtures[30]!,
+  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[31]!,
+  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[32]!,
+  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[33]!,
+  "gate/multiparty-verdict-required-zero": conformanceFixtures[34]!,
+  "gate/draft-inferred-does-not-carry": conformanceFixtures[35]!,
+  "gate/draft-expired-does-not-carry": conformanceFixtures[36]!,
+  "gate/draft-other-conversation-does-not-carry": conformanceFixtures[37]!,
+  "gate/draft-carries-a-conversation-tag-across-turns": conformanceFixtures[38]!,
+  "gate/draft-changed-value-does-not-carry": conformanceFixtures[39]!,
+  "gate/draft-later-hit-replaces-the-earlier": conformanceFixtures[40]!,
+  "decide/approve": conformanceFixtures[41]!,
+  "decide/reject": conformanceFixtures[42]!,
+  "decide/second-decision-refused": conformanceFixtures[43]!,
+  "decide/expired-amendments-preserved": conformanceFixtures[44]!,
+  "decide/blocked-refused": conformanceFixtures[45]!,
+  "decide/amend-recompute": conformanceFixtures[46]!,
+  "decide/unresolved-identity": conformanceFixtures[47]!,
+  "decide/wrong-tenant": conformanceFixtures[48]!,
+  "decide/authorization-declined": conformanceFixtures[49]!,
+  "decide/relay-member-via-relay": conformanceFixtures[50]!,
+  "decide/relay-without-assertion-refused": conformanceFixtures[51]!,
+  "decide/execution-executed": conformanceFixtures[52]!,
+  "decide/execution-failed": conformanceFixtures[53]!,
+  "decide/execution-on-pending-refused": conformanceFixtures[54]!,
+  "decide/resubmit-prefills": conformanceFixtures[55]!,
+  "decide/executed-only-through-a-report": conformanceFixtures[56]!,
+  "decide/authorization-throws": conformanceFixtures[57]!,
+  "decide/execution-recorded-once": conformanceFixtures[58]!,
+  "decide/execution-second-report-refused": conformanceFixtures[59]!,
+  "decide/multiparty-partial-stays-pending": conformanceFixtures[60]!,
+  "decide/multiparty-all-approve": conformanceFixtures[61]!,
+  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[62]!,
+  "decide/execution-detail-typed": conformanceFixtures[63]!,
+  "decide/multiparty-reject-folds": conformanceFixtures[64]!,
+  "decide/multiparty-non-approver-refused": conformanceFixtures[65]!,
+  "decide/multiparty-approver-twice-refused": conformanceFixtures[66]!,
+  "decide/multiparty-amendment-refused": conformanceFixtures[67]!,
+  "decide/multiparty-after-fold-refused": conformanceFixtures[68]!,
+  "decide/multiparty-expired-then-resubmit": conformanceFixtures[69]!,
+  "decide/multiparty-approve-via-relay": conformanceFixtures[70]!,
+  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[71]!,
+  "decide/multiparty-approvals-in-record-order": conformanceFixtures[72]!,
+  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[73]!,
+  "decide/multiparty-refile-replays": conformanceFixtures[74]!,
+  "decide/withdraw-pending-multiparty": conformanceFixtures[75]!,
+  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[76]!,
+  "decide/withdraw-blocked-allowed": conformanceFixtures[77]!,
+  "decide/withdraw-after-fold-refused": conformanceFixtures[78]!,
+  "decide/withdraw-expired-refused": conformanceFixtures[79]!,
+  "decide/withdraw-twice-refused": conformanceFixtures[80]!,
+  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[81]!,
+  "decide/decide-after-withdraw-refused": conformanceFixtures[82]!,
+  "decide/execution-on-withdrawn-refused": conformanceFixtures[83]!,
+  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[84]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[85]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[86]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[87]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[88]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[89]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[90]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[91]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[92]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[93]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[94]!,
+  "sequence-a/sweep-pages": conformanceFixtures[95]!,
+  "sequence-a/rehydration-order": conformanceFixtures[96]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[97]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[98]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[99]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[100]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[101]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[102]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[103]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[104]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -14316,7 +16994,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       "minLength": 1
     },
     "conformanceFixture": {
-      "description": "A document of the `conformance` section: the eight step kinds of RUNNER.md and its matchers, and nothing an adapter driver adds. The two variants are separate so that a conformance fixture stating an adapter step or an adapter clause is REFUSED rather than quietly accepted — a clause the reference runner does not read is a clause nobody checks, which is the whole reason this schema closes its key sets.",
+      "description": "A document of the `conformance` section: the nine step kinds of RUNNER.md and its matchers, and nothing an adapter driver adds. The two variants are separate so that a conformance fixture stating an adapter step or an adapter clause is REFUSED rather than quietly accepted — a clause the reference runner does not read is a clause nobody checks, which is the whole reason this schema closes its key sets.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -14600,7 +17278,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       }
     },
     "conformanceGiven": {
-      "description": "The wiring, the acts and the turn, where every act is one of RUNNER.md's eight step kinds.",
+      "description": "The wiring, the acts and the turn, where every act is one of RUNNER.md's nine step kinds.",
       "type": "object",
       "allOf": [
         {
@@ -14738,6 +17416,20 @@ export const fixtureSchema: JsonSchemaDocument = {
         "sessions": {
           "description": "Whether a rehydration surface is wired (DK-5). Defaults to true.",
           "type": "boolean"
+        },
+        "draft": {
+          "description": "The reference in-memory draft port (GT-7): `ttlMs` is how long a drafted field is held. Absent, no draft port is wired: `file` carries nothing and a `draft` step is refused `wireup-invalid`.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ttlMs"
+          ],
+          "properties": {
+            "ttlMs": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         }
       }
     },
@@ -14939,7 +17631,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       }
     },
     "ctx": {
-      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant or the conversation.",
+      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant, the conversation or the turn (GT-7).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -15391,6 +18083,37 @@ export const fixtureSchema: JsonSchemaDocument = {
           "description": "The conversation this step is performed in, when it is not the fixture's (GT-2).",
           "type": "string"
         },
+        "turn": {
+          "description": "The turn this step runs in, when it is not the fixture's: a multi-turn fixture states each turn's utterance and message id (GT-7).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "utterance",
+            "messageId"
+          ],
+          "properties": {
+            "utterance": {
+              "type": "string"
+            },
+            "messageId": {
+              "type": "string"
+            }
+          }
+        },
+        "inference": {
+          "description": "What the scripted inference port reports on this step, when it is not the fixture's: the report changes per turn (GT-7). Same shape as `given.gate.inference`.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/inferredField"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "entry": {
           "description": "The entry this step acts on: a label from `as`, or the last one filed.",
           "type": "string"
@@ -15417,7 +18140,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       }
     },
     "step": {
-      "description": "One act on the gate. The gate's whole surface is reachable from these eight kinds, so a fixture about a decision and a fixture about a filing differ in their steps, not in their format.",
+      "description": "One act on the gate. The gate's whole surface is reachable from these nine kinds, so a fixture about a decision and a fixture about a filing differ in their steps, not in their format.",
       "type": "object",
       "required": [
         "kind"
@@ -15504,6 +18227,45 @@ export const fixtureSchema: JsonSchemaDocument = {
                 "string",
                 "null"
               ]
+            }
+          }
+        },
+        {
+          "title": "draft",
+          "description": "The host drafts a proposal: GT-1's first four steps run and the graded fields go to the draft; nothing files (GT-7).",
+          "allOf": [
+            {
+              "$ref": "#/$defs/stepCommon"
+            }
+          ],
+          "unevaluatedProperties": false,
+          "required": [
+            "kind",
+            "toolName",
+            "operation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "draft"
+            },
+            "toolName": {
+              "type": "string"
+            },
+            "operation": {
+              "$ref": "#/$defs/operation"
+            },
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/toolFields"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "args": {
+              "$ref": "#/$defs/jsonValue"
             }
           }
         },
@@ -15715,7 +18477,7 @@ export const fixtureSchema: JsonSchemaDocument = {
       ]
     },
     "adapterStep": {
-      "description": "One act in the adapter section: any of RUNNER.md's eight kinds, or one of the two reserved for adapters.",
+      "description": "One act in the adapter section: any of RUNNER.md's nine kinds, or one of the two reserved for adapters.",
       "type": "object",
       "oneOf": [
         {
@@ -15999,6 +18761,29 @@ export const fixtureSchema: JsonSchemaDocument = {
                   "type": "array",
                   "items": {
                     "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "draft": {
+          "description": "What the draft holds for the step's tenant, conversation and tool afterwards (GT-7): `null` for no draft held, else `fields`, the drafted fields under the same partial projection an Affidavit's fields are matched by.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fields"
+              ],
+              "properties": {
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/fieldMatcher"
                   }
                 }
               }
@@ -16665,7 +19450,7 @@ export const fixtureSchema: JsonSchemaDocument = {
           ]
         },
         "utteranceSpan": {
-          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of `given.ctx.utterance`, and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
+          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -16685,6 +19470,10 @@ export const fixtureSchema: JsonSchemaDocument = {
             "hash": {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            "messageId": {
+              "description": "The message whose utterance the span indexes (PV-2, GT-7). Absent asserts nothing about it; on a binding carried from an earlier turn it is that turn's message id.",
+              "type": "string"
             }
           }
         },

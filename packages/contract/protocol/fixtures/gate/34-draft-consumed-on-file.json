@@ -1,0 +1,209 @@
+{
+  "id": "gate/draft-consumed-on-file",
+  "rules": [
+    "GT-7",
+    "PV-3"
+  ],
+  "title": "A file that files an entry consumes the draft: the first file carries the amount and the payee from turn 1, and a second file on a later turn, with the same reports and different arguments so it is a new entry, finds no draft and grades every field Inferred.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "draft": {
+        "ttlMs": 3600000
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "prior": [
+      {
+        "kind": "draft",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "turn": {
+          "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+          "messageId": "msg-1"
+        },
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          }
+        }
+      },
+      {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "The amount of money"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who is paid"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        },
+        "as": "first"
+      }
+    ],
+    "step": {
+      "kind": "file",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "The amount of money"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who is paid"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "inference": {
+        "amount": {
+          "value": 15000,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Serendib Growth Fund unit trust",
+          "confidence": 0.9
+        },
+        "currency": {
+          "value": "LKR",
+          "confidence": 0.9
+        }
+      },
+      "turn": {
+        "utterance": "Yes, go ahead",
+        "messageId": "msg-4"
+      },
+      "args": {
+        "attempt": 2
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "affidavit": {
+        "fields": [
+          {
+            "name": "amount",
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          },
+          {
+            "name": "payee",
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          },
+          {
+            "name": "currency",
+            "source": "Inferred",
+            "bound": false,
+            "bindingKind": null
+          }
+        ]
+      }
+    },
+    "store": {
+      "count": 2
+    }
+  }
+}

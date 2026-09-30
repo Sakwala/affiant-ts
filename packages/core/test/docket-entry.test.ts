@@ -39,7 +39,7 @@ describe("newEntry defaults (DK-1)", () => {
 
   it("stamps the protocol tag the wire types are pinned to", () => {
     expect(anEntry("entry-1").protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(PROTOCOL_VERSION).toBe("0.4.0");
+    expect(PROTOCOL_VERSION).toBe("0.5.0");
     expect(anEntry("entry-2", { protocolVersion: "9.9.9" }).protocolVersion).toBe("9.9.9");
   });
 

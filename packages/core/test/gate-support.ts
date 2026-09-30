@@ -9,6 +9,7 @@ import type { JsonValue } from "../src/model/affidavit.js";
 import type {
   AuthorizationPort,
   Clock,
+  DraftPort,
   FieldInterceptor,
   FieldSchema,
   InferencePort,
@@ -384,6 +385,8 @@ export interface HarnessInit {
   readonly inferred?: { readonly [name: string]: StructuredField };
   /** A whole inference port, for a fixture that needs the answer to depend on the turn. */
   readonly inference?: InferencePort;
+  /** The conversation draft's port (GT-7); absent, the gate is wired without one. */
+  readonly draft?: DraftPort;
   readonly previousValues?: Record<string, JsonValue> | null;
   readonly policies?: readonly ApprovalPolicy[];
   readonly interceptors?: readonly FieldInterceptor[];
@@ -432,6 +435,7 @@ export function harness(init: HarnessInit = {}): Harness {
     telemetry: telemetry.port,
     defaultTtlMs: init.defaultTtlMs ?? 30 * 60 * 1000,
     ...(sessions === null ? {} : { sessions }),
+    ...(init.draft === undefined ? {} : { draft: init.draft }),
     ...(init.riskScore === undefined ? {} : { riskScorer: riskScorer(init.riskScore, trace) }),
   };
   const gate = createGate(options);
