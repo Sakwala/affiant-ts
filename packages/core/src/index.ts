@@ -62,7 +62,7 @@
  */
 
 /** The version of this package, as built. */
-export const CORE_VERSION = "0.1.0-alpha.13";
+export const CORE_VERSION = "0.1.0-alpha.14";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from

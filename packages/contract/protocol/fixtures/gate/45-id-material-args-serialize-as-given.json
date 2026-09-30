@@ -1,0 +1,89 @@
+{
+  "id": "gate/id-material-args-serialize-as-given",
+  "rules": [
+    "GT-4",
+    "SR-1"
+  ],
+  "title": "The arguments are id-material serialized as given: a number beside a currency in them is not money on the wire, so a filing whose arguments carry an amount and a currency files and is pending rather than refused before anything is graded.",
+  "given": {
+    "clock": "2026-09-30T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      }
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Money going out",
+      "messageId": "msg-3"
+    },
+    "step": {
+      "kind": "file",
+      "toolName": "capture_entry",
+      "operation": {
+        "kind": "create",
+        "entityType": "Entry",
+        "entityId": null,
+        "fields": [
+          "amount",
+          "payee",
+          "currency"
+        ]
+      },
+      "schema": [
+        {
+          "name": "amount",
+          "kind": "number",
+          "description": "How much money moves"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "description": "Who the money goes to"
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "description": "The currency of the amount"
+        }
+      ],
+      "args": {
+        "amount": 2500,
+        "currency": "LKR",
+        "payee": "Serendib Growth Fund unit trust"
+      },
+      "inference": {
+        "amount": {
+          "value": 2500,
+          "confidence": 0.9
+        },
+        "payee": {
+          "value": "Serendib Growth Fund unit trust",
+          "confidence": 0.9
+        },
+        "currency": {
+          "value": "LKR",
+          "confidence": 0.9
+        }
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending"
+    },
+    "store": {
+      "count": 1
+    }
+  }
+}

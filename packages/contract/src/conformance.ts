@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.5.0-pre.1.
+// copy of Sakwala/affiant-protocol at v0.5.0.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.5.0-pre.1" as const;
+export const PROTOCOL_PIN = "v0.5.0" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -506,6 +506,32 @@ export const conformanceManifest = {
         ],
         "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
       }
+    },
+    {
+      "id": "gate/draft-from-a-question-turn",
+      "file": "gate/44-draft-from-a-question-turn.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": {
+        "mustFailOn": [
+          "dotnet@1.0.0-beta.3.1"
+        ],
+        "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+      }
+    },
+    {
+      "id": "gate/id-material-args-serialize-as-given",
+      "file": "gate/45-id-material-args-serialize-as-given.json",
+      "rules": [
+        "GT-4",
+        "SR-1"
+      ],
+      "set": "gate",
+      "oracle": null
     },
     {
       "id": "gate/multiparty-files-one-entry",
@@ -1605,7 +1631,7 @@ export const conformanceManifest = {
 } as const;
 
 /**
- * The 105 declarative fixtures, in manifest order. Promoted
+ * The 107 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -4823,6 +4849,269 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
             }
           ]
         }
+      }
+    }
+  },
+  {
+    "id": "gate/draft-from-a-question-turn",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "PV-2"
+    ],
+    "title": "A question's literal words draft and carry: the amount and the payee a person asked about on turn 1 (the question mark after 15000 is a boundary) are drafted there, and when the model files on turn 3 they are bound to turn 1 spans that name msg-q1, while the currency stated on the filing turn is bound to this turn's span.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Record it, LKR, yesterday",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "What did I spend on Serendib Growth Fund unit trust last month, was it 15000?",
+            "messageId": "msg-q1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 71,
+                "length": 5,
+                "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+                "messageId": "msg-q1"
+              }
+            },
+            {
+              "name": "payee",
+              "value": "Serendib Growth Fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 20,
+                "length": 31,
+                "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+                "messageId": "msg-q1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 11,
+                "length": 3,
+                "hash": "8c6a812f0224f53a28daf594d835111c52f76f5748d82082d0e85971680e9f29"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/id-material-args-serialize-as-given",
+    "rules": [
+      "GT-4",
+      "SR-1"
+    ],
+    "title": "The arguments are id-material serialized as given: a number beside a currency in them is not money on the wire, so a filing whose arguments carry an amount and a currency files and is pending rather than refused before anything is graded.",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "args": {
+          "amount": 2500,
+          "currency": "LKR",
+          "payee": "Serendib Growth Fund unit trust"
+        },
+        "inference": {
+          "amount": {
+            "value": 2500,
+            "confidence": 0.9
+          },
+          "payee": {
+            "value": "Serendib Growth Fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending"
+      },
+      "store": {
+        "count": 1
       }
     }
   },
@@ -15633,81 +15922,83 @@ export const conformanceById: Readonly<
   "gate/draft-does-not-add-a-field": conformanceFixtures[27]!,
   "gate/draft-other-tool-does-not-carry": conformanceFixtures[28]!,
   "gate/draft-carries-across-entities": conformanceFixtures[29]!,
-  "gate/multiparty-files-one-entry": conformanceFixtures[30]!,
-  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[31]!,
-  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[32]!,
-  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[33]!,
-  "gate/multiparty-verdict-required-zero": conformanceFixtures[34]!,
-  "gate/draft-inferred-does-not-carry": conformanceFixtures[35]!,
-  "gate/draft-expired-does-not-carry": conformanceFixtures[36]!,
-  "gate/draft-other-conversation-does-not-carry": conformanceFixtures[37]!,
-  "gate/draft-carries-a-conversation-tag-across-turns": conformanceFixtures[38]!,
-  "gate/draft-changed-value-does-not-carry": conformanceFixtures[39]!,
-  "gate/draft-later-hit-replaces-the-earlier": conformanceFixtures[40]!,
-  "decide/approve": conformanceFixtures[41]!,
-  "decide/reject": conformanceFixtures[42]!,
-  "decide/second-decision-refused": conformanceFixtures[43]!,
-  "decide/expired-amendments-preserved": conformanceFixtures[44]!,
-  "decide/blocked-refused": conformanceFixtures[45]!,
-  "decide/amend-recompute": conformanceFixtures[46]!,
-  "decide/unresolved-identity": conformanceFixtures[47]!,
-  "decide/wrong-tenant": conformanceFixtures[48]!,
-  "decide/authorization-declined": conformanceFixtures[49]!,
-  "decide/relay-member-via-relay": conformanceFixtures[50]!,
-  "decide/relay-without-assertion-refused": conformanceFixtures[51]!,
-  "decide/execution-executed": conformanceFixtures[52]!,
-  "decide/execution-failed": conformanceFixtures[53]!,
-  "decide/execution-on-pending-refused": conformanceFixtures[54]!,
-  "decide/resubmit-prefills": conformanceFixtures[55]!,
-  "decide/executed-only-through-a-report": conformanceFixtures[56]!,
-  "decide/authorization-throws": conformanceFixtures[57]!,
-  "decide/execution-recorded-once": conformanceFixtures[58]!,
-  "decide/execution-second-report-refused": conformanceFixtures[59]!,
-  "decide/multiparty-partial-stays-pending": conformanceFixtures[60]!,
-  "decide/multiparty-all-approve": conformanceFixtures[61]!,
-  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[62]!,
-  "decide/execution-detail-typed": conformanceFixtures[63]!,
-  "decide/multiparty-reject-folds": conformanceFixtures[64]!,
-  "decide/multiparty-non-approver-refused": conformanceFixtures[65]!,
-  "decide/multiparty-approver-twice-refused": conformanceFixtures[66]!,
-  "decide/multiparty-amendment-refused": conformanceFixtures[67]!,
-  "decide/multiparty-after-fold-refused": conformanceFixtures[68]!,
-  "decide/multiparty-expired-then-resubmit": conformanceFixtures[69]!,
-  "decide/multiparty-approve-via-relay": conformanceFixtures[70]!,
-  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[71]!,
-  "decide/multiparty-approvals-in-record-order": conformanceFixtures[72]!,
-  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[73]!,
-  "decide/multiparty-refile-replays": conformanceFixtures[74]!,
-  "decide/withdraw-pending-multiparty": conformanceFixtures[75]!,
-  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[76]!,
-  "decide/withdraw-blocked-allowed": conformanceFixtures[77]!,
-  "decide/withdraw-after-fold-refused": conformanceFixtures[78]!,
-  "decide/withdraw-expired-refused": conformanceFixtures[79]!,
-  "decide/withdraw-twice-refused": conformanceFixtures[80]!,
-  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[81]!,
-  "decide/decide-after-withdraw-refused": conformanceFixtures[82]!,
-  "decide/execution-on-withdrawn-refused": conformanceFixtures[83]!,
-  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[84]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[85]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[86]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[87]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[88]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[89]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[90]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[91]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[92]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[93]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[94]!,
-  "sequence-a/sweep-pages": conformanceFixtures[95]!,
-  "sequence-a/rehydration-order": conformanceFixtures[96]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[97]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[98]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[99]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[100]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[101]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[102]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[103]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[104]!,
+  "gate/draft-from-a-question-turn": conformanceFixtures[30]!,
+  "gate/id-material-args-serialize-as-given": conformanceFixtures[31]!,
+  "gate/multiparty-files-one-entry": conformanceFixtures[32]!,
+  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[33]!,
+  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[34]!,
+  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[35]!,
+  "gate/multiparty-verdict-required-zero": conformanceFixtures[36]!,
+  "gate/draft-inferred-does-not-carry": conformanceFixtures[37]!,
+  "gate/draft-expired-does-not-carry": conformanceFixtures[38]!,
+  "gate/draft-other-conversation-does-not-carry": conformanceFixtures[39]!,
+  "gate/draft-carries-a-conversation-tag-across-turns": conformanceFixtures[40]!,
+  "gate/draft-changed-value-does-not-carry": conformanceFixtures[41]!,
+  "gate/draft-later-hit-replaces-the-earlier": conformanceFixtures[42]!,
+  "decide/approve": conformanceFixtures[43]!,
+  "decide/reject": conformanceFixtures[44]!,
+  "decide/second-decision-refused": conformanceFixtures[45]!,
+  "decide/expired-amendments-preserved": conformanceFixtures[46]!,
+  "decide/blocked-refused": conformanceFixtures[47]!,
+  "decide/amend-recompute": conformanceFixtures[48]!,
+  "decide/unresolved-identity": conformanceFixtures[49]!,
+  "decide/wrong-tenant": conformanceFixtures[50]!,
+  "decide/authorization-declined": conformanceFixtures[51]!,
+  "decide/relay-member-via-relay": conformanceFixtures[52]!,
+  "decide/relay-without-assertion-refused": conformanceFixtures[53]!,
+  "decide/execution-executed": conformanceFixtures[54]!,
+  "decide/execution-failed": conformanceFixtures[55]!,
+  "decide/execution-on-pending-refused": conformanceFixtures[56]!,
+  "decide/resubmit-prefills": conformanceFixtures[57]!,
+  "decide/executed-only-through-a-report": conformanceFixtures[58]!,
+  "decide/authorization-throws": conformanceFixtures[59]!,
+  "decide/execution-recorded-once": conformanceFixtures[60]!,
+  "decide/execution-second-report-refused": conformanceFixtures[61]!,
+  "decide/multiparty-partial-stays-pending": conformanceFixtures[62]!,
+  "decide/multiparty-all-approve": conformanceFixtures[63]!,
+  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[64]!,
+  "decide/execution-detail-typed": conformanceFixtures[65]!,
+  "decide/multiparty-reject-folds": conformanceFixtures[66]!,
+  "decide/multiparty-non-approver-refused": conformanceFixtures[67]!,
+  "decide/multiparty-approver-twice-refused": conformanceFixtures[68]!,
+  "decide/multiparty-amendment-refused": conformanceFixtures[69]!,
+  "decide/multiparty-after-fold-refused": conformanceFixtures[70]!,
+  "decide/multiparty-expired-then-resubmit": conformanceFixtures[71]!,
+  "decide/multiparty-approve-via-relay": conformanceFixtures[72]!,
+  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[73]!,
+  "decide/multiparty-approvals-in-record-order": conformanceFixtures[74]!,
+  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[75]!,
+  "decide/multiparty-refile-replays": conformanceFixtures[76]!,
+  "decide/withdraw-pending-multiparty": conformanceFixtures[77]!,
+  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[78]!,
+  "decide/withdraw-blocked-allowed": conformanceFixtures[79]!,
+  "decide/withdraw-after-fold-refused": conformanceFixtures[80]!,
+  "decide/withdraw-expired-refused": conformanceFixtures[81]!,
+  "decide/withdraw-twice-refused": conformanceFixtures[82]!,
+  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[83]!,
+  "decide/decide-after-withdraw-refused": conformanceFixtures[84]!,
+  "decide/execution-on-withdrawn-refused": conformanceFixtures[85]!,
+  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[86]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[87]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[88]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[89]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[90]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[91]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[92]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[93]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[94]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[95]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[96]!,
+  "sequence-a/sweep-pages": conformanceFixtures[97]!,
+  "sequence-a/rehydration-order": conformanceFixtures[98]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[99]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[100]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[101]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[102]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[103]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[104]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[105]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[106]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -17596,7 +17887,7 @@ export const fixtureSchema: JsonSchemaDocument = {
           "type": "number"
         },
         "presence": {
-          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from `given.ctx.utterance` itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
+          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from the utterance of the turn the step runs in (`given.ctx.utterance`, or the step's `turn` override) itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
           "type": "string",
           "enum": [
             "literal",

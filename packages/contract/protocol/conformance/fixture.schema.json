@@ -379,7 +379,7 @@
         "value": { "$ref": "#/$defs/jsonValue" },
         "confidence": { "description": "How confident the port claims to be. Clamped by the pipeline (PV-1).", "type": "number" },
         "presence": {
-          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from `given.ctx.utterance` itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
+          "description": "The port's HINT about whether the value was literally in the turn. Optional, and never the grade: PV-3 has the implementation establish presence from the utterance of the turn the step runs in (`given.ctx.utterance`, or the step's `turn` override) itself and verify this claim the same way, so a `literal` the utterance does not confirm is Inferred and an absent hint over a value the utterance does carry is Conversation.",
           "type": "string",
           "enum": ["literal", "inferred"]
         },
