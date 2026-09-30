@@ -126,8 +126,8 @@ function asJsonValue(value: unknown, where: string): JsonValue {
  * caller meets a monetary field, and because the export path `@affiant/core` offers
  * should not depend on which pull request wrote which half.
  *
- * Note that `isMoney` **validates**: it is `false` for `{ amount: "1e3" }` and for
- * `{ currency: "usd" }`, not only for a missing property. A shape-only guard on a
+ * Note that `isMoney` **validates**: it is `false` for `{ amount: "1e3" }`, for
+ * `{ currency: "usd" }` and for an object with a key beyond the two, not only for a missing property. A shape-only guard on a
  * public surface would answer "yes, money" for values SR-2 refuses, which is the
  * wrong answer to give a host that is about to swear to one.
  */

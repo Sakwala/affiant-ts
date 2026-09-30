@@ -145,17 +145,31 @@ describe("money shapes that are not money at all (SR-2)", () => {
     });
   }
 
+  it("isMoney is false for an object with a key beyond amount and currency", () => {
+    expect(isMoney({ amount: "10.00", currency: "GBP", note: "extra" })).toBe(false);
+  });
+
+  it("assertMoney names an extra key, never its value", () => {
+    const extra = { amount: "10.00", currency: "GBP", note: "extra" };
+    expect(() => assertMoney(extra)).toThrow(/SR-2: .* carries a key that is not money: note/);
+    expect(() => assertMoney(extra)).toThrow(TypeError);
+    try {
+      assertMoney(extra);
+    } catch (error) {
+      expect((error as Error).message).not.toContain("extra");
+    }
+  });
+
   it("names the value in the message when the caller says what it is", () => {
     expect(() => assertMoney(10, "fields[2].value")).toThrow(/fields\[2\]\.value/);
   });
 });
 
 describe("parseMoney (SR-2)", () => {
-  it("returns exactly the two properties, dropping anything else that arrived", () => {
-    expect(parseMoney({ amount: "10.00", currency: "GBP", note: "extra" })).toEqual({
-      amount: "10.00",
-      currency: "GBP",
-    });
+  it("refuses an object with a key beyond amount and currency", () => {
+    expect(() => parseMoney({ amount: "10.00", currency: "GBP", note: "extra" })).toThrow(
+      /carries a key that is not money: note/,
+    );
   });
 
   it("does not normalise, because the trailing zeros are what the reviewer read", () => {

@@ -10,6 +10,10 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+### Changed
+
+- `isMoney`, `assertMoney` and `parseMoney` refuse an object with a key beyond `amount` and `currency`, as `money.schema.json` (`additionalProperties: false`) does; `parseMoney` no longer drops such keys (SR-2).
+
 ## [0.1.0-alpha.15] — 2026-10-01
 
 ### Changed
