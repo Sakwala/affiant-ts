@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   AffiantCallerError,
   AffiantError,
+  AffiantPostFilingError,
   ERROR_CODES,
   ErrorCode,
   isAffiantError,
   isCallerError,
   isErrorCode,
+  isPostFilingError,
 } from "../src/errors.js";
 
 /**
@@ -174,5 +176,36 @@ describe("isCallerError", () => {
     impostor.kind = "not-a-real-kind";
 
     expect(isCallerError(impostor)).toBe(false);
+  });
+});
+
+describe("AffiantPostFilingError (GT-7)", () => {
+  const cause = new Error("the original throw");
+  const init = { entryId: "entry-1", status: "pending", created: true, cause } as const;
+
+  it("is an Error but not an AffiantError, carries the entry and the cause, and leaks no cause text", () => {
+    const error = new AffiantPostFilingError(init);
+
+    expect(error).toBeInstanceOf(Error);
+    expect(isAffiantError(error)).toBe(false);
+    expect(error.name).toBe("AffiantPostFilingError");
+    expect([error.entryId, error.status, error.created]).toEqual(["entry-1", "pending", true]);
+    expect(error.cause).toBe(cause);
+    expect(error.message).toContain("GT-7");
+    expect(error.message).toContain("entry-1");
+    expect(error.message).toContain("pending");
+    expect(error.message).not.toContain("the original throw");
+  });
+
+  it("is recognised by instance and by a structural copy, and by nothing looser", () => {
+    expect(isPostFilingError(new AffiantPostFilingError(init))).toBe(true);
+    const copy = Object.assign(new Error("x"), { name: "AffiantPostFilingError", entryId: "e" });
+    expect(isPostFilingError(copy)).toBe(true);
+    expect(isPostFilingError(Object.assign(new Error("x"), { entryId: "e" }))).toBe(false);
+    expect(
+      isPostFilingError(Object.assign(new Error("x"), { name: "AffiantPostFilingError" })),
+    ).toBe(false);
+    expect(isPostFilingError({ name: "AffiantPostFilingError", entryId: "e" })).toBe(false);
+    expect(isPostFilingError(null)).toBe(false);
   });
 });

@@ -70,7 +70,7 @@ import type {
 import { newEntry } from "../docket/entry.js";
 import { instantMs } from "../docket/expiry.js";
 import type { DocketStore } from "../docket/store.js";
-import { AffiantCallerError, AffiantError } from "../errors.js";
+import { AffiantCallerError, AffiantError, AffiantPostFilingError } from "../errors.js";
 import type {
   Affidavit,
   AffidavitFieldInput,
@@ -80,6 +80,7 @@ import type {
 } from "../model/affidavit.js";
 import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
+import type { ComputationInputs } from "../model/binding-shape.js";
 import { bindingShapeReason } from "../model/binding-shape.js";
 import { canonicalJsonAsGiven, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
@@ -379,17 +380,41 @@ function requireBindingShape(
   binding: unknown,
   field: string,
   origin: BindingOrigin,
+  fieldIds: ReadonlySet<string> | null,
   interceptor?: string,
 ): void {
   if (binding === null || binding === undefined) return;
-  const reason = bindingShapeReason(binding);
-  if (reason === null) return;
+  // `null` is the one way to say "a stored chain — shape only"; `undefined`, or anything
+  // that is not a set, must not silently admit every input name.
+  if (fieldIds !== null && !(fieldIds instanceof Set)) {
+    throw new TypeError("PV-2: a binding is checked against the Affidavit's field ids, or null");
+  }
   const from =
     interceptor !== undefined
       ? `interceptor ${JSON.stringify(interceptor)}`
       : origin.source === "stored-row"
         ? `Docket entry ${JSON.stringify(origin.entryId)}`
         : "a prepared field";
+  const shapeReason = bindingShapeReason(binding);
+  if (shapeReason === null) {
+    if (fieldIds === null) return;
+    const inputs: ComputationInputs = { field, fieldIds };
+    const inputReason = bindingShapeReason(binding, inputs);
+    if (inputReason === null) return;
+    // The schema admits any identifier in `inputs`; this is a rule beyond it.
+    throw new AffiantCallerError(
+      "binding-invalid",
+      `PV-2: the binding on field ${JSON.stringify(field)} from ${from} names an input that ` +
+        `is not admitted: ${inputReason}; nothing is filed`,
+      {
+        field,
+        ...origin,
+        reason: inputReason,
+        ...(interceptor === undefined ? {} : { interceptor }),
+      },
+    );
+  }
+  const reason = shapeReason;
   throw new AffiantCallerError(
     "binding-invalid",
     `PV-2: the binding on field ${JSON.stringify(field)} from ${from} is not one the ` +
@@ -435,8 +460,13 @@ const FROM_PREPARED_FIELD: BindingOrigin = { source: "prepared-field" };
  * Prepared fields keep all five: a relayed capture legitimately carries what a person
  * typed.
  */
-function requireInterceptorBinding(binding: unknown, field: string, interceptor: string): void {
-  requireBindingShape(binding, field, FROM_INTERCEPTOR, interceptor);
+function requireInterceptorBinding(
+  binding: unknown,
+  field: string,
+  interceptor: string,
+  fieldIds: ReadonlySet<string> | null,
+): void {
+  requireBindingShape(binding, field, FROM_INTERCEPTOR, fieldIds, interceptor);
   if (binding === null || binding === undefined) return;
   const kind = (binding as { readonly kind: string }).kind;
   if ((INTERCEPTOR_BINDING_KINDS as readonly string[]).includes(kind)) return;
@@ -464,10 +494,11 @@ function requireChainBindingShapes(
   chain: ProvenanceChain,
   field: string,
   origin: BindingOrigin,
+  fieldIds: ReadonlySet<string> | null,
 ): void {
-  requireBindingShape(chain.current.binding, field, origin);
+  requireBindingShape(chain.current.binding, field, origin, fieldIds);
   for (const tag of chain.prior) {
-    requireBindingShape(tag.binding, field, origin);
+    requireBindingShape(tag.binding, field, origin, fieldIds);
   }
 }
 
@@ -545,9 +576,25 @@ async function gradeProposal(
     proposal.supersedes === null
       ? FROM_PREPARED_FIELD
       : { source: "stored-row", entryId: proposal.supersedes };
+  // The field ids a `computation-ref` may name are the Affidavit's own (AF-1): the
+  // fields the operation proposes and the prepared fields carry — never the whole
+  // schema, since a field the operation does not propose is absent from the Affidavit.
+  const fieldIds: ReadonlySet<string> = new Set([
+    ...proposal.operation.fields,
+    ...(proposal.preparedFields ?? []).map((prepared) => prepared.name),
+  ]);
+  // A chain copied off a stored row is the record, not input arriving now: a row filed
+  // before the inputs rule keeps its names and stays resubmittable, so it is checked for
+  // shape only (`null`).
+  const preparedFieldIds = proposal.supersedes === null ? fieldIds : null;
   for (const prepared of proposal.preparedFields ?? []) {
     if (prepared.provenance !== undefined) {
-      requireChainBindingShapes(prepared.provenance, prepared.name, preparedOrigin);
+      requireChainBindingShapes(
+        prepared.provenance,
+        prepared.name,
+        preparedOrigin,
+        preparedFieldIds,
+      );
     }
   }
 
@@ -584,7 +631,7 @@ async function gradeProposal(
       // fixes the order, and a malformed binding must cost neither a model call nor a
       // row (PV-2).
       for (const [name, intercepted] of Object.entries(produced)) {
-        requireInterceptorBinding(intercepted.binding, name, interceptor.name);
+        requireInterceptorBinding(intercepted.binding, name, interceptor.name, fieldIds);
       }
       for (const [name, intercepted] of Object.entries(produced)) {
         if (!proposed.has(name)) {
@@ -926,59 +973,71 @@ export async function runPipeline(
 
   const { entry, created } = await deps.store.file(newEntry(init));
 
-  if (fires && outcome.policy !== null) {
+  // GT-7: from here the entry is filed and nothing below can unfile it. A throw in this
+  // region — telemetry, the card, the draft's `consume` — is not a refusal; it reaches
+  // the host as a failure that names the filed entry.
+  try {
+    if (fires && outcome.policy !== null) {
+      deps.telemetry.emit({
+        key: "standing-order.fired",
+        at: now,
+        attributes: {
+          "policy.id": outcome.policy.id,
+          "policy.version": outcome.policy.version,
+          "entry.id": entry.entryId,
+          "risk.score": outcome.riskScore,
+        },
+      });
+    }
+
     deps.telemetry.emit({
-      key: "standing-order.fired",
+      key: "affidavit.filed",
       at: now,
       attributes: {
-        "policy.id": outcome.policy.id,
-        "policy.version": outcome.policy.version,
+        "gen_ai.tool.name": proposal.toolName,
+        "gen_ai.conversation.id": ctx.conversationId,
         "entry.id": entry.entryId,
-        "risk.score": outcome.riskScore,
+        "docket.requirement": entry.requirement.kind,
+        "docket.status": entry.status,
+        "affidavit.field_count": entry.affidavit.fields.length,
+        created,
       },
     });
-  }
 
-  deps.telemetry.emit({
-    key: "affidavit.filed",
-    at: now,
-    attributes: {
-      "gen_ai.tool.name": proposal.toolName,
-      "gen_ai.conversation.id": ctx.conversationId,
-      "entry.id": entry.entryId,
-      "docket.requirement": entry.requirement.kind,
-      "docket.status": entry.status,
-      "affidavit.field_count": entry.affidavit.fields.length,
+    // GT-7: a filing that ran the inference steps and filed — created or replayed —
+    // consumes the draft, after its telemetry is out. A refusal above threw before the
+    // filing and leaves it.
+    const filedResult = {
+      entry,
       created,
-    },
-  });
-
-  // GT-7: a filing that ran the inference steps and filed — created or replayed —
-  // consumes the draft, after its telemetry is out. A refusal above threw before the
-  // filing and leaves it.
-  const filedResult = {
-    entry,
-    created,
-    card: buildCard(entry, {
-      priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
-      schema: proposal.schema,
-      operationLabel: proposal.operationLabel,
-      policyReason: outcome.reason,
-      // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
-      // it is not a card a person can confirm. Saying `true` here would offer a
-      // reviewer surface an approve button that cannot work, on the same card that
-      // carries a warning saying no decision will be accepted.
-      requiresConfirmation: entry.status === "pending" && entry.blocked === null,
-    }),
-  };
-  if (
-    deps.draft !== undefined &&
-    proposal.preparedFields === null &&
-    proposal.supersedes === null
-  ) {
-    await deps.draft.consume(draftKeyOf(proposal, ctx), ctx);
+      card: buildCard(entry, {
+        priorAmendments: proposal.priorAmendments ?? entry.preservedAmendments?.amendments ?? null,
+        schema: proposal.schema,
+        operationLabel: proposal.operationLabel,
+        policyReason: outcome.reason,
+        // A blocked entry sits in `pending` and refuses every decision (AZ-4, CV-4), so
+        // it is not a card a person can confirm. Saying `true` here would offer a
+        // reviewer surface an approve button that cannot work, on the same card that
+        // carries a warning saying no decision will be accepted.
+        requiresConfirmation: entry.status === "pending" && entry.blocked === null,
+      }),
+    };
+    if (
+      deps.draft !== undefined &&
+      proposal.preparedFields === null &&
+      proposal.supersedes === null
+    ) {
+      await deps.draft.consume(draftKeyOf(proposal, ctx), ctx);
+    }
+    return filedResult;
+  } catch (error) {
+    throw new AffiantPostFilingError({
+      entryId: entry.entryId,
+      status: entry.status,
+      created,
+      cause: error,
+    });
   }
-  return filedResult;
 }
 
 // ---------------------------------------------------------------------------

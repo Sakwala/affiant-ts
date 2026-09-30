@@ -10,6 +10,18 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.15] — 2026-10-01
+
+### Changed
+
+- A read tool's throw is answered with one fixed message, `tool-error`, that says the throw is not a refusal and its text is not on the wire; the thrown value's message never leaves the gate, and a thrown value whose own type cannot be read is typed `unknown` (AF-5). The throw is reported on the telemetry port as the new `tool.threw` event, carrying the tool's name and the thrown value's type name and nothing else.
+- A `computation-ref`'s `inputs` are checked against the Affidavit: the fields the operation proposes and the prepared fields carry, except the field the binding is on, and the two turn members `turn.utterance` and `turn.at`. Any other name is an `AffiantCallerError` of kind `binding-invalid`, never a refusal on the wire, for an interceptor's binding and a prepared field's alike (PV-2). A chain a resubmission copies off a stored row is checked for shape only, so a row filed under the earlier behaviour stays resubmittable.
+
+### Added
+
+- `AffiantPostFilingError` and `isPostFilingError`: a throw after the store has filed the entry — a telemetry port, the card, the draft's `consume`, and on a resubmission the link recorded on the superseded row — reaches the host as a failure that names the filed entry (`entryId`, `status`, `created`) and carries the original throw as `cause`. It is not a refusal and the entry stays on the Docket (GT-7).
+
+
 ## [0.1.0-alpha.14] — 2026-09-30
 
 ### Changed

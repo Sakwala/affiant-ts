@@ -15,7 +15,7 @@
  */
 
 /** The version of `@affiant/adapter-ai-sdk` this repository's run exercised. */
-export const ADAPTER_PACKAGE_VERSION = "0.1.0-alpha.1";
+export const ADAPTER_PACKAGE_VERSION = "0.1.0-alpha.2";
 
 /** The version of `ai` the adapter's suites resolved and ran against (CV-5). */
 export const AI_SDK_VERSION = "7.0.101";

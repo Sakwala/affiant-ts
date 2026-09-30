@@ -151,7 +151,21 @@ export function wrapTool<TArgs, TResult>(
         try {
           return { kind: "read", result: await run(args, turn) };
         } catch (error) {
-          return { kind: "error", code: codeOf(error), message: messageOf(error) };
+          // AF-5: the answer is on the wire, and the gate cannot vet a host's text for a
+          // value, so the message is the gate's own and the code is never the body's.
+          // The throw is reported off the wire, by type name only.
+          deps.telemetry.emit({
+            key: "tool.threw",
+            at: deps.clock.now(),
+            attributes: { "gen_ai.tool.name": tool.name, "error.type": errorTypeOf(error) },
+          });
+          return {
+            kind: "error",
+            code: "tool-error",
+            message:
+              `AF-5: read tool ${JSON.stringify(tool.name)} threw; the throw is not a refusal ` +
+              `and its text is not on the wire`,
+          };
         }
       },
     };
@@ -243,13 +257,16 @@ export function wrapTool<TArgs, TResult>(
   };
 }
 
-/** The code to report for a throw from a read tool's own body. */
-function codeOf(error: unknown): ErrorCode | "tool-error" {
-  return isAffiantError(error) ? error.code : "tool-error";
-}
-
-/** The message to report for a throw, without assuming it was an `Error`. */
-function messageOf(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
+/** The type name of a thrown value: its constructor's name for an object, else `typeof`. */
+function errorTypeOf(error: unknown): string {
+  if (typeof error === "object" && error !== null) {
+    try {
+      const name = (error as { constructor?: { name?: unknown } }).constructor?.name;
+      if (typeof name === "string" && name !== "") return name;
+    } catch {
+      // A thrown value can throw from the read itself (a `Proxy`); nothing it says leaves here.
+      return "unknown";
+    }
+  }
+  return typeof error;
 }

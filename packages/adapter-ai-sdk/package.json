@@ -1,6 +1,6 @@
 {
   "name": "@affiant/adapter-ai-sdk",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Wires Affiant tool definitions into the AI SDK: every write an agent proposes runs through the gate and is filed as an Affidavit instead of executing.",
   "keywords": [
     "affiant",
@@ -68,7 +68,7 @@
     "lint": "node scripts/lint-no-durable-object.mjs"
   },
   "peerDependencies": {
-    "@affiant/core": ">=0.1.0-alpha.1",
+    "@affiant/core": ">=0.1.0-alpha.15",
     "ai": "^7.0.0"
   },
   "devDependencies": {

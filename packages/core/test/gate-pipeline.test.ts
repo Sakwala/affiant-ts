@@ -4,7 +4,12 @@ import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import type { TurnContext } from "../src/context.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
-import { AffiantCallerError, AffiantError } from "../src/errors.js";
+import {
+  AffiantCallerError,
+  AffiantError,
+  isAffiantError,
+  isPostFilingError,
+} from "../src/errors.js";
 import { deriveEntryId } from "../src/gate/pipeline.js";
 import type { JsonValue } from "../src/model/affidavit.js";
 import { computeConfidence } from "../src/model/affidavit.js";
@@ -1234,6 +1239,97 @@ describe("the conversation draft across turns (GT-7, PV-3)", () => {
     expect(t.draftPort.held.has(t.draftPort.key)).toBe(false);
   });
 
+  describe("a failure after the store has filed (GT-7)", () => {
+    const boom = new Error("the draft store is down — a figure 12345");
+
+    it("a draft port whose consume rejects: file rejects naming the filed entry, which stays filed", async () => {
+      const t = drafting();
+      (t.draftPort.port as { consume: DraftPort["consume"] }).consume = async () => {
+        throw boom;
+      };
+      t.report.fields = { status: structured("Active", "literal", 0.9) };
+
+      const error: unknown = await t.gate
+        .file(t.proposal, turnContext({ messageId: "msg-1" }))
+        .catch((e: unknown) => e);
+
+      expect(isPostFilingError(error)).toBe(true);
+      expect(isAffiantError(error)).toBe(false);
+      if (!isPostFilingError(error)) throw new Error("unreachable");
+      const held = (await t.store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+      expect(held).toHaveLength(1);
+      expect(error.entryId).toBe(held[0]?.entryId);
+      expect(error.status).toBe(held[0]?.status);
+      expect(error.created).toBe(true);
+      expect(error.cause).toBe(boom);
+      expect(error.name).toBe("AffiantPostFilingError");
+      expect(error.message).toContain("GT-7");
+      expect(error.message).toContain(error.entryId);
+      expect(error.message).not.toContain("12345");
+    });
+
+    it("a telemetry port whose emit throws on affidavit.filed: the same shape", async () => {
+      const t = harness({
+        wrapTelemetry: (inner) => ({
+          emit(event) {
+            inner.emit(event);
+            if ((event.key as string) === "affidavit.filed") throw boom;
+          },
+        }),
+      });
+
+      const error: unknown = await t.gate
+        .file(
+          {
+            operation: {
+              kind: "update",
+              entityType: "Invoice",
+              entityId: "invoice-1",
+              fields: ["status"],
+            },
+            toolName: "capture",
+            schema: schemaFor("Invoice", ["status"]),
+            args: { fields: ["status"] },
+          },
+          turnContext(),
+        )
+        .catch((e: unknown) => e);
+
+      expect(isPostFilingError(error)).toBe(true);
+      if (!isPostFilingError(error)) throw new Error("unreachable");
+      const held = (await t.store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+      expect(held).toHaveLength(1);
+      expect(error.entryId).toBe(held[0]?.entryId);
+      expect(error.cause).toBe(boom);
+    });
+
+    it("the wrapped write tool's execute rejects with the same error, not an error-kind result", async () => {
+      const failing: DraftPort = {
+        async get() {
+          return null;
+        },
+        async put() {},
+        async consume() {
+          throw boom;
+        },
+      };
+      const { gate } = harness({ draft: failing });
+
+      const outcome = await gate
+        .wrap(writeTool(), turnContext())
+        .execute({ status: "Active" })
+        .then(
+          (value) => ({ value }),
+          (error: unknown) => ({ error }),
+        );
+
+      expect(outcome).not.toHaveProperty("value");
+      const { error } = outcome as { error: unknown };
+      expect(isPostFilingError(error)).toBe(true);
+      expect((error as { cause: unknown }).cause).toBe(boom);
+    });
+  });
+
   it("a file refused before filing leaves the draft", async () => {
     const t = drafting();
     t.report.fields = { status: structured("Active", "literal", 0.9) };
@@ -1318,7 +1414,7 @@ describe("the conversation draft across turns (GT-7, PV-3)", () => {
     expect(spanOf(filed)?.source).toBe("Inferred");
   });
 
-  it("emits affidavit.filed before a throwing consume surfaces its error", async () => {
+  it("emits affidavit.filed before a throwing consume surfaces as a post-filing error", async () => {
     const draftPort = memoryDraftPort();
     const failing: DraftPort = {
       ...draftPort.port,
@@ -1346,7 +1442,8 @@ describe("the conversation draft across turns (GT-7, PV-3)", () => {
     const thrown = await h.gate
       .file(proposal, turnContext({ utterance: "status Active", messageId: "msg-1" }))
       .catch((error: unknown) => error);
-    expect((thrown as Error).message).toBe("the draft store is down");
+    expect(isPostFilingError(thrown)).toBe(true);
+    expect(((thrown as Error).cause as Error).message).toBe("the draft store is down");
     expect(h.telemetry.keys()).toContain("affidavit.filed");
   });
 

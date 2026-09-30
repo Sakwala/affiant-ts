@@ -5,7 +5,7 @@
  * Every suite here runs on Node, under Bun and inside workerd.
  */
 
-import { AffiantError, isAffiantError } from "@affiant/core";
+import { AffiantError, isAffiantError, isPostFilingError } from "@affiant/core";
 import { InMemoryDocketStore } from "@affiant/core/store-memory";
 import { jsonSchema, tool } from "ai";
 import { describe, expect, it } from "vitest";
@@ -699,7 +699,7 @@ describe("the derived model schema round-trips through the gate (F-2, F-3, F-4)"
         },
       });
       const answered = await callTool(tools, "record_spend", input, ctx);
-      expect(seen).toEqual([boom, { toolName: "record_spend" }]);
+      expect(seen).toEqual([boom, { toolName: "record_spend", filed: null }]);
       expect(answered).toEqual({
         kind: "error",
         code: "tool-error",
@@ -715,6 +715,76 @@ describe("the derived model schema round-trips through the gate (F-2, F-3, F-4)"
         code: "tool-error",
         message: "the service is down",
       });
+    });
+
+    it("tells the hook which entry a post-filing throw left on the Docket, and lets it answer", async () => {
+      const store = new InMemoryDocketStore({ clock: { now: () => AT } });
+      const down = new Error("draft store down");
+      const gate = testGate({
+        store,
+        inference: spendPort,
+        draft: {
+          async get() {
+            return null;
+          },
+          async put() {},
+          async consume() {
+            throw down;
+          },
+        },
+      });
+      const seen: { error: unknown; context: unknown }[] = [];
+      const tools = affiantTools(gate, [spend()], {
+        onThrow: (error, context) => {
+          seen.push({ error, context });
+          return { code: "tool-error", message: "filed, but the draft could not be cleared" };
+        },
+      });
+
+      const answered = await callTool(tools, "record_spend", input, ctx);
+
+      const entries = (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items;
+      expect(seen).toHaveLength(1);
+      const context = seen[0]?.context as {
+        toolName: string;
+        filed: { entryId: string; status: string } | null;
+      };
+      expect(isPostFilingError(seen[0]?.error)).toBe(true);
+      expect(context.toolName).toBe("record_spend");
+      expect(context.filed?.entryId).toBe(entries[0]?.entryId);
+      expect(context.filed?.status).toBe("pending");
+      expect(answered).toEqual({
+        kind: "error",
+        code: "tool-error",
+        message: "filed, but the draft could not be cleared",
+      });
+    });
+
+    it("never calls the hook for a read tool's throw, and the model sees the fixed message", async () => {
+      const secret = new Error("db password hunter2 rejected");
+      const gate = testGate();
+      let called = 0;
+      const reading: ReturnType<typeof readTool> = {
+        ...readTool([]),
+        execute() {
+          throw secret;
+        },
+      };
+      const tools = affiantTools(gate, [reading], {
+        onThrow: () => {
+          called += 1;
+          return { code: "tool-error", message: "from the hook" };
+        },
+      });
+
+      const answered = await callTool(tools, "find_ticket", { query: "open" }, ctx);
+
+      expect(called).toBe(0);
+      expect(answered.kind).toBe("error");
+      const message = (answered as { message: string }).message;
+      expect(message).toContain("find_ticket");
+      expect(message).not.toContain("hunter2");
+      expect(message).not.toContain("db password");
     });
 
     it("propagates a throw from onThrow with the original as its cause", async () => {

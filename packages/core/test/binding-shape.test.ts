@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import { isAffiantError, isCallerError } from "../src/errors.js";
 import { amendmentTag } from "../src/model/amendments.js";
 import { bindingShapeReason } from "../src/model/binding-shape.js";
+import type { ComputationInputs } from "../src/model/binding-shape.js";
 import type { PreparedField } from "../src/gate/pipeline.js";
 import type { Binding } from "../src/model/provenance.js";
 import { chainOf, mintConversation, mintTag } from "../src/model/provenance.js";
 import type { InterceptedFields, InterceptorBinding } from "../src/ports.js";
 
 import type { DocketEntry } from "../src/docket/entry.js";
+import { InMemoryDocketStore } from "../src/docket/memory.js";
+import { isPostFilingError } from "../src/errors.js";
 
 import {
   AT,
@@ -17,6 +20,7 @@ import {
   interceptorPort,
   plus,
   policyReturning,
+  stubClock,
   structured,
   turnContext,
   writeTool,
@@ -101,7 +105,7 @@ const WELL_FORMED: readonly (readonly [string, Binding])[] = [
       kind: "computation-ref",
       ref: {
         rule: "vat-2026",
-        inputs: ["amount"],
+        inputs: ["turn.utterance", "turn.at"],
         constant: { source: "https://ird.example/vat", verifiedOn: "2026-03-01" },
       },
     },
@@ -566,5 +570,222 @@ describe("a Standing Order that would have rested on a malformed binding (PV-4)"
     expect(await h.store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).toMatchObject({
       items: [],
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A computation-ref's inputs are the Affidavit's own (PV-2)
+// ---------------------------------------------------------------------------
+
+function computed(inputs: readonly string[]): InterceptorBinding {
+  return { kind: "computation-ref", ref: { rule: "vat-2026", inputs: [...inputs] } };
+}
+
+const FOR_STATUS: ComputationInputs = { field: "status", fieldIds: new Set(["status", "amount"]) };
+
+describe("the inputs a computation-ref may name", () => {
+  it("refuses a name that is neither a field nor a turn member, naming the input", () => {
+    expect(bindingShapeReason(computed(["conversation.earlier"]), FOR_STATUS)).toBe(
+      'input "conversation.earlier" is not a field of this Affidavit nor turn.utterance/turn.at',
+    );
+  });
+
+  it("admits turn.utterance and turn.at", () => {
+    expect(bindingShapeReason(computed(["turn.utterance", "turn.at"]), FOR_STATUS)).toBeNull();
+  });
+
+  it("admits another field of the Affidavit", () => {
+    expect(bindingShapeReason(computed(["amount"]), FOR_STATUS)).toBeNull();
+  });
+
+  it("refuses the field's own id", () => {
+    expect(bindingShapeReason(computed(["status"]), FOR_STATUS)).toContain('input "status"');
+  });
+
+  it("refuses turn.messageId", () => {
+    expect(bindingShapeReason(computed(["turn.messageId"]), FOR_STATUS)).toContain(
+      'input "turn.messageId"',
+    );
+  });
+
+  it("names the first input outside the set", () => {
+    expect(bindingShapeReason(computed(["amount", "b.x", "c.y"]), FOR_STATUS)).toContain('"b.x"');
+  });
+});
+
+describe("a computation-ref whose input is outside the Affidavit, through the gate", () => {
+  it("is refused binding-invalid from an interceptor, naming field and input; nothing filed", async () => {
+    const h = harness({
+      interceptors: [
+        interceptorPort("billing", resolved(computed(["conversation.earlier"]) as never)),
+      ],
+    });
+
+    const thrown = await thrownBy(() =>
+      h.gate.wrap(writeTool(), turnContext()).execute({ status: "Active" }),
+    );
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    const reason = isCallerError(thrown) ? thrown.details["reason"] : null;
+    expect(reason).toBe(
+      'input "conversation.earlier" is not a field of this Affidavit nor turn.utterance/turn.at',
+    );
+    const message = thrown instanceof Error ? thrown.message : "";
+    expect(message).toContain('"status"');
+    expect(message).toContain("names an input that is not admitted");
+    expect(message).not.toContain("binding schema admits");
+    expect(await pending(h)).toEqual([]);
+  });
+
+  it("admits a schema field as an input from an interceptor", async () => {
+    const h = harness({
+      interceptors: [interceptorPort("billing", resolved(computed(["amount"])))],
+    });
+
+    const result = await h.gate
+      .wrap(writeTool({ fields: ["status", "amount"] }), turnContext())
+      .execute({ status: "Active", amount: "10" });
+
+    expect(result.kind).toBe("write");
+  });
+
+  it("refuses the field's own id from an interceptor", async () => {
+    const h = harness({
+      interceptors: [interceptorPort("billing", resolved(computed(["status"])))],
+    });
+
+    const thrown = await thrownBy(() =>
+      h.gate.wrap(writeTool(), turnContext()).execute({ status: "Active" }),
+    );
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(await pending(h)).toEqual([]);
+  });
+
+  it("refuses a prepared field with an input outside the Affidavit", async () => {
+    const h = harness({ policies: [policyReturning(null)] });
+
+    const thrown = await thrownBy(() =>
+      fileOne(h, preparedWith(computed(["conversation.earlier"]))),
+    );
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(isCallerError(thrown) ? thrown.details : null).toMatchObject({
+      field: "status",
+      source: "prepared-field",
+      reason:
+        'input "conversation.earlier" is not a field of this Affidavit nor turn.utterance/turn.at',
+    });
+    expect(await pending(h)).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The admissible inputs are the fields the operation proposes (AF-1)
+// ---------------------------------------------------------------------------
+
+describe("a computation-ref over an update that proposes one of three schema fields", () => {
+  function dueDateFrom(inputs: readonly string[]): InterceptedFields {
+    return {
+      dueDate: {
+        value: "2026-10-02",
+        source: "External",
+        binding: computed(inputs),
+        confidence: 1,
+        evidence: "the billing rule",
+      },
+    };
+  }
+  const tool = () => writeTool({ fields: ["payee", "memo", "dueDate"] });
+  const args = { dueDate: "2026-10-02" };
+
+  it("refuses an input that is a schema field the operation does not propose", async () => {
+    const h = harness({
+      interceptors: [interceptorPort("rule", dueDateFrom(["memo"]))],
+      inferred: { dueDate: structured("2026-10-02", "literal", 0.9) },
+    });
+
+    const thrown = await thrownBy(() => h.gate.wrap(tool(), turnContext()).execute(args));
+
+    expect(isCallerError(thrown) ? thrown.kind : null).toBe("binding-invalid");
+    expect(await pending(h)).toEqual([]);
+  });
+
+  it("files when the input is a turn member", async () => {
+    const h = harness({
+      interceptors: [interceptorPort("rule", dueDateFrom(["turn.at"]))],
+      inferred: { dueDate: structured("2026-10-02", "literal", 0.9) },
+    });
+
+    const result = await h.gate.wrap(tool(), turnContext()).execute(args);
+
+    expect(result.kind).toBe("write");
+    expect(await pending(h)).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A stored chain is the record: shape only on a resubmission
+// ---------------------------------------------------------------------------
+
+describe("a resubmission of a row whose chain holds an input name outside the set", () => {
+  it("is filed, and the copied chain keeps the name", async () => {
+    const h = harness({ defaultTtlMs: 60_000, policies: [policyReturning(null)] });
+    const filed = await fileOne(h, preparedWith(computed([])));
+    const entry = filed.entry;
+    const field = entry.affidavit.fields[0] as (typeof entry.affidavit.fields)[number];
+    const legacy = computed(["turn.text"]) as Binding;
+    const { entry: stored } = await h.store.file({
+      ...entry,
+      entryId: "11111111-2222-4333-8444-555555555555",
+      affidavit: {
+        ...entry.affidavit,
+        fields: [
+          {
+            ...field,
+            provenance: {
+              ...field.provenance,
+              current: { ...field.provenance.current, binding: legacy },
+            },
+          },
+        ],
+      },
+    });
+    h.clock.set(plus(AT, 90_000));
+
+    const again = await h.gate.resubmit(stored.entryId, turnContext());
+
+    expect(again.created).toBe(true);
+    const copied = again.entry.affidavit.fields[0];
+    expect(copied?.provenance.current.binding).toEqual(legacy);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A throw after a resubmission has filed the successor (GT-7)
+// ---------------------------------------------------------------------------
+
+describe("a resubmission whose supersession link cannot be recorded", () => {
+  it("throws a post-filing error naming the new entry; both entries are present", async () => {
+    const clock = stubClock();
+    class Failing extends InMemoryDocketStore {
+      override async recordSupersession(): Promise<never> {
+        throw new Error("link 13579");
+      }
+    }
+    const store = new Failing({ clock });
+    const h = harness({ clock, store, defaultTtlMs: 60_000, policies: [policyReturning(null)] });
+    const first = await fileOne(h, preparedWith(computed([])));
+    h.clock.set(plus(AT, 90_000));
+
+    const thrown = await thrownBy(() => h.gate.resubmit(first.entry.entryId, turnContext()));
+
+    expect(isPostFilingError(thrown)).toBe(true);
+    if (!isPostFilingError(thrown)) return;
+    expect(thrown.entryId).not.toBe(first.entry.entryId);
+    expect(thrown.created).toBe(true);
+    expect(thrown.message).not.toContain("13579");
+    expect(await store.get(thrown.entryId, { tenantId: "tenant-a" })).not.toBeNull();
+    expect(await store.get(first.entry.entryId, { tenantId: "tenant-a" })).not.toBeNull();
   });
 });

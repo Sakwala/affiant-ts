@@ -8,6 +8,17 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [0.1.0-alpha.2] — 2026-10-01
+
+### Added
+
+- `onThrow`'s context carries `filed`, the entry's `entryId` and `status` when the throw is an `AffiantPostFilingError` and `null` otherwise: the entry is on the Docket, so a host answers the model with the filing and does not file again (GT-7).
+
+### Changed
+
+- A read tool's throw never reaches `onThrow` and never reaches the SDK's rendering: the model is given the gate's fixed `tool-error` answer (AF-5). Requires `@affiant/core` `0.1.0-alpha.15`.
+
+
 ## [0.1.0-alpha.1] — 2026-09-30
 
 ### Added

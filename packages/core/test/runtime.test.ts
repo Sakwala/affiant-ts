@@ -27,7 +27,7 @@ describe("runtime envelope (RT-1)", () => {
   it("resolves the public entry point on this runtime", async () => {
     const core = await import("@affiant/core");
 
-    expect(core.CORE_VERSION).toBe("0.1.0-alpha.14");
+    expect(core.CORE_VERSION).toBe("0.1.0-alpha.15");
     expect(typeof core.PROTOCOL_VERSION).toBe("string");
     expect(typeof core.AffiantError).toBe("function");
     expect(typeof core.defaultClock.now).toBe("function");
@@ -46,6 +46,7 @@ describe("runtime envelope (RT-1)", () => {
       "AFFIDAVIT_FIELD_KINDS",
       "AffiantCallerError",
       "AffiantError",
+      "AffiantPostFilingError",
       "BINDING_KINDS",
       "BLOCKED_CODES",
       "CORE_VERSION",
@@ -102,6 +103,7 @@ describe("runtime envelope (RT-1)", () => {
       "isHonourable",
       "isJsonValue",
       "isMoney",
+      "isPostFilingError",
       "isTelemetryKey",
       "isTerminal",
       "isUncoveredCategory",

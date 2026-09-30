@@ -86,4 +86,11 @@ export const TELEMETRY_KEYS = [
     description: "A host's approval policy broke its own contract: an unusable deadline, or an evaluate that threw (GT-4, CV-1).",
     attributes: ["policy.id", "policy.version", "option", "reason"],
   },
+  /** A read tool's own body threw; the gate answered the error kind with a fixed message (AF-5). Only the tool's name and the thrown value's type name are reported, never its message. Since 0.1.0-alpha.15. */
+  {
+    key: "tool.threw",
+    since: "0.1.0-alpha.15",
+    description: "A read tool's own body threw; the gate answered the error kind with a fixed message (AF-5). Only the tool's name and the thrown value's type name are reported, never its message.",
+    attributes: ["gen_ai.tool.name", "error.type"],
+  },
 ] as const satisfies readonly TelemetryKeyEntry[];

@@ -18,6 +18,8 @@
  * @packageDocumentation
  */
 
+import type { DocketStatus } from "./docket/entry.js";
+
 /**
  * Every reason the gate refuses, keyed by itself.
  *
@@ -201,6 +203,58 @@ export function isAffiantError(value: unknown): value is AffiantError {
     value instanceof Error &&
     value.name === "AffiantError" &&
     isErrorCode((value as { readonly code?: unknown }).code)
+  );
+}
+
+/**
+ * A failure after the store has filed the entry (GT-7).
+ *
+ * The entry is on the Docket and stays there: nothing after the filing unfiles it.
+ * This is **not a refusal** and not an {@link AffiantError} — the wrapper must never
+ * answer it as one — so it propagates to the host, naming the filed entry. `cause`
+ * is the original throw; the message carries none of its text. Use
+ * {@link isPostFilingError} rather than `instanceof` where two copies of this package
+ * may be loaded in one process.
+ */
+export class AffiantPostFilingError extends Error {
+  /** The id of the entry that was filed. */
+  readonly entryId: string;
+  /** The status the filed entry holds. */
+  readonly status: DocketStatus;
+  /** Whether this filing created the entry (`false`: an idempotent replay returned it). */
+  readonly created: boolean;
+
+  constructor(init: {
+    readonly entryId: string;
+    readonly status: DocketStatus;
+    readonly created: boolean;
+    readonly cause: unknown;
+  }) {
+    super(
+      `GT-7: a failure after the store filed entry ${JSON.stringify(init.entryId)} ` +
+        `(status ${init.status}); the entry stays filed and is not a refusal`,
+      { cause: init.cause },
+    );
+    this.name = "AffiantPostFilingError";
+    this.entryId = init.entryId;
+    this.status = init.status;
+    this.created = init.created;
+  }
+}
+
+/**
+ * Whether `value` is an {@link AffiantPostFilingError}.
+ *
+ * `instanceof` first, then a structural check (an `Error` named
+ * `AffiantPostFilingError` carrying an `entryId` string), so a copy across a bundle
+ * boundary still passes.
+ */
+export function isPostFilingError(value: unknown): value is AffiantPostFilingError {
+  if (value instanceof AffiantPostFilingError) return true;
+  return (
+    value instanceof Error &&
+    value.name === "AffiantPostFilingError" &&
+    typeof (value as { readonly entryId?: unknown }).entryId === "string"
   );
 }
 

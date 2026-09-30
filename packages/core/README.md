@@ -14,7 +14,7 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> `@affiant/core` is `0.1.0-alpha.14` in this repository. Releases are published under the
+> `@affiant/core` is `0.1.0-alpha.15` in this repository. Releases are published under the
 > `alpha` dist-tag with a provenance attestation through this repository's publish
 > workflow ([`.github/workflows/publish.yml`](../../.github/workflows/publish.yml)),
 > which moves the `alpha` dist-tag and no other; `npm view @affiant/core dist-tags` shows
@@ -227,6 +227,18 @@ only `external-ref` and `computation-ref` — the other three kinds point at som
 person did, and are refused the same way — while a prepared field keeps all five kinds,
 since a relayed capture legitimately carries what a person typed.
 
+A `computation-ref`'s `inputs` are checked against what a later reader can run the rule
+over: the field ids of the same Affidavit — never the field the binding is on — and the
+two members of the turn, `turn.utterance` and `turn.at`. Any other name (an earlier
+turn, the host's memory, `turn.messageId`) is a caller error — `AffiantCallerError`, kind
+`binding-invalid`, never a refusal on the wire — for an interceptor's binding and a
+prepared field's alike; the reason names the first input outside the set, an identifier
+and never a value. The Affidavit's field ids are the fields the operation proposes and the
+prepared fields carry: a schema field the operation does not propose is absent from the
+Affidavit, so it is not an input. A chain a resubmission copies off a stored row is the
+record and not input arriving now, so it is checked for shape only and a row filed before
+this check stays resubmittable.
+
 **What it does not do.** This is a check of shape, not of truth: a well-formed
 `external-ref` naming a record that does not exist files. Rows already stored are not
 re-checked on a read — `cardFor`, `decisionResultOf`, `get` and `rehydrate` all read the
@@ -402,14 +414,14 @@ not a deadline, a policy that declares a threshold with no scorer to compare aga
 at wire-up, with a message naming what is missing. There is no option that turns the
 gate off for a covered tool (CV-1).
 
-| Port                | What you implement                                                                                                                                                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `InferencePort`     | One tool-free structured call to your model, given the turn and the field schema, returning a value and a confidence per field. It is the only place a model is spoken to, and it is yours — this package ships no model client.              |
-| `ProjectionPort`    | What the entity holds right now, so an update's fields can swear to what they replace. Return `null` for an entity that does not exist; the pipeline reads that as "nothing to project", not as "every field was empty".                      |
-| `AuthorizationPort` | Whether this principal may decide this entry. Consulted on every decision, execution report and resubmission, after the tenant check and before any transition. A `false` — or a throw — refuses (AZ-2).                                      |
-| `RiskScorer`        | Your risk function, returning a number the gate compares against a policy's threshold. Required only if a policy declares one. This package ships no formula and no floor (GT-5).                                                             |
-| `Clock`             | Where every instant on the record comes from. Defaults to the system clock; a test replaces it, which is how a deadline becomes something a fixture can drive rather than wait for.                                                           |
-| `TelemetryPort`     | Where the events go — filings, refusals, transitions, expiries, Standing Orders fired and blocked — named in a versioned registry so an operator can alert on a refusal rate without reading this source. Defaults to a port that drops them. |
+| Port                | What you implement                                                                                                                                                                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `InferencePort`     | One tool-free structured call to your model, given the turn and the field schema, returning a value and a confidence per field. It is the only place a model is spoken to, and it is yours — this package ships no model client.                                                                                                                             |
+| `ProjectionPort`    | What the entity holds right now, so an update's fields can swear to what they replace. Return `null` for an entity that does not exist; the pipeline reads that as "nothing to project", not as "every field was empty".                                                                                                                                     |
+| `AuthorizationPort` | Whether this principal may decide this entry. Consulted on every decision, execution report and resubmission, after the tenant check and before any transition. A `false` — or a throw — refuses (AZ-2).                                                                                                                                                     |
+| `RiskScorer`        | Your risk function, returning a number the gate compares against a policy's threshold. Required only if a policy declares one. This package ships no formula and no floor (GT-5).                                                                                                                                                                            |
+| `Clock`             | Where every instant on the record comes from. Defaults to the system clock; a test replaces it, which is how a deadline becomes something a fixture can drive rather than wait for.                                                                                                                                                                          |
+| `TelemetryPort`     | Where the events go — filings, refusals, transitions, expiries, Standing Orders fired and blocked, and a read tool's throw as `tool.threw` (the tool's name and the thrown value's type name, never its message) — named in a versioned registry so an operator can alert on a refusal rate without reading this source. Defaults to a port that drops them. |
 
 Two more, both optional: a `FieldInterceptor` is a deterministic resolver for step 2,
 and a `SessionStore` is the rehydration surface a reconnecting client needs. The
@@ -628,6 +640,25 @@ today still catches it — with a stable `kind` and structured `details`:
 - **A blank `turn.messageId` is not refused**, and neither is a blank utterance or an
   absent `turn`. Only the three identifiers above are read at the top of the pipeline,
   and the set of inputs the gate refuses did not change when they moved there.
+
+### A failure after the filing
+
+A throw that comes after the store has filed the entry — a telemetry port, the card, the
+draft's `consume`, and on a resubmission the link recorded on the superseded row — is not
+a refusal and is not an unfiled proposal. It reaches you as `AffiantPostFilingError`, with
+`entryId` (the entry that is on the Docket), `status`, `created` (`false` when the call
+replayed an entry already filed) and the original throw as `cause`; its message carries
+none of the cause's text. `isPostFilingError(value)` is the guard and answers truthfully
+across two loaded copies of this package. Do not file again: the entry is there.
+
+### A read tool's throw
+
+A read tool that throws is not a refusal either. The model is given one fixed answer — an
+error-kind result, code `tool-error`, whose message says the read tool threw and that the
+throw is not a refusal and its text is not on the wire — never the thrown message, which
+may hold a figure or a name. The thrown value's type name (`unknown` when it cannot be
+read) and the tool's name go to the telemetry port as `tool.threw`, and nothing else of
+the throw does.
 
 ## What this package does not claim
 
