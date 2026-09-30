@@ -5,9 +5,10 @@ import { PROTOCOL_VERSION } from "@affiant/contract";
 import type { TurnContext } from "../src/context.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
 import { AffiantCallerError, AffiantError } from "../src/errors.js";
+import { deriveEntryId } from "../src/gate/pipeline.js";
 import type { JsonValue } from "../src/model/affidavit.js";
 import { computeConfidence } from "../src/model/affidavit.js";
-import { sha256Hex } from "../src/model/canonical.js";
+import { canonicalJson, sha256Hex } from "../src/model/canonical.js";
 import type { InferenceSource } from "../src/model/provenance.js";
 import { mintInference } from "../src/model/provenance.js";
 import type {
@@ -664,6 +665,50 @@ describe("TTL is stamped after the policy chain (GT-4)", () => {
     expect(filed.entry.entryId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
+  });
+});
+
+describe("the id-material serializes args as given (GT-4, SR-1; SR-2 is a property of a value)", () => {
+  const ARGS_CTX = turnContext();
+  const base = {
+    toolName: "record_spend",
+    operation: proposal().operation,
+    supersedes: null,
+  } as const;
+
+  it("derives an id for arguments that carry an amount beside a currency", async () => {
+    const id = await deriveEntryId(ARGS_CTX, {
+      ...base,
+      args: { amount: 2500, currency: "LKR" },
+    });
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  it("derives the id it always did for arguments without the pair", async () => {
+    const args = { note: "x", n: 2500 };
+    const material = canonicalJson({
+      tenantId: ARGS_CTX.tenantId,
+      conversationId: ARGS_CTX.conversationId,
+      toolName: base.toolName,
+      operation: base.operation,
+      args,
+    });
+    const digest = await sha256Hex(new TextEncoder().encode(material));
+    const nibbles = [...digest.slice(0, 32)];
+    nibbles[12] = "8";
+    nibbles[16] = ((Number.parseInt(nibbles[16] as string, 16) & 0x3) | 0x8).toString(16);
+    const joined = nibbles.join("");
+    const expected = `${joined.slice(0, 8)}-${joined.slice(8, 12)}-${joined.slice(12, 16)}-${joined.slice(16, 20)}-${joined.slice(20)}`;
+    expect(await deriveEntryId(ARGS_CTX, { ...base, args })).toBe(expected);
+  });
+
+  it("files a proposal whose args carry an amount beside a currency", async () => {
+    const { gate } = harness();
+    const filed = await gate.file(
+      { ...proposal(), args: { amount: 2500, currency: "LKR" } },
+      turnContext(),
+    );
+    expect(filed.created).toBe(true);
   });
 });
 

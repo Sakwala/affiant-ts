@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { AmendmentMap } from "@affiant/contract";
 import { PROTOCOL_VERSION } from "@affiant/contract";
 
+import { canonicalJsonAsGiven } from "../src/model/canonical.js";
 import type { Affidavit } from "../src/model/affidavit.js";
 import { buildAffidavit, fromWire, toWire } from "../src/model/affidavit.js";
 import { amendmentTag, applyAmendments } from "../src/model/amendments.js";
@@ -417,6 +418,44 @@ describe("money in the canonical form (SR-2)", () => {
   it("refuses a money-shaped value whose amount is not a decimal string", () => {
     expect(() => canonicalJson({ amount: "1e3", currency: "GBP" })).toThrow(/SR-2/);
     expect(() => canonicalJson({ amount: "1,000", currency: "GBP" })).toThrow(/SR-2/);
+  });
+
+  it("serializes an object with more keys than amount and currency under SR-1 (SR-2)", () => {
+    const extra = { amount: 2500, currency: "LKR", note: "x" };
+    expect(() => canonicalJson({ fields: [{ name: "p", value: extra }] })).not.toThrow();
+    expect(() => canonicalJson({ lines: [{ ...extra, sku: "a" }] })).not.toThrow();
+  });
+
+  it("still refuses exactly amount and currency as a field value with a number amount (SR-2)", () => {
+    expect(() =>
+      canonicalJson({ fields: [{ name: "p", value: { amount: 2500, currency: "LKR" } }] }),
+    ).toThrow(/SR-2/);
+  });
+
+  it("names the rule and the path, never the value (SR-2)", () => {
+    for (const bad of [
+      { amount: 4000.1, currency: "GBP" },
+      { amount: "4,000", currency: "GBP" },
+    ]) {
+      let message = "";
+      try {
+        canonicalJson({ v: bad });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toMatch(/SR-2/);
+      expect(message).toContain("/v");
+      expect(message).not.toMatch(/4000|4,000/);
+    }
+  });
+
+  it("serializes the same record as given when no shape check is asked for", () => {
+    expect(canonicalJsonAsGiven({ v: { currency: "LKR", amount: 2500 } })).toBe(
+      '{"v":{"amount":2500,"currency":"LKR"}}',
+    );
+    expect(canonicalJsonAsGiven({ b: [1, "x"], a: null })).toBe(
+      canonicalJson({ b: [1, "x"], a: null }),
+    );
   });
 
   it("leaves an unrelated object carrying an amount alone", () => {

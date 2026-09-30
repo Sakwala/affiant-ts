@@ -14,7 +14,7 @@ decision, and reports what happened; the gate never touches your database. Nothi
 this depends on which model you use, which database you write to, or how the card
 reaches the person — those are ports you supply.
 
-> `@affiant/core` is `0.1.0-alpha.12` in this repository. Releases are published under the
+> `@affiant/core` is `0.1.0-alpha.13` in this repository. Releases are published under the
 > `alpha` dist-tag with a provenance attestation through this repository's publish
 > workflow ([`.github/workflows/publish.yml`](../../.github/workflows/publish.yml)),
 > which moves the `alpha` dist-tag and no other; `npm view @affiant/core dist-tags` shows

@@ -142,11 +142,13 @@ export const emptyProjection: ProjectionPort = {
 export interface GateInit {
   readonly inference?: InferencePort;
   readonly field?: string;
+  /** The Docket store, when a suite wants to look at what was filed. */
+  readonly store?: InMemoryDocketStore;
 }
 
 /** A gate with in-memory ports and a fixed clock. */
 export function testGate(init: GateInit = {}): Gate {
-  const store = new InMemoryDocketStore({ clock: { now: () => AT } });
+  const store = init.store ?? new InMemoryDocketStore({ clock: { now: () => AT } });
   return createGate({
     store,
     sessions: new InMemorySessionStore(store),

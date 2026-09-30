@@ -118,7 +118,7 @@ export function isMoney(value: unknown): value is Money {
 export function assertMoney(value: unknown, where = "value"): asserts value is Money {
   if (typeof value === "number") {
     throw new TypeError(
-      `SR-2: ${where} is a JSON number (${String(value)}) where money was expected. ` +
+      `SR-2: ${where} is a JSON number where money was expected. ` +
         `Money on the wire is { amount: "<decimal string>", currency: "<ISO 4217>" }, never a ` +
         `binary float: 0.1 has no exact double, so the amount a reviewer approved and the amount ` +
         `a store holds would differ with nothing on the record to say which was sworn to.`,
@@ -132,8 +132,8 @@ export function assertMoney(value: unknown, where = "value"): asserts value is M
   }
   if (typeof value.amount === "number") {
     throw new TypeError(
-      `SR-2: ${where}.amount is a JSON number (${String(value.amount)}). The amount is a decimal ` +
-        `string — write ${JSON.stringify(String(value.amount))} — because a binary float cannot ` +
+      `SR-2: ${where}.amount is a JSON number. The amount is a decimal ` +
+        `string, because a binary float cannot ` +
         `hold the value a reviewer read.`,
     );
   }
@@ -204,9 +204,9 @@ export function moneyScaleOk(money: Money, minorUnits: number): boolean {
 function describe(value: unknown): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
-  if (typeof value === "string") return `the string ${JSON.stringify(truncate(value))}`;
+  if (typeof value === "string") return "a string";
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
-    return `${typeof value} ${String(value)}`;
+    return `a ${typeof value}`;
   }
   if (Array.isArray(value)) return `an array of ${String(value.length)}`;
   return `${typeof value} ${truncate(Object.prototype.toString.call(value))}`;

@@ -562,11 +562,37 @@ function withAmendments(
  */
 export function canonicalJson(value: unknown): string {
   const out: string[] = [];
-  writeValue(value, out, "", new Set<object>());
+  writeValue(value, out, "", new Set<object>(), true);
   return out.join("");
 }
 
-function writeValue(value: unknown, out: string[], path: string, open: Set<object>): void {
+/**
+ * SR-1's bytes for `value` with no SR-2 shape check: the serialization GT-4's
+ * id-material takes over a proposal's arguments "as given".
+ *
+ * SR-2 governs money on the wire, a *field's value* that is a Money object. A record
+ * that carries an `amount` beside a `currency` is not thereby money — a tool's
+ * arguments are the model's own record, and the id-material is derived before
+ * anything is graded. Every other rule of {@link canonicalJson} (key order, numbers,
+ * strings, what is refused) holds unchanged, so a value with no such pair has the
+ * same bytes under both.
+ *
+ * @throws RangeError on `NaN` or an infinity.
+ * @throws TypeError on a value with no canonical form (see the module header).
+ */
+export function canonicalJsonAsGiven(value: unknown): string {
+  const out: string[] = [];
+  writeValue(value, out, "", new Set<object>(), false);
+  return out.join("");
+}
+
+function writeValue(
+  value: unknown,
+  out: string[],
+  path: string,
+  open: Set<object>,
+  checkMoney: boolean,
+): void {
   if (value === null) {
     out.push("null");
     return;
@@ -609,9 +635,9 @@ function writeValue(value: unknown, out: string[], path: string, open: Set<objec
   open.add(value);
   try {
     if (Array.isArray(value)) {
-      writeArray(value, out, path, open);
+      writeArray(value, out, path, open, checkMoney);
     } else {
-      writeObject(value, out, path, open);
+      writeObject(value, out, path, open, checkMoney);
     }
   } finally {
     open.delete(value);
@@ -623,6 +649,7 @@ function writeArray(
   out: string[],
   path: string,
   open: Set<object>,
+  checkMoney: boolean,
 ): void {
   out.push("[");
   for (let index = 0; index < value.length; index += 1) {
@@ -636,12 +663,18 @@ function writeArray(
           `instead would put a value on the record that the producer never wrote.`,
       );
     }
-    writeValue(element, out, elementPath, open);
+    writeValue(element, out, elementPath, open, checkMoney);
   }
   out.push("]");
 }
 
-function writeObject(value: object, out: string[], path: string, open: Set<object>): void {
+function writeObject(
+  value: object,
+  out: string[],
+  path: string,
+  open: Set<object>,
+  checkMoney: boolean,
+): void {
   const tag = Object.prototype.toString.call(value);
   if (tag !== "[object Object]") {
     throw new TypeError(
@@ -652,7 +685,7 @@ function writeObject(value: object, out: string[], path: string, open: Set<objec
     );
   }
   const record = value as { readonly [key: string]: unknown };
-  assertNotFloatMoney(record, path);
+  if (checkMoney) assertNotFloatMoney(record, path);
 
   const keys = Object.keys(record)
     .filter((key) => record[key] !== undefined)
@@ -663,7 +696,7 @@ function writeObject(value: object, out: string[], path: string, open: Set<objec
     const key = keys[index] as string;
     if (index > 0) out.push(",");
     out.push(JSON.stringify(key), ":");
-    writeValue(record[key], out, `${path}/${key}`, open);
+    writeValue(record[key], out, `${path}/${key}`, open, checkMoney);
   }
   out.push("}");
 }
@@ -672,8 +705,8 @@ function writeObject(value: object, out: string[], path: string, open: Set<objec
  * SR-2, enforced where it can be enforced without a schema.
  *
  * This writer sees JSON, not field types, so it cannot know which field is
- * monetary. What it can recognise is the money *shape*: an object carrying both
- * `amount` and `currency`, where `currency` already looks like an ISO 4217 code. In
+ * monetary. What it can recognise is the money *shape*: an object whose keys are
+ * exactly `amount` and `currency`, where `currency` already looks like an ISO 4217 code. In
  * that one case the amount must be a decimal string, and a number there is refused
  * rather than hashed — the whole point of SR-2 is that a float never becomes the
  * thing a reviewer swore to, and the canonical form is the last place to catch it.
@@ -682,6 +715,9 @@ function writeObject(value: object, out: string[], path: string, open: Set<objec
  * `currency` that is not a three-letter uppercase code is left alone.
  */
 function assertNotFloatMoney(record: { readonly [key: string]: unknown }, path: string): void {
+  // An object with any other key is not a Money object (SR-2): it serializes under SR-1.
+  const keys = Object.keys(record);
+  if (keys.length !== 2 || !keys.includes("amount") || !keys.includes("currency")) return;
   const currency = record["currency"];
   if (typeof currency !== "string" || !MONEY_CURRENCY_PATTERN.test(currency)) return;
   if (!Object.prototype.hasOwnProperty.call(record, "amount")) return;
@@ -689,14 +725,14 @@ function assertNotFloatMoney(record: { readonly [key: string]: unknown }, path: 
   if (typeof amount === "string" && MONEY_AMOUNT_PATTERN.test(amount)) return;
   if (typeof amount === "number") {
     throw new TypeError(
-      `SR-2: money at ${at(path)} carries a JSON number amount (${String(amount)}). Money on the ` +
+      `SR-2: money at ${at(path)} carries a JSON number amount. Money on the ` +
         `wire is { amount: "<decimal string>", currency: "<ISO 4217>" }; a binary float cannot ` +
         `hold the amount a reviewer read, and the canonical form is what a grant binds to.`,
     );
   }
   throw new TypeError(
-    `SR-2: money at ${at(path)} carries an amount that is not a decimal string ` +
-      `(${describe(amount)}). Expected ${String(MONEY_AMOUNT_PATTERN)}: no exponent, no ` +
+    `SR-2: money at ${at(path)} carries an amount that is not a decimal string. ` +
+      `Expected ${String(MONEY_AMOUNT_PATTERN)}: no exponent, no ` +
       `thousands separators, no leading "+".`,
   );
 }
@@ -807,16 +843,15 @@ function at(path: string): string {
   return path === "" ? "the root value" : path;
 }
 
-/** A short, safe rendering of an arbitrary value for an error message. */
+/** The kind of an arbitrary value for an error message — never the value itself (F-3). */
 function describe(value: unknown): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") {
-    const text = value.length <= 60 ? value : `${value.slice(0, 57)}...`;
-    return `the string ${JSON.stringify(text)}`;
+    return "a string";
   }
   if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
-    return `${typeof value} ${String(value)}`;
+    return `a ${typeof value}`;
   }
   if (Array.isArray(value)) return `an array of ${String(value.length)}`;
   return Object.prototype.toString.call(value);
