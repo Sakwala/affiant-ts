@@ -67,11 +67,11 @@ function assertValidPin(rawContents) {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
   const ref = lines[0];
-  const isTag = ref !== undefined && /^v\d+\.\d+\.(0|[1-9]\d*)$/.test(ref);
+  const isTag = ref !== undefined && /^v\d+\.\d+\.(0|[1-9]\d*)(-pre\.[1-9]\d*)?$/.test(ref);
   const isCommit = ref !== undefined && /^[0-9a-f]{40}$/.test(ref);
   if (!isTag && !isCommit) {
     throw new Error(
-      `protocol/PIN's first line must be a version tag (v<major>.<minor>.<patch>) or a full ` +
+      `protocol/PIN's first line must be a version tag (v<major>.<minor>.<patch>, optionally -pre.<n>) or a full ` +
         `40-character commit, not "${String(ref)}"`,
     );
   }

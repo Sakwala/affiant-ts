@@ -43,7 +43,7 @@ const pinLines = readFileSync(join(protocolDir, "PIN"), "utf8").trim().split("\n
 const pin = (pinLines[0] ?? "").trim();
 const schemasLine = pinLines[1]?.trim();
 
-const TAG_PATTERN = /^v\d+\.\d+\.(0|[1-9]\d*)$/;
+const TAG_PATTERN = /^v\d+\.\d+\.(0|[1-9]\d*)(-pre\.[1-9]\d*)?$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const SCHEMAS_LINE_PATTERN = /^schemas=(\d+\.\d+\.\d+)$/;
 
@@ -69,7 +69,7 @@ if (schemasLine !== undefined) {
 function assertValidPin(candidate: string): void {
   if (!TAG_PATTERN.test(candidate) && !COMMIT_PATTERN.test(candidate)) {
     throw new Error(
-      `protocol/PIN must be a version tag (v<major>.<minor>.<patch>) or a full ` +
+      `protocol/PIN must be a version tag (v<major>.<minor>.<patch>, optionally -pre.<n>) or a full ` +
         `40-character commit, not "${candidate}"`,
     );
   }

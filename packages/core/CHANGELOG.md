@@ -10,6 +10,12 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.12] — 2026-09-30
+
+### Changed
+
+- The contract pin moved to the rulebook's tag `v0.5.0-pre.1` (same schemas and fixtures as the commit it replaces); no behaviour change.
+
 ## [0.1.0-alpha.11] — 2026-09-30
 
 ### Added
