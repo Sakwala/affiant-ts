@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.5.0-pre.1.
+// copy of Sakwala/affiant-protocol at v0.5.0.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0, 0.5.0
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -3981,6 +3981,32 @@ export const manifest = {
           ],
           "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
         }
+      },
+      {
+        "id": "gate/draft-from-a-question-turn",
+        "file": "gate/44-draft-from-a-question-turn.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": {
+          "mustFailOn": [
+            "dotnet@1.0.0-beta.3.1"
+          ],
+          "defect": "The release has no `draft` step and no draft port, and its `utterance-span` binding has no `MessageId`"
+        }
+      },
+      {
+        "id": "gate/id-material-args-serialize-as-given",
+        "file": "gate/45-id-material-args-serialize-as-given.json",
+        "rules": [
+          "GT-4",
+          "SR-1"
+        ],
+        "set": "gate",
+        "oracle": null
       },
       {
         "id": "gate/multiparty-files-one-entry",

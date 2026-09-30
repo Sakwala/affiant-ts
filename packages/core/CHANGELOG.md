@@ -10,6 +10,12 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.14] — 2026-09-30
+
+### Changed
+
+- The contract pin moved to the rulebook's tag `v0.5.0`; the two fixtures it adds, `gate/44-draft-from-a-question-turn` and `gate/45-id-material-args-serialize-as-given`, read green. No behaviour change.
+
 ## [0.1.0-alpha.13] — 2026-09-30
 
 ### Fixed
