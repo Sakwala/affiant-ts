@@ -10,6 +10,13 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.13] — 2026-09-30
+
+### Fixed
+
+- The id-material of a filing serializes `args` under SR-1's rules and nothing else (GT-4). A record that carries a number `amount` beside a `currency` is not refused at the arguments; SR-2's money check still governs Affidavit values and the wire.
+- Refusal messages carry no proposed value (AF-5). The SR-2 messages and the shape-description helpers name the rule, the path and the kind of value found, never the value.
+
 ## [0.1.0-alpha.12] — 2026-09-30
 
 ### Changed

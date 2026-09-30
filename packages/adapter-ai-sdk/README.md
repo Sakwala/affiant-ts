@@ -11,7 +11,7 @@ numbered invariants in
 [`INVARIANTS.md`](https://github.com/Sakwala/affiant-protocol/blob/main/INVARIANTS.md),
 cited throughout below.
 
-- **Status:** `@affiant/adapter-ai-sdk` is `0.1.0-alpha.0` in this repository. Releases
+- **Status:** `@affiant/adapter-ai-sdk` is `0.1.0-alpha.1` in this repository. Releases
   are published under the `alpha` dist-tag with a provenance attestation through this
   repository's publish workflow (`.github/workflows/publish.yml`), which moves the
   `alpha` dist-tag and no other; `npm view @affiant/adapter-ai-sdk dist-tags` shows what

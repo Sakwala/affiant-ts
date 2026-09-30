@@ -31,7 +31,7 @@
  */
 
 /** The version of this package. */
-export const ADAPTER_VERSION = "0.1.0-alpha.0";
+export const ADAPTER_VERSION = "0.1.0-alpha.1";
 
 export { affiantTools, affiantToolsContext, TURN_CONTEXT_SCHEMA } from "./tools.js";
 export type {
@@ -40,6 +40,7 @@ export type {
   AffiantToolDefinition,
   AffiantToolSet,
   AffiantToolsOptions,
+  ToolThrowAnswer,
   JsonSchemaObject,
 } from "./tools.js";
 

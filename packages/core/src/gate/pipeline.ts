@@ -81,7 +81,7 @@ import type {
 import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 import { bindingShapeReason } from "../model/binding-shape.js";
-import { canonicalJson, sha256Hex } from "../model/canonical.js";
+import { canonicalJsonAsGiven, sha256Hex } from "../model/canonical.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
 import {
   INTERCEPTOR_BINDING_KINDS,
@@ -1235,7 +1235,7 @@ export async function deriveEntryId(
   ctx: TurnContext,
   proposal: Pick<PipelineProposal, "toolName" | "operation" | "args" | "supersedes">,
 ): Promise<string> {
-  const material = canonicalJson({
+  const material = canonicalJsonAsGiven({
     tenantId: ctx.tenantId,
     conversationId: ctx.conversationId,
     toolName: proposal.toolName,

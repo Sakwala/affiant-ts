@@ -12,6 +12,7 @@ was made against.
 
 ### Changed
 
+- **`@affiant/core` `0.1.0-alpha.13` and `@affiant/adapter-ai-sdk` `0.1.0-alpha.1`: the id-material serializes the arguments as given; refusal messages carry no proposed value; the wrapped tool answers a gate refusal with the refused shape.** A proposal whose arguments hold a number `amount` beside a `currency` is no longer refused while its id is derived: the id-material follows SR-1 and leaves SR-2's money shape to an object whose keys are exactly `amount` and `currency` (GT-4). A refusal's `message` names the rule and the path and never a proposed value, an argument or an utterance (AF-5). The adapter's write tool answers an `AffiantError` the gate raises with `{ outcome: "refused", code, message }`, and takes an `onThrow` hook for a host that answers the model itself. No wire type or vendored file changed.
 - **`@affiant/contract` `0.1.0-alpha.8` and `@affiant/core` `0.1.0-alpha.12`: the pin moved to the rulebook's tag `v0.5.0-pre.1`.** `packages/contract/protocol/PIN` named commit `d1fbd9b`; the tag carries the same schemas and fixtures plus text-only changes, so no wire type, vendored file or behaviour changed. The pin check accepts a `-pre.<n>` tag.
 - **`@affiant/contract` `0.1.0-alpha.7` and `@affiant/core` `0.1.0-alpha.11`: the conversation draft (GT-7),
   pinned at the rulebook's `v0.5` head.** `packages/contract/protocol/PIN` now names commit

@@ -6,12 +6,14 @@
  */
 
 import { AffiantError, isAffiantError } from "@affiant/core";
+import { InMemoryDocketStore } from "@affiant/core/store-memory";
 import { jsonSchema, tool } from "ai";
 import { describe, expect, it } from "vitest";
 
 import { affiantTools, affiantToolsContext, TURN_CONTEXT_SCHEMA } from "../src/index.js";
 
 import {
+  AT,
   callTool,
   readTool,
   summaryOf,
@@ -572,5 +574,178 @@ describe("the per-turn context map", () => {
 
   it("names the turn context schema every gated tool declares", () => {
     expect(TURN_CONTEXT_SCHEMA).toMatchObject({ type: "object", required: ["turn"] });
+  });
+});
+
+describe("the derived model schema round-trips through the gate (F-2, F-3, F-4)", () => {
+  const spend = (): ReturnType<typeof writeTool> => ({
+    ...writeTool({ name: "record_spend" }),
+    inputSchema: {
+      entityType: "Spend",
+      fields: [
+        {
+          name: "amount",
+          kind: "number",
+          description: "The amount",
+          required: true,
+          allowedValues: null,
+          pattern: null,
+        },
+        {
+          name: "currency",
+          kind: "text",
+          description: "The currency",
+          required: true,
+          allowedValues: null,
+          pattern: null,
+        },
+      ],
+    },
+  });
+
+  const spendPort = {
+    async infer() {
+      return {
+        fields: {
+          amount: { value: 2500, confidence: 0.9 },
+          currency: { value: "LKR", confidence: 0.9 },
+        },
+      };
+    },
+  };
+  const input = { amount: 2500, currency: "LKR" };
+  const pendingCount = async (store: InMemoryDocketStore): Promise<number> =>
+    (await store.listPending({ tenantId: "tenant-a" }, { limit: 10 })).items.length;
+
+  it("files the typical model input: a number amount beside a currency", async () => {
+    const gate = testGate({ inference: spendPort });
+    const tools = affiantTools(gate, [spend()]);
+
+    const schema = (
+      tools["record_spend"]?.inputSchema as unknown as {
+        jsonSchema: { properties: Record<string, unknown> };
+      }
+    ).jsonSchema;
+    expect(schema.properties["amount"]).toMatchObject({ type: "number" });
+
+    const answer = await callTool(tools, "record_spend", input, { turn: turnContext() });
+
+    expect(answer.kind).toBe("write");
+  });
+
+  it("answers a refusal the gate raises with the refused shape and no digit of the input", async () => {
+    const gate = testGate({
+      inference: {
+        async infer() {
+          return { fields: {} };
+        },
+      },
+    });
+    const tools = affiantTools(gate, [spend()]);
+
+    const answer = await callTool(tools, "record_spend", input, { turn: turnContext() });
+
+    expect(answer.kind).toBe("error");
+    const out = tools["record_spend"]?.toModelOutput?.({ output: answer } as never) as unknown as {
+      value: { outcome: string; code: string; message: string };
+    };
+    expect(out.value).toEqual({
+      outcome: "refused",
+      code: "substance-refused",
+      message: (answer as { message: string }).message,
+    });
+    expect(out.value.message).toMatch(/^GT-3/);
+    // The input's digits are 2, 5 and 0; the rule id's are 3.
+    expect(out.value.message).not.toMatch(/[025]/);
+  });
+
+  describe("a throw that is not a refusal", () => {
+    const boom = new Error("port down");
+    const throwing = {
+      async infer(): Promise<never> {
+        throw boom;
+      },
+    };
+    const ctx = { turn: turnContext() };
+
+    it("propagates by default", async () => {
+      const gate = testGate({ inference: throwing });
+      await expect(
+        callTool(affiantTools(gate, [spend()]), "record_spend", input, ctx),
+      ).rejects.toBe(boom);
+    });
+
+    it("propagates when onThrow answers undefined or null", async () => {
+      const gate = testGate({ inference: throwing });
+      for (const none of [undefined, null]) {
+        await expect(
+          callTool(
+            affiantTools(gate, [spend()], { onThrow: () => none }),
+            "record_spend",
+            input,
+            ctx,
+          ),
+        ).rejects.toBe(boom);
+      }
+    });
+
+    it("renders the onThrow answer as the refused shape, never a read", async () => {
+      const gate = testGate({ inference: throwing });
+      const seen: unknown[] = [];
+      const tools = affiantTools(gate, [spend()], {
+        onThrow: (e, c) => {
+          seen.push(e, c);
+          return { code: "tool-error", message: "the service is down" };
+        },
+      });
+      const answered = await callTool(tools, "record_spend", input, ctx);
+      expect(seen).toEqual([boom, { toolName: "record_spend" }]);
+      expect(answered).toEqual({
+        kind: "error",
+        code: "tool-error",
+        message: "the service is down",
+      });
+      const out = tools["record_spend"]?.toModelOutput?.({
+        output: answered,
+      } as never) as unknown as {
+        value: unknown;
+      };
+      expect(out.value).toEqual({
+        outcome: "refused",
+        code: "tool-error",
+        message: "the service is down",
+      });
+    });
+
+    it("propagates a throw from onThrow with the original as its cause", async () => {
+      const gate = testGate({ inference: throwing });
+      const hookBroke = new Error("hook broke");
+      const tools = affiantTools(gate, [spend()], {
+        onThrow: () => {
+          throw hookBroke;
+        },
+      });
+      await expect(callTool(tools, "record_spend", input, ctx)).rejects.toBe(hookBroke);
+      expect(hookBroke.cause).toBe(boom);
+    });
+  });
+
+  it("lets a throw from onResult propagate after a filing, never as a refusal", async () => {
+    const store = new InMemoryDocketStore({ clock: { now: () => AT } });
+    const gate = testGate({ inference: spendPort, store });
+    const hostFailure = new AffiantError("wireup-invalid", "host queue refused");
+    const seen: string[] = [];
+    const tools = affiantTools(gate, [spend()], {
+      onResult: (r) => {
+        seen.push(r.kind);
+        if (r.kind === "write") throw hostFailure;
+      },
+    });
+
+    await expect(callTool(tools, "record_spend", input, { turn: turnContext() })).rejects.toBe(
+      hostFailure,
+    );
+    expect(seen).toEqual(["write"]);
+    expect(await pendingCount(store)).toBe(1);
   });
 });

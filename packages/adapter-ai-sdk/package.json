@@ -1,6 +1,6 @@
 {
   "name": "@affiant/adapter-ai-sdk",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Wires Affiant tool definitions into the AI SDK: every write an agent proposes runs through the gate and is filed as an Affidavit instead of executing.",
   "keywords": [
     "affiant",

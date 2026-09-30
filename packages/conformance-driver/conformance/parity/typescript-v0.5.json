@@ -1,15 +1,15 @@
 {
   "schemaVersion": "0.1.0",
   "implementation": "typescript",
-  "version": "0.1.0-alpha.12",
+  "version": "0.1.0-alpha.13",
   "protocolTag": "v0.5.0-pre.1",
-  "producedAt": "2026-09-30T08:21:22.336Z",
-  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.12.json",
+  "producedAt": "2026-09-30T12:42:46.019Z",
+  "runLog": "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.13.json",
   "failing": [],
   "adapters": [
     {
       "package": "@affiant/adapter-ai-sdk",
-      "version": "0.1.0-alpha.0",
+      "version": "0.1.0-alpha.1",
       "runtime": "ai",
       "runtimeVersion": "7.0.101",
       "fixtures": 12,

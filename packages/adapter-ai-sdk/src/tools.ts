@@ -40,7 +40,7 @@ import type {
   TurnContext,
   UncoveredCategory,
 } from "@affiant/core";
-import { AffiantError, assessCoverage } from "@affiant/core";
+import { AffiantError, assessCoverage, isAffiantError } from "@affiant/core";
 import type { JSONValue, Schema, Tool, ToolSet } from "ai";
 import { jsonSchema, tool } from "ai";
 
@@ -103,6 +103,35 @@ export interface AffiantToolsOptions {
    * anything. A throw from it propagates.
    */
   readonly onResult?: (result: GatedToolResult<unknown>, ctx: TurnContext) => void | Promise<void>;
+  /**
+   * Answers the model itself when a gated tool's `execute` throws something that is
+   * not a gate refusal. Optional; the default is to propagate the throw.
+   *
+   * A refusal the gate raises (an `AffiantError`) never reaches this hook: it is
+   * answered with the refused shape, `{ outcome: "refused", code, message }`, whose
+   * message names a rule and a path and never a value. Anything else that throws is a
+   * defect or an outage, not a refusal (CV-2), so it propagates unless a host that
+   * answers the model on its own terms returns an answer here. The answer is rendered
+   * as the refused shape too: a gated write tool answers with a proposal or an error,
+   * never a read (AF-5). Return `undefined` or `null` to give no answer, and the throw
+   * propagates; this is also the place to report it, since the adapter holds no
+   * telemetry port of its own. `context.toolName` says which tool's call threw. A
+   * throw from the hook propagates, with the original error as its `cause`.
+   */
+  readonly onThrow?: (
+    error: unknown,
+    context: { readonly toolName: string },
+  ) => ToolThrowAnswer | null | undefined | Promise<ToolThrowAnswer | null | undefined>;
+}
+
+/**
+ * What {@link AffiantToolsOptions.onThrow} may answer the model with: the error
+ * kind's inputs (`code` is the error kind's: an Affiant error code or `"tool-error"`), rendered as the refused shape. The `message` should name a rule and
+ * a path, never a value.
+ */
+export interface ToolThrowAnswer {
+  readonly code: Extract<GatedToolResult<unknown>, { kind: "error" }>["code"];
+  readonly message: string;
 }
 
 /**
@@ -398,6 +427,7 @@ export function affiantTools(
 ): AffiantToolSet {
   const tools: Record<string, ToolSet[string]> = {};
   const onResult = options.onResult;
+  const onThrow = options.onThrow;
 
   for (const definition of definitions) {
     const name = definition.name;
@@ -451,7 +481,7 @@ export function affiantTools(
           { toolName: name },
         );
       }
-      tools[name] = gatedTool(gate, snapshot, inputSchema, onResult);
+      tools[name] = gatedTool(gate, snapshot, inputSchema, onResult, onThrow);
       continue;
     }
 
@@ -461,7 +491,7 @@ export function affiantTools(
     // reached with this call's explicit context (GT-2).
     tools[name] =
       typeof snapshot.execute === "function"
-        ? gatedTool(gate, snapshot, inputSchema, onResult)
+        ? gatedTool(gate, snapshot, inputSchema, onResult, onThrow)
         : declaredTool(snapshot, inputSchema);
   }
 
@@ -496,6 +526,7 @@ function gatedTool(
   definition: AffiantToolDefinition,
   inputSchema: JsonSchemaObject,
   onResult: AffiantToolsOptions["onResult"],
+  onThrow: AffiantToolsOptions["onThrow"],
 ): ToolSet[string] {
   const name = definition.name;
   // The definition the gate is handed. `wrap` is generic over the tool's own argument
@@ -508,16 +539,46 @@ function gatedTool(
     contextSchema: TURN_CONTEXT_FLEX_SCHEMA,
     async execute(input: unknown, { context, abortSignal }): Promise<GatedToolResult<unknown>> {
       // The context is this call's, validated, and used once. Not stored, not
-      // defaulted, not read from anywhere else (GT-2).
+      // defaulted, not read from anywhere else (GT-2). A call with no usable context
+      // raises here, as before: the adapter was handed nothing (CV-2).
       const turn = requireContext(context, name).turn;
       // An abandoned generation should not leave a row on somebody's Docket for a
       // person to decide on. A filing already under way still completes — the gate
       // takes no signal — but one that has not started does not begin (AZ-7).
       if (abortSignal?.aborted === true) throw abortError(abortSignal);
-      // The only function called from this closure. For a write-capable definition
-      // the gate's write path never calls `definition.execute` (GT-6); for a read it
-      // calls it with this same context as its second argument.
-      const result = await gate.wrap(forGate, turn).execute(input);
+      let result: GatedToolResult<unknown>;
+      try {
+        // The only function called from this closure. For a write-capable definition
+        // the gate's write path never calls `definition.execute` (GT-6); for a read it
+        // calls it with this same context as its second argument.
+        result = await gate.wrap(forGate, turn).execute(input);
+      } catch (error) {
+        // A refusal the gate raises after the context was accepted is an answer
+        // (AF-5): the refused shape. Anything else is a defect or an outage, not a
+        // refusal (CV-2): the host's hook may answer the model, otherwise it propagates.
+        let refused: GatedToolResult<unknown> | undefined;
+        if (isAffiantError(error)) {
+          refused = { kind: "error", code: error.code, message: error.message };
+        } else if (onThrow !== undefined) {
+          let answer: ToolThrowAnswer | null | undefined;
+          try {
+            answer = await onThrow(error, { toolName: name });
+          } catch (hookError) {
+            if (hookError instanceof Error && hookError.cause === undefined) {
+              hookError.cause = error;
+            }
+            throw hookError;
+          }
+          if (answer !== undefined && answer !== null) {
+            refused = { kind: "error", code: answer.code, message: answer.message };
+          }
+        }
+        if (refused === undefined) throw error;
+        if (onResult !== undefined) await onResult(refused, turn);
+        return refused;
+      }
+      // Outside the `try`: a throw from the host's hook, after a filing, is the host's
+      // and propagates; it is never read as a refusal.
       if (onResult !== undefined) await onResult(result, turn);
       return result;
     },

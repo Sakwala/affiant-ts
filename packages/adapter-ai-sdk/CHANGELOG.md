@@ -8,6 +8,16 @@ cites the rule ids it satisfies, which resolve in
 Repository-wide changes — the workspace, the protocol pin, the other packages — are in
 the [root changelog](../../CHANGELOG.md).
 
+## [0.1.0-alpha.1] — 2026-09-30
+
+### Added
+
+- `onThrow` on the adapter's options: a host that answers the model itself is handed a throw that is not a gate refusal, and may return a JSON answer; the default is to propagate, since an unexpected throw is a defect, not a refusal (CV-2).
+
+### Changed
+
+- A write tool answers an `AffiantError` the gate raises after the context was accepted with the refused shape, `{ outcome: "refused", code, message }`, the message naming a rule and a path and never a value (AF-5). A call that arrives with no usable context still raises (GT-2, CV-2). Built with `@affiant/core` `0.1.0-alpha.13`, which serializes a filing's arguments as given, so the model's usual `{ amount, currency }` input files.
+
 ## [0.1.0-alpha.0] — 2026-09-16
 
 The first version. Built against the rulebook's
