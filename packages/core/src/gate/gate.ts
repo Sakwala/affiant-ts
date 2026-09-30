@@ -32,11 +32,13 @@
 import type { TurnContext } from "../context.js";
 import type { DocketEntry, ExecutionDetail } from "../docket/entry.js";
 import type { DocketStore, Page, PageResult, Scope, SessionStore } from "../docket/store.js";
-import { AffiantError } from "../errors.js";
+import { AffiantCallerError, AffiantError } from "../errors.js";
 import type { JsonValue } from "../model/affidavit.js";
 import type {
   Clock,
   FieldInterceptor,
+  Draft,
+  DraftPort,
   FieldSchema,
   InferencePort,
   Operation,
@@ -53,7 +55,7 @@ import { createCoverageRegistry, declareUncovered } from "./coverage.js";
 import type { DecideDeps, Decision, ExecutionReport, Withdrawal } from "./decide.js";
 import { decide, markExecuted, resubmit, withdraw } from "./decide.js";
 import type { FiledEntry, PipelineDeps, PreparedField } from "./pipeline.js";
-import { runPipeline } from "./pipeline.js";
+import { runDraft, runPipeline } from "./pipeline.js";
 import type { ApprovalPolicy } from "./policy.js";
 import { isUsableTtlMs, unusableTtlMessage } from "./policy.js";
 import type { GatedTool } from "./wrap.js";
@@ -96,6 +98,11 @@ export interface GateOptions {
   readonly clock?: Clock;
   /** Where the TL-1 events go. */
   readonly telemetry?: TelemetryPort;
+  /**
+   * Where drafts are held (GT-7). Optional: without it `file` carries nothing across
+   * turns and {@link Gate.draft} is refused.
+   */
+  readonly draft?: DraftPort;
   /**
    * The deadline applied when neither the verdict nor the policy names one (GT-4).
    * **Required**: `expiresAt` is not nullable, so every filed entry carries a
@@ -153,6 +160,22 @@ export interface Gate {
    *         fields nor a schema.
    */
   file(proposal: WriteProposal, ctx: TurnContext): Promise<FiledEntry>;
+  /**
+   * Hold what this turn established for `proposal`'s tool, without filing (GT-7).
+   *
+   * Runs the pipeline's turn-context, interceptor, inference and merge steps and
+   * writes, merged by field name into the draft under this tenant, conversation and
+   * tool, the fields whose tag is `Conversation` with an `utterance-span` binding.
+   * It never projects, never runs policy and never files. Returns the record it wrote;
+   * when this turn holds no such field it writes nothing and returns the existing
+   * record, or `null` when there is none.
+   *
+   * @throws AffiantError `"wireup-invalid"` when the host supplied no
+   *         {@link GateOptions.draft}, or the proposal carries no schema.
+   * @throws AffiantCallerError `"draft-prepared-fields"` when the proposal carries
+   *         prepared fields: there is nothing to read from a turn.
+   */
+  draft(proposal: WriteProposal, ctx: TurnContext): Promise<Draft | null>;
   /**
    * Record that the gate cannot intercept `tool`, so every later proposal from it is
    * filed `blocked` rather than refused at wire-up (CV-4). It never allows the tool.
@@ -324,6 +347,7 @@ export function createGate(options: GateOptions): Gate {
     policies,
     interceptors: options.interceptors ?? [],
     riskScorer: options.riskScorer,
+    draft: options.draft,
     clock,
     telemetry,
     defaultTtlMs,
@@ -360,6 +384,49 @@ export function createGate(options: GateOptions): Gate {
           schema,
           args: proposal.args ?? null,
           preparedFields: fields,
+          operationLabel: proposal.operationLabel ?? null,
+          supersedes: null,
+          priorAmendments: null,
+        },
+        ctx,
+        deps,
+      );
+    },
+
+    async draft(proposal, ctx) {
+      const fields = proposal.fields ?? null;
+      const schema = proposal.schema ?? null;
+      if (options.draft === undefined) {
+        throw new AffiantError(
+          "wireup-invalid",
+          `GT-7: GateOptions.draft is required to draft — it is the port that holds what the ` +
+            `conversation has established between turns. Supply a DraftPort, or do not call this.`,
+          { option: "draft" },
+        );
+      }
+      if (fields !== null) {
+        throw new AffiantCallerError(
+          "draft-prepared-fields",
+          `GT-7: a draft for ${JSON.stringify(proposal.toolName)} was given prepared fields. ` +
+            `A draft is read from the turn; prepared fields carry their own provenance.`,
+          { toolName: proposal.toolName },
+        );
+      }
+      if (schema === null) {
+        throw new AffiantError(
+          "wireup-invalid",
+          `CV-1: a proposal for ${JSON.stringify(proposal.toolName)} carries no field schema. ` +
+            `Supply \`schema\` so the inference step has fields to read from the turn.`,
+          { toolName: proposal.toolName },
+        );
+      }
+      return runDraft(
+        {
+          operation: proposal.operation,
+          toolName: proposal.toolName,
+          schema,
+          args: proposal.args ?? null,
+          preparedFields: null,
           operationLabel: proposal.operationLabel ?? null,
           supersedes: null,
           priorAmendments: null,

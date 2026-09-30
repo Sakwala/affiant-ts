@@ -1,0 +1,49 @@
+{
+  "protocolVersion": "0.5.0",
+  "tenantId": "tenant-a",
+  "conversationId": "conv-1",
+  "toolName": "capture_entry",
+  "fields": [
+    {
+      "name": "amount",
+      "value": 15000,
+      "tag": {
+        "source": "Inferred",
+        "confidence": 0.9,
+        "note": "Literally present in the turn: amount",
+        "at": "2026-09-30T09:00:00.000Z",
+        "conversationTurn": null,
+        "binding": {
+          "kind": "utterance-span",
+          "ref": {
+            "offset": 14,
+            "length": 5,
+            "hash": "d4c999ae43633bd2036188d2bca68e1be8202b2cc1f3a1c42a728eaff7d2483d",
+            "messageId": "msg-1"
+          }
+        }
+      }
+    },
+    {
+      "name": "payee",
+      "value": "Serendib Growth Fund unit trust",
+      "tag": {
+        "source": "Conversation",
+        "confidence": 0.9,
+        "note": "Literally present in the turn: payee",
+        "at": "2026-09-30T09:00:00.000Z",
+        "conversationTurn": null,
+        "binding": {
+          "kind": "utterance-span",
+          "ref": {
+            "offset": 23,
+            "length": 31,
+            "hash": "e130c49438689da6f7a54959e0f8259aeaf2e6bede70a8168e9defedc2fd3cdb",
+            "messageId": "msg-1"
+          }
+        }
+      }
+    }
+  ],
+  "updatedAt": "2026-09-30T09:00:00.000Z"
+}

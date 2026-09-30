@@ -173,6 +173,7 @@ const REFS: { readonly [kind: string]: ObjectSpec } = {
     offset: must(isNonNegativeInteger, "an integer of zero or more"),
     length: must(isNonNegativeInteger, "an integer of zero or more"),
     hash: must(isIdentifier, "a non-empty string"),
+    messageId: may(isIdentifier, "a non-empty string"),
   },
   "reviewer-act": {
     entryId: must(isUuid, "a UUID"),

@@ -8,6 +8,9 @@ import type { EvidenceCardRequest } from "../src/gate/pipeline.js";
 import type { GatedToolResult } from "../src/gate/wrap.js";
 import type { InferenceSource } from "../src/model/provenance.js";
 import { mintInference } from "../src/model/provenance.js";
+import type { TurnContext } from "../src/context.js";
+import type { Gate, GateOptions } from "../src/gate/gate.js";
+import type { Draft, DraftField, DraftKey, DraftPort } from "../src/ports.js";
 import type { ToolDefinition } from "../src/gate/coverage.js";
 
 /**
@@ -59,3 +62,26 @@ void impossible;
 declare const concrete: ToolDefinition<{ readonly id: string }, number>;
 const inspectable: ToolDefinition = concrete;
 void inspectable;
+
+// ---------------------------------------------------------------------------
+// GT-7 — the draft is a port the host supplies, and a gate method returns its record
+// ---------------------------------------------------------------------------
+
+declare const draftingGate: Gate;
+const drafted: Promise<Draft | null> = draftingGate.draft(
+  {
+    operation: { kind: "create", entityType: "Invoice", entityId: null, fields: [] },
+    toolName: "t",
+  },
+  {} as TurnContext,
+);
+void drafted;
+
+declare const draftPort: DraftPort;
+const draftOption: GateOptions["draft"] = draftPort;
+void draftOption;
+
+declare const draftKey: DraftKey;
+const heldField: DraftField["tag"]["source"] =
+  draftKey.toolName === "" ? "Conversation" : "Inferred";
+void heldField;

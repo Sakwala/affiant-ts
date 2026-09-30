@@ -393,7 +393,7 @@ const wireEntries = manifest.fixtures.map((entry) => ({
  * all kept. Schema paths are compared re-pathed onto the flat directory the pin
  * actually vendors (`schemas/<version>/<name>` -> `schemas/${wireSchemaVersion}/<name>`).
  *
- * Every versioned section (`0.1.0`, `0.3.0`, `0.4.0`, and any later one the pin
+ * Every versioned section (`0.1.0`, `0.3.0`, `0.4.0`, `0.5.0`, and any later one the pin
  * carries) is emitted as its own export, `v01Fixtures`, `v03Fixtures`,
  * `v04Fixtures`, …: `v` followed by the major and minor digits.
  */

@@ -21,7 +21,7 @@
     },
 
     "conformanceFixture": {
-      "description": "A document of the `conformance` section: the eight step kinds of RUNNER.md and its matchers, and nothing an adapter driver adds. The two variants are separate so that a conformance fixture stating an adapter step or an adapter clause is REFUSED rather than quietly accepted — a clause the reference runner does not read is a clause nobody checks, which is the whole reason this schema closes its key sets.",
+      "description": "A document of the `conformance` section: the nine step kinds of RUNNER.md and its matchers, and nothing an adapter driver adds. The two variants are separate so that a conformance fixture stating an adapter step or an adapter clause is REFUSED rather than quietly accepted — a clause the reference runner does not read is a clause nobody checks, which is the whole reason this schema closes its key sets.",
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "rules", "title", "given", "expect"],
@@ -180,7 +180,7 @@
     },
 
     "conformanceGiven": {
-      "description": "The wiring, the acts and the turn, where every act is one of RUNNER.md's eight step kinds.",
+      "description": "The wiring, the acts and the turn, where every act is one of RUNNER.md's nine step kinds.",
       "type": "object",
       "allOf": [{ "$ref": "#/$defs/commonGiven" }],
       "unevaluatedProperties": false,
@@ -274,6 +274,15 @@
         "sessions": {
           "description": "Whether a rehydration surface is wired (DK-5). Defaults to true.",
           "type": "boolean"
+        },
+        "draft": {
+          "description": "The reference in-memory draft port (GT-7): `ttlMs` is how long a drafted field is held. Absent, no draft port is wired: `file` carries nothing and a `draft` step is refused `wireup-invalid`.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ttlMs"],
+          "properties": {
+            "ttlMs": { "type": "integer", "minimum": 1 }
+          }
         }
       }
     },
@@ -392,7 +401,7 @@
     },
 
     "ctx": {
-      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant or the conversation.",
+      "description": "The turn every step runs in (GT-2): explicit in every property, nothing ambient. A step may override the principal, the tenant, the conversation or the turn (GT-7).",
       "type": "object",
       "additionalProperties": false,
       "required": ["tenantId", "conversationId", "channel"],
@@ -594,6 +603,26 @@
         "principal": { "$ref": "#/$defs/principal" },
         "tenantId": { "description": "The tenant this step is performed from, when it is not the fixture's (AZ-2).", "type": "string" },
         "conversationId": { "description": "The conversation this step is performed in, when it is not the fixture's (GT-2).", "type": "string" },
+        "turn": {
+          "description": "The turn this step runs in, when it is not the fixture's: a multi-turn fixture states each turn's utterance and message id (GT-7).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["utterance", "messageId"],
+          "properties": {
+            "utterance": { "type": "string" },
+            "messageId": { "type": "string" }
+          }
+        },
+        "inference": {
+          "description": "What the scripted inference port reports on this step, when it is not the fixture's: the report changes per turn (GT-7). Same shape as `given.gate.inference`.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/inferredField" }
+            },
+            { "type": "null" }
+          ]
+        },
         "entry": { "description": "The entry this step acts on: a label from `as`, or the last one filed.", "type": "string" },
         "refusal": {
           "description": "The refusal code this step is expected to produce. Declared on the step so a reader sees the refusal beside the act that caused it. The step under test may state its refusal here or in expect.error; a refusal declared here is compared wherever it is declared.",
@@ -612,7 +641,7 @@
     },
 
     "step": {
-      "description": "One act on the gate. The gate's whole surface is reachable from these eight kinds, so a fixture about a decision and a fixture about a filing differ in their steps, not in their format.",
+      "description": "One act on the gate. The gate's whole surface is reachable from these nine kinds, so a fixture about a decision and a fixture about a filing differ in their steps, not in their format.",
       "type": "object",
       "required": ["kind"],
       "oneOf": [
@@ -644,6 +673,20 @@
             },
             "args": { "$ref": "#/$defs/jsonValue" },
             "operationLabel": { "type": ["string", "null"] }
+          }
+        },
+        {
+          "title": "draft",
+          "description": "The host drafts a proposal: GT-1's first four steps run and the graded fields go to the draft; nothing files (GT-7).",
+          "allOf": [{ "$ref": "#/$defs/stepCommon" }],
+          "unevaluatedProperties": false,
+          "required": ["kind", "toolName", "operation"],
+          "properties": {
+            "kind": { "const": "draft" },
+            "toolName": { "type": "string" },
+            "operation": { "$ref": "#/$defs/operation" },
+            "schema": { "oneOf": [{ "$ref": "#/$defs/toolFields" }, { "type": "null" }] },
+            "args": { "$ref": "#/$defs/jsonValue" }
           }
         },
         {
@@ -741,7 +784,7 @@
     },
 
     "adapterStep": {
-      "description": "One act in the adapter section: any of RUNNER.md's eight kinds, or one of the two reserved for adapters.",
+      "description": "One act in the adapter section: any of RUNNER.md's nine kinds, or one of the two reserved for adapters.",
       "type": "object",
       "oneOf": [
         { "$ref": "#/$defs/step" },
@@ -888,6 +931,20 @@
                 "count": { "type": "integer", "minimum": 0 },
                 "more": { "type": "boolean" },
                 "statuses": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "draft": {
+          "description": "What the draft holds for the step's tenant, conversation and tool afterwards (GT-7): `null` for no draft held, else `fields`, the drafted fields under the same partial projection an Affidavit's fields are matched by.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["fields"],
+              "properties": {
+                "fields": { "type": "array", "items": { "$ref": "#/$defs/fieldMatcher" } }
               }
             },
             { "type": "null" }
@@ -1241,14 +1298,15 @@
         "bound": { "description": "Whether the tag in force points at something checkable (PV-2, PV-4).", "type": "boolean" },
         "bindingKind": { "oneOf": [{ "$ref": "#/$defs/bindingKind" }, { "type": "null" }] },
         "utteranceSpan": {
-          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of `given.ctx.utterance`, and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
+          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
           "type": "object",
           "additionalProperties": false,
           "required": ["offset", "length", "hash"],
           "properties": {
             "offset": { "type": "integer", "minimum": 0 },
             "length": { "type": "integer", "minimum": 1 },
-            "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "messageId": { "description": "The message whose utterance the span indexes (PV-2, GT-7). Absent asserts nothing about it; on a binding carried from an earlier turn it is that turn's message id.", "type": "string" }
           }
         },
         "confidence": { "$ref": "#/$defs/unitInterval" },

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { InMemoryDocketStore } from "../src/docket/memory.js";
 import type { GateOptions } from "../src/gate/gate.js";
 import { createGate } from "../src/gate/gate.js";
-import { AffiantError } from "../src/errors.js";
+import { AffiantCallerError, AffiantError } from "../src/errors.js";
 
 import {
   inferencePort,
@@ -215,5 +215,43 @@ describe("what a gate without options still refuses", () => {
     // nothing here that could. `markExecuted` records what the host says it did.
     expect(gate["execute"]).toBeUndefined();
     expect(gate["executor"]).toBeUndefined();
+  });
+});
+
+describe("GT-7 — the draft port is optional and refused at call time", () => {
+  const proposal = {
+    operation: { kind: "create", entityType: "Invoice", entityId: null, fields: ["payee"] },
+    toolName: "create_invoice",
+    schema: { fields: [] },
+  } as unknown as Parameters<ReturnType<typeof createGate>["draft"]>[0];
+
+  it("refuses draft with wireup-invalid when no port is wired", async () => {
+    const gate = createGate(options());
+    const thrown = await gate.draft(proposal, turnContext()).catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(AffiantError);
+    expect((thrown as AffiantError).code).toBe("wireup-invalid");
+  });
+
+  it("a draft call with prepared fields is a caller error and holds nothing", async () => {
+    const calls = { get: 0, put: 0, consume: 0 };
+    const port = {
+      get: async () => {
+        calls.get += 1;
+        return null;
+      },
+      put: async () => {
+        calls.put += 1;
+      },
+      consume: async () => {
+        calls.consume += 1;
+      },
+    };
+    const gate = createGate({ ...options(), draft: port });
+    const thrown = await gate
+      .draft({ ...proposal, fields: [] }, turnContext())
+      .catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(AffiantCallerError);
+    expect((thrown as AffiantCallerError).kind).toBe("draft-prepared-fields");
+    expect(calls).toEqual({ get: 0, put: 0, consume: 0 });
   });
 });

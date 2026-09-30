@@ -7,6 +7,7 @@ import type {
   Attestation,
   Attestor,
   Binding,
+  UtteranceSpanBinding,
   BlockedMarker,
   DocketEntry,
   EvidenceCardRequest,
@@ -147,3 +148,15 @@ if (blocked.code === "coverage-refused") {
 // the field to `null`, and `null` is a value the map legitimately carries.
 expectTypeOf<AmendmentMap[string]>().toEqualTypeOf<JsonValue>();
 expectTypeOf<undefined>().not.toMatchTypeOf<AmendmentMap[string]>();
+
+// A span binding may name the message its span indexes (GT-7), and may omit it.
+expectTypeOf<UtteranceSpanBinding["ref"]["messageId"]>().toEqualTypeOf<string | undefined>();
+expectTypeOf<{
+  kind: "utterance-span";
+  ref: { offset: number; length: number; hash: string };
+}>().toExtend<UtteranceSpanBinding>();
+expectTypeOf<{
+  kind: "utterance-span";
+  ref: { offset: number; length: number; hash: string; messageId: string };
+}>().toExtend<UtteranceSpanBinding>();
+expectTypeOf<UtteranceSpanBinding>().toExtend<Binding>();

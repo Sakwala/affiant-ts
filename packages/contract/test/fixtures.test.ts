@@ -28,7 +28,7 @@ import {
   manifest,
   v01Fixtures,
   v03Fixtures,
-  v04Fixtures,
+  v05Fixtures,
   wireActionDecisionResult,
   wireEvidenceCardRequest,
   wireEvidenceCardRequestResubmission,
@@ -45,13 +45,16 @@ type V01ManifestFixture = (typeof manifest)["0.1.0"]["fixtures"][number];
  * schema it names changed shape by the pin (docket-entry, requirement, attestation,
  * evidence-card-request, error-code) — it has no vendored 0.1.0 schema left to
  * validate against. The kept set is exactly the entries whose (re-pathed) schema is
- * one of the 0.4.0 manifest section's `definitionsOnly` schemas.
+ * one of the 0.5.0 manifest section's `definitionsOnly` schemas.
  */
 const repath = (schemaPath: string): string =>
   schemaPath.replace(/^schemas\/\d+\.\d+\.\d+\//, `schemas/${PROTOCOL_VERSION}/`);
-const unchangedIn = (section: "0.3.0" | "0.4.0"): Set<string> =>
+const unchangedIn = (section: "0.3.0" | "0.4.0" | "0.5.0"): Set<string> =>
   new Set((manifest[section].definitionsOnly as readonly string[]).map(repath));
-const unchangedSince03 = unchangedIn("0.4.0");
+const unchangedSince04 = unchangedIn("0.5.0");
+const unchangedSince03 = new Set(
+  [...unchangedIn("0.4.0")].filter((path) => unchangedSince04.has(path)),
+);
 /** A 0.1.0 document is kept only if every later section left its schema unchanged. */
 const v03DefinitionsOnly = new Set(
   [...unchangedIn("0.3.0")].filter((path) => unchangedSince03.has(path)),
@@ -88,13 +91,13 @@ function v03Positive<T>(id: string): T {
 }
 
 /**
- * The 0.4.0 section re-authors docket-entry, decision-result and notification, so
+ * The 0.5.0 section re-carries docket-entry, decision-result and notification, so
  * `v03Fixtures` no longer carries their 0.3.0 documents — those cases read the
- * 0.4.0 documents instead.
+ * 0.5.0 documents instead.
  */
-function v04Positive<T>(id: string): T {
-  const fixture = v04Fixtures[id];
-  if (fixture === undefined) throw new Error(`no v0.4 fixture ${id}`);
+function v05Positive<T>(id: string): T {
+  const fixture = v05Fixtures[id];
+  if (fixture === undefined) throw new Error(`no v0.5 fixture ${id}`);
   return fixture as T;
 }
 
@@ -103,7 +106,7 @@ const v01Field = positive<AffidavitField>("v0.1/affidavit-field/02-external-boun
 const v03Card = v03Positive<EvidenceCardRequest>(
   "v0.3/evidence-card-request/04-presentation-hints",
 );
-const v04Row = v04Positive<DocketEntry>("v0.4/docket-entry-withdrawn");
+const v05Row = v05Positive<DocketEntry>("v0.5/docket-entry-withdrawn");
 const v01Tag = positive<ProvenanceTag>("v0.1/provenance-tag/02-user-stated-reviewer-act");
 const v01Chain = positive<ProvenanceChain>("v0.1/provenance-chain/02-superseded");
 const v01Binding = positive<Binding>("v0.1/binding/01-external-ref");
@@ -112,8 +115,8 @@ const v01Blocked = positive<BlockedMarker>("v0.1/blocked/01-coverage-refused");
 const v01OutsideGate = positive<OutsideGateMarker>("v0.1/outside-gate/01-migration");
 const v01Money = positive<Money>("v0.1/money/01-decimal-string");
 const v03ToolResult = v03Positive<ToolResult>("v0.3/tool-result/01-write-proposal");
-const v04Decision = v04Positive<DecisionResult>("v0.4/decision-result-withdrawn");
-const v04Transition = v04Positive<Notification>("v0.4/notification-transition-to-withdrawn");
+const v05Decision = v05Positive<DecisionResult>("v0.5/decision-result-withdrawn");
+const v05Transition = v05Positive<Notification>("v0.5/notification-transition-to-withdrawn");
 const v01Registry = positive<TelemetryKeyRegistry>("v0.1/telemetry-key/01-registry");
 
 // The superseded seed wire, typed by the `Seed*` shapes and by nothing else: a
@@ -129,7 +132,9 @@ wireGuideUi satisfies UiGuidance;
 describe("the vendored v0.1 fixtures", () => {
   it("pins the same protocol version the package advertises", () => {
     expect(manifest[PROTOCOL_VERSION].protocolVersion).toBe(PROTOCOL_VERSION);
-    expect(manifest.conformance.protocolVersion).toBe(PROTOCOL_VERSION);
+    // The conformance section carries the suite's own version, which the rulebook
+    // moved to 0.5.0 with the two re-derived canonicalHash values.
+    expect(manifest.conformance.protocolVersion).toBe("0.5.0");
   });
 
   it("has one generated module entry per manifest row, and no extras", () => {
@@ -149,11 +154,12 @@ describe("the vendored v0.1 fixtures", () => {
 
 describe("every envelope carries the protocol version (SR-4)", () => {
   it.each([
-    ["docket entry", v04Row.protocolVersion],
-    ["decision result", v04Decision.protocolVersion],
-    ["notification", v04Transition.protocolVersion],
+    ["docket entry", v05Row.protocolVersion],
+    ["decision result", v05Decision.protocolVersion],
+    ["notification", v05Transition.protocolVersion],
   ])("%s", (_what, version) => {
-    expect(version).toBe(PROTOCOL_VERSION);
+    // Re-carried from 0.4.0 unchanged, so they still say the version they were written at.
+    expect(version).toBe("0.4.0");
   });
 
   // The same holds one section later: the 0.4.0 section left evidence-card-request
@@ -235,7 +241,7 @@ describe("every discriminated union is told apart by a kind, never by a property
     ["binding", v01Binding.kind],
     ["attestor", v03Attestation.by.kind],
     ["tool result", v03ToolResult.kind],
-    ["notification", v04Transition.kind],
+    ["notification", v05Transition.kind],
   ])("%s", (_what, kind) => {
     expect(kind).toBeTypeOf("string");
   });

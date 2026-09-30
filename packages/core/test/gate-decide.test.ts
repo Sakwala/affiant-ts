@@ -994,6 +994,7 @@ describe("the execution outcome (DK-1, AZ-5, AZ-7)", () => {
       "coverage",
       "decide",
       "declareUncovered",
+      "draft",
       "expireDue",
       "file",
       "get",

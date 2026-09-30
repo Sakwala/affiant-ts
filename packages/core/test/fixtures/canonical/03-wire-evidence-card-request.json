@@ -6,7 +6,7 @@
   ],
   "note": "The proposal behind the protocol seed fixture `wire/evidence-card-request` (Sakwala/affiant-protocol), as the v0.1 record. The same two fields, the same values and the same grades; what changed is where they live. `allowedValues` and `pattern` are gone from the fields — v0.1 puts a reviewer surface's rendering hints on the card envelope, because nothing swears to them and a hash a grant is checked against must not move when an input is restyled (SR-3). `warnings` and `requiresConfirmation` are gone for the same reason. `confidence: 1.0` in the seed file is the JSON number 1 after parsing and serializes as `1` — a canonical form has one spelling per value. The seed's `aggregateConfidence` of 0.95 was the mean the shipped .NET projection computes; AF-2 makes it the minimum, so this record reads 0.9.",
   "input": {
-    "protocolVersion": "0.4.0",
+    "protocolVersion": "0.5.0",
     "operationType": "update",
     "entityType": "Widget",
     "entityId": "W-1",
@@ -56,6 +56,6 @@
   },
   "amendments": null,
   "reviewerAct": null,
-  "expectedBytesUtf8": "{\"aggregateConfidence\":0.9,\"conversationTurn\":3,\"createdAt\":\"2026-09-04T09:00:00.000Z\",\"emptyFieldCount\":0,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"previousValue\":null,\"provenance\":{\"current\":{\"at\":\"2026-09-04T09:00:00.000Z\",\"binding\":null,\"confidence\":1,\"conversationTurn\":null,\"note\":\"User stated: Status\",\"source\":\"UserStated\"},\"prior\":[]},\"value\":\"Active\"},{\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"previousValue\":10,\"provenance\":{\"current\":{\"at\":\"2026-09-04T09:00:00.000Z\",\"binding\":null,\"confidence\":0.9,\"conversationTurn\":3,\"note\":\"Extracted from search_widget\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":12.5}],\"operationType\":\"update\",\"populatedConfidence\":0.9,\"protocolVersion\":\"0.4.0\"}",
-  "expectedSha256": "980a150a56e84404cc2e529591111a082756d73d230e37c6d78888f15a3bc4ec"
+  "expectedBytesUtf8": "{\"aggregateConfidence\":0.9,\"conversationTurn\":3,\"createdAt\":\"2026-09-04T09:00:00.000Z\",\"emptyFieldCount\":0,\"entityId\":\"W-1\",\"entityType\":\"Widget\",\"fields\":[{\"isMandatory\":true,\"kind\":\"enum\",\"name\":\"Status\",\"previousValue\":null,\"provenance\":{\"current\":{\"at\":\"2026-09-04T09:00:00.000Z\",\"binding\":null,\"confidence\":1,\"conversationTurn\":null,\"note\":\"User stated: Status\",\"source\":\"UserStated\"},\"prior\":[]},\"value\":\"Active\"},{\"isMandatory\":false,\"kind\":\"number\",\"name\":\"Weight\",\"previousValue\":10,\"provenance\":{\"current\":{\"at\":\"2026-09-04T09:00:00.000Z\",\"binding\":null,\"confidence\":0.9,\"conversationTurn\":3,\"note\":\"Extracted from search_widget\",\"source\":\"Conversation\"},\"prior\":[]},\"value\":12.5}],\"operationType\":\"update\",\"populatedConfidence\":0.9,\"protocolVersion\":\"0.5.0\"}",
+  "expectedSha256": "256eb23f7f4e67a0de37efeffc449838037c6c763808e246492913d4658e0638"
 }

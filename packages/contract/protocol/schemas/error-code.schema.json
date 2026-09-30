@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/error-code.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/error-code.schema.json",
   "title": "ErrorCode",
   "description": "The registry of reasons the gate refuses a request (INVARIANTS.md, \"Refusal codes (v0.1)\"). A refusal carries its code and a human-readable reason; the CODE is the contract and the message is for a human reading a log, so a host that branches on the message is doing it wrong. An implementation MAY add codes but MUST NOT reuse these names for other meanings. The registry names GATE REFUSALS only: a caller's programming error — an amendment naming a field the Affidavit does not propose, a verdict naming a requirement outside the four — is a language-level error, not a refusal code. Three names are PROVISIONAL until this registry is first tagged, marked in their own descriptions; the other ten are fixed by the rulebook's v0.1 text. The order below only ever grows at the end: a code is added by appending, never by inserting among the codes that already shipped, because a reordering looks like a rename to a host's exhaustiveness check and to a parity manifest.",
   "type": "string",

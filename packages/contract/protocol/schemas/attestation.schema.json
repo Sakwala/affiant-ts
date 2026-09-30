@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/attestation.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/attestation.schema.json",
   "title": "Attestation",
   "description": "Who agreed to a write, when, and to which entry (INVARIANTS.md AZ-1). Every executed write carries one: an implementation that cannot attribute a write refuses it. The MODE is the kind of `by` — there is no separate mode field for it to drift from. AZ-3 is what the three kinds encode: a human-verified session attests member; a machine caller may NEVER attest member, so a decision a person makes through a trusted relay attests member-via-relay naming both the person and the relay, and a capture a policy auto-approves attests standing-order naming the policy and the version that fired. entryId is repeated here rather than left implicit because the attestation is the fragment a host exports, signs or ships to an audit sink, and a record that cannot name its own subject is not evidence. From 0.3.0 a fourth kind, multi-party, attests a MultiParty entry's fold: it is composed entirely of the approval records' own member or member-via-relay attestations and nothing else (AZ-3, AZ-4).",
   "type": "object",
@@ -19,11 +19,11 @@
     },
     "at": {
       "description": "When they agreed.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/isoInstant"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/isoInstant"
     },
     "entryId": {
       "description": "The Docket entry this attests to.",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/uuid"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/uuid"
     }
   },
   "$defs": {
@@ -37,7 +37,7 @@
         "kind": { "const": "member" },
         "id": {
           "description": "The host's id for the person.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         }
       }
     },
@@ -51,11 +51,11 @@
         "kind": { "const": "member-via-relay" },
         "memberId": {
           "description": "The host's id for the person the relay named.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "relay": {
           "description": "The relay, and the message the decision arrived on.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/binding.schema.json#/$defs/relayRef"
+          "$ref": "https://affiant.dev/schemas/0.5.0/binding.schema.json#/$defs/relayRef"
         }
       }
     },
@@ -69,7 +69,7 @@
         "kind": { "const": "standing-order" },
         "policyId": {
           "description": "The host's id for the policy that fired.",
-          "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/identifier"
+          "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/identifier"
         },
         "version": {
           "description": "The version of that policy.",

@@ -4,13 +4,19 @@ import { PROTOCOL_VERSION } from "@affiant/contract";
 
 import type { TurnContext } from "../src/context.js";
 import type { ApprovalPolicy } from "../src/gate/policy.js";
-import { AffiantError } from "../src/errors.js";
+import { AffiantCallerError, AffiantError } from "../src/errors.js";
 import type { JsonValue } from "../src/model/affidavit.js";
 import { computeConfidence } from "../src/model/affidavit.js";
 import { sha256Hex } from "../src/model/canonical.js";
 import type { InferenceSource } from "../src/model/provenance.js";
 import { mintInference } from "../src/model/provenance.js";
-import type { InterceptedFields } from "../src/ports.js";
+import type {
+  Draft,
+  DraftKey,
+  DraftPort,
+  InterceptedFields,
+  StructuredField,
+} from "../src/ports.js";
 
 import {
   AT,
@@ -18,6 +24,7 @@ import {
   interceptorPort,
   plus,
   policyReturning,
+  schemaFor,
   structured,
   turnContext,
   writeTool,
@@ -1020,3 +1027,315 @@ function proposal(init: { tagged?: boolean } = {}) {
     ],
   };
 }
+
+// ---------------------------------------------------------------------------
+// GT-7 / PV-3 *Across turns* — the conversation draft
+// ---------------------------------------------------------------------------
+
+describe("the conversation draft across turns (GT-7, PV-3)", () => {
+  /** A ten-line in-memory port that counts what the gate asks of it. */
+  function memoryDraftPort() {
+    const held = new Map<string, Draft>();
+    const calls = { get: 0, put: 0, consume: 0 };
+    const id = (k: DraftKey): string => JSON.stringify([k.tenantId, k.conversationId, k.toolName]);
+    const port: DraftPort = {
+      async get(k) {
+        calls.get += 1;
+        return held.get(id(k)) ?? null;
+      },
+      async put(k, d) {
+        calls.put += 1;
+        held.set(id(k), d);
+      },
+      async consume(k) {
+        calls.consume += 1;
+        held.delete(id(k));
+      },
+    };
+    return { port, held, calls, key: JSON.stringify(["tenant-a", "conv-1", "capture"]) };
+  }
+
+  /** A gate whose inference answer the test sets per turn. */
+  function drafting(fields: readonly string[] = ["status"]) {
+    const draftPort = memoryDraftPort();
+    const report: { fields: { [name: string]: StructuredField } } = { fields: {} };
+    const h = harness({
+      draft: draftPort.port,
+      inference: { infer: async () => ({ fields: report.fields }) },
+    });
+    const proposal = {
+      operation: {
+        kind: "update" as const,
+        entityType: "Invoice",
+        entityId: "invoice-1",
+        fields: [...fields],
+      },
+      toolName: "capture",
+      schema: schemaFor("Invoice", fields),
+      args: { fields: [...fields] },
+    };
+    return { ...h, draftPort, report, proposal };
+  }
+
+  const spanOf = (filed: { entry: { affidavit: { fields: readonly any[] } } }, i = 0) =>
+    filed.entry.affidavit.fields[i]?.provenance.current;
+
+  it("carries a Conversation tag across turns with the drafted messageId, and none on a same-turn hit", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    const written = await t.gate.draft(
+      t.proposal,
+      turnContext({ utterance: "Set the invoice status to Active", messageId: "msg-1" }),
+    );
+    expect(written?.fields).toHaveLength(1);
+    expect((written?.fields[0]?.tag.binding as any).ref.messageId).toBe("msg-1");
+
+    t.report.fields = { status: structured("active", "inferred", 0.6) };
+    const filed = await t.gate.file(
+      t.proposal,
+      turnContext({ utterance: "yes, go ahead", messageId: "msg-2" }),
+    );
+    const tag = spanOf(filed);
+    expect(tag?.source).toBe("Conversation");
+    expect(tag?.confidence).toBe(0.6);
+    expect((tag?.binding as any).ref.messageId).toBe("msg-1");
+
+    // The same turn's own hit binds this turn: no messageId on the Affidavit's binding.
+    const own = drafting();
+    own.report.fields = { status: structured("Active", "literal", 0.9) };
+    const ownFiled = await own.gate.file(
+      own.proposal,
+      turnContext({ utterance: "Set the invoice status to Active", messageId: "msg-9" }),
+    );
+    expect(spanOf(ownFiled)?.source).toBe("Conversation");
+    expect((spanOf(ownFiled)?.binding as any).ref).not.toHaveProperty("messageId");
+  });
+
+  it("a changed value carries nothing: the field is Inferred", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+
+    t.report.fields = { status: structured("Retired", "inferred", 0.6) };
+    const filed = await t.gate.file(
+      t.proposal,
+      turnContext({ utterance: "ok", messageId: "msg-2" }),
+    );
+
+    expect(spanOf(filed)?.source).toBe("Inferred");
+    expect(spanOf(filed)?.binding ?? null).toBeNull();
+  });
+
+  it("merges by field name: a value unheard this turn removes nothing, a later hit replaces", async () => {
+    const t = drafting(["status", "note"]);
+    t.report.fields = {
+      status: structured("Active", "literal", 0.9),
+      note: structured("late", "literal", 0.9),
+    };
+    await t.gate.draft(
+      t.proposal,
+      turnContext({ utterance: "status Active, note late", messageId: "msg-1" }),
+    );
+
+    t.report.fields = {
+      status: structured("Retired", "literal", 0.9),
+      note: structured("early", "inferred", 0.5),
+    };
+    const second = await t.gate.draft(
+      t.proposal,
+      turnContext({ utterance: "make it Retired", messageId: "msg-2" }),
+    );
+
+    expect(second?.fields.map((f) => f.name)).toEqual(["status", "note"]);
+    expect(second?.fields[0]?.value).toBe("Retired");
+    expect((second?.fields[0]?.tag.binding as any).ref.messageId).toBe("msg-2");
+    expect(second?.fields[1]?.value).toBe("late");
+    expect((second?.fields[1]?.tag.binding as any).ref.messageId).toBe("msg-1");
+  });
+
+  it("a draft turn that grades nothing writes nothing and returns the existing record or null", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "inferred", 0.5) };
+    expect(await t.gate.draft(t.proposal, turnContext({ utterance: "hm" }))).toBeNull();
+    expect(t.draftPort.calls.put).toBe(0);
+
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    const first = await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+    t.report.fields = {};
+    const again = await t.gate.draft(
+      t.proposal,
+      turnContext({ utterance: "hm", messageId: "msg-2" }),
+    );
+    expect(again).toEqual(first);
+    expect(t.draftPort.calls.put).toBe(1);
+  });
+
+  it("a file consumes the draft when it files, created or replayed alike", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+    const ctx2 = turnContext({ utterance: "yes", messageId: "msg-2" });
+    t.report.fields = { status: structured("Active", "inferred", 0.6) };
+
+    const first = await t.gate.file(t.proposal, ctx2);
+    expect(first.created).toBe(true);
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(false);
+
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(true);
+    const replay = await t.gate.file(t.proposal, ctx2);
+    expect(replay.created).toBe(false);
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(false);
+  });
+
+  it("a file refused before filing leaves the draft", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+
+    t.report.fields = {};
+    await expect(t.gate.file(t.proposal, turnContext({ utterance: "hm" }))).rejects.toMatchObject({
+      code: "substance-refused",
+    });
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(true);
+    expect(t.draftPort.calls.consume).toBe(0);
+  });
+
+  it("a resubmission neither reads nor consumes the draft", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    const filed = await t.gate.file(t.proposal, turnContext());
+    t.clock.set(plus(AT, 31 * 60_000));
+    await t.gate
+      .decide(
+        filed.entry.entryId,
+        { kind: "approve", amendments: { status: "Retired" } },
+        turnContext(),
+      )
+      .catch(() => undefined);
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+    const before = { ...t.draftPort.calls };
+
+    await t.gate.resubmit(filed.entry.entryId, turnContext());
+
+    expect(t.draftPort.calls).toEqual(before);
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(true);
+  });
+
+  it("the wrapped-tool path reads the draft and consumes it on filing", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ messageId: "msg-1" }));
+    t.report.fields = { status: structured("Active", "inferred", 0.6) };
+
+    const result = await t.gate
+      .wrap(writeTool({ name: "capture" }), turnContext({ utterance: "yes", messageId: "msg-2" }))
+      .execute({ status: "Active" });
+
+    if (result.kind !== "write") expect.unreachable("a write tool produces a proposal");
+    const tag = result.card.affidavit.fields[0]?.provenance.current;
+    expect(tag?.source).toBe("Conversation");
+    expect((tag?.binding as any).ref.messageId).toBe("msg-1");
+    expect(t.draftPort.held.has(t.draftPort.key)).toBe(false);
+  });
+
+  it("refuses draft on a blank messageId before any port call", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    const thrown = await t.gate
+      .draft(t.proposal, turnContext({ utterance: "status Active", messageId: "" }))
+      .catch((error: unknown) => error);
+    expect(thrown).toBeInstanceOf(AffiantCallerError);
+    expect((thrown as AffiantCallerError).kind).toBe("turn-context-invalid");
+    expect(t.draftPort.calls).toEqual({ get: 0, put: 0, consume: 0 });
+  });
+
+  it("grades Inferred a field the port returns with a binding that has no messageId", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ utterance: "status Active", messageId: "msg-1" }));
+    const stored = t.draftPort.held.get(t.draftPort.key)!;
+    const stripped: Draft = {
+      ...stored,
+      fields: stored.fields.map((field) => {
+        const binding = field.tag.binding as any;
+        const { messageId: _dropped, ...ref } = binding.ref;
+        return { ...field, tag: { ...field.tag, binding: { ...binding, ref } } };
+      }),
+    };
+    t.draftPort.held.set(t.draftPort.key, stripped);
+    t.report.fields = { status: structured("Active", "inferred", 0.6) };
+    const filed = await t.gate.file(
+      t.proposal,
+      turnContext({ utterance: "ok", messageId: "msg-2" }),
+    );
+    expect(spanOf(filed)?.source).toBe("Inferred");
+  });
+
+  it("emits affidavit.filed before a throwing consume surfaces its error", async () => {
+    const draftPort = memoryDraftPort();
+    const failing: DraftPort = {
+      ...draftPort.port,
+      consume: async () => {
+        throw new Error("the draft store is down");
+      },
+    };
+    const report: { fields: { [name: string]: StructuredField } } = { fields: {} };
+    const h = harness({
+      draft: failing,
+      inference: { infer: async () => ({ fields: report.fields }) },
+    });
+    const proposal = {
+      operation: {
+        kind: "update" as const,
+        entityType: "Invoice",
+        entityId: "invoice-1",
+        fields: ["status"],
+      },
+      toolName: "capture",
+      schema: schemaFor("Invoice", ["status"]),
+      args: { fields: ["status"] },
+    };
+    report.fields = { status: structured("Active", "literal", 0.9) };
+    const thrown = await h.gate
+      .file(proposal, turnContext({ utterance: "status Active", messageId: "msg-1" }))
+      .catch((error: unknown) => error);
+    expect((thrown as Error).message).toBe("the draft store is down");
+    expect(h.telemetry.keys()).toContain("affidavit.filed");
+  });
+
+  it("holds two drafts for keys that collide when joined with a separator", async () => {
+    const draftPort = memoryDraftPort();
+    const record = (tenantId: string, conversationId: string): Draft => ({
+      protocolVersion: "0.5.0",
+      tenantId,
+      conversationId,
+      toolName: "capture",
+      fields: [],
+      updatedAt: "2026-09-30T09:00:00.000Z",
+    });
+    const ctx = turnContext();
+    const first = { tenantId: "t|x", conversationId: "c", toolName: "capture" };
+    const second = { tenantId: "t", conversationId: "x|c", toolName: "capture" };
+    await draftPort.port.put(first, record("t|x", "c"), ctx);
+    expect(await draftPort.port.get(second, ctx)).toBeNull();
+    await draftPort.port.put(second, record("t", "x|c"), ctx);
+    expect((await draftPort.port.get(first, ctx))?.tenantId).toBe("t|x");
+    expect((await draftPort.port.get(second, ctx))?.tenantId).toBe("t");
+  });
+
+  it("ignores a draft the port answers under another key", async () => {
+    const t = drafting();
+    t.report.fields = { status: structured("Active", "literal", 0.9) };
+    await t.gate.draft(t.proposal, turnContext({ utterance: "status Active", messageId: "msg-1" }));
+    const stored = t.draftPort.held.get(t.draftPort.key)!;
+    t.draftPort.held.set(t.draftPort.key, { ...stored, toolName: "pay" });
+    t.report.fields = { status: structured("Active", "inferred", 0.6) };
+    const filed = await t.gate.file(
+      t.proposal,
+      turnContext({ utterance: "ok", messageId: "msg-2" }),
+    );
+    expect(spanOf(filed)?.source).toBe("Inferred");
+  });
+});

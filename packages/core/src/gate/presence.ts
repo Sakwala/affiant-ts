@@ -115,6 +115,14 @@ function fold(text: string): string {
   return folded;
 }
 
+/**
+ * Whether two value texts are the same under the finder's own comparison (the ASCII
+ * fold): the test GT-7 applies to a drafted value against a proposed one.
+ */
+export function sameValueText(a: string, b: string): boolean {
+  return fold(a) === fold(b);
+}
+
 /** Whether the code point beginning at `index` joins what stands beside it. */
 function joinsAt(text: string, index: number): boolean {
   const codePoint = text.codePointAt(index);
@@ -171,8 +179,9 @@ function isBoundaryBefore(utterance: string, at: number): boolean {
  * literally present.
  *
  * @param utterance The current turn's user text, unmodified. Earlier turns are not
- *        searched: the `utterance-span` binding has no message reference, so a hit in
- *        an earlier turn could not be bound.
+ *        searched: a hit is bound to this turn. A value heard on an earlier turn
+ *        reaches a filing only through the draft, whose binding carries that turn's
+ *        `messageId` (GT-7).
  * @param valueText The value text, from {@link utteranceTextOf}.
  * @param hint The span the port reported, or `null`. It is used only when it is itself
  *        a hit; a span that is not — its text is not the value, or it sits inside a

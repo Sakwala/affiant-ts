@@ -90,6 +90,9 @@ import { chainOf, mintTag } from "./model/provenance.js";
 import type {
   AuthorizationPort,
   Clock,
+  Draft,
+  DraftKey,
+  DraftPort,
   FieldInterceptor,
   FieldSchema,
   InferencePort,
@@ -163,6 +166,11 @@ export interface FixtureGate {
   readonly uncovered?: readonly { readonly tool: string; readonly category: UncoveredCategory }[];
   /** Whether a rehydration surface is wired (DK-5). Defaults to `true`. */
   readonly sessions?: boolean;
+  /**
+   * The reference in-memory draft port (GT-7): `ttlMs` is how long a drafted field is
+   * held. Absent, no draft port is wired.
+   */
+  readonly draft?: { readonly ttlMs: number };
 }
 
 /**
@@ -302,6 +310,10 @@ interface StepCommon {
    * {@link FixtureExpectation.error} instead.
    */
   readonly refusal?: string | null;
+  /** The turn this step is read on, when it is not the fixture's (GT-7). */
+  readonly turn?: { readonly utterance: string; readonly messageId: string };
+  /** What the scripted inference port reports on this step, when it is not the fixture's (GT-7). */
+  readonly inference?: { readonly [fieldName: string]: FixtureInferredField } | null;
 }
 
 /** One act on the gate. */
@@ -321,6 +333,14 @@ export type FixtureStep =
       readonly preparedFields?: readonly FixturePreparedField[] | null;
       readonly args?: JsonValue;
       readonly operationLabel?: string | null;
+    })
+  | (StepCommon & {
+      /** The host drafts a proposal: the graded fields go to the draft, nothing files (GT-7). */
+      readonly kind: "draft";
+      readonly toolName: string;
+      readonly operation: Operation;
+      readonly schema?: FixtureTool["fields"] | null;
+      readonly args?: JsonValue;
     })
   | (StepCommon & {
       /** Approve, amend or reject (DK-1, AZ-1, AZ-2). */
@@ -398,6 +418,8 @@ export interface FixtureExpectation {
   } | null;
   /** Whether the row a `get` step read was found. */
   readonly found?: boolean;
+  /** What the draft holds for the step's tenant, conversation and tool afterwards (GT-7). */
+  readonly draft?: null | { readonly fields: readonly FieldExpectation[] };
   /**
    * The row's canonical hash, as 64 lowercase hex characters (SR-1).
    *
@@ -549,6 +571,8 @@ export interface FieldExpectation {
     readonly offset: number;
     readonly length: number;
     readonly hash: string;
+    /** The message whose utterance the span indexes, when it is not the Affidavit's own turn. */
+    readonly messageId?: string;
   } | null;
   readonly confidence?: number;
   /** The grades the chain displaced, newest first. */
@@ -665,9 +689,21 @@ const FIXTURE_KEYS = {
     "entities",
     "uncovered",
     "sessions",
+    "draft",
   ],
   ctx: ["tenantId", "conversationId", "channel", "principal", "utterance", "messageId"],
-  step: ["kind", "as", "at", "principal", "tenantId", "conversationId", "entry", "refusal"],
+  step: [
+    "kind",
+    "as",
+    "at",
+    "principal",
+    "tenantId",
+    "conversationId",
+    "entry",
+    "refusal",
+    "turn",
+    "inference",
+  ],
   expect: [
     "error",
     "entry",
@@ -680,6 +716,7 @@ const FIXTURE_KEYS = {
     "page",
     "found",
     "canonicalHash",
+    "draft",
   ],
   error: ["code", "messageContains"],
   entry: [
@@ -750,6 +787,7 @@ const FIXTURE_KEYS = {
 const STEP_KEYS = {
   "wrap-execute": ["tool", "args"],
   file: ["toolName", "operation", "schema", "preparedFields", "args", "operationLabel"],
+  draft: ["toolName", "operation", "schema", "args"],
   decide: ["decision"],
   resubmit: [],
   withdraw: ["reason"],
@@ -1048,6 +1086,7 @@ function countAssertions(expectation: Readonly<Record<string, unknown>>): number
     countStated(expectation["store"], FIXTURE_KEYS.store) +
     countStated(expectation["expired"], FIXTURE_KEYS.expired) +
     countStated(expectation["page"], FIXTURE_KEYS.page) +
+    countAffidavit(expectation["draft"]) +
     countRow(expectation["entry"]) +
     countRow(expectation["superseded"]) +
     countCard(expectation["card"])
@@ -1071,6 +1110,36 @@ export function fixedClock(start: string): FixtureClock {
     now: () => current,
     set: (instant) => {
       current = instant;
+    },
+  };
+}
+
+/**
+ * The reference in-memory {@link DraftPort} (GT-7): a map keyed by tenant, conversation
+ * and tool. A draft is held for `ttlMs` from its write; `get` past that answers `null`,
+ * the cost being a downgrade at filing and never a wrong tag.
+ */
+export function inMemoryDraftPort(options: {
+  readonly clock: Clock;
+  readonly ttlMs: number;
+}): DraftPort {
+  const held = new Map<string, Draft>();
+  const keyOf = (key: DraftKey): string =>
+    JSON.stringify([key.tenantId, key.conversationId, key.toolName]);
+  return {
+    get: (key) => {
+      const draft = held.get(keyOf(key));
+      if (draft === undefined) return Promise.resolve(null);
+      const age = Date.parse(options.clock.now()) - Date.parse(draft.updatedAt);
+      return Promise.resolve(age >= options.ttlMs ? null : draft);
+    },
+    put: (key, draft) => {
+      held.set(keyOf(key), draft);
+      return Promise.resolve();
+    },
+    consume: (key) => {
+      held.delete(keyOf(key));
+      return Promise.resolve();
     },
   };
 }
@@ -1184,6 +1253,8 @@ interface StepOutcome {
   readonly read: DocketEntry | null;
   readonly expired: { readonly expired: readonly string[]; readonly more: boolean } | null;
   readonly page: { readonly items: readonly DocketEntry[]; readonly more: boolean } | null;
+  /** What a `draft` step returned (GT-7). */
+  readonly draft: Draft | null;
 }
 
 /**
@@ -1227,9 +1298,14 @@ export async function runFixture(
   // A wiring the gate refuses is a rule (CV-1), so it has to be expressible as a
   // fixture: the refusal is reported exactly as a refusal from the step would be,
   // and nothing after it runs, because there is no gate to run it on.
+  const stepInference: { current: FixtureStep["inference"] } = { current: undefined };
+  const draftPort =
+    given.gate.draft === undefined
+      ? null
+      : inMemoryDraftPort({ clock, ttlMs: given.gate.draft.ttlMs });
   let gate: Gate;
   try {
-    gate = buildGate(fixture, { clock, store, telemetry, ports });
+    gate = buildGate(fixture, { clock, store, telemetry, ports, stepInference, draft: draftPort });
   } catch (error) {
     if (!isAffiantError(error)) throw error;
     return wireUpRefusal(fixture, error.code, error.message, events);
@@ -1239,9 +1315,18 @@ export async function runFixture(
   let lastFiled: string | null = null;
   const supersededIds: string[] = [];
 
+  // The last step that named a tool: `expect.draft` reads that step's key.
+  let lastToolStep: FixtureStep | null =
+    given.step.kind === "draft" || given.step.kind === "file" || given.step.kind === "wrap-execute"
+      ? given.step
+      : null;
   const runOne = async (step: FixtureStep, where: string): Promise<StepOutcome> => {
     if (step.at !== undefined) clock.set(step.at);
     const target = step.entry === undefined ? lastFiled : (labelled.get(step.entry) ?? step.entry);
+    stepInference.current = step.inference;
+    if (step.kind === "draft" || step.kind === "file" || step.kind === "wrap-execute") {
+      lastToolStep = step;
+    }
     const outcome = await performStep(step, {
       gate,
       store,
@@ -1331,6 +1416,54 @@ export async function runFixture(
         await canonicalHashEntry(row),
         failures,
       );
+    }
+  }
+
+  // ---- the draft ----------------------------------------------------------
+  // What the draft port holds for the last step's tenant, conversation and tool: a
+  // draft the step wrote, or one it left or consumed, is read the same way (GT-7).
+  if (fixture.expect.draft !== undefined) {
+    const wantedDraft = fixture.expect.draft;
+    if (lastToolStep === null) {
+      throw new RangeError(
+        "fixture `expect.draft` is stated but no step names a tool; the draft is keyed by " +
+          "tenant, conversation and tool",
+      );
+    }
+    const toolStep = lastToolStep;
+    const toolName = toolStep.kind === "wrap-execute" ? toolStep.tool.name : toolStep.toolName;
+    const held =
+      draftPort === null
+        ? null
+        : await draftPort.get(
+            {
+              tenantId: toolStep.tenantId ?? given.ctx.tenantId,
+              conversationId: toolStep.conversationId ?? given.ctx.conversationId,
+              toolName,
+            },
+            contextOf(fixture, toolStep, clock.now()),
+          );
+    if (wantedDraft === null) {
+      if (held !== null) failures.push({ at: "draft", expected: null, actual: held });
+    } else if (held === null) {
+      failures.push({ at: "draft", expected: "a held draft", actual: null });
+    } else {
+      compare(
+        "draft.fields",
+        wantedDraft.fields.map((field) => field.name),
+        held.fields.map((field) => field.name),
+        failures,
+      );
+      for (const [index, wanted] of wantedDraft.fields.entries()) {
+        const field = held.fields.find((candidate) => candidate.name === wanted.name);
+        if (field === undefined) continue;
+        checkField(
+          `draft.fields[${String(index)}]`,
+          wanted,
+          { value: field.value, provenance: { current: field.tag, prior: [] } },
+          failures,
+        );
+      }
     }
   }
 
@@ -1526,14 +1659,26 @@ function buildGate(
     readonly store: DocketStore;
     readonly telemetry: TelemetryPort;
     readonly ports: FixturePorts;
+    /** The report a step scripts for itself; `undefined` is the fixture's own. */
+    readonly stepInference: { current: FixtureStep["inference"] };
+    /** The draft port, when the fixture wires one. */
+    readonly draft: DraftPort | null;
   },
 ): Gate {
   const given = fixture.given.gate;
+  // A step's own `inference` replaces the fixture-level report for that step. A
+  // host-supplied `ports.inference` sits outside the holder: it is the host's port and
+  // answers however the host wrote it.
+  const fixtureInference = scriptedInference(given.inference ?? null);
   const options: GateOptions = {
     store: deps.store,
-    inference: (
-      deps.ports.inference ?? ((f: Fixture) => scriptedInference(f.given.gate.inference ?? null))
-    )(fixture),
+    inference: deps.ports.inference?.(fixture) ?? {
+      infer: (turn, schema) =>
+        deps.stepInference.current === undefined
+          ? fixtureInference.infer(turn, schema)
+          : scriptedInference(deps.stepInference.current).infer(turn, schema),
+    },
+    ...(deps.draft === null ? {} : { draft: deps.draft }),
     projection: (
       deps.ports.projection ?? ((f: Fixture) => entityProjection(f.given.gate.entities))
     )(fixture),
@@ -1615,8 +1760,8 @@ function contextOf(fixture: Fixture, step: FixtureStep, at: string): TurnContext
     channel: ctx.channel,
     principal,
     turn: {
-      utterance: ctx.utterance ?? "",
-      messageId: ctx.messageId ?? "msg-1",
+      utterance: step.turn?.utterance ?? ctx.utterance ?? "",
+      messageId: step.turn?.messageId ?? ctx.messageId ?? "msg-1",
       at,
     },
   };
@@ -1669,6 +1814,7 @@ const NOTHING: StepOutcome = {
   read: null,
   expired: null,
   page: null,
+  draft: null,
 };
 
 /** Perform one step, turning a refusal into a code rather than letting it escape. */
@@ -1752,6 +1898,18 @@ async function performStep(
         };
         const filed = await deps.gate.file(proposal, ctx);
         return { ...NOTHING, filed, entryId: filed.entry.entryId };
+      }
+      case "draft": {
+        const proposal: WriteProposal = {
+          operation: step.operation,
+          toolName: step.toolName,
+          ...(step.args === undefined ? {} : { args: step.args }),
+          ...(step.schema === undefined || step.schema === null
+            ? {}
+            : { schema: schemaOf(step.operation.entityType, step.schema) }),
+        };
+        const drafted = await deps.gate.draft(proposal, ctx);
+        return { ...NOTHING, draft: drafted };
       }
       case "decide": {
         const id = requireTarget(deps.target, step.kind);
@@ -2103,34 +2261,59 @@ function checkAffidavit(
   for (const [index, wanted] of expected.fields.entries()) {
     const field = affidavit.fields.find((candidate) => candidate.name === wanted.name);
     if (field === undefined) continue;
-    const path = `${at}.fields[${String(index)}]`;
-    compare(`${path}.value`, wanted.value, field.value, failures);
-    compare(`${path}.previousValue`, wanted.previousValue, field.previousValue, failures);
-    compare(`${path}.kind`, wanted.kind, field.kind, failures);
-    compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
-    compare(`${path}.source`, wanted.source, field.provenance.current.source, failures);
-    compare(`${path}.confidence`, wanted.confidence, field.provenance.current.confidence, failures);
-    compare(`${path}.bound`, wanted.bound, field.provenance.current.binding != null, failures);
-    compare(
-      `${path}.bindingKind`,
-      wanted.bindingKind,
-      field.provenance.current.binding?.kind ?? null,
-      failures,
-    );
-    const binding = field.provenance.current.binding;
-    compare(
-      `${path}.utteranceSpan`,
-      wanted.utteranceSpan,
-      binding?.kind === "utterance-span" ? binding.ref : null,
-      failures,
-    );
-    compare(
-      `${path}.priorSources`,
-      wanted.priorSources,
-      field.provenance.prior.map((tag) => tag.source),
-      failures,
-    );
+    checkField(`${at}.fields[${String(index)}]`, wanted, field, failures);
   }
+}
+
+/** What a field matcher reads: an Affidavit's field, or a drafted one under a chain of its tag. */
+interface FieldSubject {
+  readonly value: JsonValue;
+  readonly previousValue?: JsonValue | null;
+  readonly kind?: string;
+  readonly isMandatory?: boolean;
+  readonly provenance: {
+    readonly current: {
+      readonly source: ProvenanceSource;
+      readonly confidence: number;
+      readonly binding?: Binding | null;
+    };
+    readonly prior: readonly { readonly source: ProvenanceSource }[];
+  };
+}
+
+/** Check one field against its partial matcher. */
+function checkField(
+  path: string,
+  wanted: FieldExpectation,
+  field: FieldSubject,
+  failures: FixtureFailure[],
+): void {
+  compare(`${path}.value`, wanted.value, field.value, failures);
+  compare(`${path}.previousValue`, wanted.previousValue, field.previousValue, failures);
+  compare(`${path}.kind`, wanted.kind, field.kind, failures);
+  compare(`${path}.isMandatory`, wanted.isMandatory, field.isMandatory, failures);
+  compare(`${path}.source`, wanted.source, field.provenance.current.source, failures);
+  compare(`${path}.confidence`, wanted.confidence, field.provenance.current.confidence, failures);
+  compare(`${path}.bound`, wanted.bound, field.provenance.current.binding != null, failures);
+  compare(
+    `${path}.bindingKind`,
+    wanted.bindingKind,
+    field.provenance.current.binding?.kind ?? null,
+    failures,
+  );
+  const binding = field.provenance.current.binding;
+  compare(
+    `${path}.utteranceSpan`,
+    wanted.utteranceSpan,
+    binding?.kind === "utterance-span" ? binding.ref : null,
+    failures,
+  );
+  compare(
+    `${path}.priorSources`,
+    wanted.priorSources,
+    field.provenance.prior.map((tag) => tag.source),
+    failures,
+  );
 }
 
 /**

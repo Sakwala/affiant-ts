@@ -317,3 +317,51 @@ describe("the runner refuses a fixture that asserts nothing, or asserts it in a 
     expect(new Set(CASES.map((testCase) => testCase.at)).size).toBeGreaterThanOrEqual(8);
   });
 });
+
+describe("expect.draft reads the key of the last step that named a tool", () => {
+  const toolStep = (kind: "file" | "draft", messageId: string) => ({
+    kind,
+    toolName: "capture",
+    operation: { kind: "create", entityType: "Entry", entityId: null, fields: ["status"] },
+    schema: [{ name: "status", kind: "text", description: "The status" }],
+    turn: { utterance: "the status is Active", messageId },
+    inference: { status: { value: "Active", confidence: 0.9 } },
+  });
+  const build = (expectDraft: unknown, tools: boolean): Fixture =>
+    ({
+      id: "gate/draft-after-decide",
+      rules: ["GT-7"],
+      title: "the draft a tool step left is read after a decide step",
+      given: {
+        clock: "2026-09-30T09:00:00.000Z",
+        store: "memory",
+        gate: { defaultTtlMs: 1800000, authorization: { allow: ["*"] }, draft: { ttlMs: 3600000 } },
+        ctx: {
+          tenantId: "tenant-a",
+          conversationId: "conv-1",
+          channel: "chat",
+          principal: { kind: "member", id: "member-1" },
+          utterance: "hello",
+          messageId: "msg-0",
+        },
+        prior: tools ? [toolStep("file", "msg-1"), toolStep("draft", "msg-2")] : [],
+        step: {
+          kind: "decide",
+          entry: "absent",
+          principal: { kind: "member", id: "ana" },
+          decision: { kind: "approve", reason: "checked" },
+        },
+      },
+      expect: { draft: expectDraft },
+    }) as unknown as Fixture;
+
+  it("fails a null draft when a draft is held and the last step is a decide", async () => {
+    const result = await runFixture(build(null, true));
+    expect(pathsOf(result)).toContain("draft");
+    expect(result.pass).toBe(false);
+  });
+
+  it("refuses expect.draft when no step names a tool", async () => {
+    await expect(runFixture(build(null, false))).rejects.toThrow(/no step names a tool/);
+  });
+});

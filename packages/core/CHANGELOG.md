@@ -10,6 +10,29 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.11] — 2026-09-30
+
+### Added
+
+- **`Gate.draft(proposal, ctx)` and the `DraftPort` (GT-7).** A person often says a value in one message and
+  confirms it in the next. `draft` runs the turn's reading and keeps, in a draft keyed by tenant, conversation and
+  tool, every field the person's own words support, each with the binding that says where in the utterance it was
+  read. It projects nothing, runs no policy and files nothing; it returns the draft it wrote, or the existing one
+  (or `null`) when the turn heard nothing. The host supplies the `DraftPort` (`get`, `put`, `consume`) and may let
+  it forget: the cost of a forgotten draft is a field tagged `Inferred`, never a wrong tag.
+- **`messageId` on an utterance-span binding (PV-2, GT-7).** A field carried from an earlier turn's draft is tagged
+  `Conversation` with its drafted binding, which names the message it was read on; a field heard this turn has no
+  `messageId`. The draft never adds a field to an Affidavit.
+- **Filing reads and consumes the draft.** `file` and the wrapped tool path use the draft when a value was heard in
+  an earlier turn and is unchanged, and consume it when they file. A refused `file` leaves it; a resubmission and a
+  proposal with prepared fields never read or consume it. With no `DraftPort` wired, `file` carries nothing and
+  `draft` is refused `wireup-invalid`.
+- `@affiant/core/testing` runs the `draft` fixture step and `expect.draft`, and exports `inMemoryDraftPort`.
+
+### Changed
+
+- Pinned to the rulebook's `v0.5` head, commit `d1fbd9b` (protocol `0.5.0`). `CORE_VERSION` reads `0.1.0-alpha.11`.
+
 ## [0.1.0-alpha.10] — 2026-09-29
 
 ### Changed

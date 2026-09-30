@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://affiant.dev/schemas/0.4.0/telemetry-key.schema.json",
+  "$id": "https://affiant.dev/schemas/0.5.0/telemetry-key.schema.json",
   "title": "TelemetryKeyRegistry",
   "description": "The telemetry-key registry an implementation ships beside its packages (INVARIANTS.md TL-1). Every event the gate emits is named here, and a key is NEVER renamed and never removed, only deprecated — the registry is a versioned API, and an operator's alerts are built on it. Attributes carry field NAMES, never field values: an event is not an audit record, and the audit record is the Affidavit. Where a public standard names the same thing the registry uses its name (TL-2): OpenTelemetry's gen_ai.* semantic conventions for the tool name, the conversation id and the operation.",
   "type": "object",
@@ -9,7 +9,7 @@
   "properties": {
     "protocolVersion": {
       "description": "The protocol version this registry document conforms to (SR-4).",
-      "$ref": "https://affiant.dev/schemas/0.4.0/common.schema.json#/$defs/protocolVersion"
+      "$ref": "https://affiant.dev/schemas/0.5.0/common.schema.json#/$defs/protocolVersion"
     },
     "registryVersion": {
       "description": "The version of the registry itself, as the implementation that ships it numbers its own releases. Distinct from protocolVersion: a registry gains keys between protocol versions.",
