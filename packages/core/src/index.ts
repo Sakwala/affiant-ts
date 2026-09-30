@@ -62,7 +62,7 @@
  */
 
 /** The version of this package, as built. */
-export const CORE_VERSION = "0.1.0-alpha.14";
+export const CORE_VERSION = "0.1.0-alpha.15";
 
 /**
  * The protocol tag the wire types are pinned to, re-exported from
@@ -80,11 +80,13 @@ export type { ChannelIdentity, Principal, RelayAssertion, Turn, TurnContext } fr
 export {
   AffiantCallerError,
   AffiantError,
+  AffiantPostFilingError,
   ERROR_CODES,
   ErrorCode,
   isAffiantError,
   isCallerError,
   isErrorCode,
+  isPostFilingError,
 } from "./errors.js";
 export type { AffiantCallerErrorDetails, AffiantErrorDetails, CallerErrorKind } from "./errors.js";
 

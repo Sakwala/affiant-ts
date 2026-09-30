@@ -67,7 +67,7 @@ import type {
 } from "../docket/entry.js";
 import { readStatus } from "../docket/entry.js";
 import type { Scope, SessionStore, TransitionPatch } from "../docket/store.js";
-import { AffiantCallerError, AffiantError } from "../errors.js";
+import { AffiantCallerError, AffiantError, AffiantPostFilingError } from "../errors.js";
 import type { Affidavit } from "../model/affidavit.js";
 import type { AmendmentMap } from "../model/amendments.js";
 import { applyAmendments, resolveAmendments } from "../model/amendments.js";
@@ -576,7 +576,17 @@ export async function resubmit(
 
   // The successor link goes on afterwards and on the *other* row: an appended later
   // fact on a terminal entry (DK-4), never an edit of the decision it recorded.
-  await deps.store.recordSupersession(entryId, scope, filed.entry.entryId);
+  // A throw here is after the filing (GT-7): the successor is on the Docket.
+  try {
+    await deps.store.recordSupersession(entryId, scope, filed.entry.entryId);
+  } catch (error) {
+    throw new AffiantPostFilingError({
+      entryId: filed.entry.entryId,
+      status: filed.entry.status,
+      created: filed.created,
+      cause: error,
+    });
+  }
 
   return filed;
 }

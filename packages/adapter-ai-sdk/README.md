@@ -11,7 +11,7 @@ numbered invariants in
 [`INVARIANTS.md`](https://github.com/Sakwala/affiant-protocol/blob/main/INVARIANTS.md),
 cited throughout below.
 
-- **Status:** `@affiant/adapter-ai-sdk` is `0.1.0-alpha.1` in this repository. Releases
+- **Status:** `@affiant/adapter-ai-sdk` is `0.1.0-alpha.2` in this repository. Releases
   are published under the `alpha` dist-tag with a provenance attestation through this
   repository's publish workflow (`.github/workflows/publish.yml`), which moves the
   `alpha` dist-tag and no other; `npm view @affiant/adapter-ai-sdk dist-tags` shows what
@@ -151,6 +151,17 @@ The model is never told that the write happened, because it did not: the gate do
 execute, and the only path to an executed row is the host reporting what its own
 executor did (AZ-7, AZ-5). The full `GatedToolResult` — entry id, status and the Evidence
 Card — goes to the host through `onResult`.
+
+## When a gated tool throws
+
+A refusal the gate raises is answered with the refused shape. A read tool's own throw
+never reaches the `onThrow` hook: the core answers it as the error kind with a fixed
+message that names the tool and never the error's text, and reports it on its telemetry
+port as `tool.threw`. Anything else that escapes the gate propagates unless `onThrow`
+answers; the hook's context is `{ toolName, filed }`. A throw after the filing arrives
+with `filed` set to `{ entryId, status }`: the entry is on the Docket and stays there,
+so an answer must not tell the model that nothing was filed. `filed` is `null` for
+every other throw.
 
 ## Supported surfaces
 

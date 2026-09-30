@@ -387,6 +387,8 @@ export interface HarnessInit {
   readonly inference?: InferencePort;
   /** The conversation draft's port (GT-7); absent, the gate is wired without one. */
   readonly draft?: DraftPort;
+  /** Wraps the recording telemetry port, for a fixture whose sink misbehaves; the log still records. */
+  readonly wrapTelemetry?: (inner: TelemetryPort) => TelemetryPort;
   readonly previousValues?: Record<string, JsonValue> | null;
   readonly policies?: readonly ApprovalPolicy[];
   readonly interceptors?: readonly FieldInterceptor[];
@@ -432,7 +434,8 @@ export function harness(init: HarnessInit = {}): Harness {
     policies: init.policies ?? [],
     interceptors: init.interceptors ?? [],
     clock,
-    telemetry: telemetry.port,
+    telemetry:
+      init.wrapTelemetry === undefined ? telemetry.port : init.wrapTelemetry(telemetry.port),
     defaultTtlMs: init.defaultTtlMs ?? 30 * 60 * 1000,
     ...(sessions === null ? {} : { sessions }),
     ...(init.draft === undefined ? {} : { draft: init.draft }),

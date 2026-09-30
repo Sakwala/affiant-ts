@@ -41,8 +41,8 @@ describe("telemetry-key registry (TL-1)", () => {
     }
   });
 
-  it("pins the registry order", () => {
-    expect(keys).toEqual(shipped);
+  it("pins the registry order, later keys appended", () => {
+    expect(keys).toEqual([...shipped, "tool.threw"]);
   });
 
   it("names no key twice", () => {
@@ -58,7 +58,7 @@ describe("telemetry-key registry (TL-1)", () => {
   });
 
   it("stamps every key that shipped in the first release with that version", () => {
-    for (const entry of TELEMETRY_KEYS) {
+    for (const entry of TELEMETRY_KEYS.filter((e) => shipped.includes(e.key as string))) {
       expect(entry.since).toBe("0.1.0-alpha.0");
     }
   });

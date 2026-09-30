@@ -249,7 +249,7 @@ function checkObject(value: unknown, spec: ObjectSpec, path: string): string | n
  * object the schema would ever be run over differ there — and a host that spreads an
  * optional property it does not have should not be told it wrote a bad binding.
  */
-export function bindingShapeReason(value: unknown): string | null {
+export function bindingShapeReason(value: unknown, inputs?: ComputationInputs): string | null {
   if (!isRecord(value)) return "the binding is not an object";
   const kind = value["kind"];
   if (typeof kind !== "string" || !(BINDING_KINDS as readonly string[]).includes(kind)) {
@@ -263,5 +263,37 @@ export function bindingShapeReason(value: unknown): string | null {
     if (value[name] === undefined) continue;
     if (name !== "kind" && name !== "ref") return `${name} is not a property of a binding`;
   }
-  return checkObject(value["ref"], REFS[kind] as ObjectSpec, "ref");
+  const shape = checkObject(value["ref"], REFS[kind] as ObjectSpec, "ref");
+  if (shape !== null || inputs === undefined || kind !== "computation-ref") return shape;
+  return computationInputsReason(value["ref"] as UnknownRecord, inputs);
+}
+
+/**
+ * The names a `computation-ref`'s `inputs` may hold, for the field the binding is on.
+ *
+ * `fieldIds` is every field id of the Affidavit; the field the binding is for is
+ * taken out of it here, so a value is never an input of itself.
+ */
+export interface ComputationInputs {
+  /** The field the binding is for. */
+  readonly field: string;
+  /** The field ids of the Affidavit the binding is on. */
+  readonly fieldIds: ReadonlySet<string>;
+}
+
+/** The two members of the turn a rule may read besides the Affidavit's own fields. */
+export const TURN_INPUTS: readonly string[] = ["turn.utterance", "turn.at"];
+
+/**
+ * The first input outside the admissible set, as a reason, or `null` (PV-2).
+ *
+ * The reason carries the input's name — an identifier — and never a value.
+ */
+function computationInputsReason(ref: UnknownRecord, allowed: ComputationInputs): string | null {
+  for (const name of ref["inputs"] as readonly string[]) {
+    if (TURN_INPUTS.includes(name)) continue;
+    if (name !== allowed.field && allowed.fieldIds.has(name)) continue;
+    return `input ${JSON.stringify(name)} is not a field of this Affidavit nor turn.utterance/turn.at`;
+  }
+  return null;
 }

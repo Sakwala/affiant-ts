@@ -33,6 +33,7 @@
  */
 
 import type {
+  DocketStatus,
   FieldSchema,
   Gate,
   GatedToolResult,
@@ -40,7 +41,7 @@ import type {
   TurnContext,
   UncoveredCategory,
 } from "@affiant/core";
-import { AffiantError, assessCoverage, isAffiantError } from "@affiant/core";
+import { AffiantError, assessCoverage, isAffiantError, isPostFilingError } from "@affiant/core";
 import type { JSONValue, Schema, Tool, ToolSet } from "ai";
 import { jsonSchema, tool } from "ai";
 
@@ -117,10 +118,20 @@ export interface AffiantToolsOptions {
    * propagates; this is also the place to report it, since the adapter holds no
    * telemetry port of its own. `context.toolName` says which tool's call threw. A
    * throw from the hook propagates, with the original error as its `cause`.
+   *
+   * A read tool's own throw never reaches this hook: the core answers it as the error
+   * kind with a fixed message that names the tool and never the error's text, and
+   * reports it on its telemetry port as `tool.threw` (AF-5). A throw after the filing
+   * arrives here with `context.filed` set to the entry's id and status: the entry is
+   * on the Docket and stays there, so a host that answers must not tell the model that
+   * nothing was filed (GT-7). `filed` is `null` for every other throw.
    */
   readonly onThrow?: (
     error: unknown,
-    context: { readonly toolName: string },
+    context: {
+      readonly toolName: string;
+      readonly filed: { readonly entryId: string; readonly status: DocketStatus } | null;
+    },
   ) => ToolThrowAnswer | null | undefined | Promise<ToolThrowAnswer | null | undefined>;
 }
 
@@ -562,7 +573,12 @@ function gatedTool(
         } else if (onThrow !== undefined) {
           let answer: ToolThrowAnswer | null | undefined;
           try {
-            answer = await onThrow(error, { toolName: name });
+            answer = await onThrow(error, {
+              toolName: name,
+              filed: isPostFilingError(error)
+                ? { entryId: error.entryId, status: error.status }
+                : null,
+            });
           } catch (hookError) {
             if (hookError instanceof Error && hookError.cause === undefined) {
               hookError.cause = error;

@@ -8,6 +8,7 @@
  */
 
 import type {
+  DraftPort,
   FieldSchema,
   Gate,
   GatedToolResult,
@@ -144,6 +145,8 @@ export interface GateInit {
   readonly field?: string;
   /** The Docket store, when a suite wants to look at what was filed. */
   readonly store?: InMemoryDocketStore;
+  /** The conversation draft port, when a suite wants one. */
+  readonly draft?: DraftPort;
 }
 
 /** A gate with in-memory ports and a fixed clock. */
@@ -161,6 +164,7 @@ export function testGate(init: GateInit = {}): Gate {
     },
     clock: { now: () => AT },
     defaultTtlMs: 3_600_000,
+    ...(init.draft === undefined ? {} : { draft: init.draft }),
   });
 }
 

@@ -290,27 +290,60 @@ describe("a read tool passes through (AF-5)", () => {
     expect(telemetry.keys()).not.toContain("affidavit.filed");
   });
 
-  it("turns a throw from the tool's own body into the error arm", async () => {
+  it("answers a read tool's throw with a fixed message that carries none of the error's text", async () => {
     const { gate } = harness();
 
     const result = await gate
       .wrap(
         readTool(() => {
-          throw new Error("the search index is down");
+          throw new Error("a figure 12345");
         }),
         turnContext(),
       )
       .execute({ query: "open" });
 
-    expect(result).toEqual({
-      kind: "error",
-      code: "tool-error",
-      message: "the search index is down",
-    });
+    expect(result).toMatchObject({ kind: "error", code: "tool-error" });
+    const message = (result as { message: string }).message;
+    expect(message).not.toContain("12345");
+    expect(message).toContain("AF-5");
   });
 
-  it("reports a thrown non-Error without pretending it was one", async () => {
+  it("does not let a body impersonate a refusal by throwing an AffiantError", async () => {
     const { gate } = harness();
+
+    const result = await gate
+      .wrap(
+        readTool(() => {
+          throw new AffiantError("substance-refused", "a figure 12345");
+        }),
+        turnContext(),
+      )
+      .execute({ query: "open" });
+
+    expect(result).toMatchObject({ kind: "error", code: "tool-error" });
+    expect((result as { message: string }).message).not.toContain("12345");
+  });
+
+  it("reports the throw on telemetry as tool.threw with the type name and no message", async () => {
+    const { gate, telemetry } = harness();
+
+    await gate
+      .wrap(
+        readTool(() => {
+          throw new Error("a figure 12345");
+        }),
+        turnContext(),
+      )
+      .execute({ query: "open" });
+
+    const event = telemetry.find("tool.threw");
+    expect(event?.attributes["error.type"]).toBe("Error");
+    expect(Object.keys(event?.attributes ?? {}).sort()).toEqual(["error.type", "gen_ai.tool.name"]);
+    expect(JSON.stringify(event)).not.toContain("12345");
+  });
+
+  it("reports a thrown string by its typeof", async () => {
+    const { gate, telemetry } = harness();
 
     const result = await gate
       .wrap(
@@ -321,6 +354,35 @@ describe("a read tool passes through (AF-5)", () => {
       )
       .execute({ query: "open" });
 
-    expect(result).toMatchObject({ kind: "error", code: "tool-error", message: "nope" });
+    expect(result).toMatchObject({ kind: "error", code: "tool-error" });
+    expect((result as { message: string }).message).not.toContain("nope");
+    expect(telemetry.find("tool.threw")?.attributes["error.type"]).toBe("string");
+  });
+
+  it("answers with the fixed message and type unknown when reading the constructor throws", async () => {
+    const { gate, telemetry } = harness();
+    const thrownValue = new Proxy(
+      {},
+      {
+        get(_target, key) {
+          if (key === "constructor") throw "proxy secret 424242";
+          return undefined;
+        },
+      },
+    );
+
+    const result = await gate
+      .wrap(
+        readTool(() => {
+          throw thrownValue;
+        }),
+        turnContext(),
+      )
+      .execute({ query: "open" });
+
+    expect(result).toMatchObject({ kind: "error", code: "tool-error" });
+    expect(JSON.stringify(result)).not.toContain("424242");
+    expect(telemetry.find("tool.threw")?.attributes["error.type"]).toBe("unknown");
+    expect(JSON.stringify(telemetry.find("tool.threw"))).not.toContain("424242");
   });
 });
