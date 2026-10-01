@@ -1659,6 +1659,16 @@
         "oracle": null
       },
       {
+        "id": "gate/computed-inputs-turn-and-field",
+        "file": "gate/46-computed-inputs-turn-and-field.json",
+        "rules": [
+          "PV-2",
+          "GT-1"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
         "id": "gate/multiparty-files-one-entry",
         "file": "gate/23-multiparty-files-one-entry.json",
         "rules": [

@@ -1,0 +1,152 @@
+{
+  "id": "gate/computed-inputs-turn-and-field",
+  "rules": [
+    "PV-2",
+    "GT-1"
+  ],
+  "title": "A Computed value may consume the turn's two members: a date resolved from the utterance and the turn's time (turn.utterance, turn.at) is filed, tagged Computed with its computation-ref binding kept.",
+  "given": {
+    "clock": "2026-10-01T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "inference": {
+        "payee": {
+          "value": "Kandy Hardware",
+          "confidence": 0.9,
+          "presence": "literal",
+          "utteranceSpan": null
+        },
+        "amount": {
+          "value": 400,
+          "confidence": 0.9,
+          "presence": "literal",
+          "utteranceSpan": null
+        }
+      },
+      "interceptors": [
+        {
+          "name": "day-rule",
+          "fields": {
+            "dueDate": {
+              "value": "2026-10-02",
+              "source": "Computed",
+              "confidence": 1,
+              "evidence": "The relative day in the utterance resolved against the turn's time",
+              "binding": {
+                "kind": "computation-ref",
+                "ref": {
+                  "rule": "relative-day-to-date",
+                  "inputs": [
+                    "turn.utterance",
+                    "turn.at"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "Pay Kandy Hardware 400 tomorrow",
+      "messageId": "msg-1"
+    },
+    "prior": [],
+    "step": {
+      "kind": "wrap-execute",
+      "at": "2026-10-01T09:00:00.000Z",
+      "tool": {
+        "name": "record_payment",
+        "description": "Record a payment",
+        "entityType": "Payment",
+        "entityId": null,
+        "writeCapable": true,
+        "fields": [
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to",
+            "required": true,
+            "allowedValues": null,
+            "pattern": null
+          },
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves",
+            "required": true,
+            "allowedValues": null,
+            "pattern": null
+          },
+          {
+            "name": "dueDate",
+            "kind": "text",
+            "description": "The date the payment is due",
+            "required": true,
+            "allowedValues": null,
+            "pattern": null
+          }
+        ]
+      },
+      "args": {
+        "payee": null,
+        "amount": null,
+        "dueDate": null
+      }
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "affidavit": {
+        "fields": [
+          {
+            "name": "payee",
+            "value": "Kandy Hardware",
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 4,
+              "length": 14,
+              "hash": "4560846d0cdbc433e8b04f4c5c3c3265139f9fc8f581ff2adf4f5773c178312b"
+            }
+          },
+          {
+            "name": "amount",
+            "value": 400,
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 19,
+              "length": 3,
+              "hash": "26d228663f13a88592a12d16cf9587caab0388b262d6d9f126ed62f9333aca94"
+            }
+          },
+          {
+            "name": "dueDate",
+            "value": "2026-10-02",
+            "source": "Computed",
+            "bound": true,
+            "bindingKind": "computation-ref",
+            "confidence": 1
+          }
+        ]
+      }
+    }
+  }
+}
