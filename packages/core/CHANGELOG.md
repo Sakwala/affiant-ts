@@ -10,9 +10,15 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.16] — 2026-10-01
+
 ### Changed
 
 - `isMoney`, `assertMoney` and `parseMoney` refuse an object with a key beyond `amount` and `currency`, as `money.schema.json` (`additionalProperties: false`) does; `parseMoney` no longer drops such keys (SR-2).
+
+### Added
+
+- The pin moved to `v0.5.1`; `gate/46` reads green.
 
 ## [0.1.0-alpha.15] — 2026-10-01
 
