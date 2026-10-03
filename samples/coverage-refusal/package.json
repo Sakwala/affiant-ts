@@ -23,7 +23,7 @@
     "@affiant/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.10.10",
+    "@types/node": "^26.6.3",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   }
