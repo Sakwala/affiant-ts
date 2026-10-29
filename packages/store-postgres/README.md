@@ -1,6 +1,6 @@
 # @affiant/store-postgres
 
-The [Affiant](https://affiant.dev) **Docket** on Postgres: the durable record of every
+The [Affiant](https://affiant.tech) **Docket** on Postgres: the durable record of every
 write an AI agent proposed, what was decided about it, who agreed, and what became of
 it.
 

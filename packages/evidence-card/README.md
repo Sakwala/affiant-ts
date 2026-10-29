@@ -1,7 +1,7 @@
 # @affiant/evidence-card
 
 `<affiant-evidence-card>` — a dependency-free custom element that renders one
-[Affiant](https://affiant.dev) **Affidavit** for a person to approve, amend or
+[Affiant](https://affiant.tech) **Affidavit** for a person to approve, amend or
 reject.
 
 An Affidavit is the evidence behind a database write an LLM agent has proposed:

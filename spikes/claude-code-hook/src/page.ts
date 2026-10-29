@@ -126,7 +126,7 @@ export function renderPage(docketId: string, prefix: string, amendable: readonly
 
       <footer>
         <a href="https://github.com/Sakwala/affiant-ts">Sakwala/affiant-ts</a> &middot;
-        <a href="https://affiant.dev">affiant.dev</a>
+        <a href="https://affiant.tech">affiant.tech</a>
       </footer>
     </main>
 

@@ -2,7 +2,7 @@
 
 A standalone sample. It runs **one realistic support-desk scenario twice** — once through a
 whole-call approval gate, the shape every agent framework's "approve this tool call" gate
-has, and once through the [Affiant](https://affiant.dev) gate — and prints, act by act, what
+has, and once through the [Affiant](https://affiant.tech) gate — and prints, act by act, what
 each surface showed the reviewer and what each one recorded.
 
 The claim it exists to make checkable is one sentence: **Affiant is a different question from

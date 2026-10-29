@@ -1,6 +1,6 @@
 # @affiant/core
 
-The [Affiant](https://affiant.dev) gate for TypeScript: the thing that stands between
+The [Affiant](https://affiant.tech) gate for TypeScript: the thing that stands between
 an AI agent and your database.
 
 Put it in front of your write tools and a tool call stops being a write. It becomes an
