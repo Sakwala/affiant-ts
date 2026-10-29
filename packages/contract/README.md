@@ -1,6 +1,6 @@
 # @affiant/contract
 
-The [Affiant](https://affiant.dev) wire format as TypeScript types, plus the JSON
+The [Affiant](https://affiant.tech) wire format as TypeScript types, plus the JSON
 Schemas and the whole conformance suite as importable objects — pinned to one ref of
 the protocol rulebook,
 [Sakwala/affiant-protocol](https://github.com/Sakwala/affiant-protocol).

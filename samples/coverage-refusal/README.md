@@ -1,6 +1,6 @@
 # Coverage refusal, run in front of you
 
-A standalone sample. It builds an [Affiant](https://affiant.dev) gate over the in-memory
+A standalone sample. It builds an [Affiant](https://affiant.tech) gate over the in-memory
 Docket and four trivial ports, hands it five tools, and prints what the gate does with each
 one: two write-capable tools never get past wire-up, one reaches the Docket blocked and
 cannot be decided, one is filed for a person, and the read tool passes straight through.

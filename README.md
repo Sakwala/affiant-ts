@@ -1,6 +1,6 @@
 # affiant-ts
 
-[Affiant](https://affiant.dev) for TypeScript — sworn provenance for every AI write.
+[Affiant](https://affiant.tech) for TypeScript — sworn provenance for every AI write.
 
 Affiant turns every database write an LLM agent proposes into an **Affidavit**: a per-field evidence record (the value, the previous value, where each value came from, how confident) filed in a **Docket** and shown as an **Evidence Card** that a person approves, amends or rejects before the host writes. A **Standing Order** is a policy verdict that approves a write with no person present.
 
