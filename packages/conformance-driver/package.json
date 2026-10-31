@@ -53,8 +53,8 @@
   },
   "devDependencies": {
     "@affiant/adapter-ai-sdk": "workspace:^",
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
-    "ai": "7.0.101",
+    "@cloudflare/vitest-pool-workers": "^0.23.0",
+    "ai": "7.0.155",
     "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   }
