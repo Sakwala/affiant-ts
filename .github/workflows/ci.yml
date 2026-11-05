@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   node:
-    name: node 22
+    name: node
     runs-on: ubuntu-latest
     # `@affiant/store-postgres` is measured against a real Postgres, because the
     # rules it has to hold — the guarded compare-and-set, the tenant policies, the
