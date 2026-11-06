@@ -13,9 +13,16 @@ permissions:
   contents: read
 
 jobs:
-  node:
-    name: node
+  # The suite runs on the oldest Node line the packages' `engines` admit (22, in
+  # maintenance until April 2027) and on the current LTS (26). Supporting 22 pins
+  # nobody to it; not testing it would make `"node": ">=22"` a claim nobody checks.
+  node-suite:
+    name: node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 26]
     # `@affiant/store-postgres` is measured against a real Postgres, because the
     # rules it has to hold — the guarded compare-and-set, the tenant policies, the
     # deadline applied on read — are properties of the statements and not of a fake.
@@ -39,7 +46,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The three committed generated modules must be exactly what the generator
@@ -251,3 +258,14 @@ jobs:
           else
             exit "$status"
           fi
+
+  # Branch protection on `main` requires a check named `node`. This job carries
+  # that name on behalf of the matrix above, so adding or removing a Node line
+  # never needs a settings change: it fails when any leg failed or was skipped.
+  node:
+    name: node
+    needs: node-suite
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.node-suite.result }}" = success
