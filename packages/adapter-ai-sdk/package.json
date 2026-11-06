@@ -75,7 +75,7 @@
     "@affiant/core": "workspace:^",
     "@cloudflare/vitest-pool-workers": "^0.22.0",
     "ai": "7.0.101",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
 }
