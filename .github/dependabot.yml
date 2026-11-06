@@ -8,6 +8,14 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # The packages publish `"engines": {"node": ">=22"}`, so the compiler
+      # must see Node 22's API surface, not a newer line's: a `@types/node`
+      # major bump would let 24- or 26-only APIs typecheck and then fail on
+      # the oldest Node that CI's matrix runs. Raise this together with the
+      # engines floor, never alone.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
