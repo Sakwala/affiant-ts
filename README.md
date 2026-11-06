@@ -21,7 +21,7 @@ Later: `@affiant/adapter-langchain`.
 
 **Sequence A** is a chat capture end to end: a turn, a tool call the gate intercepts, an Affidavit, a person's decision, an executor's report. **Sequence C** is a capture arriving over a trusted relay's MCP surface, decided or auto-approved with the relay named on the record.
 
-**Runtimes:** Node 22 or newer, Cloudflare workerd and Bun — no Node-only API, no filesystem, no timer owned by a package here, and Web Crypto only, which is why the canonical hash is asynchronous everywhere. All three run the whole suite in CI.
+**Runtimes:** Node 22 or newer, Cloudflare workerd and Bun — no Node-only API, no filesystem, no timer owned by a package here, and Web Crypto only, which is why the canonical hash is asynchronous everywhere. All three run the whole suite in CI, Node on both 22 — the oldest line `engines` admits — and 26.
 
 `@affiant/contract` is `0.1.0-alpha.10` and `@affiant/evidence-card` is `0.1.0-alpha.1` in this repository, and `@affiant/core` is `0.1.0-alpha.16`. Each release is published under the `alpha` dist-tag with a provenance attestation that binds it to this repository, the workflow that built it and the commit it was built from, through this repository's publish workflow, which moves the `alpha` dist-tag and no other; `npm view <package> dist-tags` shows what the registry currently serves. `@affiant/conformance-driver` is private and did not go. Publishing stays a separate, deliberate step: [`.github/workflows/publish.yml`](.github/workflows/publish.yml) fires on no push and no tag, a maintainer dispatches it by hand, it defaults to a dry run, and a real upload additionally needs the word `publish` typed into a confirmation input. For `@affiant/core` the condition was exact and mechanical: a public parity report naming what each implementation does not yet pass, and a green, merge-blocking TypeScript conformance driver. Both hold at the rulebook tag `v0.5.0-pre.1`, the one the committed parity manifest names — see [Conformance](#conformance) below — and a `prepack` guard still fails `npm pack` and `npm publish` until `AFFIANT_ALLOW_PUBLISH=1` is set, which only that workflow sets.
 
@@ -70,7 +70,7 @@ pnpm lint        # prettier --check
 The wire types and the fixture suite have to hold on every runtime a host might run them on, so CI runs three:
 
 ```bash
-pnpm test                                                 # Node 22
+pnpm test                                                 # Node 22 or newer; CI runs 22 and 26
 bun run --bun vitest run --project contract               # Bun
 bun run --bun vitest run --project core                   # Bun
 bun run --bun vitest run --project conformance-driver     # Bun
