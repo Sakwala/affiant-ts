@@ -10,6 +10,10 @@ was made against.
 
 ## [Unreleased]
 
+### Added
+
+- **`@affiant/core`: a host may key the two digests of a person's words it stores.** `GateOptions.digestKey` takes at least 32 raw bytes (imported once at `createGate`) or an HMAC `CryptoKey` with hash SHA-256, a length of at least 256 bits and usage `sign`; anything else is refused at `createGate` with `wireup-invalid`. With a key, the span hash of an `utterance-span` binding (PV-3) and the digest inside an entry id (GT-4) are HMAC-SHA-256 under it over the same bytes; the id keeps its UUIDv8 layout. `deriveEntryId(ctx, proposal, digestKey?)` takes the same key, so a host that looks rows up by id outside the gate finds them. `hmacSha256Hex(key, bytes)` and the `DigestKey` type are exported. **Without a key nothing changes**: both digests are byte-for-byte what they were. A changed key changes every id derived after it, so a retry across a key change files a second row. The fixture format's `given.gate` gains `digestKey`, hex of the raw key bytes. No wire type, vendored file or protocol pin changed.
+
 ### Changed
 
 - **`@affiant/contract` `0.1.0-alpha.10` and `@affiant/core` `0.1.0-alpha.16`: the pin moved to the rulebook's tag `v0.5.1`.** The tag adds one fixture, `gate/46-computed-inputs-turn-and-field`, and text; no schema or vector change (schemas stay `0.5.0`). It reads green (127 of 127 on Node).

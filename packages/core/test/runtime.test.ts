@@ -94,6 +94,7 @@ describe("runtime envelope (RT-1)", () => {
       "evaluatePolicies",
       "fromWire",
       "hasAmendment",
+      "hmacSha256Hex",
       "instantMs",
       "isAffiantError",
       "isBound",

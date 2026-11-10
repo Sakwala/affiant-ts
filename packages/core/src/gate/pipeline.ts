@@ -82,7 +82,9 @@ import { buildAffidavit, isJsonValue, presentationToWire, toWire } from "../mode
 import type { AmendmentMap } from "../model/amendments.js";
 import type { ComputationInputs } from "../model/binding-shape.js";
 import { bindingShapeReason } from "../model/binding-shape.js";
-import { canonicalJsonAsGiven, sha256Hex } from "../model/canonical.js";
+import { canonicalJsonAsGiven, hmacSha256Hex, sha256Hex } from "../model/canonical.js";
+import type { DigestKey } from "./digest-key.js";
+import { checkDigestKey } from "./digest-key.js";
 import type { Binding, ProvenanceChain, ProvenanceTag } from "../model/provenance.js";
 import {
   INTERCEPTOR_BINDING_KINDS,
@@ -333,6 +335,11 @@ export interface PipelineDeps {
   readonly defaultTtlMs: number;
   /** The tools the host declared it cannot cover (CV-4). */
   readonly coverage: CoverageRegistry;
+  /**
+   * The host's digest key, imported once by `createGate`; absent, the span hash and
+   * the entry id are plain SHA-256 (PV-3, GT-4).
+   */
+  readonly digestKey?: Promise<CryptoKey> | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -724,7 +731,7 @@ async function gradeProposal(
                 confidence: structured.confidence,
                 at: now,
                 note: `Literally present in the turn: ${name}`,
-                binding: await utteranceSpanBinding(utterance, hit),
+                binding: await utteranceSpanBinding(utterance, hit, await deps.digestKey),
               })
             : drafted !== null && sameValueText(utteranceTextOf(drafted.value) ?? "", valueText)
               ? mintConversation({
@@ -917,7 +924,7 @@ export async function runPipeline(
   // tool the host cannot cover. Both are a move *toward* a person, which is the
   // direction AZ-4 permits.
   const fires = outcome.requirement.kind === "StandingOrder" && blocked === null;
-  const entryId = await deriveEntryId(ctx, proposal);
+  const entryId = await deriveEntryId(ctx, proposal, await deps.digestKey);
 
   if (uncovered !== null) {
     deps.telemetry.emit({
@@ -1287,13 +1294,20 @@ function wireCarry(entry: DocketEntry, build: CardBuild): WireCarry {
  * matters because it is what makes a retried tool call a replay rather than a second
  * review (GT-4, DK-1).
  *
+ * With `digestKey` the digest is HMAC-SHA-256 under it over the same bytes; the layout
+ * is the same. A host that wires `GateOptions.digestKey` and looks rows up by id
+ * outside the gate passes the same key here, or its lookups miss.
+ *
  * @throws TypeError if `args` contains something with no canonical form — a function,
  *         a symbol, a cycle. Tool arguments are JSON; anything else is a caller bug.
+ * @throws AffiantError `"wireup-invalid"` if `digestKey` is not a usable key.
  */
 export async function deriveEntryId(
   ctx: TurnContext,
   proposal: Pick<PipelineProposal, "toolName" | "operation" | "args" | "supersedes">,
+  digestKey?: DigestKey,
 ): Promise<string> {
+  if (digestKey !== undefined) checkDigestKey(digestKey);
   const material = canonicalJsonAsGiven({
     tenantId: ctx.tenantId,
     conversationId: ctx.conversationId,
@@ -1304,7 +1318,9 @@ export async function deriveEntryId(
     // resubmission existed, and a retry of the original call is still a replay.
     ...(proposal.supersedes === null ? {} : { supersedes: proposal.supersedes }),
   });
-  const digest = await sha256Hex(new TextEncoder().encode(material));
+  const bytes = new TextEncoder().encode(material);
+  const digest =
+    digestKey === undefined ? await sha256Hex(bytes) : await hmacSha256Hex(digestKey, bytes);
   return uuidFromDigest(digest);
 }
 
@@ -1335,15 +1351,24 @@ function uuidFromDigest(digest: string): string {
  * was there when the value was read — so an auditor holding the turn can re-derive it
  * and see that the pointer still points where it did. A hit is always inside the turn,
  * so every hit binds: there is no `Conversation` here with nothing behind it.
+ *
+ * Under the host's digest key the hash is HMAC-SHA-256 over the same bytes, so only a
+ * holder of the key can re-derive it.
  */
-async function utteranceSpanBinding(utterance: string, hit: UtteranceHit): Promise<Binding> {
+async function utteranceSpanBinding(
+  utterance: string,
+  hit: UtteranceHit,
+  digestKey: CryptoKey | undefined,
+): Promise<Binding> {
   const text = utterance.slice(hit.offset, hit.offset + hit.length);
+  const bytes = new TextEncoder().encode(text);
   return {
     kind: "utterance-span",
     ref: {
       offset: hit.offset,
       length: hit.length,
-      hash: await sha256Hex(new TextEncoder().encode(text)),
+      hash:
+        digestKey === undefined ? await sha256Hex(bytes) : await hmacSha256Hex(digestKey, bytes),
     },
   };
 }

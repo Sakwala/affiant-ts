@@ -52,6 +52,8 @@ import { noopTelemetry } from "../telemetry.js";
 
 import type { CoverageRegistry, ToolDefinition, UncoveredCategory } from "./coverage.js";
 import { createCoverageRegistry, declareUncovered } from "./coverage.js";
+import type { DigestKey } from "./digest-key.js";
+import { prepareDigestKey } from "./digest-key.js";
 import type { DecideDeps, Decision, ExecutionReport, Withdrawal } from "./decide.js";
 import { decide, markExecuted, resubmit, withdraw } from "./decide.js";
 import type { FiledEntry, PipelineDeps, PreparedField } from "./pipeline.js";
@@ -109,6 +111,17 @@ export interface GateOptions {
    * deadline and there is no wiring in which one is missing.
    */
   readonly defaultTtlMs: number;
+  /**
+   * A key for the two digests of a person's words this gate stores: the span hash of
+   * an `utterance-span` binding (PV-3) and the digest inside an entry id (GT-4). With
+   * it, both are HMAC-SHA-256 under the key; without it, both are SHA-256 as before.
+   *
+   * At least 32 raw bytes, imported once here, or an HMAC `CryptoKey` with hash
+   * SHA-256, a length of at least 256 bits and usage `sign`. Anything else is refused at `createGate`. A host that
+   * calls `deriveEntryId` itself passes the same key, and a changed key changes
+   * every id derived after it, so a retry across a key change files a second row.
+   */
+  readonly digestKey?: DigestKey;
 }
 
 /**
@@ -335,6 +348,9 @@ export function createGate(options: GateOptions): Gate {
     }
   }
 
+  const digestKey =
+    options.digestKey === undefined ? undefined : prepareDigestKey(options.digestKey);
+
   const coverage = createCoverageRegistry();
   const clock = options.clock ?? defaultClock;
   const telemetry = options.telemetry ?? noopTelemetry;
@@ -352,6 +368,7 @@ export function createGate(options: GateOptions): Gate {
     telemetry,
     defaultTtlMs,
     coverage,
+    ...(digestKey === undefined ? {} : { digestKey }),
   };
 
   const sessions = options.sessions ?? null;

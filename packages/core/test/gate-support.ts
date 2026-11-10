@@ -1,4 +1,5 @@
 import type { Principal, TurnContext } from "../src/context.js";
+import type { DigestKey } from "../src/gate/digest-key.js";
 import type { DocketStore, SessionStore } from "../src/docket/store.js";
 import { InMemoryDocketStore, InMemorySessionStore } from "../src/docket/memory.js";
 import type { ApprovalPolicy, Verdict } from "../src/gate/policy.js";
@@ -404,6 +405,8 @@ export interface HarnessInit {
    * the harness's Docket; pass `null` for a gate wired without one.
    */
   readonly sessions?: SessionStore | null;
+  /** The host's digest key (PV-3, GT-4); absent, the gate is wired without one. */
+  readonly digestKey?: DigestKey;
 }
 
 /** A gate, its store, its clock, its telemetry log and the step trace. */
@@ -439,6 +442,7 @@ export function harness(init: HarnessInit = {}): Harness {
     defaultTtlMs: init.defaultTtlMs ?? 30 * 60 * 1000,
     ...(sessions === null ? {} : { sessions }),
     ...(init.draft === undefined ? {} : { draft: init.draft }),
+    ...(init.digestKey === undefined ? {} : { digestKey: init.digestKey }),
     ...(init.riskScore === undefined ? {} : { riskScorer: riskScorer(init.riskScore, trace) }),
   };
   const gate = createGate(options);

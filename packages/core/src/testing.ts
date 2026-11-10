@@ -171,6 +171,11 @@ export interface FixtureGate {
    * held. Absent, no draft port is wired.
    */
   readonly draft?: { readonly ttlMs: number };
+  /**
+   * The host's digest key (PV-3, GT-4), as lowercase hex of at least 32 raw key bytes
+   * (the fixture schema's `^(?:[0-9a-f]{2}){32,}$`). Absent, the gate is wired without one and both digests are plain SHA-256.
+   */
+  readonly digestKey?: string;
 }
 
 /**
@@ -690,6 +695,7 @@ const FIXTURE_KEYS = {
     "uncovered",
     "sessions",
     "draft",
+    "digestKey",
   ],
   ctx: ["tenantId", "conversationId", "channel", "principal", "utterance", "messageId"],
   step: [
@@ -1215,6 +1221,27 @@ export function allowlistAuthorization(config: FixtureAuthorization): Authorizat
   };
 }
 
+/**
+ * The raw bytes a fixture's `given.gate.digestKey` names.
+ *
+ * @throws TypeError when the string does not match the fixture schema's
+ *         `^(?:[0-9a-f]{2}){32,}$`: that is a fixture written wrong, not a key the gate
+ *         refuses.
+ */
+export function fixtureDigestKey(hex: string): Uint8Array {
+  if (!/^(?:[0-9a-f]{2}){32,}$/.test(hex)) {
+    throw new TypeError(
+      "given.gate.digestKey must be lowercase hex of at least 32 bytes: " +
+        "64 or more 0-9, a-f digits, an even number of them.",
+    );
+  }
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
 /** A {@link RiskScorer} that always returns `score` (GT-5). */
 export function fixedRiskScorer(score: number): RiskScorer {
   return {
@@ -1695,6 +1722,7 @@ function buildGate(
     ...(given.riskScorer === undefined || given.riskScorer === null
       ? {}
       : { riskScorer: fixedRiskScorer(given.riskScorer) }),
+    ...(given.digestKey === undefined ? {} : { digestKey: fixtureDigestKey(given.digestKey) }),
   };
   const gate = createGate(options);
   for (const declaration of given.uncovered ?? []) {

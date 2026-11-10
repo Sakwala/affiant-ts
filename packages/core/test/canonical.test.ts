@@ -16,6 +16,7 @@ import {
   canonicalString,
   canonicalStringEntry,
   canonicalize,
+  hmacSha256Hex,
   sha256Hex,
   swornAffidavitOf,
 } from "../src/model/canonical.js";
@@ -759,6 +760,37 @@ describe("canonicalHash (SR-1, RT-1)", () => {
     expect(await sha256Hex(new TextEncoder().encode("{}"))).toBe(
       "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
     );
+  });
+});
+
+describe("hmacSha256Hex, the keyed digest (PV-3, GT-4)", () => {
+  const ascii = (text: string): Uint8Array => new TextEncoder().encode(text);
+
+  it("matches RFC 4231 test case 1 under raw key bytes", async () => {
+    const key = new Uint8Array(20).fill(0x0b);
+    expect(await hmacSha256Hex(key, ascii("Hi There"))).toBe(
+      "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
+    );
+  });
+
+  it("matches RFC 4231 test case 2 under an imported CryptoKey", async () => {
+    const key = await globalThis.crypto.subtle.importKey(
+      "raw",
+      new Uint8Array(ascii("Jefe")),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    expect(await hmacSha256Hex(key, ascii("what do ya want for nothing?"))).toBe(
+      "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843",
+    );
+  });
+
+  it("is not the unkeyed SHA-256 of the same bytes", async () => {
+    const bytes = ascii("client lunch");
+    const keyed = await hmacSha256Hex(new Uint8Array(32).fill(7), bytes);
+    expect(keyed).toMatch(/^[0-9a-f]{64}$/);
+    expect(keyed).not.toBe(await sha256Hex(bytes));
   });
 });
 
