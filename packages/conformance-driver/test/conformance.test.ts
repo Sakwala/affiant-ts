@@ -1,5 +1,7 @@
-import { conformanceManifest } from "@affiant/contract/conformance";
+import { conformanceFixtures, conformanceManifest } from "@affiant/contract/conformance";
 import { InMemoryDocketStore } from "@affiant/core/store-memory";
+import { runFixture } from "@affiant/core/testing";
+import type { Fixture } from "@affiant/core/testing";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
@@ -19,7 +21,7 @@ import type { ConformanceRun } from "../src/run.js";
  * This suite is the merge-blocking one. It runs every document the rulebook's
  * conformance manifest lists through `@affiant/core` and asserts that the set of
  * documents this implementation does **not** pass equals
- * `conformance/parity/typescript-v0.2.json` exactly — in both directions, over the
+ * `conformance/parity/typescript-v0.5.json` exactly — in both directions, over the
  * union of the two sections a run covers (`test/adapter.test.ts` runs the adapter
  * one and makes the comparison over both).
  *
@@ -315,4 +317,41 @@ describe("a caller may put the suite through its own Docket", () => {
     expect(plain.failingIds).toEqual([]);
     expect(plain.document.summary.total).toBe(conformanceManifest.fixtures.length);
   }, 120_000);
+});
+
+describe("the v0.6.0 keyed documents run keyed (GT-4, PV-3)", () => {
+  const KEYED = [
+    "gate/digest-key-span-hash-is-hmac",
+    "gate/digest-key-refile-replays",
+    "gate/digest-key-draft-carries-the-keyed-hash",
+    "sequence-a/digest-key-resubmit-replays",
+  ];
+
+  it("lists the four, passes each, and the parity manifest names none of them as failing", () => {
+    for (const id of KEYED) {
+      expect(conformanceManifest.fixtures.map((row) => row.id)).toContain(id);
+      expect(run.document.results.find((result) => result.id === id)?.outcome).toBe("pass");
+      expect(run.failingIds).not.toContain(id);
+      expect(parityManifest.failing.map((row) => row.id)).not.toContain(id);
+    }
+  });
+
+  it("fails the keyed span-hash document when its key does not reach the gate", async () => {
+    // The pinned hash is the HMAC-SHA-256 of the span under the document's key, not
+    // the SHA-256 of it: a runner that drops `given.gate.digestKey` must fail it.
+    const keyed = conformanceFixtures.find((f) => f.id === "gate/digest-key-span-hash-is-hmac");
+    expect(keyed).toBeDefined();
+    const unkeyed = structuredClone(keyed!) as unknown as {
+      given: { gate: Record<string, unknown> };
+    };
+    expect(unkeyed.given.gate["digestKey"]).toBeTypeOf("string");
+    delete unkeyed.given.gate["digestKey"];
+
+    const withKey = await runFixture(keyed as unknown as Fixture);
+    const withoutKey = await runFixture(unkeyed as unknown as Fixture);
+
+    expect(withKey.pass).toBe(true);
+    expect(withoutKey.pass).toBe(false);
+    expect(withoutKey.failures.map((failure) => failure.at).join(" ")).toContain("utteranceSpan");
+  });
 });

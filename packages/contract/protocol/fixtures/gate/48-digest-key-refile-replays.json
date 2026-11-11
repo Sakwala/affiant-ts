@@ -1,0 +1,117 @@
+{
+  "id": "gate/digest-key-refile-replays",
+  "rules": [
+    "GT-4",
+    "DK-1",
+    "PV-3"
+  ],
+  "title": "The host files the same proposal twice, twenty minutes apart, under one digest key: the entry id is the HMAC-SHA-256 derivation under that key both times, so the second filing is an idempotent replay of the first - one row, still pending, its span hash the keyed one (GT-4, DK-1).",
+  "given": {
+    "clock": "2026-09-08T09:00:00.000Z",
+    "store": "memory",
+    "gate": {
+      "defaultTtlMs": 1800000,
+      "authorization": {
+        "allow": [
+          "*"
+        ]
+      },
+      "inference": {
+        "description": {
+          "value": "Client Lunch",
+          "confidence": 0.8
+        }
+      },
+      "digestKey": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    "ctx": {
+      "tenantId": "tenant-a",
+      "conversationId": "conv-1",
+      "channel": "chat",
+      "principal": {
+        "kind": "member",
+        "id": "member-1"
+      },
+      "utterance": "File the expense for client lunch, 40 EUR",
+      "messageId": "msg-1"
+    },
+    "prior": [
+      {
+        "kind": "file",
+        "as": "filed",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "ExpenseReport",
+          "entityId": null,
+          "fields": [
+            "description"
+          ]
+        },
+        "schema": [
+          {
+            "name": "description",
+            "kind": "text",
+            "description": "What the expense was for"
+          }
+        ]
+      }
+    ],
+    "step": {
+      "kind": "file",
+      "toolName": "relay_capture",
+      "operation": {
+        "kind": "create",
+        "entityType": "ExpenseReport",
+        "entityId": null,
+        "fields": [
+          "description"
+        ]
+      },
+      "schema": [
+        {
+          "name": "description",
+          "kind": "text",
+          "description": "What the expense was for"
+        }
+      ],
+      "at": "2026-09-08T09:20:00.000Z"
+    }
+  },
+  "expect": {
+    "entry": {
+      "status": "pending",
+      "requirement": "ReviewerConfirmation",
+      "execution": null,
+      "blocked": null,
+      "attestation": null,
+      "toolName": "relay_capture",
+      "affidavit": {
+        "operationType": "create",
+        "entityId": null,
+        "aggregateConfidence": 0.8,
+        "populatedConfidence": 0.8,
+        "emptyFieldCount": 0,
+        "fields": [
+          {
+            "name": "description",
+            "value": "Client Lunch",
+            "previousValue": null,
+            "source": "Conversation",
+            "bound": true,
+            "bindingKind": "utterance-span",
+            "utteranceSpan": {
+              "offset": 21,
+              "length": 12,
+              "hash": "be079760bc6446633cf17b9e3fcc12fa3b687d0142309d32c5e47b7d9207675c"
+            }
+          }
+        ]
+      }
+    },
+    "store": {
+      "count": 1,
+      "pending": 1
+    }
+  }
+}

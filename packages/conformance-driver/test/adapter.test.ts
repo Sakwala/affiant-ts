@@ -1,4 +1,8 @@
-import { adapterManifest, conformanceManifest } from "@affiant/contract/conformance";
+import {
+  adapterFixtures,
+  adapterManifest,
+  conformanceManifest,
+} from "@affiant/contract/conformance";
 import type { ConformanceFixtureDocument } from "@affiant/contract/conformance";
 import { AffiantError } from "@affiant/core";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -390,4 +394,46 @@ describe("the section is not vacuous", () => {
     expect(result?.outcome).toBe("fail");
     expect(result?.diff?.map((entry) => entry.at)).toContain("modelOutput");
   }, 120_000);
+});
+
+describe("a keyed adapter fixture runs keyed (GT-4, v0.6.0)", () => {
+  // No adapter document at v0.6.0 states `given.gate.digestKey`, so this one is made
+  // here: the rulebook's write-with-context document, with the key the gate section's
+  // keyed documents use. Its expectations name no id and no hash, so it passes keyed
+  // or not; what tells the two apart is the entry id the tool answers with, whose
+  // digest is HMAC-SHA-256 under the key or SHA-256 without one. A driver that drops
+  // the key files the keyed document under the unkeyed id, and this test fails.
+  const KEY = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+
+  async function filedIds(document: ConformanceFixtureDocument) {
+    const ids: string[] = [];
+    const recording = binding({
+      async call(set: never, call: AdapterCall) {
+        const output = await aiSdkAdapter.call(set, call);
+        const entryId = (output as { entryId?: unknown } | null)?.entryId;
+        if (typeof entryId === "string") ids.push(entryId);
+        return output;
+      },
+    });
+    const outcome = await runAdapterFixture(document, recording);
+    return { outcome, ids };
+  }
+
+  it("files under a different entry id when the document states a digest key", async () => {
+    const plain = adapterFixtures.find((f) => f.id === "adapter/cv2-write-with-context-files");
+    expect(plain).toBeDefined();
+    const keyed = structuredClone(plain!) as unknown as {
+      given: { gate: Record<string, unknown> };
+    };
+    keyed.given.gate["digestKey"] = KEY;
+
+    const unkeyedRun = await filedIds(plain!);
+    const keyedRun = await filedIds(keyed as unknown as ConformanceFixtureDocument);
+
+    expect(unkeyedRun.outcome.outcome).toBe("pass");
+    expect(keyedRun.outcome.outcome).toBe("pass");
+    expect(unkeyedRun.ids).toHaveLength(1);
+    expect(keyedRun.ids).toHaveLength(1);
+    expect(keyedRun.ids[0]).not.toBe(unkeyedRun.ids[0]);
+  });
 });

@@ -14,7 +14,7 @@
   "$defs": {
     "utteranceSpan": {
       "title": "UtteranceSpanBinding",
-      "description": "The span of the unmodified utterance the value was read from. Offset and length rather than a start/end pair, and a hash of the substring: offsets alone rot the moment anything re-wraps or re-encodes a transcript, so the hash is what lets an auditor prove the span still says what it said. The digest algorithm and encoding are the canonical-form rules' (SR-1). The span indexes the utterance of the message named by `ref.messageId`; with no `messageId` it indexes the utterance of the Affidavit's own turn (GT-7).",
+      "description": "The span of the unmodified utterance the value was read from. Offset and length rather than a start/end pair, and a hash of the substring: offsets alone rot the moment anything re-wraps or re-encodes a transcript, so the hash is what lets an auditor prove the span still says what it said. The digest algorithm and encoding are the canonical-form rules' (SR-1) or, when the host supplies a digest key, HMAC-SHA-256 under that key in the same encoding (PV-3, GT-4, v0.6.0). The span indexes the utterance of the message named by `ref.messageId`; with no `messageId` it indexes the utterance of the Affidavit's own turn (GT-7).",
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "ref"],

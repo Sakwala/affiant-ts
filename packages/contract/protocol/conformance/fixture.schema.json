@@ -275,6 +275,11 @@
           "description": "Whether a rehydration surface is wired (DK-5). Defaults to true.",
           "type": "boolean"
         },
+        "digestKey": {
+          "description": "The digest key the host supplies to its gate (GT-4, v0.6.0): the raw key bytes as lowercase hexadecimal, at least 32 bytes. Stated, the entry id's digest (GT-4) and every utterance-span hash (PV-3) are HMAC-SHA-256 under these bytes; absent, no key is supplied and both are SHA-256. A fixture's key is a fixed synthetic value, never a secret.",
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2}){32,}$"
+        },
         "draft": {
           "description": "The reference in-memory draft port (GT-7): `ttlMs` is how long a drafted field is held. Absent, no draft port is wired: `file` carries nothing and a `draft` step is refused `wireup-invalid`.",
           "type": "object",
@@ -1298,7 +1303,7 @@
         "bound": { "description": "Whether the tag in force points at something checkable (PV-2, PV-4).", "type": "boolean" },
         "bindingKind": { "oneOf": [{ "$ref": "#/$defs/bindingKind" }, { "type": "null" }] },
         "utteranceSpan": {
-          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
+          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 — or, when `given.gate.digestKey` is stated, the HMAC-SHA-256 under that key (PV-3, GT-4, v0.6.0) — of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
           "type": "object",
           "additionalProperties": false,
           "required": ["offset", "length", "hash"],

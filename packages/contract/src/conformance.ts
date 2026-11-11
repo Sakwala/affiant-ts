@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.5.1.
+// copy of Sakwala/affiant-protocol at v0.6.0.
 // Source: protocol/fixtures/{gate,decide,sequence-a,sequence-c,canonical,adapter}/ and protocol/conformance/
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -16,7 +16,7 @@ type JsonData = string | number | boolean | null | JsonData[] | { [key: string]:
  * every result document it emits and of the parity manifest it is asserted against:
  * a result whose ref is not the one the manifest names is not a comparison.
  */
-export const PROTOCOL_PIN = "v0.5.1" as const;
+export const PROTOCOL_PIN = "v0.6.0" as const;
 
 /**
  * One declarative conformance fixture: a wiring, a sequence of acts, and what must
@@ -539,6 +539,39 @@ export const conformanceManifest = {
       "rules": [
         "PV-2",
         "GT-1"
+      ],
+      "set": "gate",
+      "oracle": null
+    },
+    {
+      "id": "gate/digest-key-span-hash-is-hmac",
+      "file": "gate/47-digest-key-span-hash-is-hmac.json",
+      "rules": [
+        "PV-3",
+        "GT-4",
+        "PV-2"
+      ],
+      "set": "gate",
+      "oracle": null
+    },
+    {
+      "id": "gate/digest-key-refile-replays",
+      "file": "gate/48-digest-key-refile-replays.json",
+      "rules": [
+        "GT-4",
+        "DK-1",
+        "PV-3"
+      ],
+      "set": "gate",
+      "oracle": null
+    },
+    {
+      "id": "gate/digest-key-draft-carries-the-keyed-hash",
+      "file": "gate/49-digest-key-draft-carries-the-keyed-hash.json",
+      "rules": [
+        "GT-7",
+        "PV-3",
+        "GT-4"
       ],
       "set": "gate",
       "oracle": null
@@ -1495,6 +1528,17 @@ export const conformanceManifest = {
       "oracle": null
     },
     {
+      "id": "sequence-a/digest-key-resubmit-replays",
+      "file": "sequence-a/16-digest-key-resubmit-replays.json",
+      "rules": [
+        "DK-1",
+        "GT-4",
+        "PV-3"
+      ],
+      "set": "sequence-a",
+      "oracle": null
+    },
+    {
       "id": "sequence-c/relay-auto-approve-bound-external",
       "file": "sequence-c/01-relay-auto-approve-bound-external.json",
       "rules": [
@@ -1641,7 +1685,7 @@ export const conformanceManifest = {
 } as const;
 
 /**
- * The 108 declarative fixtures, in manifest order. Promoted
+ * The 112 declarative fixtures, in manifest order. Promoted
  * byte-identical from the reference implementation's own test set, so "this
  * implementation passes it and that one does not" is a comparison rather than an
  * opinion.
@@ -5271,6 +5315,386 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
               "bound": true,
               "bindingKind": "computation-ref",
               "confidence": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/digest-key-span-hash-is-hmac",
+    "rules": [
+      "PV-3",
+      "GT-4",
+      "PV-2"
+    ],
+    "title": "The gate/inference-case-folds-and-the-digest-is-the-utterances scene with a digest key supplied to the gate: the span, the grade and the binding are the same, and the span's hash is the HMAC-SHA-256 of client lunch, as the person typed it, under that key - not its SHA-256 (PV-3, GT-4). The key is a fixed synthetic 32-byte value.",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "description": {
+            "value": "Client Lunch",
+            "confidence": 0.8
+          }
+        },
+        "digestKey": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "File the expense for client lunch, 40 EUR",
+        "messageId": "msg-1"
+      },
+      "prior": [],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "ExpenseReport",
+          "entityId": null,
+          "fields": [
+            "description"
+          ]
+        },
+        "schema": [
+          {
+            "name": "description",
+            "kind": "text",
+            "description": "What the expense was for"
+          }
+        ]
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "expiresAtOffsetMs": 1800000,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.8,
+          "populatedConfidence": 0.8,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "description",
+              "value": "Client Lunch",
+              "previousValue": null,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 12,
+                "hash": "be079760bc6446633cf17b9e3fcc12fa3b687d0142309d32c5e47b7d9207675c"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "gate/digest-key-refile-replays",
+    "rules": [
+      "GT-4",
+      "DK-1",
+      "PV-3"
+    ],
+    "title": "The host files the same proposal twice, twenty minutes apart, under one digest key: the entry id is the HMAC-SHA-256 derivation under that key both times, so the second filing is an idempotent replay of the first - one row, still pending, its span hash the keyed one (GT-4, DK-1).",
+    "given": {
+      "clock": "2026-09-08T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "description": {
+            "value": "Client Lunch",
+            "confidence": 0.8
+          }
+        },
+        "digestKey": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "File the expense for client lunch, 40 EUR",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "file",
+          "as": "filed",
+          "toolName": "relay_capture",
+          "operation": {
+            "kind": "create",
+            "entityType": "ExpenseReport",
+            "entityId": null,
+            "fields": [
+              "description"
+            ]
+          },
+          "schema": [
+            {
+              "name": "description",
+              "kind": "text",
+              "description": "What the expense was for"
+            }
+          ]
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "relay_capture",
+        "operation": {
+          "kind": "create",
+          "entityType": "ExpenseReport",
+          "entityId": null,
+          "fields": [
+            "description"
+          ]
+        },
+        "schema": [
+          {
+            "name": "description",
+            "kind": "text",
+            "description": "What the expense was for"
+          }
+        ],
+        "at": "2026-09-08T09:20:00.000Z"
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "requirement": "ReviewerConfirmation",
+        "execution": null,
+        "blocked": null,
+        "attestation": null,
+        "toolName": "relay_capture",
+        "affidavit": {
+          "operationType": "create",
+          "entityId": null,
+          "aggregateConfidence": 0.8,
+          "populatedConfidence": 0.8,
+          "emptyFieldCount": 0,
+          "fields": [
+            {
+              "name": "description",
+              "value": "Client Lunch",
+              "previousValue": null,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 12,
+                "hash": "be079760bc6446633cf17b9e3fcc12fa3b687d0142309d32c5e47b7d9207675c"
+              }
+            }
+          ]
+        }
+      },
+      "store": {
+        "count": 1,
+        "pending": 1
+      }
+    }
+  },
+  {
+    "id": "gate/digest-key-draft-carries-the-keyed-hash",
+    "rules": [
+      "GT-7",
+      "PV-3",
+      "GT-4"
+    ],
+    "title": "The gate/draft-carries-a-conversation-tag-across-turns scene under a digest key: the amount and the payee stated on turn 1 are drafted with spans hashed by HMAC-SHA-256 under the key, and the filing on turn 3 carries those keyed hashes unchanged, naming msg-1 - a carried binding is never re-hashed and never falls back to SHA-256 (GT-7, PV-3, GT-4).",
+    "given": {
+      "clock": "2026-09-30T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "digestKey": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "draft": {
+          "ttlMs": 3600000
+        }
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "member-1"
+        },
+        "utterance": "Money going out",
+        "messageId": "msg-3"
+      },
+      "prior": [
+        {
+          "kind": "draft",
+          "toolName": "capture_entry",
+          "operation": {
+            "kind": "create",
+            "entityType": "Entry",
+            "entityId": null,
+            "fields": [
+              "amount",
+              "payee",
+              "currency"
+            ]
+          },
+          "schema": [
+            {
+              "name": "amount",
+              "kind": "number",
+              "description": "How much money moves"
+            },
+            {
+              "name": "payee",
+              "kind": "text",
+              "description": "Who the money goes to"
+            },
+            {
+              "name": "currency",
+              "kind": "text",
+              "description": "The currency of the amount"
+            }
+          ],
+          "turn": {
+            "utterance": "I want to pay 15000 to Serendib Growth Fund unit trust",
+            "messageId": "msg-1"
+          },
+          "inference": {
+            "amount": {
+              "value": 15000,
+              "confidence": 0.9
+            },
+            "payee": {
+              "value": "Serendib Growth Fund unit trust",
+              "confidence": 0.9
+            }
+          }
+        }
+      ],
+      "step": {
+        "kind": "file",
+        "toolName": "capture_entry",
+        "operation": {
+          "kind": "create",
+          "entityType": "Entry",
+          "entityId": null,
+          "fields": [
+            "amount",
+            "payee",
+            "currency"
+          ]
+        },
+        "schema": [
+          {
+            "name": "amount",
+            "kind": "number",
+            "description": "How much money moves"
+          },
+          {
+            "name": "payee",
+            "kind": "text",
+            "description": "Who the money goes to"
+          },
+          {
+            "name": "currency",
+            "kind": "text",
+            "description": "The currency of the amount"
+          }
+        ],
+        "inference": {
+          "amount": {
+            "value": 15000,
+            "confidence": 0.6
+          },
+          "payee": {
+            "value": "serendib growth fund unit trust",
+            "confidence": 0.9
+          },
+          "currency": {
+            "value": "LKR",
+            "confidence": 0.9
+          }
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "affidavit": {
+          "fields": [
+            {
+              "name": "amount",
+              "value": 15000,
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 14,
+                "length": 5,
+                "hash": "bad29fb85b4a87cb2189802c2d9b62777fb8d1a576d067e3ee8b32c06d5e700c",
+                "messageId": "msg-1"
+              },
+              "confidence": 0.6
+            },
+            {
+              "name": "payee",
+              "value": "serendib growth fund unit trust",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 23,
+                "length": 31,
+                "hash": "f847b3091346664928995a0a5ce2ce65ca50b6563f9fb10e46d8e3583b22448d",
+                "messageId": "msg-1"
+              }
+            },
+            {
+              "name": "currency",
+              "value": "LKR",
+              "source": "Inferred",
+              "bound": false,
+              "bindingKind": null
             }
           ]
         }
@@ -14861,6 +15285,141 @@ export const conformanceFixtures: readonly ConformanceFixtureDocument[] = [
     }
   },
   {
+    "id": "sequence-a/digest-key-resubmit-replays",
+    "rules": [
+      "DK-1",
+      "GT-4",
+      "PV-3"
+    ],
+    "title": "The review window closed under a gate with a digest key, the entry was resubmitted, and the host resubmits it again five minutes later under the same key. The resubmission's id is derived under the key from the superseded entry's id, so the repeat replays: two rows - the expired original, which names its one successor, and one pending resubmission whose span hash is the keyed one (DK-1, GT-4).",
+    "given": {
+      "clock": "2026-09-04T09:00:00.000Z",
+      "store": "memory",
+      "gate": {
+        "defaultTtlMs": 1800000,
+        "authorization": {
+          "allow": [
+            "*"
+          ]
+        },
+        "inference": {
+          "status": {
+            "value": "Active",
+            "confidence": 0.9,
+            "presence": "literal",
+            "utteranceSpan": {
+              "start": 21,
+              "end": 27
+            }
+          }
+        },
+        "digestKey": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "ctx": {
+        "tenantId": "tenant-a",
+        "conversationId": "conv-1",
+        "channel": "chat",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        },
+        "utterance": "Set invoice INV-2 to Active",
+        "messageId": "msg-1"
+      },
+      "prior": [
+        {
+          "kind": "wrap-execute",
+          "as": "filed",
+          "at": "2026-09-04T09:00:00.000Z",
+          "tool": {
+            "name": "update_invoice",
+            "description": "Update an invoice",
+            "entityType": "Invoice",
+            "entityId": "invoice-1",
+            "writeCapable": true,
+            "fields": [
+              {
+                "name": "status",
+                "kind": "enum",
+                "description": "The invoice status",
+                "required": true,
+                "allowedValues": [
+                  "Draft",
+                  "Active",
+                  "Retired"
+                ],
+                "pattern": null
+              }
+            ]
+          },
+          "args": {
+            "status": "Draft"
+          }
+        },
+        {
+          "kind": "resubmit",
+          "at": "2026-09-04T09:45:00.000Z",
+          "principal": {
+            "kind": "member",
+            "id": "ana"
+          },
+          "as": "resubmitted",
+          "entry": "filed"
+        }
+      ],
+      "step": {
+        "kind": "resubmit",
+        "at": "2026-09-04T09:50:00.000Z",
+        "entry": "filed",
+        "principal": {
+          "kind": "member",
+          "id": "ana"
+        }
+      }
+    },
+    "expect": {
+      "entry": {
+        "status": "pending",
+        "execution": null,
+        "toolName": "update_invoice",
+        "lineage": {
+          "supersedes": "@some",
+          "supersededBy": null
+        },
+        "affidavit": {
+          "fields": [
+            {
+              "name": "status",
+              "value": "Active",
+              "source": "Conversation",
+              "bound": true,
+              "bindingKind": "utterance-span",
+              "utteranceSpan": {
+                "offset": 21,
+                "length": 6,
+                "hash": "c96911ea3504e5b73be5e9892a044e3a5ff2f0657f8e0f8dc5b2bc5697d5805a"
+              }
+            }
+          ]
+        },
+        "preservedAmendments": null
+      },
+      "superseded": {
+        "status": "expired",
+        "execution": null,
+        "decision": null,
+        "attestation": null,
+        "lineage": {
+          "supersededBy": "@some"
+        }
+      },
+      "store": {
+        "count": 2,
+        "pending": 1
+      }
+    }
+  },
+  {
     "id": "sequence-c/relay-auto-approve-bound-external",
     "rules": [
       "PV-4",
@@ -16087,81 +16646,85 @@ export const conformanceById: Readonly<
   "gate/draft-from-a-question-turn": conformanceFixtures[30]!,
   "gate/id-material-args-serialize-as-given": conformanceFixtures[31]!,
   "gate/computed-inputs-turn-and-field": conformanceFixtures[32]!,
-  "gate/multiparty-files-one-entry": conformanceFixtures[33]!,
-  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[34]!,
-  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[35]!,
-  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[36]!,
-  "gate/multiparty-verdict-required-zero": conformanceFixtures[37]!,
-  "gate/draft-inferred-does-not-carry": conformanceFixtures[38]!,
-  "gate/draft-expired-does-not-carry": conformanceFixtures[39]!,
-  "gate/draft-other-conversation-does-not-carry": conformanceFixtures[40]!,
-  "gate/draft-carries-a-conversation-tag-across-turns": conformanceFixtures[41]!,
-  "gate/draft-changed-value-does-not-carry": conformanceFixtures[42]!,
-  "gate/draft-later-hit-replaces-the-earlier": conformanceFixtures[43]!,
-  "decide/approve": conformanceFixtures[44]!,
-  "decide/reject": conformanceFixtures[45]!,
-  "decide/second-decision-refused": conformanceFixtures[46]!,
-  "decide/expired-amendments-preserved": conformanceFixtures[47]!,
-  "decide/blocked-refused": conformanceFixtures[48]!,
-  "decide/amend-recompute": conformanceFixtures[49]!,
-  "decide/unresolved-identity": conformanceFixtures[50]!,
-  "decide/wrong-tenant": conformanceFixtures[51]!,
-  "decide/authorization-declined": conformanceFixtures[52]!,
-  "decide/relay-member-via-relay": conformanceFixtures[53]!,
-  "decide/relay-without-assertion-refused": conformanceFixtures[54]!,
-  "decide/execution-executed": conformanceFixtures[55]!,
-  "decide/execution-failed": conformanceFixtures[56]!,
-  "decide/execution-on-pending-refused": conformanceFixtures[57]!,
-  "decide/resubmit-prefills": conformanceFixtures[58]!,
-  "decide/executed-only-through-a-report": conformanceFixtures[59]!,
-  "decide/authorization-throws": conformanceFixtures[60]!,
-  "decide/execution-recorded-once": conformanceFixtures[61]!,
-  "decide/execution-second-report-refused": conformanceFixtures[62]!,
-  "decide/multiparty-partial-stays-pending": conformanceFixtures[63]!,
-  "decide/multiparty-all-approve": conformanceFixtures[64]!,
-  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[65]!,
-  "decide/execution-detail-typed": conformanceFixtures[66]!,
-  "decide/multiparty-reject-folds": conformanceFixtures[67]!,
-  "decide/multiparty-non-approver-refused": conformanceFixtures[68]!,
-  "decide/multiparty-approver-twice-refused": conformanceFixtures[69]!,
-  "decide/multiparty-amendment-refused": conformanceFixtures[70]!,
-  "decide/multiparty-after-fold-refused": conformanceFixtures[71]!,
-  "decide/multiparty-expired-then-resubmit": conformanceFixtures[72]!,
-  "decide/multiparty-approve-via-relay": conformanceFixtures[73]!,
-  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[74]!,
-  "decide/multiparty-approvals-in-record-order": conformanceFixtures[75]!,
-  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[76]!,
-  "decide/multiparty-refile-replays": conformanceFixtures[77]!,
-  "decide/withdraw-pending-multiparty": conformanceFixtures[78]!,
-  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[79]!,
-  "decide/withdraw-blocked-allowed": conformanceFixtures[80]!,
-  "decide/withdraw-after-fold-refused": conformanceFixtures[81]!,
-  "decide/withdraw-expired-refused": conformanceFixtures[82]!,
-  "decide/withdraw-twice-refused": conformanceFixtures[83]!,
-  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[84]!,
-  "decide/decide-after-withdraw-refused": conformanceFixtures[85]!,
-  "decide/execution-on-withdrawn-refused": conformanceFixtures[86]!,
-  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[87]!,
-  "sequence-a/approve-round-trip": conformanceFixtures[88]!,
-  "sequence-a/reject-round-trip": conformanceFixtures[89]!,
-  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[90]!,
-  "sequence-a/picker-external-binding": conformanceFixtures[91]!,
-  "sequence-a/mandatory-field-left-empty": conformanceFixtures[92]!,
-  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[93]!,
-  "sequence-a/expiry-then-resubmit": conformanceFixtures[94]!,
-  "sequence-a/late-amendments-preserved": conformanceFixtures[95]!,
-  "sequence-a/interleaved-conversations": conformanceFixtures[96]!,
-  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[97]!,
-  "sequence-a/sweep-pages": conformanceFixtures[98]!,
-  "sequence-a/rehydration-order": conformanceFixtures[99]!,
-  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[100]!,
-  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[101]!,
-  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[102]!,
-  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[103]!,
-  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[104]!,
-  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[105]!,
-  "sequence-c/relay-may-not-attest-member": conformanceFixtures[106]!,
-  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[107]!,
+  "gate/digest-key-span-hash-is-hmac": conformanceFixtures[33]!,
+  "gate/digest-key-refile-replays": conformanceFixtures[34]!,
+  "gate/digest-key-draft-carries-the-keyed-hash": conformanceFixtures[35]!,
+  "gate/multiparty-files-one-entry": conformanceFixtures[36]!,
+  "gate/multiparty-verdict-too-few-approvers": conformanceFixtures[37]!,
+  "gate/multiparty-verdict-required-out-of-range": conformanceFixtures[38]!,
+  "gate/multiparty-verdict-duplicate-approvers": conformanceFixtures[39]!,
+  "gate/multiparty-verdict-required-zero": conformanceFixtures[40]!,
+  "gate/draft-inferred-does-not-carry": conformanceFixtures[41]!,
+  "gate/draft-expired-does-not-carry": conformanceFixtures[42]!,
+  "gate/draft-other-conversation-does-not-carry": conformanceFixtures[43]!,
+  "gate/draft-carries-a-conversation-tag-across-turns": conformanceFixtures[44]!,
+  "gate/draft-changed-value-does-not-carry": conformanceFixtures[45]!,
+  "gate/draft-later-hit-replaces-the-earlier": conformanceFixtures[46]!,
+  "decide/approve": conformanceFixtures[47]!,
+  "decide/reject": conformanceFixtures[48]!,
+  "decide/second-decision-refused": conformanceFixtures[49]!,
+  "decide/expired-amendments-preserved": conformanceFixtures[50]!,
+  "decide/blocked-refused": conformanceFixtures[51]!,
+  "decide/amend-recompute": conformanceFixtures[52]!,
+  "decide/unresolved-identity": conformanceFixtures[53]!,
+  "decide/wrong-tenant": conformanceFixtures[54]!,
+  "decide/authorization-declined": conformanceFixtures[55]!,
+  "decide/relay-member-via-relay": conformanceFixtures[56]!,
+  "decide/relay-without-assertion-refused": conformanceFixtures[57]!,
+  "decide/execution-executed": conformanceFixtures[58]!,
+  "decide/execution-failed": conformanceFixtures[59]!,
+  "decide/execution-on-pending-refused": conformanceFixtures[60]!,
+  "decide/resubmit-prefills": conformanceFixtures[61]!,
+  "decide/executed-only-through-a-report": conformanceFixtures[62]!,
+  "decide/authorization-throws": conformanceFixtures[63]!,
+  "decide/execution-recorded-once": conformanceFixtures[64]!,
+  "decide/execution-second-report-refused": conformanceFixtures[65]!,
+  "decide/multiparty-partial-stays-pending": conformanceFixtures[66]!,
+  "decide/multiparty-all-approve": conformanceFixtures[67]!,
+  "decide/multiparty-executed-with-typed-detail": conformanceFixtures[68]!,
+  "decide/execution-detail-typed": conformanceFixtures[69]!,
+  "decide/multiparty-reject-folds": conformanceFixtures[70]!,
+  "decide/multiparty-non-approver-refused": conformanceFixtures[71]!,
+  "decide/multiparty-approver-twice-refused": conformanceFixtures[72]!,
+  "decide/multiparty-amendment-refused": conformanceFixtures[73]!,
+  "decide/multiparty-after-fold-refused": conformanceFixtures[74]!,
+  "decide/multiparty-expired-then-resubmit": conformanceFixtures[75]!,
+  "decide/multiparty-approve-via-relay": conformanceFixtures[76]!,
+  "decide/multiparty-late-amendments-not-preserved": conformanceFixtures[77]!,
+  "decide/multiparty-approvals-in-record-order": conformanceFixtures[78]!,
+  "decide/multiparty-wrong-tenant-not-found": conformanceFixtures[79]!,
+  "decide/multiparty-refile-replays": conformanceFixtures[80]!,
+  "decide/withdraw-pending-multiparty": conformanceFixtures[81]!,
+  "decide/withdraw-pending-reviewer-confirmation": conformanceFixtures[82]!,
+  "decide/withdraw-blocked-allowed": conformanceFixtures[83]!,
+  "decide/withdraw-after-fold-refused": conformanceFixtures[84]!,
+  "decide/withdraw-expired-refused": conformanceFixtures[85]!,
+  "decide/withdraw-twice-refused": conformanceFixtures[86]!,
+  "decide/withdraw-wrong-tenant-not-found": conformanceFixtures[87]!,
+  "decide/decide-after-withdraw-refused": conformanceFixtures[88]!,
+  "decide/execution-on-withdrawn-refused": conformanceFixtures[89]!,
+  "decide/withdraw-replay-returns-withdrawn": conformanceFixtures[90]!,
+  "sequence-a/approve-round-trip": conformanceFixtures[91]!,
+  "sequence-a/reject-round-trip": conformanceFixtures[92]!,
+  "sequence-a/typed-inputs-on-the-card": conformanceFixtures[93]!,
+  "sequence-a/picker-external-binding": conformanceFixtures[94]!,
+  "sequence-a/mandatory-field-left-empty": conformanceFixtures[95]!,
+  "sequence-a/mandatory-field-reviewer-approves": conformanceFixtures[96]!,
+  "sequence-a/expiry-then-resubmit": conformanceFixtures[97]!,
+  "sequence-a/late-amendments-preserved": conformanceFixtures[98]!,
+  "sequence-a/interleaved-conversations": conformanceFixtures[99]!,
+  "sequence-a/replay-keeps-the-deadline": conformanceFixtures[100]!,
+  "sequence-a/sweep-pages": conformanceFixtures[101]!,
+  "sequence-a/rehydration-order": conformanceFixtures[102]!,
+  "sequence-a/coverage-refused-at-wire-up": conformanceFixtures[103]!,
+  "sequence-a/mandatory-field-empty-blocks-standing-order": conformanceFixtures[104]!,
+  "sequence-a/optional-field-empty-standing-order-fires": conformanceFixtures[105]!,
+  "sequence-a/digest-key-resubmit-replays": conformanceFixtures[106]!,
+  "sequence-c/relay-auto-approve-bound-external": conformanceFixtures[107]!,
+  "sequence-c/relayed-decision-member-via-relay": conformanceFixtures[108]!,
+  "sequence-c/unbound-external-asks-a-person": conformanceFixtures[109]!,
+  "sequence-c/relay-may-not-attest-member": conformanceFixtures[110]!,
+  "sequence-c/relay-decision-other-tenant-not-found": conformanceFixtures[111]!,
   "canonical/create-shaped": canonicalVectors[0]!,
   "canonical/update-shaped": canonicalVectors[1]!,
   "canonical/wire-evidence-card-request": canonicalVectors[2]!,
@@ -17870,6 +18433,11 @@ export const fixtureSchema: JsonSchemaDocument = {
         "sessions": {
           "description": "Whether a rehydration surface is wired (DK-5). Defaults to true.",
           "type": "boolean"
+        },
+        "digestKey": {
+          "description": "The digest key the host supplies to its gate (GT-4, v0.6.0): the raw key bytes as lowercase hexadecimal, at least 32 bytes. Stated, the entry id's digest (GT-4) and every utterance-span hash (PV-3) are HMAC-SHA-256 under these bytes; absent, no key is supplied and both are SHA-256. A fixture's key is a fixed synthetic value, never a secret.",
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{2}){32,}$"
         },
         "draft": {
           "description": "The reference in-memory draft port (GT-7): `ttlMs` is how long a drafted field is held. Absent, no draft port is wired: `file` carries nothing and a `draft` step is refused `wireup-invalid`.",
@@ -19904,7 +20472,7 @@ export const fixtureSchema: JsonSchemaDocument = {
           ]
         },
         "utteranceSpan": {
-          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
+          "description": "The utterance-span binding the tag in force carries, stated exactly (PV-3 v0.1.3): `offset` and `length` in UTF-16 code units of the utterance of the turn the span indexes — the step's own turn, or, when `messageId` is stated, the message it names — and `hash` the SHA-256 — or, when `given.gate.digestKey` is stated, the HMAC-SHA-256 under that key (PV-3, GT-4, v0.6.0) — of the UTF-8 bytes of the utterance's OWN substring at that span, 64 lowercase hexadecimal characters. Stating it pins which occurrence was found and that the digest is taken over the utterance rather than over the value the port reported. Absent asserts nothing about the span.",
           "type": "object",
           "additionalProperties": false,
           "required": [

@@ -49,7 +49,7 @@ node packages/conformance-driver/dist/cli.js       # the same run, as a command
 4. **Emits a run document** validating against the rulebook's `results.schema.json`, with one entry per
    document including the ones that passed — a run that reported only failures could not be checked for
    completeness. The committed evidence is
-   [`conformance/results/typescript-0.1.0-alpha.16.json`](conformance/results/typescript-0.1.0-alpha.16.json).
+   [`conformance/results/typescript-0.1.0-alpha.17.json`](conformance/results/typescript-0.1.0-alpha.17.json).
 5. **Asserts the failing set equals the parity manifest**, exactly, in both directions, over the **union** of
    the sections the run covered.
 
@@ -94,7 +94,7 @@ Its verdict is what `adapters[].claimsLint` in the manifest states.
 
 ## The parity manifest
 
-[`conformance/parity/typescript-v0.2.json`](conformance/parity/typescript-v0.2.json) is this implementation's
+[`conformance/parity/typescript-v0.5.json`](conformance/parity/typescript-v0.5.json) is this implementation's
 published statement of which documents it does **not** pass. Today it is empty.
 
 An empty list is the strongest possible statement, and it is worth something only because the assertion is
