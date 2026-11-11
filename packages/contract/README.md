@@ -14,10 +14,11 @@ approve, amend or reject before the host commits anything.
 This package is types and data. It has no runtime dependencies and does nothing at
 import time.
 
-> **On npm at `0.1.0-alpha.11`**, under the `alpha` dist-tag and with a provenance
-> attestation, since 2026-09-10: `npm i @affiant/contract@alpha`. `latest` and `alpha`
-> both point at `0.1.0-alpha.11`. Publishing is a separate, deliberate step — a workflow
-> a maintainer dispatches by hand, which defaults to a dry run.
+> **`0.1.0-alpha.11` in this repository.** Releases go to npm under the `alpha` dist-tag
+> with a provenance attestation, since 2026-09-10: `npm i @affiant/contract@alpha`. The
+> publish workflow moves `alpha` and no other tag; `npm view @affiant/contract dist-tags`
+> shows what the registry currently serves. Publishing is a separate, deliberate step — a
+> workflow a maintainer dispatches by hand, which defaults to a dry run.
 
 ## Pinned protocol version
 
