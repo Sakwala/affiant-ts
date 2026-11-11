@@ -506,6 +506,49 @@ export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   return hex;
 }
 
+/**
+ * HMAC-SHA-256 of `bytes` under `key`, as 64 lowercase hex characters.
+ *
+ * The keyed sibling of {@link sha256Hex}. A gate given a digest key computes the span
+ * hash of an `utterance-span` binding (PV-3) and the digest inside an entry id (GT-4)
+ * through this, so a stored digest of a person's words cannot be tested against
+ * guesses by someone who holds the database and not the key. {@link canonicalHash}
+ * never goes through it: SR-1's vectors are unkeyed.
+ *
+ * `key` is either an HMAC `CryptoKey` (hash SHA-256, usage `sign`) or the raw key
+ * bytes, which are imported for this one call. This function sets no minimum key
+ * length; the gate does, where a host hands it a key.
+ *
+ * @throws Error when the runtime exposes no `crypto.subtle` (RT-1, as {@link sha256Hex}).
+ */
+export async function hmacSha256Hex(
+  key: CryptoKey | Uint8Array,
+  bytes: Uint8Array,
+): Promise<string> {
+  const subtle = (globalThis as { readonly crypto?: Crypto }).crypto?.subtle;
+  if (subtle === undefined) {
+    throw new Error(
+      "RT-1: this package computes HMAC through Web Crypto only (globalThis.crypto.subtle), " +
+        "which is present on Node 22, Bun and workerd. There is no node:crypto fallback by design.",
+    );
+  }
+  const cryptoKey =
+    key instanceof Uint8Array
+      ? await subtle.importKey(
+          "raw",
+          new Uint8Array(key),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"],
+        )
+      : key;
+  // Copied for the same reason as in `sha256Hex`: the caller's array may be shared.
+  const mac = await subtle.sign("HMAC", cryptoKey, new Uint8Array(bytes));
+  let hex = "";
+  for (const byte of new Uint8Array(mac)) hex += byte.toString(16).padStart(2, "0");
+  return hex;
+}
+
 /** Apply the amendments if there are any, refusing an amendment with no reviewer act. */
 function withAmendments(
   affidavit: CanonicalInput,

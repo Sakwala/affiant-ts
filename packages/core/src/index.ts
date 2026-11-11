@@ -280,6 +280,7 @@ export {
   canonicalJson,
   canonicalString,
   canonicalStringEntry,
+  hmacSha256Hex,
   sha256Hex,
   swornAffidavitOf,
 } from "./model/canonical.js";
@@ -363,6 +364,8 @@ export type { CardForOptions } from "./gate/card.js";
 
 export { decisionResultOf } from "./gate/decision-result.js";
 export type { DecisionOutcome, DecisionResult } from "./gate/decision-result.js";
+
+export type { DigestKey } from "./gate/digest-key.js";
 
 export { deriveEntryId, runPipeline } from "./gate/pipeline.js";
 export type {
