@@ -18,7 +18,7 @@
  *
  * The format is the rulebook's `conformance/PARITY.md`, and the shape is its
  * `conformance/parity/MANIFEST.schema.json`. This module is the source; the
- * committed JSON beside it (`conformance/parity/typescript-v0.2.json`) is the
+ * committed JSON beside it (`conformance/parity/typescript-v0.5.json`) is the
  * artifact, and `test/node/published-claims.test.ts` asserts the two are identical,
  * so the file cannot be regenerated without being committed — and cannot be edited
  * without the module saying so.
@@ -301,8 +301,8 @@ export const parityManifest: ParityManifest = {
   // (conformance/PARITY.md): "When the run happened." A literal because this module runs
   // inside workerd and cannot read the file; `published-claims.test.ts` holds it to that
   // file, so a regenerated run and a stale literal cannot both be committed.
-  producedAt: "2026-10-01T02:57:55.731Z",
-  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.16.json",
+  producedAt: "2026-11-11T03:27:53.981Z",
+  runLog: "packages/conformance-driver/conformance/results/typescript-0.1.0-alpha.17.json",
   failing: [],
   adapters: [
     {

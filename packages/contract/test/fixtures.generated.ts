@@ -1,6 +1,6 @@
 // GENERATED FILE — DO NOT EDIT BY HAND.
 // Produced by scripts/generate-sources.mjs from protocol/, which is a byte-for-byte
-// copy of Sakwala/affiant-protocol at v0.5.1.
+// copy of Sakwala/affiant-protocol at v0.6.0.
 // Source: protocol/fixtures/wire/ and protocol/fixtures/MANIFEST.json sections 0.1.0, 0.3.0, 0.4.0, 0.5.0
 // To change it: edit protocol/PIN, run `pnpm sync-protocol`, then `pnpm generate`.
 
@@ -4019,6 +4019,39 @@ export const manifest = {
         "oracle": null
       },
       {
+        "id": "gate/digest-key-span-hash-is-hmac",
+        "file": "gate/47-digest-key-span-hash-is-hmac.json",
+        "rules": [
+          "PV-3",
+          "GT-4",
+          "PV-2"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/digest-key-refile-replays",
+        "file": "gate/48-digest-key-refile-replays.json",
+        "rules": [
+          "GT-4",
+          "DK-1",
+          "PV-3"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
+        "id": "gate/digest-key-draft-carries-the-keyed-hash",
+        "file": "gate/49-digest-key-draft-carries-the-keyed-hash.json",
+        "rules": [
+          "GT-7",
+          "PV-3",
+          "GT-4"
+        ],
+        "set": "gate",
+        "oracle": null
+      },
+      {
         "id": "gate/multiparty-files-one-entry",
         "file": "gate/23-multiparty-files-one-entry.json",
         "rules": [
@@ -4965,6 +4998,17 @@ export const manifest = {
           "GT-5",
           "AF-1",
           "AZ-1"
+        ],
+        "set": "sequence-a",
+        "oracle": null
+      },
+      {
+        "id": "sequence-a/digest-key-resubmit-replays",
+        "file": "sequence-a/16-digest-key-resubmit-replays.json",
+        "rules": [
+          "DK-1",
+          "GT-4",
+          "PV-3"
         ],
         "set": "sequence-a",
         "oracle": null

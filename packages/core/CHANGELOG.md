@@ -10,6 +10,13 @@ are in the [root changelog](../../CHANGELOG.md).
 
 ## [Unreleased]
 
+## [0.1.0-alpha.17] — 2026-11-11
+
+### Added
+
+- `GateOptions.digestKey`: with a key, the span hash of an `utterance-span` binding (PV-3) and the digest inside an entry id (GT-4) are HMAC-SHA-256 under it; without one both are SHA-256, unchanged. `deriveEntryId(ctx, proposal, digestKey?)`, `hmacSha256Hex` and the `DigestKey` type are exported; `fixtureDigestKey` reads a fixture's `given.gate.digestKey`.
+- The pin moved to `v0.6.0`; `gate/47`, `gate/48`, `gate/49` and `sequence-a/16` read green, keyed.
+
 ## [0.1.0-alpha.16] — 2026-10-01
 
 ### Changed

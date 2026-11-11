@@ -70,6 +70,7 @@ import {
   entityProjection,
   fixedClock,
   fixedRiskScorer,
+  fixtureDigestKey,
   scriptedInference,
 } from "@affiant/core/testing";
 import type { FixtureClock, FixtureGate } from "@affiant/core/testing";
@@ -594,6 +595,7 @@ function buildGate(
     ...(given.riskScorer === undefined || given.riskScorer === null
       ? {}
       : { riskScorer: fixedRiskScorer(given.riskScorer) }),
+    ...(given.digestKey === undefined ? {} : { digestKey: fixtureDigestKey(given.digestKey) }),
   };
   const gate = createGate(options);
   for (const declaration of given.uncovered ?? []) {
